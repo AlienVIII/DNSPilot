@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::net::IpAddr;
 
+pub mod connect_probe;
 pub mod dns_benchmark;
 pub mod dns_resolver;
 pub mod dns_wire;

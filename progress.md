@@ -17,6 +17,7 @@ DNS handling, and platform capability reporting.
 - [x] [6] v0.1 UDP resolver client — local-testable UDP query execution.
 - [x] [7] v0.1 DNS benchmark runner — multi-sample aggregation for latency and reliability.
 - [x] [8] v0.1 live benchmark CLI — JSON benchmark command for manual resolver smoke tests.
+- [x] [9] v0.1 TCP connect probe — local-testable connection latency aggregation.
 
 ---
 
@@ -320,6 +321,47 @@ Result: 16 passed, 0 failed
 
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1 --timeout-ms 1000
 Result: sample_count 2, failure_rate 0.0, timeout_rate 0.0 in this run
+```
+
+---
+
+## Chunk 9: v0.1 TCP Connect Probe
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/connect_probe.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/connect_probe_behaviour.rs`
+
+### What changed
+
+Added a TCP connect probe layer for connection-path estimates. It can measure a
+single TCP connect attempt, classify timeout/failure outcomes, and aggregate
+multi-sample median, P95, failure rate, and timeout rate without doing TLS yet.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[dnspilot-core] --> BENCH[DNS benchmark runner]
+  BENCH --> UDP[UDP resolver client]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[dnspilot-core CHANGED] --> BENCH[DNS benchmark runner]
+  CORE --> TCP[TCP connect probe NEW]
+  BENCH --> UDP[UDP resolver client]
+  TCP --> METRIC[Connection-path metrics NEW]
+```
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test connect_probe_behaviour
+Result: 3 passed, 0 failed
+
+/Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
+Result: 19 passed, 0 failed
 ```
 
 ### After
