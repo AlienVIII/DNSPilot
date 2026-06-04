@@ -1,9 +1,36 @@
 use dnspilot_core::tls_probe::{
-    run_tls_handshake_probes_with_handshaker, TlsHandshakeTarget, TlsProbeConfig, TlsProbeError,
-    TlsProbeOutcome,
+    probe_tls_handshake_once_with_config, run_tls_handshake_probes_with_handshaker,
+    TlsHandshakeTarget, TlsProbeConfig, TlsProbeError, TlsProbeOutcome,
 };
+use rcgen::{generate_simple_self_signed, CertifiedKey};
+use rustls::pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer};
+use rustls::{ClientConfig, RootCertStore, ServerConfig, ServerConnection};
+use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::TcpListener;
+use std::sync::Arc;
+use std::thread;
 use std::time::Duration;
+
+#[test]
+fn performs_live_tls_handshake_to_endpoint_with_sni_server_name() {
+    let (client_config, server_config) = local_tls_configs();
+    let endpoint = spawn_one_handshake_tls_server(server_config);
+    let target = TlsHandshakeTarget {
+        domain: "localhost".into(),
+        server_name: "localhost".into(),
+        endpoint,
+    };
+
+    let elapsed = probe_tls_handshake_once_with_config(
+        &target,
+        Duration::from_secs(2),
+        Arc::new(client_config),
+    )
+    .expect("local TLS handshake should complete");
+
+    assert!(elapsed < Duration::from_secs(2));
+}
 
 #[test]
 fn aggregates_tls_handshake_samples() {
@@ -71,4 +98,47 @@ fn tls_target(domain: &str, ip: Ipv4Addr) -> TlsHandshakeTarget {
         server_name: domain.into(),
         endpoint: SocketAddr::new(IpAddr::V4(ip), 443),
     }
+}
+
+fn local_tls_configs() -> (ClientConfig, ServerConfig) {
+    let CertifiedKey { cert, signing_key } =
+        generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+    let cert_der = cert.der().clone();
+    let private_key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
+        signing_key.serialize_der(),
+    ));
+
+    let server_config = ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(vec![cert_der.clone()], private_key)
+        .unwrap();
+
+    let mut roots = RootCertStore::empty();
+    roots.add(cert_der).unwrap();
+    let client_config = ClientConfig::builder()
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+
+    (client_config, server_config)
+}
+
+fn spawn_one_handshake_tls_server(server_config: ServerConfig) -> SocketAddr {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let endpoint = listener.local_addr().unwrap();
+
+    thread::spawn(move || {
+        let (mut tcp, _) = listener.accept().unwrap();
+        tcp.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+        tcp.set_write_timeout(Some(Duration::from_secs(2))).unwrap();
+        let mut server = ServerConnection::new(Arc::new(server_config)).unwrap();
+
+        while server.is_handshaking() {
+            server.complete_io(&mut tcp).unwrap();
+        }
+
+        server.writer().write_all(b"ok").unwrap();
+        server.complete_io(&mut tcp).unwrap();
+    });
+
+    endpoint
 }

@@ -23,13 +23,13 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   metrics and conservative caveats.
 - Connection target limiting to avoid excessive TCP probes for large CDN answer
   sets, with balanced IPv4/IPv6 selection when both are available.
-- TLS/SNI probe contract with handshake latency, timeout, and certificate
-  failure classification.
+- TLS/SNI probe contract and live Rustls handshaker with handshake latency,
+  timeout, and certificate failure classification.
 - CLI smoke commands for catalog, capability, and sample recommendation output.
 
 ## Not Implemented Yet
 
-- Live TLS/SNI connect probe runner.
+- OS-native TLS trust store integration for enterprise/corporate roots.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
 - SQLite persistence.

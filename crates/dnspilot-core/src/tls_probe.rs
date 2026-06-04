@@ -1,5 +1,10 @@
+use rustls::pki_types::ServerName;
+use rustls::{ClientConfig, ClientConnection, RootCertStore};
+use std::io;
+use std::net::TcpStream;
+use std::sync::Arc;
 use std::net::SocketAddr;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TlsHandshakeTarget {
@@ -50,6 +55,53 @@ pub enum TlsProbeError {
     CertificateRejected,
     #[error("TLS handshake failed: {0}")]
     HandshakeFailed(String),
+}
+
+pub fn default_tls_client_config() -> Arc<ClientConfig> {
+    let root_store = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+    Arc::new(
+        ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_no_client_auth(),
+    )
+}
+
+pub fn probe_tls_handshake_once(
+    target: &TlsHandshakeTarget,
+    timeout: Duration,
+) -> Result<Duration, TlsProbeError> {
+    probe_tls_handshake_once_with_config(target, timeout, default_tls_client_config())
+}
+
+pub fn probe_tls_handshake_once_with_config(
+    target: &TlsHandshakeTarget,
+    timeout: Duration,
+    client_config: Arc<ClientConfig>,
+) -> Result<Duration, TlsProbeError> {
+    let started = Instant::now();
+    let mut tcp = TcpStream::connect_timeout(&target.endpoint, timeout).map_err(map_io_error)?;
+    tcp.set_read_timeout(Some(timeout)).map_err(map_io_error)?;
+    tcp.set_write_timeout(Some(timeout)).map_err(map_io_error)?;
+
+    let server_name = ServerName::try_from(target.server_name.clone())
+        .map_err(|_| TlsProbeError::HandshakeFailed("invalid SNI server name".into()))?;
+    let mut connection = ClientConnection::new(client_config, server_name)
+        .map_err(|error| map_rustls_error(&error))?;
+
+    while connection.is_handshaking() {
+        connection
+            .complete_io(&mut tcp)
+            .map_err(map_tls_io_error)?;
+    }
+
+    Ok(started.elapsed())
+}
+
+pub fn run_tls_handshake_probes(config: &TlsProbeConfig) -> TlsProbeRun {
+    let client_config = default_tls_client_config();
+    run_tls_handshake_probes_with_handshaker(config, |target| {
+        probe_tls_handshake_once_with_config(target, config.timeout, client_config.clone())
+    })
 }
 
 pub fn run_tls_handshake_probes_with_handshaker<F>(
@@ -173,5 +225,36 @@ fn rate(numerator: f64, denominator: f64) -> f64 {
         0.0
     } else {
         numerator / denominator
+    }
+}
+
+fn map_tls_io_error(error: io::Error) -> TlsProbeError {
+    if let Some(rustls_error) = error
+        .get_ref()
+        .and_then(|inner| inner.downcast_ref::<rustls::Error>())
+    {
+        return map_rustls_error(rustls_error);
+    }
+
+    map_io_error(error)
+}
+
+fn map_rustls_error(error: &rustls::Error) -> TlsProbeError {
+    match error {
+        rustls::Error::InvalidCertificate(_) | rustls::Error::NoCertificatesPresented => {
+            TlsProbeError::CertificateRejected
+        }
+        _ => TlsProbeError::HandshakeFailed(error.to_string()),
+    }
+}
+
+fn map_io_error(error: io::Error) -> TlsProbeError {
+    if matches!(
+        error.kind(),
+        io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock
+    ) {
+        TlsProbeError::Timeout
+    } else {
+        TlsProbeError::HandshakeFailed(error.to_string())
     }
 }

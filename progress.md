@@ -23,6 +23,7 @@ DNS handling, and platform capability reporting.
 - [x] [12] v0.1 connection target guardrails — per-domain TCP target limiting and precise caveats.
 - [x] [13] v0.1 dual-stack target selection — balanced IPv4/IPv6 endpoint limiting.
 - [x] [14] v0.1 TLS/SNI probe contract — handshake metrics and certificate failure classification.
+- [x] [15] v0.1 live TLS/SNI handshaker — Rustls handshake to resolved IP with SNI.
 
 ---
 
@@ -639,4 +640,63 @@ Result: 2 passed, 0 failed
 
 /Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
 Result: 27 passed, 0 failed
+```
+
+---
+
+## Chunk 15: v0.1 Live TLS/SNI Handshaker
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/tls_probe.rs`, `crates/dnspilot-core/tests/tls_probe_behaviour.rs`, `crates/dnspilot-core/Cargo.toml`, `Cargo.lock`, `README.md`
+
+### What changed
+
+Added a live Rustls TLS handshaker that connects to a resolved IP endpoint while
+verifying the certificate against the target `server_name` used for SNI. The
+test runs against a local Rustls server with a generated localhost certificate,
+so it verifies real TLS behavior without external network dependency.
+
+### Before
+
+```mermaid
+graph LR
+  TLS[TLS/SNI probe contract] --> INJECT[Injected handshaker only]
+  INJECT --> METRICS[TLS metrics]
+```
+
+### After
+
+```mermaid
+graph LR
+  TLS[TLS/SNI probe CHANGED] --> LIVE[Live Rustls handshaker NEW]
+  LIVE --> IP[Resolved IP endpoint]
+  LIVE --> SNI[SNI server_name]
+  LIVE --> CERT[Certificate verification]
+  TLS --> INJECT[Injected handshaker]
+```
+
+### Edge Cases / Caveats
+
+- The live handshaker now separates endpoint IP from SNI name. This is required
+  because DNS Pilot resolves IPs first, but TLS certificates are issued for
+  hostnames.
+- Certificate rejection is mapped separately from generic handshake failure.
+- Default trust currently uses Mozilla `webpki-roots`, not the OS trust store.
+  Corporate/MDM roots can therefore be rejected here even when Safari/Chrome on
+  that machine would trust them. OS-native trust should be a later platform
+  adapter step.
+- Rustls default crypto backend pulls `aws-lc-rs`, which increases build cost
+  and should be revisited before broad mobile/Linux distribution.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test tls_probe_behaviour performs_live_tls_handshake_to_endpoint_with_sni_server_name
+Result: 1 passed, 0 failed
+
+cargo test -p dnspilot-core --test tls_probe_behaviour
+Result: 3 passed, 0 failed
+
+/Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
+Result: 28 passed, 0 failed
 ```
