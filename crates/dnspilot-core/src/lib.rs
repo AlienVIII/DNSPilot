@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::net::IpAddr;
 
+pub mod dns_wire;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum DnsProtocol {
@@ -164,16 +166,24 @@ pub struct ClassifiedOutcome {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Platform {
+    #[serde(rename = "macos-store")]
     MacOSStore,
+    #[serde(rename = "ios")]
     IOS,
+    #[serde(rename = "android-play")]
     AndroidPlay,
+    #[serde(rename = "windows-store")]
     WindowsStore,
+    #[serde(rename = "linux-flatpak")]
     LinuxFlatpak,
+    #[serde(rename = "linux-snap")]
     LinuxSnap,
+    #[serde(rename = "linux-native-power")]
     LinuxNativePower,
+    #[serde(rename = "macos-power")]
     MacOSPower,
+    #[serde(rename = "windows-power")]
     WindowsPower,
 }
 
@@ -613,4 +623,3 @@ fn suite(
         tags: tags.iter().map(|tag| (*tag).into()).collect(),
     }
 }
-

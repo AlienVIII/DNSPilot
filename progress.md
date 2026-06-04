@@ -12,7 +12,8 @@ DNS handling, and platform capability reporting.
 - [x] [1] Workspace and RED tests — created Rust workspace and behavior tests.
 - [x] [2] Shared core — implemented catalog, scoring, capability matrix, and validation.
 - [x] [3] CLI smoke tool — added JSON commands for catalog, capability, and sample recommendation.
-- [ ] [4] Verification — blocked by local Rust toolchain hang.
+- [x] [4] Verification — core tests and CLI smoke commands pass.
+- [x] [5] v0.1 DNS wire codec — deterministic DNS query builder and response parser.
 
 ---
 
@@ -96,15 +97,14 @@ graph LR
 
 ## Chunk 4: Verification
 
-**Status:** Blocked
+**Status:** Complete
 **Files changed:** none
 
 ### What changed
 
-Attempted to run `cargo test -p dnspilot-core`, `cargo --version`, and direct
-toolchain binaries under `.rustup/toolchains/stable-aarch64-apple-darwin/bin`.
-The Rust binaries hang before returning version output, which indicates a local
-toolchain/runtime issue rather than a project test failure.
+Verified the current foundation with `cargo test -p dnspilot-core --tests` and
+CLI smoke commands. The Rust toolchain initially hung during first launch, then
+recovered; `rustfmt` still hangs at process startup and was not used.
 
 ### Before
 
@@ -120,7 +120,68 @@ graph LR
 graph LR
   CLI[dnspilot-cli] --> CORE[dnspilot-core]
   TESTS[Core behavior tests] --> CORE
-  VERIFY[Cargo verification BLOCKED] --> TOOLCHAIN[Local Rust toolchain hang]
+  VERIFY[Cargo verification COMPLETE] --> CORE
+  VERIFY --> CLI
+```
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --tests
+Result: 10 passed, 0 failed
+
+cargo run -p dnspilot-cli -- catalog
+Result: emitted 9 profiles; first profile cloudflare
+
+cargo run -p dnspilot-cli -- capability macos-store
+Result: platform macos-store, apply apple-network-extension-dns-settings
+
+cargo run -p dnspilot-cli -- recommend-sample
+Result: recommends quad9 with high confidence
+```
+
+---
+
+## Chunk 5: v0.1 DNS Wire Codec
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/dns_wire.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/dns_wire_behaviour.rs`
+
+### What changed
+
+Added deterministic DNS wire support for building plain A/AAAA query packets and
+parsing compressed A/AAAA responses. This still performs no live network I/O;
+it is the codec layer the future UDP benchmark runner will call.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[dnspilot-core] --> SCORE[Scoring]
+  CORE --> CATALOG[Catalog]
+  CORE --> CAP[Capabilities]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[dnspilot-core CHANGED] --> SCORE[Scoring]
+  CORE --> CATALOG[Catalog]
+  CORE --> CAP[Capabilities]
+  CORE --> WIRE[DNS wire codec NEW]
+  WIRE --> QUERY[Build A/AAAA query NEW]
+  WIRE --> PARSE[Parse compressed A/AAAA response NEW]
+```
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test dns_wire_behaviour
+Result: 4 passed, 0 failed
+
+cargo test -p dnspilot-core --tests
+Result: 10 passed, 0 failed
 ```
 
 ### After

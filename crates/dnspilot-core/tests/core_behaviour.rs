@@ -126,3 +126,10 @@ fn store_safe_capabilities_match_platform_constraints() {
     );
 }
 
+#[test]
+fn platform_json_names_are_product_facing() {
+    let serialized =
+        serde_json::to_string(&Platform::MacOSStore).expect("platform should serialize");
+
+    assert_eq!(serialized, "\"macos-store\"");
+}

@@ -14,11 +14,12 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Recommendation scoring for connection-path estimates.
 - Store-safe platform capability matrix.
 - Filtered DNS outcome classification.
+- DNS wire query builder and compressed A/AAAA response parser.
 - CLI smoke commands for catalog, capability, and sample recommendation output.
 
 ## Not Implemented Yet
 
-- Live DNS wire queries.
+- Live DNS network queries.
 - HTTPS probe runner.
 - SQLite persistence.
 - SwiftUI, Kotlin/Compose, WinUI, GTK/libadwaita shells.
@@ -33,4 +34,3 @@ cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- recommend-sample
 ```
-
