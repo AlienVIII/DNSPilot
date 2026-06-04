@@ -1,8 +1,17 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    built_in_profiles, built_in_test_suites, capability_for, recommend, BenchmarkMetrics, Platform,
+    built_in_profiles,
+    built_in_test_suites,
+    capability_for,
+    dns_benchmark::{run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome},
+    dns_wire::RecordType,
+    recommend,
+    BenchmarkMetrics,
+    Platform,
     RecommendationMode,
 };
+use std::net::SocketAddr;
+use std::time::Duration;
 
 #[derive(Debug, Parser)]
 #[command(name = "dnspilot")]
@@ -18,6 +27,18 @@ enum Command {
     Capability {
         #[arg(value_enum)]
         platform: PlatformArg,
+    },
+    Benchmark {
+        #[arg(long)]
+        resolver: SocketAddr,
+        #[arg(long = "domain", required = true)]
+        domains: Vec<String>,
+        #[arg(long, default_value_t = 3)]
+        attempts: usize,
+        #[arg(long, default_value_t = 800)]
+        timeout_ms: u64,
+        #[arg(long, default_value = "manual")]
+        profile_id: String,
     },
     RecommendSample,
 }
@@ -52,6 +73,31 @@ fn main() {
                 serde_json::to_string_pretty(&capability).expect("serialize capability")
             );
         }
+        Command::Benchmark {
+            resolver,
+            domains,
+            attempts,
+            timeout_ms,
+            profile_id,
+        } => {
+            let config = DnsBenchmarkConfig {
+                profile_id,
+                domains,
+                attempts_per_record: attempts,
+                timeout: Duration::from_millis(timeout_ms),
+                first_transaction_id: 0x5000,
+            };
+            let run = run_udp_dns_benchmark(&config, resolver);
+            let payload = serde_json::json!({
+                "metrics": run.metrics,
+                "samples": run.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
+                "warning": "Live DNS results estimate resolver behavior on this network; they do not prove full browser or app speed.",
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize benchmark")
+            );
+        }
         Command::RecommendSample => {
             let current = BenchmarkMetrics {
                 profile_id: "current".into(),
@@ -83,6 +129,31 @@ fn main() {
                 serde_json::to_string_pretty(&recommendation).expect("serialize recommendation")
             );
         }
+    }
+}
+
+fn sample_to_json(sample: &DnsBenchmarkSample) -> serde_json::Value {
+    serde_json::json!({
+        "domain": sample.domain,
+        "record_type": record_type_name(sample.record_type),
+        "transaction_id": sample.transaction_id,
+        "elapsed_ms": sample.elapsed.map(|elapsed| elapsed.as_secs_f64() * 1000.0),
+        "outcome": outcome_name(sample.outcome),
+    })
+}
+
+fn record_type_name(record_type: RecordType) -> &'static str {
+    match record_type {
+        RecordType::A => "A",
+        RecordType::Aaaa => "AAAA",
+    }
+}
+
+fn outcome_name(outcome: DnsSampleOutcome) -> &'static str {
+    match outcome {
+        DnsSampleOutcome::Success => "success",
+        DnsSampleOutcome::Timeout => "timeout",
+        DnsSampleOutcome::Failure => "failure",
     }
 }
 

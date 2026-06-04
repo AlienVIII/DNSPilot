@@ -16,6 +16,7 @@ DNS handling, and platform capability reporting.
 - [x] [5] v0.1 DNS wire codec — deterministic DNS query builder and response parser.
 - [x] [6] v0.1 UDP resolver client — local-testable UDP query execution.
 - [x] [7] v0.1 DNS benchmark runner — multi-sample aggregation for latency and reliability.
+- [x] [8] v0.1 live benchmark CLI — JSON benchmark command for manual resolver smoke tests.
 
 ---
 
@@ -271,6 +272,54 @@ Result: 2 passed, 0 failed
 
 cargo test --workspace --tests
 Result: 15 passed, 0 failed
+```
+
+---
+
+## Chunk 8: v0.1 Live Benchmark CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`
+
+### What changed
+
+Added `dnspilot-cli benchmark`, which accepts a resolver socket address, one or
+more domains, attempt count, timeout, and optional profile ID. The command runs
+the UDP benchmark path and emits JSON with metrics, per-sample outcomes, and a
+plain warning that DNS results estimate resolver behavior rather than full
+internet speed.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[dnspilot-cli] --> CATALOG[Catalog output]
+  CLI --> CAP[Capability output]
+  CLI --> SAMPLE[Sample recommendation]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[dnspilot-cli CHANGED] --> BENCHCMD[benchmark command NEW]
+  BENCHCMD --> BENCH[DNS benchmark runner]
+  BENCH --> UDP[UDP resolver client]
+  CLI --> CATALOG[Catalog output]
+  CLI --> CAP[Capability output]
+```
+
+### Verification
+
+```text
+cargo test -p dnspilot-cli --test cli_benchmark_behaviour
+Result: 1 passed, 0 failed
+
+cargo test --workspace --tests
+Result: 16 passed, 0 failed
+
+cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1 --timeout-ms 1000
+Result: sample_count 2, failure_rate 0.0, timeout_rate 0.0 in this run
 ```
 
 ### After
