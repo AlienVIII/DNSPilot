@@ -15,11 +15,12 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Store-safe platform capability matrix.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.
+- UDP resolver client with timeout and transaction ID validation.
 - CLI smoke commands for catalog, capability, and sample recommendation output.
 
 ## Not Implemented Yet
 
-- Live DNS network queries.
+- Multi-sample benchmark runner.
 - HTTPS probe runner.
 - SQLite persistence.
 - SwiftUI, Kotlin/Compose, WinUI, GTK/libadwaita shells.

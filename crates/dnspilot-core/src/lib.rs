@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::net::IpAddr;
 
 pub mod dns_wire;
+pub mod dns_resolver;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

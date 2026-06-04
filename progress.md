@@ -14,6 +14,7 @@ DNS handling, and platform capability reporting.
 - [x] [3] CLI smoke tool — added JSON commands for catalog, capability, and sample recommendation.
 - [x] [4] Verification — core tests and CLI smoke commands pass.
 - [x] [5] v0.1 DNS wire codec — deterministic DNS query builder and response parser.
+- [x] [6] v0.1 UDP resolver client — local-testable UDP query execution.
 
 ---
 
@@ -182,6 +183,50 @@ Result: 4 passed, 0 failed
 
 cargo test -p dnspilot-core --tests
 Result: 10 passed, 0 failed
+```
+
+---
+
+## Chunk 6: v0.1 UDP Resolver Client
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/dns_resolver.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/dns_udp_resolver_behaviour.rs`
+
+### What changed
+
+Added a synchronous UDP DNS client that sends one query to a resolver, enforces
+timeout, validates the response transaction ID, rejects non-zero DNS response
+codes, and returns elapsed time with the parsed response. Tests use a local fake
+UDP resolver, so this layer is verified without internet dependency.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[dnspilot-core] --> WIRE[DNS wire codec]
+  WIRE --> QUERY[Build A/AAAA query]
+  WIRE --> PARSE[Parse compressed A/AAAA response]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[dnspilot-core CHANGED] --> WIRE[DNS wire codec]
+  CORE --> UDP[UDP resolver client NEW]
+  UDP --> WIRE
+  UDP --> TIMEOUT[Timeout handling NEW]
+  UDP --> TXID[Transaction ID validation NEW]
+```
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test dns_udp_resolver_behaviour
+Result: 3 passed, 0 failed
+
+cargo test -p dnspilot-core --tests
+Result: 13 passed, 0 failed
 ```
 
 ### After
