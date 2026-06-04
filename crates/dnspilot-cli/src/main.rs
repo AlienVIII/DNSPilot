@@ -55,6 +55,8 @@ enum Command {
         connect_timeout_ms: u64,
         #[arg(long, default_value_t = 443)]
         connect_port: u16,
+        #[arg(long, default_value_t = 4)]
+        max_connect_targets_per_domain: usize,
         #[arg(long, default_value = "manual")]
         profile_id: String,
     },
@@ -123,6 +125,7 @@ fn main() {
             dns_timeout_ms,
             connect_timeout_ms,
             connect_port,
+            max_connect_targets_per_domain,
             profile_id,
         } => {
             let config = ConnectionPathConfig {
@@ -133,6 +136,7 @@ fn main() {
                 connect_timeout: Duration::from_millis(connect_timeout_ms),
                 first_transaction_id: 0x7000,
                 connect_port,
+                max_connect_targets_per_domain,
             };
             let run = run_udp_connection_path_estimate(&config, resolver);
             let payload = serde_json::json!({

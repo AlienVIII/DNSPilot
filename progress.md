@@ -20,6 +20,7 @@ DNS handling, and platform capability reporting.
 - [x] [9] v0.1 TCP connect probe — local-testable connection latency aggregation.
 - [x] [10] v0.1 connection-path estimator — DNS + TCP connect combined metrics with caveats.
 - [x] [11] v0.1 connection-path CLI — manual DNS + TCP estimate command.
+- [x] [12] v0.1 connection target guardrails — per-domain TCP target limiting and precise caveats.
 
 ---
 
@@ -469,6 +470,59 @@ Result: 23 passed, 0 failed
 
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1 --dns-timeout-ms 1000 --connect-timeout-ms 1000 --connect-port 443
 Result in this run: dns_sample_count 2, connect_sample_count 1, target_count 1, failure_rate 0.0
+```
+
+---
+
+## Chunk 12: v0.1 Connection Target Guardrails
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/connection_path.rs`, `crates/dnspilot-core/tests/connection_path_behaviour.rs`, `crates/dnspilot-cli/src/main.rs`
+
+### What changed
+
+Added `max_connect_targets_per_domain` to limit how many resolved endpoints are
+TCP-probed per domain. The CLI exposes it as
+`--max-connect-targets-per-domain` with default `4`, and caveats now report only
+when endpoints were actually skipped due to the limit.
+
+### Before
+
+```mermaid
+graph LR
+  PATH[Connection-path estimator] --> TARGETS[All unique resolved endpoints]
+  TARGETS --> TCP[TCP connect probes]
+```
+
+### After
+
+```mermaid
+graph LR
+  PATH[Connection-path estimator CHANGED] --> LIMIT[Per-domain target limit NEW]
+  LIMIT --> TCP[TCP connect probes]
+  LIMIT --> CAVEAT[Precise limit caveat NEW]
+```
+
+### Edge Cases / Caveats
+
+- Large CDN answer sets are capped to avoid excessive TCP probes, battery drain,
+  slow tests, and noisy network behavior.
+- If endpoint count exactly equals the limit, no limit caveat is emitted because
+  nothing was skipped.
+- This still does not choose “best IP”; it preserves DNS answer order and limits
+  probe volume. Smarter target selection is a later step.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test connection_path_behaviour limits_connect_targets_per_domain_and_records_caveat
+Result: 1 passed, 0 failed
+
+cargo test -p dnspilot-core --test connection_path_behaviour does_not_record_limit_caveat_when_no_endpoint_was_skipped
+Result: 1 passed, 0 failed
+
+/Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
+Result: 24 passed, 0 failed
 ```
 
 ### After

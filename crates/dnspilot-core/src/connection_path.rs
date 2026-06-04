@@ -18,6 +18,7 @@ pub struct ConnectionPathConfig {
     pub connect_timeout: Duration,
     pub first_transaction_id: u16,
     pub connect_port: u16,
+    pub max_connect_targets_per_domain: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -68,6 +69,7 @@ where
     C: FnMut(&TcpConnectTarget) -> Result<Duration, ConnectProbeError>,
 {
     let mut targets = Vec::new();
+    let mut skipped_connect_targets = 0_usize;
     let dns_config = DnsBenchmarkConfig {
         profile_id: config.profile_id.clone(),
         domains: config.domains.clone(),
@@ -78,12 +80,13 @@ where
 
     let dns = run_dns_benchmark_with_lookup(&dns_config, |domain, record_type, transaction_id| {
         let measurement = dns_lookup(domain, record_type, transaction_id)?;
-        collect_connect_targets(
+        skipped_connect_targets += collect_connect_targets(
             &mut targets,
             domain,
             record_type,
             &measurement.response,
             config.connect_port,
+            config.max_connect_targets_per_domain,
         );
         Ok(measurement.elapsed)
     });
@@ -95,7 +98,13 @@ where
     };
     let connect = run_tcp_connect_probes_with_connector(&connect_config, connector);
     let metrics = combine_metrics(&dns.metrics, &connect);
-    let caveats = caveats_for(&targets, &dns, &connect);
+    let caveats = caveats_for(
+        &targets,
+        &dns,
+        &connect,
+        config.max_connect_targets_per_domain,
+        skipped_connect_targets,
+    );
 
     ConnectionPathRun {
         metrics,
@@ -112,8 +121,21 @@ fn collect_connect_targets(
     record_type: RecordType,
     response: &DnsResponse,
     port: u16,
-) {
+    max_per_domain: usize,
+) -> usize {
+    let mut skipped = 0;
     for answer in &response.answers {
+        if max_per_domain > 0
+            && targets
+                .iter()
+                .filter(|target| target.domain == domain)
+                .count()
+                >= max_per_domain
+        {
+            skipped += 1;
+            continue;
+        }
+
         let ip = match (&answer.data, record_type) {
             (DnsRecordData::A(ip), RecordType::A) => IpAddr::V4(*ip),
             (DnsRecordData::Aaaa(ip), RecordType::Aaaa) => IpAddr::V6(*ip),
@@ -129,6 +151,7 @@ fn collect_connect_targets(
             });
         }
     }
+    skipped
 }
 
 fn combine_metrics(dns: &BenchmarkMetrics, connect: &ConnectProbeRun) -> BenchmarkMetrics {
@@ -149,6 +172,8 @@ fn caveats_for(
     targets: &[TcpConnectTarget],
     dns: &DnsBenchmarkRun,
     connect: &ConnectProbeRun,
+    max_connect_targets_per_domain: usize,
+    skipped_connect_targets: usize,
 ) -> Vec<String> {
     let mut caveats = vec![
         "Connection-path estimate uses DNS and TCP connect timing only; TLS, HTTP, QUIC, browser cache, and server latency are not measured yet.".into(),
@@ -163,7 +188,11 @@ fn caveats_for(
     if connect.failure_rate > 0.0 {
         caveats.push("Some resolved endpoints failed TCP connect; DNS may be mapping to a poor, blocked, or unreachable path.".into());
     }
+    if max_connect_targets_per_domain > 0 && skipped_connect_targets > 0 {
+        caveats.push(format!(
+            "Limited TCP connect probes to the first {max_connect_targets_per_domain} endpoint(s) per domain to avoid excessive network traffic; skipped {skipped_connect_targets} endpoint(s)."
+        ));
+    }
 
     caveats
 }
-

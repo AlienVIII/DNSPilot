@@ -21,6 +21,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - TCP connect probe aggregation for connection-path estimates.
 - Connection-path estimator that combines DNS lookup metrics with TCP connect
   metrics and conservative caveats.
+- Connection target limiting to avoid excessive TCP probes for large CDN answer
+  sets.
 - CLI smoke commands for catalog, capability, and sample recommendation output.
 
 ## Not Implemented Yet
