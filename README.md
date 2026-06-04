@@ -41,4 +41,5 @@ cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
+cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1
 ```

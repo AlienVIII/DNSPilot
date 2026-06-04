@@ -3,6 +3,8 @@ use dnspilot_core::{
     built_in_profiles,
     built_in_test_suites,
     capability_for,
+    connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
+    connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome},
     dns_wire::RecordType,
     recommend,
@@ -37,6 +39,22 @@ enum Command {
         attempts: usize,
         #[arg(long, default_value_t = 800)]
         timeout_ms: u64,
+        #[arg(long, default_value = "manual")]
+        profile_id: String,
+    },
+    PathEstimate {
+        #[arg(long)]
+        resolver: SocketAddr,
+        #[arg(long = "domain", required = true)]
+        domains: Vec<String>,
+        #[arg(long, default_value_t = 3)]
+        attempts: usize,
+        #[arg(long, default_value_t = 800)]
+        dns_timeout_ms: u64,
+        #[arg(long, default_value_t = 1000)]
+        connect_timeout_ms: u64,
+        #[arg(long, default_value_t = 443)]
+        connect_port: u16,
         #[arg(long, default_value = "manual")]
         profile_id: String,
     },
@@ -98,6 +116,38 @@ fn main() {
                 serde_json::to_string_pretty(&payload).expect("serialize benchmark")
             );
         }
+        Command::PathEstimate {
+            resolver,
+            domains,
+            attempts,
+            dns_timeout_ms,
+            connect_timeout_ms,
+            connect_port,
+            profile_id,
+        } => {
+            let config = ConnectionPathConfig {
+                profile_id,
+                domains,
+                attempts_per_record: attempts,
+                dns_timeout: Duration::from_millis(dns_timeout_ms),
+                connect_timeout: Duration::from_millis(connect_timeout_ms),
+                first_transaction_id: 0x7000,
+                connect_port,
+            };
+            let run = run_udp_connection_path_estimate(&config, resolver);
+            let payload = serde_json::json!({
+                "metrics": run.metrics,
+                "dns_samples": run.dns.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
+                "connect_samples": run.connect.samples.iter().map(connect_sample_to_json).collect::<Vec<_>>(),
+                "connect_targets": run.connect_targets.iter().map(connect_target_to_json).collect::<Vec<_>>(),
+                "caveats": run.caveats,
+                "warning": "Connection-path estimates use DNS plus TCP connect timing only; they do not prove full browser, app, TLS, HTTP, or QUIC performance.",
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize path estimate")
+            );
+        }
         Command::RecommendSample => {
             let current = BenchmarkMetrics {
                 profile_id: "current".into(),
@@ -132,6 +182,22 @@ fn main() {
     }
 }
 
+fn connect_sample_to_json(sample: &ConnectProbeSample) -> serde_json::Value {
+    serde_json::json!({
+        "domain": sample.domain,
+        "endpoint": sample.endpoint.to_string(),
+        "elapsed_ms": sample.elapsed.map(|elapsed| elapsed.as_secs_f64() * 1000.0),
+        "outcome": connect_outcome_name(sample.outcome),
+    })
+}
+
+fn connect_target_to_json(target: &TcpConnectTarget) -> serde_json::Value {
+    serde_json::json!({
+        "domain": target.domain,
+        "endpoint": target.endpoint.to_string(),
+    })
+}
+
 fn sample_to_json(sample: &DnsBenchmarkSample) -> serde_json::Value {
     serde_json::json!({
         "domain": sample.domain,
@@ -140,6 +206,14 @@ fn sample_to_json(sample: &DnsBenchmarkSample) -> serde_json::Value {
         "elapsed_ms": sample.elapsed.map(|elapsed| elapsed.as_secs_f64() * 1000.0),
         "outcome": outcome_name(sample.outcome),
     })
+}
+
+fn connect_outcome_name(outcome: ConnectProbeOutcome) -> &'static str {
+    match outcome {
+        ConnectProbeOutcome::Success => "success",
+        ConnectProbeOutcome::Timeout => "timeout",
+        ConnectProbeOutcome::Failure => "failure",
+    }
 }
 
 fn record_type_name(record_type: RecordType) -> &'static str {

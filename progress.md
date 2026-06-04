@@ -19,6 +19,7 @@ DNS handling, and platform capability reporting.
 - [x] [8] v0.1 live benchmark CLI — JSON benchmark command for manual resolver smoke tests.
 - [x] [9] v0.1 TCP connect probe — local-testable connection latency aggregation.
 - [x] [10] v0.1 connection-path estimator — DNS + TCP connect combined metrics with caveats.
+- [x] [11] v0.1 connection-path CLI — manual DNS + TCP estimate command.
 
 ---
 
@@ -414,6 +415,60 @@ Result: 3 passed, 0 failed
 
 /Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
 Result: 22 passed, 0 failed
+```
+
+---
+
+## Chunk 11: v0.1 Connection-Path CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`
+
+### What changed
+
+Added `dnspilot-cli path-estimate`, which runs the connection-path estimator from
+the command line and emits JSON with combined metrics, DNS samples, TCP connect
+samples, connect targets, and caveats. The integration test uses a local fake DNS
+resolver plus a local TCP listener so it is deterministic and does not depend on
+public network state.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[dnspilot-cli] --> BENCHCMD[benchmark command]
+  BENCHCMD --> DNS[DNS benchmark runner]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[dnspilot-cli CHANGED] --> PATHCMD[path-estimate command NEW]
+  PATHCMD --> PATH[Connection-path estimator]
+  PATH --> DNS[DNS benchmark runner]
+  PATH --> TCP[TCP connect probe]
+```
+
+### Edge Cases / Caveats
+
+- CLI output includes caveats stating this is not TLS, HTTP, QUIC, browser-cache,
+  or server-latency measurement.
+- A resolver can still look good here while failing TLS/SNI later; that is a
+  known next-step gap.
+- Public live smoke can vary by network, VPN, IPv6 availability, and firewall.
+
+### Verification
+
+```text
+cargo test -p dnspilot-cli --test cli_path_estimate_behaviour
+Result: 1 passed, 0 failed
+
+/Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
+Result: 23 passed, 0 failed
+
+cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1 --dns-timeout-ms 1000 --connect-timeout-ms 1000 --connect-port 443
+Result in this run: dns_sample_count 2, connect_sample_count 1, target_count 1, failure_rate 0.0
 ```
 
 ### After
