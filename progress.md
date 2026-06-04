@@ -21,6 +21,7 @@ DNS handling, and platform capability reporting.
 - [x] [10] v0.1 connection-path estimator — DNS + TCP connect combined metrics with caveats.
 - [x] [11] v0.1 connection-path CLI — manual DNS + TCP estimate command.
 - [x] [12] v0.1 connection target guardrails — per-domain TCP target limiting and precise caveats.
+- [x] [13] v0.1 dual-stack target selection — balanced IPv4/IPv6 endpoint limiting.
 
 ---
 
@@ -533,4 +534,56 @@ graph LR
   CORE --> CATALOG[Catalog]
   CORE --> SCORE[Scoring]
   CORE --> CAP[Capabilities]
+```
+
+---
+
+## Chunk 13: v0.1 Dual-Stack Target Selection
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/connection_path.rs`, `crates/dnspilot-core/tests/connection_path_behaviour.rs`, `README.md`
+
+### What changed
+
+Changed connection-path target limiting from "first N endpoints per domain" to a
+balanced selector that preserves both IPv4 and IPv6 when both are available.
+This avoids a real bias where A records could fill the per-domain limit before
+AAAA records were considered.
+
+### Before
+
+```mermaid
+graph LR
+  DNS[DNS answers] --> FIRST[First N endpoints per domain]
+  FIRST --> TCP[TCP probes]
+  FIRST --> BIAS[Possible IPv4-only selection]
+```
+
+### After
+
+```mermaid
+graph LR
+  DNS[DNS answers] --> CANDIDATES[Unique endpoint candidates CHANGED]
+  CANDIDATES --> BALANCE[Balanced IPv4/IPv6 selector NEW]
+  BALANCE --> TCP[TCP probes]
+  BALANCE --> CAVEAT[Balanced limit caveat CHANGED]
+```
+
+### Edge Cases / Caveats
+
+- With limit `2` and both families available, the selector keeps one IPv4 and
+  one IPv6 endpoint.
+- With limit `1`, it cannot represent both families; the estimate should be
+  considered weaker for dual-stack diagnosis.
+- This still does not prove the best CDN endpoint. It only avoids family bias
+  while keeping probe volume bounded.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test connection_path_behaviour limit_keeps_both_ipv4_and_ipv6_when_available
+Result: 1 passed, 0 failed
+
+/Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
+Result: 25 passed, 0 failed
 ```

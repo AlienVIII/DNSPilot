@@ -158,6 +158,45 @@ fn limits_connect_targets_per_domain_and_records_caveat() {
 }
 
 #[test]
+fn limit_keeps_both_ipv4_and_ipv6_when_available() {
+    let config = ConnectionPathConfig {
+        profile_id: "dual-stack-cdn".into(),
+        domains: vec!["example.com".into()],
+        attempts_per_record: 1,
+        dns_timeout: Duration::from_millis(250),
+        connect_timeout: Duration::from_millis(500),
+        first_transaction_id: 0x7500,
+        connect_port: 443,
+        max_connect_targets_per_domain: 2,
+    };
+
+    let run = run_connection_path_with_clients(
+        &config,
+        |_domain, record_type, transaction_id| {
+            Ok(DnsLookupMeasurement {
+                elapsed: Duration::from_millis(12),
+                response: dns_response_many_edges(transaction_id, record_type),
+            })
+        },
+        |_target| Ok(Duration::from_millis(60)),
+    );
+
+    let selected_ips: Vec<IpAddr> = run
+        .connect_targets
+        .iter()
+        .map(|target| target.endpoint.ip())
+        .collect();
+
+    assert_eq!(selected_ips.len(), 2);
+    assert!(selected_ips.iter().any(IpAddr::is_ipv4));
+    assert!(selected_ips.iter().any(IpAddr::is_ipv6));
+    assert!(run
+        .caveats
+        .iter()
+        .any(|caveat| caveat.contains("balanced across IPv4/IPv6")));
+}
+
+#[test]
 fn does_not_record_limit_caveat_when_no_endpoint_was_skipped() {
     let config = ConnectionPathConfig {
         profile_id: "exact-limit".into(),

@@ -22,7 +22,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Connection-path estimator that combines DNS lookup metrics with TCP connect
   metrics and conservative caveats.
 - Connection target limiting to avoid excessive TCP probes for large CDN answer
-  sets.
+  sets, with balanced IPv4/IPv6 selection when both are available.
 - CLI smoke commands for catalog, capability, and sample recommendation output.
 
 ## Not Implemented Yet
