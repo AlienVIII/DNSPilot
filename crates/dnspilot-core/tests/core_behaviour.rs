@@ -1,0 +1,128 @@
+use dnspilot_core::{
+    built_in_profiles, built_in_test_suites, capability_for, classify_resolution_outcome,
+    recommend, ApplyCapability, BenchmarkMetrics, Confidence, FilteringType, Platform,
+    RecommendationDecision, RecommendationMode, ResolutionOutcome,
+};
+
+fn metrics(
+    profile_id: &str,
+    median_dns_ms: f64,
+    p95_dns_ms: f64,
+    failure_rate: f64,
+    timeout_rate: f64,
+    connect_ms: f64,
+    ipv4_health: f64,
+    ipv6_health: f64,
+) -> BenchmarkMetrics {
+    BenchmarkMetrics {
+        profile_id: profile_id.to_string(),
+        median_dns_latency_ms: median_dns_ms,
+        p95_dns_latency_ms: p95_dns_ms,
+        failure_rate,
+        timeout_rate,
+        median_connect_latency_ms: connect_ms,
+        ipv4_health,
+        ipv6_health,
+        priority_fit: 1.0,
+    }
+}
+
+#[test]
+fn built_in_catalog_contains_required_profiles_and_suites() {
+    let profiles = built_in_profiles();
+    let suites = built_in_test_suites();
+
+    assert!(profiles.iter().any(|profile| profile.id == "cloudflare"));
+    assert!(profiles.iter().any(|profile| profile.id == "google-public-dns"));
+    assert!(profiles.iter().any(|profile| profile.id == "quad9"));
+    assert!(profiles
+        .iter()
+        .any(|profile| profile.filtering_type == FilteringType::Family));
+
+    assert!(suites.iter().any(|suite| suite.id == "general"));
+    assert!(suites.iter().any(|suite| suite.id == "developer"));
+    assert!(suites.iter().any(|suite| suite.id == "azure-microsoft"));
+    assert!(suites.iter().any(|suite| suite.id == "google-firebase"));
+    assert!(suites.iter().any(|suite| suite.id == "vietnam-daily"));
+
+    let azure = suites
+        .iter()
+        .find(|suite| suite.id == "azure-microsoft")
+        .expect("Azure suite should exist");
+    assert!(azure.domains.contains(&"login.microsoftonline.com".to_string()));
+    assert!(azure.domains.contains(&"blob.core.windows.net".to_string()));
+}
+
+#[test]
+fn recommendation_keeps_current_dns_when_improvement_is_not_meaningful() {
+    let current = metrics("current", 20.0, 45.0, 0.0, 0.0, 80.0, 1.0, 0.9);
+    let candidate = metrics("cloudflare", 18.5, 44.0, 0.0, 0.0, 79.5, 1.0, 0.9);
+
+    let recommendation = recommend(
+        &[current.clone(), candidate],
+        Some(&current),
+        RecommendationMode::BestOverall,
+    )
+    .expect("recommendation should be produced");
+
+    assert_eq!(recommendation.decision, RecommendationDecision::KeepCurrent);
+    assert_eq!(recommendation.confidence, Confidence::Medium);
+    assert!(recommendation
+        .reasons
+        .iter()
+        .any(|reason| reason.contains("not meaningful")));
+}
+
+#[test]
+fn recommendation_selects_better_candidate_with_confidence() {
+    let current = metrics("current", 50.0, 140.0, 0.02, 0.01, 170.0, 1.0, 0.7);
+    let candidate = metrics("quad9", 18.0, 42.0, 0.0, 0.0, 75.0, 1.0, 0.95);
+
+    let recommendation =
+        recommend(&[current.clone(), candidate], Some(&current), RecommendationMode::BestOverall)
+            .expect("recommendation should be produced");
+
+    assert_eq!(
+        recommendation.decision,
+        RecommendationDecision::ApplyProfile("quad9".to_string())
+    );
+    assert_eq!(recommendation.confidence, Confidence::High);
+    assert!(recommendation.score > 0.0);
+}
+
+#[test]
+fn filtered_dns_expected_block_is_not_a_failure_for_filtering_goal() {
+    let outcome = classify_resolution_outcome(
+        ResolutionOutcome::Blocked,
+        FilteringType::Family,
+        RecommendationMode::BestForFamilyFiltering,
+    );
+
+    assert!(!outcome.counts_as_failure);
+    assert!(outcome.note.contains("expected"));
+}
+
+#[test]
+fn store_safe_capabilities_match_platform_constraints() {
+    assert_eq!(
+        capability_for(Platform::MacOSStore).apply,
+        ApplyCapability::AppleNetworkExtensionDnsSettings
+    );
+    assert_eq!(
+        capability_for(Platform::IOS).apply,
+        ApplyCapability::AppleNetworkExtensionDnsSettings
+    );
+    assert_eq!(
+        capability_for(Platform::WindowsStore).apply,
+        ApplyCapability::GuidedSettings
+    );
+    assert_eq!(
+        capability_for(Platform::LinuxFlatpak).apply,
+        ApplyCapability::GuidedSettings
+    );
+    assert_eq!(
+        capability_for(Platform::LinuxNativePower).apply,
+        ApplyCapability::LinuxNetworkManagerPolkit
+    );
+}
+
