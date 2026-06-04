@@ -12,6 +12,7 @@ pub mod connection_path;
 pub mod dns_benchmark;
 pub mod dns_resolver;
 pub mod dns_wire;
+pub mod tls_probe;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

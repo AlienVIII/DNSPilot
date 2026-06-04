@@ -22,6 +22,7 @@ DNS handling, and platform capability reporting.
 - [x] [11] v0.1 connection-path CLI — manual DNS + TCP estimate command.
 - [x] [12] v0.1 connection target guardrails — per-domain TCP target limiting and precise caveats.
 - [x] [13] v0.1 dual-stack target selection — balanced IPv4/IPv6 endpoint limiting.
+- [x] [14] v0.1 TLS/SNI probe contract — handshake metrics and certificate failure classification.
 
 ---
 
@@ -586,4 +587,56 @@ Result: 1 passed, 0 failed
 
 /Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
 Result: 25 passed, 0 failed
+```
+
+---
+
+## Chunk 14: v0.1 TLS/SNI Probe Contract
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/tls_probe.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/tls_probe_behaviour.rs`, `README.md`
+
+### What changed
+
+Added a TLS/SNI probe contract with targets, config, samples, outcomes, errors,
+and aggregation. The runner accepts an injected handshaker so latency, timeout,
+and certificate failure behavior can be tested deterministically before adding a
+live TLS dependency.
+
+### Before
+
+```mermaid
+graph LR
+  PATH[Connection-path estimator] --> TCP[TCP connect probe]
+  TCP --> METRICS[Connect latency metrics]
+```
+
+### After
+
+```mermaid
+graph LR
+  PATH[Connection-path estimator] --> TCP[TCP connect probe]
+  CORE[dnspilot-core CHANGED] --> TLS[TLS/SNI probe contract NEW]
+  TLS --> SAMPLES[TLS samples NEW]
+  TLS --> CERT[Certificate failure rate NEW]
+```
+
+### Edge Cases / Caveats
+
+- Certificate failures are tracked separately from generic handshake failures.
+  This matters for captive portals, corporate MITM, wrong endpoints, and SNI
+  mismatch cases.
+- The target keeps `server_name` separate from endpoint IP so future live TLS
+  can connect to resolved IPs while sending the original domain as SNI.
+- This chunk does not perform live TLS yet. The next chunk should add a real
+  Rustls/native TLS handshaker and local deterministic TLS test coverage.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test tls_probe_behaviour
+Result: 2 passed, 0 failed
+
+/Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
+Result: 27 passed, 0 failed
 ```
