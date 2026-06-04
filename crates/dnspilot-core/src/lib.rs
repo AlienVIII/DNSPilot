@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::net::IpAddr;
 
 pub mod connect_probe;
+pub mod connection_path;
 pub mod dns_benchmark;
 pub mod dns_resolver;
 pub mod dns_wire;

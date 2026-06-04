@@ -19,11 +19,14 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Multi-sample DNS benchmark aggregation for median, P95, failure rate,
   timeout rate, and IPv4/IPv6 health.
 - TCP connect probe aggregation for connection-path estimates.
+- Connection-path estimator that combines DNS lookup metrics with TCP connect
+  metrics and conservative caveats.
 - CLI smoke commands for catalog, capability, and sample recommendation output.
 
 ## Not Implemented Yet
 
 - TLS/SNI connect probe runner.
+- HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
 - SQLite persistence.
 - SwiftUI, Kotlin/Compose, WinUI, GTK/libadwaita shells.

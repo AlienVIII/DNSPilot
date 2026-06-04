@@ -18,6 +18,7 @@ DNS handling, and platform capability reporting.
 - [x] [7] v0.1 DNS benchmark runner — multi-sample aggregation for latency and reliability.
 - [x] [8] v0.1 live benchmark CLI — JSON benchmark command for manual resolver smoke tests.
 - [x] [9] v0.1 TCP connect probe — local-testable connection latency aggregation.
+- [x] [10] v0.1 connection-path estimator — DNS + TCP connect combined metrics with caveats.
 
 ---
 
@@ -362,6 +363,57 @@ Result: 3 passed, 0 failed
 
 /Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
 Result: 19 passed, 0 failed
+```
+
+---
+
+## Chunk 10: v0.1 Connection-Path Estimator
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/connection_path.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/connection_path_behaviour.rs`
+
+### What changed
+
+Added a connection-path estimator that resolves A/AAAA records, extracts usable
+IP endpoints, probes TCP connect latency to the configured port, and combines
+DNS metrics with connect metrics. Combined failure and timeout rates are
+conservative: the estimator uses the worse of DNS and connect rates so a fast
+resolver with unreachable endpoints is not over-recommended.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[dnspilot-core] --> DNS[DNS benchmark runner]
+  CORE --> TCP[TCP connect probe]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[dnspilot-core CHANGED] --> PATH[Connection-path estimator NEW]
+  PATH --> DNS[DNS benchmark runner]
+  PATH --> TCP[TCP connect probe]
+  PATH --> CAVEATS[Truthful caveats NEW]
+```
+
+### Edge Cases Covered
+
+- DNS success with no usable A/AAAA answers skips TCP probes and records a caveat.
+- IPv6 DNS timeout lowers IPv6 health and DNS timeout rate.
+- TCP connect timeout after DNS success raises combined failure/timeout rates.
+- The estimator explicitly does not claim full web/app speed because TLS, HTTP,
+  QUIC, browser cache, and server latency are not measured yet.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test connection_path_behaviour
+Result: 3 passed, 0 failed
+
+/Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
+Result: 22 passed, 0 failed
 ```
 
 ### After
