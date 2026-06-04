@@ -15,6 +15,7 @@ DNS handling, and platform capability reporting.
 - [x] [4] Verification — core tests and CLI smoke commands pass.
 - [x] [5] v0.1 DNS wire codec — deterministic DNS query builder and response parser.
 - [x] [6] v0.1 UDP resolver client — local-testable UDP query execution.
+- [x] [7] v0.1 DNS benchmark runner — multi-sample aggregation for latency and reliability.
 
 ---
 
@@ -227,6 +228,49 @@ Result: 3 passed, 0 failed
 
 cargo test -p dnspilot-core --tests
 Result: 13 passed, 0 failed
+```
+
+---
+
+## Chunk 7: v0.1 DNS Benchmark Runner
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/dns_benchmark.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/dns_benchmark_behaviour.rs`
+
+### What changed
+
+Added a multi-sample benchmark runner that executes A and AAAA lookups across
+domains, records per-sample success/timeout/failure, and aggregates median DNS
+latency, P95 latency, failure rate, timeout rate, and IPv4/IPv6 health. The
+runner is testable with an injected lookup function and has a wrapper that uses
+the UDP resolver client.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[dnspilot-core] --> UDP[UDP resolver client]
+  UDP --> WIRE[DNS wire codec]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[dnspilot-core CHANGED] --> BENCH[DNS benchmark runner NEW]
+  BENCH --> UDP[UDP resolver client]
+  UDP --> WIRE[DNS wire codec]
+  BENCH --> METRICS[BenchmarkMetrics CHANGED]
+```
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test dns_benchmark_behaviour
+Result: 2 passed, 0 failed
+
+cargo test --workspace --tests
+Result: 15 passed, 0 failed
 ```
 
 ### After

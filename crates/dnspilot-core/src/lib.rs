@@ -7,8 +7,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::net::IpAddr;
 
-pub mod dns_wire;
+pub mod dns_benchmark;
 pub mod dns_resolver;
+pub mod dns_wire;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
