@@ -31,6 +31,7 @@ DNS handling, and platform capability reporting.
 - [x] [20] v0.1 DNS resolver compare CLI — DNS-only multi-resolver recommendation.
 - [x] [21] v0.1 connection-path compare CLI — DNS+TCP multi-resolver recommendation.
 - [x] [22] v0.1 TLS path-compare CLI — optional TLS/SNI multi-resolver comparison.
+- [x] [23] v0.1 recommendation safety gate — shared core gate for recommend/apply readiness.
 
 ---
 
@@ -1043,6 +1044,69 @@ Result: 9 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 37 passed, 0 failed
+```
+
+---
+
+## Chunk 23: v0.1 Recommendation Safety Gate
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `crates/dnspilot-cli/src/main.rs`, `README.md`
+
+### What changed
+
+Added a shared `recommendation_gate(metrics, scope)` API in `dnspilot-core`.
+It returns stable `can_recommend`, `health`, `primary_issue`, and `notes`
+before any caller asks the scoring engine to pick a candidate. CLI `compare`
+and `path-compare` now consume this core gate instead of keeping local duplicated
+rules.
+
+### Before
+
+```mermaid
+graph LR
+  COMPARE[compare CLI] --> LOCAL1[local can_recommend rule]
+  PATHCOMPARE[path-compare CLI] --> LOCAL2[local can_recommend rule]
+  CORE[core recommend] --> SCORE[score candidates]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[core CHANGED] --> GATE[recommendation_gate NEW]
+  CORE --> SCORE[score candidates]
+  COMPARE[compare CLI CHANGED] --> GATE
+  PATHCOMPARE[path-compare CLI CHANGED] --> GATE
+  GATE --> APPLY[UI/apply readiness]
+```
+
+### Edge Cases / Caveats
+
+- DNS-only comparison can still recommend when TCP latency is absent, because
+  that scope intentionally measures raw DNS only.
+- DNS+TCP/TLS scopes suppress recommendation when every candidate lacks a usable
+  connection path, even if DNS lookups themselves were fast.
+- Degraded candidates can still be recommended when at least one candidate is
+  usable; UI should present conservative confidence and caveats.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour recommendation_gate
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 9 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 40 passed, 0 failed
 ```
 
 ---

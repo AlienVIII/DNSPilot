@@ -1,7 +1,8 @@
 use dnspilot_core::{
     built_in_profiles, built_in_test_suites, capability_for, classify_resolution_outcome,
-    recommend, ApplyCapability, BenchmarkMetrics, Confidence, FilteringType, Platform,
-    RecommendationDecision, RecommendationMode, ResolutionOutcome,
+    recommend, recommendation_gate, ApplyCapability, BenchmarkMetrics, Confidence, FilteringType,
+    MeasurementScope, Platform, RecommendationDecision, RecommendationHealth, RecommendationIssue,
+    RecommendationMode, ResolutionOutcome,
 };
 
 fn metrics(
@@ -88,6 +89,60 @@ fn recommendation_selects_better_candidate_with_confidence() {
     );
     assert_eq!(recommendation.confidence, Confidence::High);
     assert!(recommendation.score > 0.0);
+}
+
+#[test]
+fn recommendation_gate_blocks_all_failed_candidates() {
+    let first = metrics(
+        "first",
+        f64::INFINITY,
+        f64::INFINITY,
+        1.0,
+        1.0,
+        f64::INFINITY,
+        0.0,
+        0.0,
+    );
+    let second = metrics(
+        "second",
+        f64::INFINITY,
+        f64::INFINITY,
+        1.0,
+        1.0,
+        f64::INFINITY,
+        0.0,
+        0.0,
+    );
+
+    let gate = recommendation_gate(&[first, second], MeasurementScope::DnsOnly);
+
+    assert!(!gate.can_recommend);
+    assert_eq!(gate.health, RecommendationHealth::Failed);
+    assert_eq!(gate.primary_issue, RecommendationIssue::AllResolversFailed);
+}
+
+#[test]
+fn recommendation_gate_blocks_missing_connection_path_for_path_scope() {
+    let first = metrics("first", 5.0, 8.0, 0.0, 0.0, f64::INFINITY, 1.0, 0.0);
+    let second = metrics("second", 8.0, 12.0, 0.0, 0.0, f64::INFINITY, 1.0, 0.0);
+
+    let gate = recommendation_gate(&[first, second], MeasurementScope::DnsTcp);
+
+    assert!(!gate.can_recommend);
+    assert_eq!(gate.health, RecommendationHealth::Inconclusive);
+    assert_eq!(gate.primary_issue, RecommendationIssue::NoConnectTargets);
+}
+
+#[test]
+fn recommendation_gate_allows_degraded_partial_failure() {
+    let failed = metrics("failed", 5.0, 8.0, 1.0, 1.0, f64::INFINITY, 1.0, 0.0);
+    let healthy = metrics("healthy", 15.0, 25.0, 0.0, 0.0, 40.0, 1.0, 0.0);
+
+    let gate = recommendation_gate(&[failed, healthy], MeasurementScope::DnsTcp);
+
+    assert!(gate.can_recommend);
+    assert_eq!(gate.health, RecommendationHealth::Degraded);
+    assert_eq!(gate.primary_issue, RecommendationIssue::PartialFailure);
 }
 
 #[test]

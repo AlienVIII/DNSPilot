@@ -12,6 +12,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Built-in test suites for General, Developer, Azure/Microsoft,
   Google/Firebase, and Vietnam/Daily use cases.
 - Recommendation scoring for connection-path estimates.
+- Shared recommendation safety gate for `can_recommend`, health, and primary
+  issue decisions before UI/apply prompts.
 - Store-safe platform capability matrix.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.

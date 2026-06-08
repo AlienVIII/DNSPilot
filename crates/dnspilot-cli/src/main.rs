@@ -7,9 +7,9 @@ use dnspilot_core::{
         run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome,
     },
     dns_wire::RecordType,
-    recommend,
+    recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
-    BenchmarkMetrics, Platform, RecommendationMode,
+    BenchmarkMetrics, MeasurementScope, Platform, RecommendationMode,
 };
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -193,8 +193,8 @@ fn main() {
                 }));
             }
 
-            let (health, primary_issue, can_recommend) = compare_health_summary(&metrics);
-            let recommendation = if can_recommend {
+            let gate = recommendation_gate(&metrics, MeasurementScope::DnsOnly);
+            let recommendation = if gate.can_recommend {
                 Some(
                     recommend(&metrics, None, RecommendationMode::FastestRawDns)
                         .expect("compare requires at least one resolver"),
@@ -206,9 +206,10 @@ fn main() {
                 "summary": {
                     "measurement_scope": "dns-only",
                     "mode": "fastest-raw-dns",
-                    "health": health,
-                    "primary_issue": primary_issue,
-                    "can_recommend": can_recommend,
+                    "health": gate.health,
+                    "primary_issue": gate.primary_issue,
+                    "can_recommend": gate.can_recommend,
+                    "safety_notes": gate.notes,
                     "resolver_count": resolver_specs.len(),
                     "domain_count": domains.len(),
                     "attempts_per_record": attempts,
@@ -366,8 +367,13 @@ fn main() {
                 runs.push(run);
             }
 
-            let (health, primary_issue, can_recommend) = path_compare_health_summary(&runs);
-            let recommendation = if can_recommend {
+            let scope = if tls_enabled {
+                MeasurementScope::DnsTcpTls
+            } else {
+                MeasurementScope::DnsTcp
+            };
+            let gate = recommendation_gate(&metrics, scope);
+            let recommendation = if gate.can_recommend {
                 Some(
                     recommend(&metrics, None, RecommendationMode::BestOverall)
                         .expect("path-compare requires at least one resolver"),
@@ -384,9 +390,10 @@ fn main() {
                 "summary": {
                     "measurement_scope": if tls_enabled { "dns-tcp-tls" } else { "dns-tcp" },
                     "mode": "best-overall",
-                    "health": health,
-                    "primary_issue": primary_issue,
-                    "can_recommend": can_recommend,
+                    "health": gate.health,
+                    "primary_issue": gate.primary_issue,
+                    "can_recommend": gate.can_recommend,
+                    "safety_notes": gate.notes,
                     "tls_enabled": tls_enabled,
                     "trust_store": if tls_enabled {
                         serde_json::Value::String("mozilla-webpki-roots".into())
@@ -523,35 +530,6 @@ fn path_health_summary(
     ("healthy", "none")
 }
 
-fn path_compare_health_summary(
-    runs: &[dnspilot_core::connection_path::ConnectionPathRun],
-) -> (&'static str, &'static str, bool) {
-    if runs.is_empty() {
-        return ("inconclusive", "no-resolvers", false);
-    }
-
-    let health: Vec<(&'static str, &'static str)> = runs.iter().map(path_health_summary).collect();
-    if health
-        .iter()
-        .all(|(status, issue)| *status == "inconclusive" && *issue == "no-connect-targets")
-    {
-        return ("inconclusive", "no-connect-targets", false);
-    }
-
-    if health
-        .iter()
-        .all(|(status, _)| *status == "failed" || *status == "inconclusive")
-    {
-        return ("failed", "all-resolvers-failed", false);
-    }
-
-    if health.iter().any(|(status, _)| *status != "healthy") {
-        return ("degraded", "partial-failure", true);
-    }
-
-    ("healthy", "none", true)
-}
-
 fn tls_sample_to_json(sample: &TlsProbeSample) -> serde_json::Value {
     serde_json::json!({
         "domain": sample.domain,
@@ -623,29 +601,6 @@ fn parse_resolver_spec(spec: &str) -> Result<(String, SocketAddr), String> {
     })?;
 
     Ok((profile_id.into(), resolver))
-}
-
-fn compare_health_summary(metrics: &[BenchmarkMetrics]) -> (&'static str, &'static str, bool) {
-    if metrics.is_empty() {
-        return ("inconclusive", "no-resolvers", false);
-    }
-
-    if metrics.iter().all(|metric| metric.failure_rate >= 1.0) {
-        return ("failed", "all-resolvers-failed", false);
-    }
-
-    if metrics.iter().all(|metric| metric.reliability() < 0.95) {
-        return ("degraded", "all-resolvers-low-reliability", true);
-    }
-
-    if metrics
-        .iter()
-        .any(|metric| metric.failure_rate > 0.0 || metric.timeout_rate > 0.0)
-    {
-        return ("degraded", "partial-failure", true);
-    }
-
-    ("healthy", "none", true)
 }
 
 impl From<PlatformArg> for Platform {

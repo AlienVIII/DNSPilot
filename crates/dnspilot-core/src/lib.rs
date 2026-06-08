@@ -121,6 +121,42 @@ pub enum RecommendationDecision {
     KeepCurrent,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MeasurementScope {
+    DnsOnly,
+    DnsTcp,
+    DnsTcpTls,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RecommendationHealth {
+    Healthy,
+    Degraded,
+    Failed,
+    Inconclusive,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RecommendationIssue {
+    None,
+    NoResolvers,
+    NoConnectTargets,
+    AllResolversFailed,
+    AllResolversLowReliability,
+    PartialFailure,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RecommendationGate {
+    pub can_recommend: bool,
+    pub health: RecommendationHealth,
+    pub primary_issue: RecommendationIssue,
+    pub notes: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BenchmarkMetrics {
     pub profile_id: String,
@@ -436,6 +472,73 @@ pub fn recommend(
         reasons,
         caveats,
     })
+}
+
+pub fn recommendation_gate(
+    metrics: &[BenchmarkMetrics],
+    scope: MeasurementScope,
+) -> RecommendationGate {
+    if metrics.is_empty() {
+        return RecommendationGate {
+            can_recommend: false,
+            health: RecommendationHealth::Inconclusive,
+            primary_issue: RecommendationIssue::NoResolvers,
+            notes: vec!["No benchmark candidates were provided.".into()],
+        };
+    }
+
+    if metrics.iter().all(|metric| metric.failure_rate >= 1.0) {
+        return RecommendationGate {
+            can_recommend: false,
+            health: RecommendationHealth::Failed,
+            primary_issue: RecommendationIssue::AllResolversFailed,
+            notes: vec!["Every candidate failed the measured scope.".into()],
+        };
+    }
+
+    if scope != MeasurementScope::DnsOnly
+        && metrics
+            .iter()
+            .all(|metric| !metric.median_connect_latency_ms.is_finite())
+    {
+        return RecommendationGate {
+            can_recommend: false,
+            health: RecommendationHealth::Inconclusive,
+            primary_issue: RecommendationIssue::NoConnectTargets,
+            notes: vec!["No candidate produced a usable connection-path target.".into()],
+        };
+    }
+
+    if metrics.iter().all(|metric| metric.reliability() < 0.95) {
+        return RecommendationGate {
+            can_recommend: true,
+            health: RecommendationHealth::Degraded,
+            primary_issue: RecommendationIssue::AllResolversLowReliability,
+            notes: vec![
+                "All candidates have reduced reliability; apply prompts should be conservative."
+                    .into(),
+            ],
+        };
+    }
+
+    if metrics
+        .iter()
+        .any(|metric| metric.failure_rate > 0.0 || metric.timeout_rate > 0.0)
+    {
+        return RecommendationGate {
+            can_recommend: true,
+            health: RecommendationHealth::Degraded,
+            primary_issue: RecommendationIssue::PartialFailure,
+            notes: vec!["At least one candidate had partial failure or timeout.".into()],
+        };
+    }
+
+    RecommendationGate {
+        can_recommend: true,
+        health: RecommendationHealth::Healthy,
+        primary_issue: RecommendationIssue::None,
+        notes: Vec::new(),
+    }
 }
 
 pub fn classify_resolution_outcome(
