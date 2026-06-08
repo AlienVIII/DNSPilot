@@ -71,6 +71,22 @@ enum Command {
         #[arg(long, default_value = "manual")]
         profile_id: String,
     },
+    PathCompare {
+        #[arg(long = "resolver", required = true)]
+        resolver_specs: Vec<String>,
+        #[arg(long = "domain", required = true)]
+        domains: Vec<String>,
+        #[arg(long, default_value_t = 3)]
+        attempts: usize,
+        #[arg(long, default_value_t = 800)]
+        dns_timeout_ms: u64,
+        #[arg(long, default_value_t = 1000)]
+        connect_timeout_ms: u64,
+        #[arg(long, default_value_t = 443)]
+        connect_port: u16,
+        #[arg(long, default_value_t = 4)]
+        max_connect_targets_per_domain: usize,
+    },
     RecommendSample,
 }
 
@@ -277,6 +293,97 @@ fn main() {
                 serde_json::to_string_pretty(&payload).expect("serialize path estimate")
             );
         }
+        Command::PathCompare {
+            resolver_specs,
+            domains,
+            attempts,
+            dns_timeout_ms,
+            connect_timeout_ms,
+            connect_port,
+            max_connect_targets_per_domain,
+        } => {
+            if attempts == 0 {
+                eprintln!("--attempts must be greater than 0");
+                std::process::exit(2);
+            }
+
+            let mut metrics = Vec::new();
+            let mut runs = Vec::new();
+            let mut run_json = Vec::new();
+            let mut seen_profile_ids = std::collections::BTreeSet::new();
+
+            for (index, resolver_spec) in resolver_specs.iter().enumerate() {
+                let (profile_id, resolver) =
+                    parse_resolver_spec(resolver_spec).unwrap_or_else(|message| {
+                        eprintln!("{message}");
+                        std::process::exit(2);
+                    });
+                if !seen_profile_ids.insert(profile_id.clone()) {
+                    eprintln!("duplicate --resolver id '{profile_id}'");
+                    std::process::exit(2);
+                }
+
+                let config = ConnectionPathConfig {
+                    profile_id: profile_id.clone(),
+                    domains: domains.clone(),
+                    attempts_per_record: attempts,
+                    dns_timeout: Duration::from_millis(dns_timeout_ms),
+                    connect_timeout: Duration::from_millis(connect_timeout_ms),
+                    first_transaction_id: 0xa000_u16
+                        .wrapping_add((index as u16).wrapping_mul(0x0100)),
+                    connect_port,
+                    max_connect_targets_per_domain,
+                    tls_handshake_timeout: None,
+                };
+                let run = run_udp_connection_path_estimate(&config, resolver);
+                metrics.push(run.metrics.clone());
+                run_json.push(serde_json::json!({
+                    "profile_id": profile_id,
+                    "resolver": resolver.to_string(),
+                    "summary": path_run_summary_to_json(&run, false, 0),
+                    "metrics": run.metrics.clone(),
+                    "dns_samples": run.dns.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
+                    "connect_samples": run.connect.samples.iter().map(connect_sample_to_json).collect::<Vec<_>>(),
+                    "connect_targets": run.connect_targets.iter().map(connect_target_to_json).collect::<Vec<_>>(),
+                    "caveats": run.caveats.clone(),
+                }));
+                runs.push(run);
+            }
+
+            let (health, primary_issue, can_recommend) = path_compare_health_summary(&runs);
+            let recommendation = if can_recommend {
+                Some(
+                    recommend(&metrics, None, RecommendationMode::BestOverall)
+                        .expect("path-compare requires at least one resolver"),
+                )
+            } else {
+                None
+            };
+            let payload = serde_json::json!({
+                "summary": {
+                    "measurement_scope": "dns-tcp",
+                    "mode": "best-overall",
+                    "health": health,
+                    "primary_issue": primary_issue,
+                    "can_recommend": can_recommend,
+                    "resolver_count": resolver_specs.len(),
+                    "domain_count": domains.len(),
+                    "attempts_per_record": attempts,
+                    "dns_timeout_ms": dns_timeout_ms,
+                    "connect_timeout_ms": connect_timeout_ms,
+                    "connect_port": connect_port,
+                    "max_connect_targets_per_domain": max_connect_targets_per_domain,
+                    "recommended_profile_id": recommendation.as_ref().map(|item| item.profile_id.clone()),
+                },
+                "runs": run_json,
+                "recommendation": recommendation,
+                "warning": "Path comparison estimates DNS plus TCP connect timing only; it does not include TLS, HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior.",
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize path compare")
+            );
+        }
         Command::RecommendSample => {
             let current = BenchmarkMetrics {
                 profile_id: "current".into(),
@@ -330,6 +437,26 @@ fn connect_target_to_json(target: &TcpConnectTarget) -> serde_json::Value {
     })
 }
 
+fn path_run_summary_to_json(
+    run: &dnspilot_core::connection_path::ConnectionPathRun,
+    tls_enabled: bool,
+    tls_sample_count: usize,
+) -> serde_json::Value {
+    let (health, primary_issue) = path_health_summary(run);
+    serde_json::json!({
+        "measurement_scope": if tls_enabled { "dns-tcp-tls" } else { "dns-tcp" },
+        "health": health,
+        "primary_issue": primary_issue,
+        "tls_enabled": tls_enabled,
+        "domain_count": run.dns.samples.iter().map(|sample| &sample.domain).collect::<std::collections::BTreeSet<_>>().len(),
+        "dns_sample_count": run.dns.samples.len(),
+        "connect_target_count": run.connect_targets.len(),
+        "connect_sample_count": run.connect.samples.len(),
+        "tls_sample_count": tls_sample_count,
+        "caveat_count": run.caveats.len(),
+    })
+}
+
 fn path_health_summary(
     run: &dnspilot_core::connection_path::ConnectionPathRun,
 ) -> (&'static str, &'static str) {
@@ -360,6 +487,35 @@ fn path_health_summary(
     }
 
     ("healthy", "none")
+}
+
+fn path_compare_health_summary(
+    runs: &[dnspilot_core::connection_path::ConnectionPathRun],
+) -> (&'static str, &'static str, bool) {
+    if runs.is_empty() {
+        return ("inconclusive", "no-resolvers", false);
+    }
+
+    let health: Vec<(&'static str, &'static str)> = runs.iter().map(path_health_summary).collect();
+    if health
+        .iter()
+        .all(|(status, issue)| *status == "inconclusive" && *issue == "no-connect-targets")
+    {
+        return ("inconclusive", "no-connect-targets", false);
+    }
+
+    if health
+        .iter()
+        .all(|(status, _)| *status == "failed" || *status == "inconclusive")
+    {
+        return ("failed", "all-resolvers-failed", false);
+    }
+
+    if health.iter().any(|(status, _)| *status != "healthy") {
+        return ("degraded", "partial-failure", true);
+    }
+
+    ("healthy", "none", true)
 }
 
 fn tls_sample_to_json(sample: &TlsProbeSample) -> serde_json::Value {

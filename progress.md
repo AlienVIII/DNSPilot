@@ -29,6 +29,7 @@ DNS handling, and platform capability reporting.
 - [x] [18] v0.1 path-estimate summary JSON — stable UI/recommendation summary fields.
 - [x] [19] v0.1 path health verdicts — stable health and primary issue summary fields.
 - [x] [20] v0.1 DNS resolver compare CLI — DNS-only multi-resolver recommendation.
+- [x] [21] v0.1 connection-path compare CLI — DNS+TCP multi-resolver recommendation.
 
 ---
 
@@ -928,6 +929,61 @@ Result: 6 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 34 passed, 0 failed
+```
+
+---
+
+## Chunk 21: v0.1 Connection-Path Compare CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `dnspilot-cli path-compare`, a DNS+TCP multi-resolver comparison command.
+It accepts repeated `--resolver id=host:port` entries, runs the existing
+connection-path estimator for each resolver, scores candidates in
+`best-overall` mode, and emits JSON with top-level health, per-run summaries,
+raw samples, recommendation, and a scope warning.
+
+### Before
+
+```mermaid
+graph LR
+  COMPARE[compare] --> DNS[DNS-only recommendation]
+  PATH[path-estimate] --> SINGLE[Single resolver DNS+TCP estimate]
+```
+
+### After
+
+```mermaid
+graph LR
+  COMPARE[compare] --> DNS[DNS-only recommendation]
+  PATH[path-estimate] --> SINGLE[Single resolver DNS+TCP estimate]
+  PATHCOMPARE[path-compare NEW] --> MULTI[Multi-resolver DNS+TCP recommendation]
+  MULTI --> SCORE[best-overall scoring]
+```
+
+### Edge Cases / Caveats
+
+- A resolver with fast DNS can lose if its resolved endpoint fails TCP connect.
+  This closes the main weakness of raw DNS-only ranking.
+- If every candidate path fails or is inconclusive, path-compare returns
+  `can_recommend=false` and `recommendation=null`.
+- This still does not include TLS/SNI, HTTP, QUIC, browser cache, VPN, MDM,
+  captive portal, or app-specific behavior.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour
+Result: 2 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 8 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 36 passed, 0 failed
 ```
 
 ---
