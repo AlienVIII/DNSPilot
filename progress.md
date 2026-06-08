@@ -25,6 +25,7 @@ DNS handling, and platform capability reporting.
 - [x] [14] v0.1 TLS/SNI probe contract — handshake metrics and certificate failure classification.
 - [x] [15] v0.1 live TLS/SNI handshaker — Rustls handshake to resolved IP with SNI.
 - [x] [16] v0.1 connection-path TLS integration — opt-in TLS/SNI reliability in core estimates.
+- [x] [17] v0.1 TLS path-estimate CLI — flag and JSON samples for TLS/SNI probing.
 
 ---
 
@@ -755,4 +756,60 @@ Result: 1 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 30 passed, 0 failed
+```
+
+---
+
+## Chunk 17: v0.1 TLS Path-Estimate CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `README.md`
+
+### What changed
+
+Exposed TLS/SNI probing in `dnspilot-cli path-estimate` with
+`--tls-handshake-timeout-ms`. CLI JSON now includes `tls_samples` with
+`server_name`, endpoint, elapsed time, and TLS outcome when TLS probing is
+enabled.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[path-estimate CLI] --> CORE[Connection-path core]
+  CLI --> DNS[DNS samples]
+  CLI --> TCP[TCP samples]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[path-estimate CLI CHANGED] --> CORE[Connection-path core]
+  CLI --> DNS[DNS samples]
+  CLI --> TCP[TCP samples]
+  CLI --> TLS[TLS samples OPTIONAL NEW]
+```
+
+### Edge Cases / Caveats
+
+- TLS probing remains opt-in because it adds network work and can produce
+  certificate failures in captive portal, proxy, VPN, or corporate/MDM
+  environments.
+- CLI output keeps `tls_samples: []` when the flag is not provided, preserving
+  the existing default path-estimate behavior.
+- Current TLS verification still uses bundled Mozilla roots, not OS-native
+  enterprise roots.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_can_include_tls_samples_when_enabled
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour
+Result: 2 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 31 passed, 0 failed
 ```

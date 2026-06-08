@@ -25,12 +25,12 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   sets, with balanced IPv4/IPv6 selection when both are available.
 - TLS/SNI probe contract and live Rustls handshaker with handshake latency,
   timeout, and certificate failure classification.
-- CLI smoke commands for catalog, capability, and sample recommendation output.
+- CLI smoke commands for catalog, capability, benchmark, connection-path, and
+  optional TLS/SNI path-estimate output.
 
 ## Not Implemented Yet
 
 - OS-native TLS trust store integration for enterprise/corporate roots.
-- CLI flag to enable TLS/SNI probing in `path-estimate`.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
 - SQLite persistence.
@@ -47,4 +47,5 @@ cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1
+cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1 --tls-handshake-timeout-ms 1000
 ```

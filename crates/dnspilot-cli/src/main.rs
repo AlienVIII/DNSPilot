@@ -8,6 +8,7 @@ use dnspilot_core::{
     dns_benchmark::{run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome},
     dns_wire::RecordType,
     recommend,
+    tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkMetrics,
     Platform,
     RecommendationMode,
@@ -57,6 +58,8 @@ enum Command {
         connect_port: u16,
         #[arg(long, default_value_t = 4)]
         max_connect_targets_per_domain: usize,
+        #[arg(long)]
+        tls_handshake_timeout_ms: Option<u64>,
         #[arg(long, default_value = "manual")]
         profile_id: String,
     },
@@ -126,6 +129,7 @@ fn main() {
             connect_timeout_ms,
             connect_port,
             max_connect_targets_per_domain,
+            tls_handshake_timeout_ms,
             profile_id,
         } => {
             let config = ConnectionPathConfig {
@@ -137,16 +141,27 @@ fn main() {
                 first_transaction_id: 0x7000,
                 connect_port,
                 max_connect_targets_per_domain,
-                tls_handshake_timeout: None,
+                tls_handshake_timeout: tls_handshake_timeout_ms.map(Duration::from_millis),
             };
             let run = run_udp_connection_path_estimate(&config, resolver);
+            let tls_samples = run
+                .tls
+                .as_ref()
+                .map(|tls| tls.samples.iter().map(tls_sample_to_json).collect::<Vec<_>>())
+                .unwrap_or_default();
+            let warning = if tls_handshake_timeout_ms.is_some() {
+                "Connection-path estimates use DNS, TCP connect, and TLS/SNI handshake timing only; they do not prove full browser, app, HTTP, or QUIC performance."
+            } else {
+                "Connection-path estimates use DNS plus TCP connect timing only; they do not prove full browser, app, TLS, HTTP, or QUIC performance."
+            };
             let payload = serde_json::json!({
                 "metrics": run.metrics,
                 "dns_samples": run.dns.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
                 "connect_samples": run.connect.samples.iter().map(connect_sample_to_json).collect::<Vec<_>>(),
+                "tls_samples": tls_samples,
                 "connect_targets": run.connect_targets.iter().map(connect_target_to_json).collect::<Vec<_>>(),
                 "caveats": run.caveats,
-                "warning": "Connection-path estimates use DNS plus TCP connect timing only; they do not prove full browser, app, TLS, HTTP, or QUIC performance.",
+                "warning": warning,
             });
             println!(
                 "{}",
@@ -203,6 +218,16 @@ fn connect_target_to_json(target: &TcpConnectTarget) -> serde_json::Value {
     })
 }
 
+fn tls_sample_to_json(sample: &TlsProbeSample) -> serde_json::Value {
+    serde_json::json!({
+        "domain": sample.domain,
+        "server_name": sample.server_name,
+        "endpoint": sample.endpoint.to_string(),
+        "elapsed_ms": sample.elapsed.map(|elapsed| elapsed.as_secs_f64() * 1000.0),
+        "outcome": tls_outcome_name(sample.outcome),
+    })
+}
+
 fn sample_to_json(sample: &DnsBenchmarkSample) -> serde_json::Value {
     serde_json::json!({
         "domain": sample.domain,
@@ -218,6 +243,15 @@ fn connect_outcome_name(outcome: ConnectProbeOutcome) -> &'static str {
         ConnectProbeOutcome::Success => "success",
         ConnectProbeOutcome::Timeout => "timeout",
         ConnectProbeOutcome::Failure => "failure",
+    }
+}
+
+fn tls_outcome_name(outcome: TlsProbeOutcome) -> &'static str {
+    match outcome {
+        TlsProbeOutcome::Success => "success",
+        TlsProbeOutcome::Timeout => "timeout",
+        TlsProbeOutcome::CertificateFailure => "certificate-failure",
+        TlsProbeOutcome::HandshakeFailure => "handshake-failure",
     }
 }
 
