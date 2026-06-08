@@ -30,6 +30,7 @@ DNS handling, and platform capability reporting.
 - [x] [19] v0.1 path health verdicts — stable health and primary issue summary fields.
 - [x] [20] v0.1 DNS resolver compare CLI — DNS-only multi-resolver recommendation.
 - [x] [21] v0.1 connection-path compare CLI — DNS+TCP multi-resolver recommendation.
+- [x] [22] v0.1 TLS path-compare CLI — optional TLS/SNI multi-resolver comparison.
 
 ---
 
@@ -984,6 +985,64 @@ Result: 8 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 36 passed, 0 failed
+```
+
+---
+
+## Chunk 22: v0.1 TLS Path-Compare CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Extended `dnspilot-cli path-compare` with `--tls-handshake-timeout-ms`. When the
+flag is present, each candidate resolver runs DNS, TCP connect, and TLS/SNI
+handshake probes, then emits `dns-tcp-tls` scope, trust-store metadata,
+per-run `tls_samples`, and conservative recommendation suppression when every
+TLS path fails.
+
+### Before
+
+```mermaid
+graph LR
+  PATHCOMPARE[path-compare] --> DNS[DNS samples]
+  PATHCOMPARE --> TCP[TCP connect samples]
+  PATHCOMPARE --> SCORE[best-overall scoring]
+```
+
+### After
+
+```mermaid
+graph LR
+  PATHCOMPARE[path-compare CHANGED] --> DNS[DNS samples]
+  PATHCOMPARE --> TCP[TCP connect samples]
+  PATHCOMPARE --> TLS[TLS/SNI samples NEW]
+  PATHCOMPARE --> SCORE[best-overall scoring]
+  TLS --> HEALTH[health and suppression CHANGED]
+```
+
+### Edge Cases / Caveats
+
+- TLS probing currently uses the Rustls/webpki root set, not the OS-native trust
+  store. Corporate roots or TLS interception can therefore appear as certificate
+  failure until OS trust integration exists.
+- If TCP succeeds but TLS/SNI fails for every candidate, path-compare returns
+  `can_recommend=false` and `recommendation=null`.
+- This still does not include HTTP, QUIC, browser cache, VPN, MDM, captive
+  portal, or app-specific behavior.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 9 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 37 passed, 0 failed
 ```
 
 ---

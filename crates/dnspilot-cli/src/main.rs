@@ -86,6 +86,8 @@ enum Command {
         connect_port: u16,
         #[arg(long, default_value_t = 4)]
         max_connect_targets_per_domain: usize,
+        #[arg(long)]
+        tls_handshake_timeout_ms: Option<u64>,
     },
     RecommendSample,
 }
@@ -301,12 +303,14 @@ fn main() {
             connect_timeout_ms,
             connect_port,
             max_connect_targets_per_domain,
+            tls_handshake_timeout_ms,
         } => {
             if attempts == 0 {
                 eprintln!("--attempts must be greater than 0");
                 std::process::exit(2);
             }
 
+            let tls_enabled = tls_handshake_timeout_ms.is_some();
             let mut metrics = Vec::new();
             let mut runs = Vec::new();
             let mut run_json = Vec::new();
@@ -333,17 +337,29 @@ fn main() {
                         .wrapping_add((index as u16).wrapping_mul(0x0100)),
                     connect_port,
                     max_connect_targets_per_domain,
-                    tls_handshake_timeout: None,
+                    tls_handshake_timeout: tls_handshake_timeout_ms.map(Duration::from_millis),
                 };
                 let run = run_udp_connection_path_estimate(&config, resolver);
+                let tls_samples = run
+                    .tls
+                    .as_ref()
+                    .map(|tls| {
+                        tls.samples
+                            .iter()
+                            .map(tls_sample_to_json)
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                let tls_sample_count = tls_samples.len();
                 metrics.push(run.metrics.clone());
                 run_json.push(serde_json::json!({
                     "profile_id": profile_id,
                     "resolver": resolver.to_string(),
-                    "summary": path_run_summary_to_json(&run, false, 0),
+                    "summary": path_run_summary_to_json(&run, tls_enabled, tls_sample_count),
                     "metrics": run.metrics.clone(),
                     "dns_samples": run.dns.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
                     "connect_samples": run.connect.samples.iter().map(connect_sample_to_json).collect::<Vec<_>>(),
+                    "tls_samples": tls_samples,
                     "connect_targets": run.connect_targets.iter().map(connect_target_to_json).collect::<Vec<_>>(),
                     "caveats": run.caveats.clone(),
                 }));
@@ -359,25 +375,38 @@ fn main() {
             } else {
                 None
             };
+            let warning = if tls_enabled {
+                "Path comparison estimates DNS, TCP connect, and TLS/SNI handshake timing only; it does not include HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior."
+            } else {
+                "Path comparison estimates DNS plus TCP connect timing only; it does not include TLS, HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior."
+            };
             let payload = serde_json::json!({
                 "summary": {
-                    "measurement_scope": "dns-tcp",
+                    "measurement_scope": if tls_enabled { "dns-tcp-tls" } else { "dns-tcp" },
                     "mode": "best-overall",
                     "health": health,
                     "primary_issue": primary_issue,
                     "can_recommend": can_recommend,
+                    "tls_enabled": tls_enabled,
+                    "trust_store": if tls_enabled {
+                        serde_json::Value::String("mozilla-webpki-roots".into())
+                    } else {
+                        serde_json::Value::Null
+                    },
                     "resolver_count": resolver_specs.len(),
                     "domain_count": domains.len(),
                     "attempts_per_record": attempts,
                     "dns_timeout_ms": dns_timeout_ms,
                     "connect_timeout_ms": connect_timeout_ms,
+                    "tls_handshake_timeout_ms": tls_handshake_timeout_ms,
                     "connect_port": connect_port,
                     "max_connect_targets_per_domain": max_connect_targets_per_domain,
+                    "tls_sample_count": runs.iter().map(|run| run.tls.as_ref().map(|tls| tls.samples.len()).unwrap_or(0)).sum::<usize>(),
                     "recommended_profile_id": recommendation.as_ref().map(|item| item.profile_id.clone()),
                 },
                 "runs": run_json,
                 "recommendation": recommendation,
-                "warning": "Path comparison estimates DNS plus TCP connect timing only; it does not include TLS, HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior.",
+                "warning": warning,
             });
             println!(
                 "{}",
@@ -448,6 +477,11 @@ fn path_run_summary_to_json(
         "health": health,
         "primary_issue": primary_issue,
         "tls_enabled": tls_enabled,
+        "trust_store": if tls_enabled {
+            serde_json::Value::String("mozilla-webpki-roots".into())
+        } else {
+            serde_json::Value::Null
+        },
         "domain_count": run.dns.samples.iter().map(|sample| &sample.domain).collect::<std::collections::BTreeSet<_>>().len(),
         "dns_sample_count": run.dns.samples.len(),
         "connect_target_count": run.connect_targets.len(),
