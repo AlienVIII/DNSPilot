@@ -27,6 +27,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   timeout, and certificate failure classification.
 - CLI smoke commands for catalog, capability, benchmark, connection-path, and
   optional TLS/SNI path-estimate output.
+- Stable path-estimate summary JSON for UI/recommendation consumers.
 
 ## Not Implemented Yet
 

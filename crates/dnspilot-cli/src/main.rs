@@ -1,17 +1,15 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    built_in_profiles,
-    built_in_test_suites,
-    capability_for,
+    built_in_profiles, built_in_test_suites, capability_for,
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
-    dns_benchmark::{run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome},
+    dns_benchmark::{
+        run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome,
+    },
     dns_wire::RecordType,
     recommend,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
-    BenchmarkMetrics,
-    Platform,
-    RecommendationMode,
+    BenchmarkMetrics, Platform, RecommendationMode,
 };
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -87,7 +85,10 @@ fn main() {
                 "profiles": built_in_profiles(),
                 "testSuites": built_in_test_suites(),
             });
-            println!("{}", serde_json::to_string_pretty(&payload).expect("serialize catalog"));
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize catalog")
+            );
         }
         Command::Capability { platform } => {
             let capability = capability_for(platform.into());
@@ -147,14 +148,35 @@ fn main() {
             let tls_samples = run
                 .tls
                 .as_ref()
-                .map(|tls| tls.samples.iter().map(tls_sample_to_json).collect::<Vec<_>>())
+                .map(|tls| {
+                    tls.samples
+                        .iter()
+                        .map(tls_sample_to_json)
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_default();
             let warning = if tls_handshake_timeout_ms.is_some() {
                 "Connection-path estimates use DNS, TCP connect, and TLS/SNI handshake timing only; they do not prove full browser, app, HTTP, or QUIC performance."
             } else {
                 "Connection-path estimates use DNS plus TCP connect timing only; they do not prove full browser, app, TLS, HTTP, or QUIC performance."
             };
+            let summary = serde_json::json!({
+                "measurement_scope": if tls_handshake_timeout_ms.is_some() { "dns-tcp-tls" } else { "dns-tcp" },
+                "tls_enabled": tls_handshake_timeout_ms.is_some(),
+                "trust_store": if tls_handshake_timeout_ms.is_some() {
+                    serde_json::Value::String("mozilla-webpki-roots".into())
+                } else {
+                    serde_json::Value::Null
+                },
+                "domain_count": run.dns.samples.iter().map(|sample| &sample.domain).collect::<std::collections::BTreeSet<_>>().len(),
+                "dns_sample_count": run.dns.samples.len(),
+                "connect_target_count": run.connect_targets.len(),
+                "connect_sample_count": run.connect.samples.len(),
+                "tls_sample_count": tls_samples.len(),
+                "caveat_count": run.caveats.len(),
+            });
             let payload = serde_json::json!({
+                "summary": summary,
                 "metrics": run.metrics,
                 "dns_samples": run.dns.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
                 "connect_samples": run.connect.samples.iter().map(connect_sample_to_json).collect::<Vec<_>>(),
@@ -191,9 +213,12 @@ fn main() {
                 ipv6_health: 0.95,
                 priority_fit: 1.0,
             };
-            let recommendation =
-                recommend(&[current.clone(), quad9], Some(&current), RecommendationMode::BestOverall)
-                    .expect("sample recommendation");
+            let recommendation = recommend(
+                &[current.clone(), quad9],
+                Some(&current),
+                RecommendationMode::BestOverall,
+            )
+            .expect("sample recommendation");
             println!(
                 "{}",
                 serde_json::to_string_pretty(&recommendation).expect("serialize recommendation")

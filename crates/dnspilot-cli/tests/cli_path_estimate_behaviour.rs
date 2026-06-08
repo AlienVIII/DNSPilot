@@ -42,13 +42,25 @@ fn path_estimate_command_outputs_dns_and_connect_metrics() {
     let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
 
     assert_eq!(json["metrics"]["profile_id"], "manual");
+    assert_eq!(json["summary"]["measurement_scope"], "dns-tcp");
+    assert_eq!(json["summary"]["tls_enabled"], false);
+    assert_eq!(json["summary"]["dns_sample_count"], 2);
+    assert_eq!(json["summary"]["connect_target_count"], 1);
+    assert_eq!(json["summary"]["connect_sample_count"], 1);
+    assert_eq!(json["summary"]["tls_sample_count"], 0);
+    assert_eq!(json["summary"]["trust_store"], Value::Null);
     assert_eq!(json["metrics"]["failure_rate"], 0.0);
     assert_eq!(json["metrics"]["timeout_rate"], 0.0);
-    assert!(json["metrics"]["median_connect_latency_ms"]
-        .as_f64()
-        .expect("connect latency should be numeric")
-        >= 0.0);
-    assert_eq!(json["dns_samples"].as_array().expect("dns samples").len(), 2);
+    assert!(
+        json["metrics"]["median_connect_latency_ms"]
+            .as_f64()
+            .expect("connect latency should be numeric")
+            >= 0.0
+    );
+    assert_eq!(
+        json["dns_samples"].as_array().expect("dns samples").len(),
+        2
+    );
     assert_eq!(
         json["connect_samples"]
             .as_array()
@@ -113,6 +125,10 @@ fn path_estimate_command_can_include_tls_samples_when_enabled() {
     let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
 
     let tls_samples = json["tls_samples"].as_array().expect("tls samples");
+    assert_eq!(json["summary"]["measurement_scope"], "dns-tcp-tls");
+    assert_eq!(json["summary"]["tls_enabled"], true);
+    assert_eq!(json["summary"]["tls_sample_count"], 1);
+    assert_eq!(json["summary"]["trust_store"], "mozilla-webpki-roots");
     assert_eq!(tls_samples.len(), 1);
     assert_eq!(tls_samples[0]["server_name"], "example.com");
     assert_eq!(tls_samples[0]["outcome"], "handshake-failure");
@@ -151,8 +167,8 @@ fn start_fake_resolver(query_count: usize) -> SocketAddr {
             response.extend(&request[12..]);
             if qtype == 1 {
                 response.extend([
-                    0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1e, 0x00,
-                    0x04, 127, 0, 0, 1,
+                    0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1e, 0x00, 0x04, 127, 0,
+                    0, 1,
                 ]);
             }
             socket

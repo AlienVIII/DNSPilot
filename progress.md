@@ -26,6 +26,7 @@ DNS handling, and platform capability reporting.
 - [x] [15] v0.1 live TLS/SNI handshaker — Rustls handshake to resolved IP with SNI.
 - [x] [16] v0.1 connection-path TLS integration — opt-in TLS/SNI reliability in core estimates.
 - [x] [17] v0.1 TLS path-estimate CLI — flag and JSON samples for TLS/SNI probing.
+- [x] [18] v0.1 path-estimate summary JSON — stable UI/recommendation summary fields.
 
 ---
 
@@ -804,6 +805,61 @@ graph LR
 ### Verification
 
 ```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_can_include_tls_samples_when_enabled
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour
+Result: 2 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 31 passed, 0 failed
+```
+
+---
+
+## Chunk 18: v0.1 Path-Estimate Summary JSON
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `README.md`
+
+### What changed
+
+Added a stable `summary` object to `dnspilot-cli path-estimate` JSON output.
+It reports measurement scope, TLS enablement, trust store, sample counts, target
+count, domain count, and caveat count so native shells and recommendation flows
+do not need to infer these from raw arrays.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[path-estimate CLI] --> RAW[Raw DNS/TCP/TLS arrays]
+  RAW --> UI[UI infers coverage]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[path-estimate CLI CHANGED] --> RAW[Raw DNS/TCP/TLS arrays]
+  CLI --> SUMMARY[Stable summary JSON NEW]
+  SUMMARY --> UI[UI/recommendation layer]
+```
+
+### Edge Cases / Caveats
+
+- `measurement_scope` is `dns-tcp` by default and `dns-tcp-tls` only when TLS
+  probing is enabled.
+- `trust_store` is `null` when TLS is disabled and `mozilla-webpki-roots` when
+  TLS probing is enabled, making the current non-OS trust behavior explicit.
+- Summary counts are descriptive only; scoring still comes from core metrics.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_outputs_dns_and_connect_metrics
+Result: 1 passed, 0 failed
+
 CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_can_include_tls_samples_when_enabled
 Result: 1 passed, 0 failed
 
