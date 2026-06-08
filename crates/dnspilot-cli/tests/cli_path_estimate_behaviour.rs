@@ -43,6 +43,8 @@ fn path_estimate_command_outputs_dns_and_connect_metrics() {
 
     assert_eq!(json["metrics"]["profile_id"], "manual");
     assert_eq!(json["summary"]["measurement_scope"], "dns-tcp");
+    assert_eq!(json["summary"]["health"], "healthy");
+    assert_eq!(json["summary"]["primary_issue"], "none");
     assert_eq!(json["summary"]["tls_enabled"], false);
     assert_eq!(json["summary"]["dns_sample_count"], 2);
     assert_eq!(json["summary"]["connect_target_count"], 1);
@@ -126,6 +128,8 @@ fn path_estimate_command_can_include_tls_samples_when_enabled() {
 
     let tls_samples = json["tls_samples"].as_array().expect("tls samples");
     assert_eq!(json["summary"]["measurement_scope"], "dns-tcp-tls");
+    assert_eq!(json["summary"]["health"], "failed");
+    assert_eq!(json["summary"]["primary_issue"], "tls-handshake-failure");
     assert_eq!(json["summary"]["tls_enabled"], true);
     assert_eq!(json["summary"]["tls_sample_count"], 1);
     assert_eq!(json["summary"]["trust_store"], "mozilla-webpki-roots");

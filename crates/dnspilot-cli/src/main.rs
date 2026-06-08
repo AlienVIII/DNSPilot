@@ -160,8 +160,11 @@ fn main() {
             } else {
                 "Connection-path estimates use DNS plus TCP connect timing only; they do not prove full browser, app, TLS, HTTP, or QUIC performance."
             };
+            let (health, primary_issue) = path_health_summary(&run);
             let summary = serde_json::json!({
                 "measurement_scope": if tls_handshake_timeout_ms.is_some() { "dns-tcp-tls" } else { "dns-tcp" },
+                "health": health,
+                "primary_issue": primary_issue,
                 "tls_enabled": tls_handshake_timeout_ms.is_some(),
                 "trust_store": if tls_handshake_timeout_ms.is_some() {
                     serde_json::Value::String("mozilla-webpki-roots".into())
@@ -241,6 +244,38 @@ fn connect_target_to_json(target: &TcpConnectTarget) -> serde_json::Value {
         "domain": target.domain,
         "endpoint": target.endpoint.to_string(),
     })
+}
+
+fn path_health_summary(
+    run: &dnspilot_core::connection_path::ConnectionPathRun,
+) -> (&'static str, &'static str) {
+    if run.connect_targets.is_empty() {
+        return ("inconclusive", "no-connect-targets");
+    }
+
+    if run.dns.metrics.failure_rate >= 1.0 {
+        return ("failed", "dns-failure");
+    }
+    if run.connect.failure_rate >= 1.0 {
+        return ("failed", "connect-failure");
+    }
+    if let Some(tls) = &run.tls {
+        if tls.certificate_failure_rate > 0.0 {
+            return ("failed", "tls-certificate-failure");
+        }
+        if tls.failure_rate >= 1.0 {
+            return ("failed", "tls-handshake-failure");
+        }
+        if tls.failure_rate > 0.0 {
+            return ("degraded", "tls-handshake-failure");
+        }
+    }
+
+    if run.metrics.failure_rate > 0.0 || run.metrics.timeout_rate > 0.0 {
+        return ("degraded", "partial-failure");
+    }
+
+    ("healthy", "none")
 }
 
 fn tls_sample_to_json(sample: &TlsProbeSample) -> serde_json::Value {

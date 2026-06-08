@@ -27,6 +27,7 @@ DNS handling, and platform capability reporting.
 - [x] [16] v0.1 connection-path TLS integration — opt-in TLS/SNI reliability in core estimates.
 - [x] [17] v0.1 TLS path-estimate CLI — flag and JSON samples for TLS/SNI probing.
 - [x] [18] v0.1 path-estimate summary JSON — stable UI/recommendation summary fields.
+- [x] [19] v0.1 path health verdicts — stable health and primary issue summary fields.
 
 ---
 
@@ -805,6 +806,62 @@ graph LR
 ### Verification
 
 ```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_can_include_tls_samples_when_enabled
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour
+Result: 2 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 31 passed, 0 failed
+```
+
+---
+
+## Chunk 19: v0.1 Path Health Verdicts
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `summary.health` and `summary.primary_issue` to `dnspilot-cli
+path-estimate`. This gives UI and recommendation flows stable verdict fields
+instead of forcing them to infer state from metrics, samples, and caveat text.
+
+### Before
+
+```mermaid
+graph LR
+  SUMMARY[Path summary] --> COUNTS[Counts and scope]
+  UI[UI] --> METRICS[Infer health from metrics/caveats]
+```
+
+### After
+
+```mermaid
+graph LR
+  SUMMARY[Path summary CHANGED] --> COUNTS[Counts and scope]
+  SUMMARY --> HEALTH[health NEW]
+  SUMMARY --> ISSUE[primary_issue NEW]
+  HEALTH --> UI[UI/recommendation layer]
+```
+
+### Edge Cases / Caveats
+
+- `healthy` currently means no DNS/TCP/TLS failure or timeout was observed in
+  the measured path.
+- `failed` is emitted for total DNS/connect/TLS failure conditions, including
+  TLS handshake failure after TCP connect succeeds.
+- `degraded` is reserved for partial failures. This is a product-facing verdict,
+  not a full recommendation across multiple DNS profiles yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_outputs_dns_and_connect_metrics
+Result: 1 passed, 0 failed
+
 CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_can_include_tls_samples_when_enabled
 Result: 1 passed, 0 failed
 
