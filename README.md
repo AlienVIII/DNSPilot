@@ -20,7 +20,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   timeout rate, and IPv4/IPv6 health.
 - TCP connect probe aggregation for connection-path estimates.
 - Connection-path estimator that combines DNS lookup metrics with TCP connect
-  metrics and conservative caveats.
+  metrics, optional TLS/SNI handshake metrics, and conservative caveats.
 - Connection target limiting to avoid excessive TCP probes for large CDN answer
   sets, with balanced IPv4/IPv6 selection when both are available.
 - TLS/SNI probe contract and live Rustls handshaker with handshake latency,
@@ -30,6 +30,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 ## Not Implemented Yet
 
 - OS-native TLS trust store integration for enterprise/corporate roots.
+- CLI flag to enable TLS/SNI probing in `path-estimate`.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
 - SQLite persistence.

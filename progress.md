@@ -24,6 +24,7 @@ DNS handling, and platform capability reporting.
 - [x] [13] v0.1 dual-stack target selection — balanced IPv4/IPv6 endpoint limiting.
 - [x] [14] v0.1 TLS/SNI probe contract — handshake metrics and certificate failure classification.
 - [x] [15] v0.1 live TLS/SNI handshaker — Rustls handshake to resolved IP with SNI.
+- [x] [16] v0.1 connection-path TLS integration — opt-in TLS/SNI reliability in core estimates.
 
 ---
 
@@ -699,4 +700,59 @@ Result: 3 passed, 0 failed
 
 /Users/aart/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --workspace --tests
 Result: 28 passed, 0 failed
+```
+
+---
+
+## Chunk 16: v0.1 Connection-Path TLS Integration
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/connection_path.rs`, `crates/dnspilot-core/tests/connection_path_behaviour.rs`, `crates/dnspilot-cli/src/main.rs`, `README.md`
+
+### What changed
+
+Integrated TLS/SNI probing into the connection-path estimator as an opt-in core
+capability. When `tls_handshake_timeout` is set, the estimator probes TLS for
+the selected resolved endpoints, includes TLS failure/timeout rates in combined
+reliability, and records certificate-specific caveats.
+
+### Before
+
+```mermaid
+graph LR
+  PATH[Connection-path estimator] --> DNS[DNS benchmark]
+  PATH --> TCP[TCP connect probe]
+  PATH --> METRICS[Combined DNS/TCP reliability]
+```
+
+### After
+
+```mermaid
+graph LR
+  PATH[Connection-path estimator CHANGED] --> DNS[DNS benchmark]
+  PATH --> TCP[TCP connect probe]
+  PATH --> TLS[TLS/SNI probe OPTIONAL NEW]
+  TLS --> CERT[Certificate failure caveat NEW]
+  TLS --> METRICS[Combined DNS/TCP/TLS reliability CHANGED]
+```
+
+### Edge Cases / Caveats
+
+- TLS is opt-in at core level. Existing CLI `path-estimate` keeps
+  `tls_handshake_timeout: None`, so manual CLI behavior is unchanged in this
+  chunk.
+- A path with DNS success and TCP success can still be marked unreliable if TLS
+  certificate verification fails.
+- Certificate failures can be valid signals for captive portals, SNI mismatch,
+  or wrong edge mapping, but can be false negatives in corporate/MDM networks
+  until OS-native trust store adapters exist.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test connection_path_behaviour tls_certificate_failures_reduce_combined_reliability_when_enabled
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 30 passed, 0 failed
 ```

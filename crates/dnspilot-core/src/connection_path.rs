@@ -75,7 +75,7 @@ pub fn run_udp_connection_path_estimate(
 
 pub fn run_connection_path_with_clients<D, C>(
     config: &ConnectionPathConfig,
-    mut dns_lookup: D,
+    dns_lookup: D,
     connector: C,
 ) -> ConnectionPathRun
 where
