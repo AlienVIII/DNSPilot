@@ -5,6 +5,10 @@ use crate::connect_probe::{
 use crate::dns_benchmark::{run_dns_benchmark_with_lookup, DnsBenchmarkConfig, DnsBenchmarkRun};
 use crate::dns_resolver::{query_udp_once, DnsResolverError};
 use crate::dns_wire::{DnsRecordData, DnsResponse, RecordType};
+use crate::tls_probe::{
+    probe_tls_handshake_once, run_tls_handshake_probes_with_handshaker, TlsHandshakeTarget,
+    TlsProbeConfig, TlsProbeError, TlsProbeRun,
+};
 use crate::BenchmarkMetrics;
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
@@ -19,6 +23,7 @@ pub struct ConnectionPathConfig {
     pub first_transaction_id: u16,
     pub connect_port: u16,
     pub max_connect_targets_per_domain: usize,
+    pub tls_handshake_timeout: Option<Duration>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,6 +31,7 @@ pub struct ConnectionPathRun {
     pub metrics: BenchmarkMetrics,
     pub dns: DnsBenchmarkRun,
     pub connect: ConnectProbeRun,
+    pub tls: Option<TlsProbeRun>,
     pub connect_targets: Vec<TcpConnectTarget>,
     pub caveats: Vec<String>,
 }
@@ -40,7 +46,7 @@ pub fn run_udp_connection_path_estimate(
     config: &ConnectionPathConfig,
     resolver: SocketAddr,
 ) -> ConnectionPathRun {
-    run_connection_path_with_clients(
+    run_connection_path_with_clients_and_tls(
         config,
         |domain, record_type, transaction_id| {
             query_udp_once(
@@ -56,6 +62,14 @@ pub fn run_udp_connection_path_estimate(
             })
         },
         |target| probe_tcp_connect_once(target, config.connect_timeout),
+        |target| {
+            probe_tls_handshake_once(
+                target,
+                config
+                    .tls_handshake_timeout
+                    .unwrap_or(config.connect_timeout),
+            )
+        },
     )
 }
 
@@ -67,6 +81,22 @@ pub fn run_connection_path_with_clients<D, C>(
 where
     D: FnMut(&str, RecordType, u16) -> Result<DnsLookupMeasurement, DnsResolverError>,
     C: FnMut(&TcpConnectTarget) -> Result<Duration, ConnectProbeError>,
+{
+    run_connection_path_with_clients_and_tls(config, dns_lookup, connector, |_target| {
+        unreachable!("TLS handshaker should not be called when TLS probing is disabled")
+    })
+}
+
+pub fn run_connection_path_with_clients_and_tls<D, C, T>(
+    config: &ConnectionPathConfig,
+    mut dns_lookup: D,
+    connector: C,
+    tls_handshaker: T,
+) -> ConnectionPathRun
+where
+    D: FnMut(&str, RecordType, u16) -> Result<DnsLookupMeasurement, DnsResolverError>,
+    C: FnMut(&TcpConnectTarget) -> Result<Duration, ConnectProbeError>,
+    T: FnMut(&TlsHandshakeTarget) -> Result<Duration, TlsProbeError>,
 {
     let mut candidate_targets = Vec::new();
     let dns_config = DnsBenchmarkConfig {
@@ -97,11 +127,20 @@ where
         timeout: config.connect_timeout,
     };
     let connect = run_tcp_connect_probes_with_connector(&connect_config, connector);
-    let metrics = combine_metrics(&dns.metrics, &connect);
+    let tls = config.tls_handshake_timeout.map(|timeout| {
+        let tls_config = TlsProbeConfig {
+            targets: targets.iter().map(tls_target_from_connect_target).collect(),
+            attempts_per_target: config.attempts_per_record,
+            timeout,
+        };
+        run_tls_handshake_probes_with_handshaker(&tls_config, tls_handshaker)
+    });
+    let metrics = combine_metrics(&dns.metrics, &connect, tls.as_ref());
     let caveats = caveats_for(
         &targets,
         &dns,
         &connect,
+        tls.as_ref(),
         config.max_connect_targets_per_domain,
         skipped_connect_targets,
     );
@@ -110,8 +149,17 @@ where
         metrics,
         dns,
         connect,
+        tls,
         connect_targets: targets,
         caveats,
+    }
+}
+
+fn tls_target_from_connect_target(target: &TcpConnectTarget) -> TlsHandshakeTarget {
+    TlsHandshakeTarget {
+        domain: target.domain.clone(),
+        server_name: target.domain.clone(),
+        endpoint: target.endpoint,
     }
 }
 
@@ -207,13 +255,26 @@ fn balanced_targets_for_domain<'a>(
     selected
 }
 
-fn combine_metrics(dns: &BenchmarkMetrics, connect: &ConnectProbeRun) -> BenchmarkMetrics {
+fn combine_metrics(
+    dns: &BenchmarkMetrics,
+    connect: &ConnectProbeRun,
+    tls: Option<&TlsProbeRun>,
+) -> BenchmarkMetrics {
+    let tls_failure_rate = tls.map_or(0.0, |tls| tls.failure_rate);
+    let tls_timeout_rate = tls.map_or(0.0, |tls| tls.timeout_rate);
+
     BenchmarkMetrics {
         profile_id: dns.profile_id.clone(),
         median_dns_latency_ms: dns.median_dns_latency_ms,
         p95_dns_latency_ms: dns.p95_dns_latency_ms,
-        failure_rate: dns.failure_rate.max(connect.failure_rate),
-        timeout_rate: dns.timeout_rate.max(connect.timeout_rate),
+        failure_rate: dns
+            .failure_rate
+            .max(connect.failure_rate)
+            .max(tls_failure_rate),
+        timeout_rate: dns
+            .timeout_rate
+            .max(connect.timeout_rate)
+            .max(tls_timeout_rate),
         median_connect_latency_ms: connect.median_connect_latency_ms,
         ipv4_health: dns.ipv4_health,
         ipv6_health: dns.ipv6_health,
@@ -225,12 +286,19 @@ fn caveats_for(
     targets: &[TcpConnectTarget],
     dns: &DnsBenchmarkRun,
     connect: &ConnectProbeRun,
+    tls: Option<&TlsProbeRun>,
     max_connect_targets_per_domain: usize,
     skipped_connect_targets: usize,
 ) -> Vec<String> {
-    let mut caveats = vec![
-        "Connection-path estimate uses DNS and TCP connect timing only; TLS, HTTP, QUIC, browser cache, and server latency are not measured yet.".into(),
-    ];
+    let mut caveats = if tls.is_some() {
+        vec![
+            "Connection-path estimate uses DNS, TCP connect, and TLS/SNI handshake timing only; HTTP, QUIC, browser cache, and server latency are not measured yet.".into(),
+        ]
+    } else {
+        vec![
+            "Connection-path estimate uses DNS and TCP connect timing only; TLS, HTTP, QUIC, browser cache, and server latency are not measured yet.".into(),
+        ]
+    };
 
     if targets.is_empty() {
         caveats.push("No usable A/AAAA answers were returned, so TCP connect probes were skipped.".into());
@@ -240,6 +308,13 @@ fn caveats_for(
     }
     if connect.failure_rate > 0.0 {
         caveats.push("Some resolved endpoints failed TCP connect; DNS may be mapping to a poor, blocked, or unreachable path.".into());
+    }
+    if let Some(tls) = tls {
+        if tls.certificate_failure_rate > 0.0 {
+            caveats.push("TLS certificate failures were observed; this can indicate captive portal, corporate interception, wrong endpoint mapping, or SNI mismatch.".into());
+        } else if tls.failure_rate > 0.0 {
+            caveats.push("Some resolved endpoints failed TLS/SNI handshake after TCP connect succeeded.".into());
+        }
     }
     if max_connect_targets_per_domain > 0 && skipped_connect_targets > 0 {
         caveats.push(format!(

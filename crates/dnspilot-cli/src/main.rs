@@ -137,6 +137,7 @@ fn main() {
                 first_transaction_id: 0x7000,
                 connect_port,
                 max_connect_targets_per_domain,
+                tls_handshake_timeout: None,
             };
             let run = run_udp_connection_path_estimate(&config, resolver);
             let payload = serde_json::json!({
