@@ -28,6 +28,7 @@ DNS handling, and platform capability reporting.
 - [x] [17] v0.1 TLS path-estimate CLI — flag and JSON samples for TLS/SNI probing.
 - [x] [18] v0.1 path-estimate summary JSON — stable UI/recommendation summary fields.
 - [x] [19] v0.1 path health verdicts — stable health and primary issue summary fields.
+- [x] [20] v0.1 DNS resolver compare CLI — DNS-only multi-resolver recommendation.
 
 ---
 
@@ -870,6 +871,63 @@ Result: 2 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 31 passed, 0 failed
+```
+
+---
+
+## Chunk 20: v0.1 DNS Resolver Compare CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `dnspilot-cli compare`, a DNS-only multi-resolver benchmark command. It
+accepts repeated `--resolver id=host:port` entries, benchmarks each resolver
+against the same domains, runs core recommendation scoring in
+`fastest-raw-dns` mode, and emits stable JSON with `summary`, `runs`,
+`recommendation`, and a scope warning.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[CLI] --> BENCH[Single resolver benchmark]
+  CLI --> PATH[Single resolver path-estimate]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[CLI CHANGED] --> BENCH[Single resolver benchmark]
+  CLI --> PATH[Single resolver path-estimate]
+  CLI --> COMPARE[Multi-resolver DNS compare NEW]
+  COMPARE --> SCORE[Core fastest-raw-dns recommendation]
+```
+
+### Edge Cases / Caveats
+
+- This is DNS-only compare. It does not include TCP connect, TLS/SNI, HTTP,
+  QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior.
+- If every resolver fails, compare returns `can_recommend=false` and
+  `recommendation=null` instead of picking the least-bad failed resolver.
+- Resolver IDs must be unique because recommendation/profile persistence uses
+  `profile_id` as the stable identifier.
+- IPv6 resolver addresses must use socket address bracket syntax, for example
+  `cloudflare=[2606:4700:4700::1111]:53`.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 6 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 34 passed, 0 failed
 ```
 
 ---

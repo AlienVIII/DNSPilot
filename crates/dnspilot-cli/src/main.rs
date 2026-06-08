@@ -41,6 +41,16 @@ enum Command {
         #[arg(long, default_value = "manual")]
         profile_id: String,
     },
+    Compare {
+        #[arg(long = "resolver", required = true)]
+        resolver_specs: Vec<String>,
+        #[arg(long = "domain", required = true)]
+        domains: Vec<String>,
+        #[arg(long, default_value_t = 3)]
+        attempts: usize,
+        #[arg(long, default_value_t = 800)]
+        timeout_ms: u64,
+    },
     PathEstimate {
         #[arg(long)]
         resolver: SocketAddr,
@@ -120,6 +130,80 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize benchmark")
+            );
+        }
+        Command::Compare {
+            resolver_specs,
+            domains,
+            attempts,
+            timeout_ms,
+        } => {
+            if attempts == 0 {
+                eprintln!("--attempts must be greater than 0");
+                std::process::exit(2);
+            }
+
+            let mut metrics = Vec::new();
+            let mut runs = Vec::new();
+            let mut seen_profile_ids = std::collections::BTreeSet::new();
+
+            for (index, resolver_spec) in resolver_specs.iter().enumerate() {
+                let (profile_id, resolver) =
+                    parse_resolver_spec(resolver_spec).unwrap_or_else(|message| {
+                        eprintln!("{message}");
+                        std::process::exit(2);
+                    });
+                if !seen_profile_ids.insert(profile_id.clone()) {
+                    eprintln!("duplicate --resolver id '{profile_id}'");
+                    std::process::exit(2);
+                }
+                let config = DnsBenchmarkConfig {
+                    profile_id: profile_id.clone(),
+                    domains: domains.clone(),
+                    attempts_per_record: attempts,
+                    timeout: Duration::from_millis(timeout_ms),
+                    first_transaction_id: 0x9000_u16
+                        .wrapping_add((index as u16).wrapping_mul(0x0100)),
+                };
+                let run = run_udp_dns_benchmark(&config, resolver);
+                metrics.push(run.metrics.clone());
+                runs.push(serde_json::json!({
+                    "profile_id": profile_id,
+                    "resolver": resolver.to_string(),
+                    "metrics": run.metrics,
+                    "samples": run.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
+                }));
+            }
+
+            let (health, primary_issue, can_recommend) = compare_health_summary(&metrics);
+            let recommendation = if can_recommend {
+                Some(
+                    recommend(&metrics, None, RecommendationMode::FastestRawDns)
+                        .expect("compare requires at least one resolver"),
+                )
+            } else {
+                None
+            };
+            let payload = serde_json::json!({
+                "summary": {
+                    "measurement_scope": "dns-only",
+                    "mode": "fastest-raw-dns",
+                    "health": health,
+                    "primary_issue": primary_issue,
+                    "can_recommend": can_recommend,
+                    "resolver_count": resolver_specs.len(),
+                    "domain_count": domains.len(),
+                    "attempts_per_record": attempts,
+                    "timeout_ms": timeout_ms,
+                    "recommended_profile_id": recommendation.as_ref().map(|item| item.profile_id.clone()),
+                },
+                "runs": runs,
+                "recommendation": recommendation,
+                "warning": "DNS-only comparison estimates resolver lookup latency and reliability; it does not include TCP, TLS, HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior.",
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize compare")
             );
         }
         Command::PathEstimate {
@@ -328,6 +412,50 @@ fn outcome_name(outcome: DnsSampleOutcome) -> &'static str {
         DnsSampleOutcome::Timeout => "timeout",
         DnsSampleOutcome::Failure => "failure",
     }
+}
+
+fn parse_resolver_spec(spec: &str) -> Result<(String, SocketAddr), String> {
+    let Some((profile_id, resolver)) = spec.split_once('=') else {
+        return Err(format!(
+            "invalid --resolver '{spec}'; expected id=host:port, for IPv6 use id=[addr]:53"
+        ));
+    };
+
+    let profile_id = profile_id.trim();
+    if profile_id.is_empty() {
+        return Err(format!(
+            "invalid --resolver '{spec}'; resolver id cannot be empty"
+        ));
+    }
+
+    let resolver = resolver.trim().parse::<SocketAddr>().map_err(|error| {
+        format!("invalid --resolver '{spec}'; resolver address must be host:port ({error})")
+    })?;
+
+    Ok((profile_id.into(), resolver))
+}
+
+fn compare_health_summary(metrics: &[BenchmarkMetrics]) -> (&'static str, &'static str, bool) {
+    if metrics.is_empty() {
+        return ("inconclusive", "no-resolvers", false);
+    }
+
+    if metrics.iter().all(|metric| metric.failure_rate >= 1.0) {
+        return ("failed", "all-resolvers-failed", false);
+    }
+
+    if metrics.iter().all(|metric| metric.reliability() < 0.95) {
+        return ("degraded", "all-resolvers-low-reliability", true);
+    }
+
+    if metrics
+        .iter()
+        .any(|metric| metric.failure_rate > 0.0 || metric.timeout_rate > 0.0)
+    {
+        return ("degraded", "partial-failure", true);
+    }
+
+    ("healthy", "none", true)
 }
 
 impl From<PlatformArg> for Platform {

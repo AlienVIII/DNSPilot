@@ -29,10 +29,14 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   optional TLS/SNI path-estimate output.
 - Stable path-estimate summary JSON with health verdicts for
   UI/recommendation consumers.
+- DNS-only multi-resolver compare command that benchmarks several resolvers and
+  emits a core recommendation with explicit scope caveats and all-fail
+  suppression.
 
 ## Not Implemented Yet
 
 - OS-native TLS trust store integration for enterprise/corporate roots.
+- Multi-resolver connection-path/TCP/TLS recommendation.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
 - SQLite persistence.
@@ -48,6 +52,7 @@ cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
+cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1 --tls-handshake-timeout-ms 1000
 ```
