@@ -34,8 +34,12 @@ enum Command {
     Benchmark {
         #[arg(long)]
         resolver: SocketAddr,
-        #[arg(long = "domain", required = true)]
+        #[arg(long = "domain")]
         domains: Vec<String>,
+        #[arg(long)]
+        suite_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
         #[arg(long, default_value_t = 800)]
@@ -184,12 +188,15 @@ fn main() {
         Command::Benchmark {
             resolver,
             domains,
+            suite_db,
+            suite_id,
             attempts,
             timeout_ms,
             profile_id,
             save_db,
             history_id,
         } => {
+            let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
             let config = DnsBenchmarkConfig {
                 profile_id: profile_id.clone(),
@@ -778,6 +785,40 @@ fn load_snapshot_or_builtin(storage: &SqliteStorage) -> StorageSnapshot {
             std::process::exit(2);
         }
     }
+}
+
+fn resolve_domains(
+    domains: Vec<String>,
+    suite_db: Option<&std::path::Path>,
+    suite_id: Option<String>,
+) -> Vec<String> {
+    let mut resolved = Vec::new();
+    if let Some(suite_id) = suite_id {
+        let suite_db = suite_db.unwrap_or_else(|| {
+            eprintln!("--suite-db is required with --suite-id");
+            std::process::exit(2);
+        });
+        let storage = SqliteStorage::open(suite_db).unwrap_or_else(|error| {
+            eprintln!("{error}");
+            std::process::exit(2);
+        });
+        let snapshot = load_snapshot_or_builtin(&storage);
+        let suite = snapshot
+            .test_suites
+            .iter()
+            .find(|suite| suite.id == suite_id)
+            .unwrap_or_else(|| {
+                eprintln!("test suite '{suite_id}' not found");
+                std::process::exit(2);
+            });
+        resolved.extend(suite.domains.clone());
+    }
+    resolved.extend(domains);
+    if resolved.is_empty() {
+        eprintln!("--domain or --suite-id is required");
+        std::process::exit(2);
+    }
+    resolved
 }
 
 fn save_benchmark_history(db: &std::path::Path, record: BenchmarkHistoryRecord) {

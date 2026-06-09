@@ -40,6 +40,7 @@ DNS handling, and platform capability reporting.
 - [x] [29] v0.1 path-compare history persistence CLI — save/list path comparison history.
 - [x] [30] v0.1 compare history persistence CLI — save/list DNS-only comparison history.
 - [x] [31] v0.1 custom suite persistence CLI — add/list custom domain suites.
+- [x] [32] v0.1 benchmark saved-suite input — run benchmark from saved suite domains.
 
 ---
 
@@ -1590,4 +1591,56 @@ Result: 15 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 51 passed, 0 failed
+```
+
+---
+
+## Chunk 32: v0.1 Benchmark Saved-Suite Input
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `benchmark --suite-db <path> --suite-id <id>`. Benchmark can now resolve
+domains from a saved custom test suite, so saved Azure/Microsoft or other
+domain sets become runnable options.
+
+### Before
+
+```mermaid
+graph LR
+  SUITE[suite-add/suite-list] --> SQLITE[SQLite snapshot]
+  BENCH[benchmark CLI] --> DOMAIN[required --domain args]
+```
+
+### After
+
+```mermaid
+graph LR
+  SUITE[suite-add/suite-list] --> SQLITE[SQLite snapshot]
+  SQLITE --> BENCH[benchmark CLI CHANGED]
+  BENCH --> DOMAINS[suite domains plus ad hoc domains NEW]
+```
+
+### Edge Cases / Caveats
+
+- `--domain` or `--suite-id` is required.
+- `--suite-db` is required when `--suite-id` is used.
+- `compare` and `path-compare` do not consume saved suites yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour benchmark_command_can_use_saved_domain_suite
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour
+Result: 5 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 16 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 52 passed, 0 failed
 ```

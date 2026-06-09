@@ -158,6 +158,76 @@ fn suite_add_command_persists_custom_domain_suite() {
 }
 
 #[test]
+fn benchmark_command_can_use_saved_domain_suite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-benchmark-suite-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "azure-lab",
+            "--name",
+            "Azure Lab",
+            "--domain",
+            "portal.azure.com",
+            "--domain",
+            "login.microsoftonline.com",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-add");
+
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let resolver = start_fake_resolver(4);
+    let benchmark = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "benchmark",
+            "--resolver",
+            &resolver.to_string(),
+            "--suite-db",
+            db_path.to_str().expect("utf8 path"),
+            "--suite-id",
+            "azure-lab",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+        ])
+        .output()
+        .expect("run dnspilot-cli benchmark");
+
+    assert!(
+        benchmark.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&benchmark.stderr)
+    );
+
+    let stdout = String::from_utf8(benchmark.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    let sample_domains = json["samples"]
+        .as_array()
+        .expect("samples")
+        .iter()
+        .map(|sample| sample["domain"].as_str().expect("domain"))
+        .collect::<Vec<_>>();
+
+    assert!(sample_domains.contains(&"portal.azure.com"));
+    assert!(sample_domains.contains(&"login.microsoftonline.com"));
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn benchmark_command_can_save_history_to_sqlite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-benchmark-history-{}.sqlite",
