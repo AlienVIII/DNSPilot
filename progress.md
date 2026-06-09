@@ -43,6 +43,7 @@ DNS handling, and platform capability reporting.
 - [x] [32] v0.1 benchmark saved-suite input — run benchmark from saved suite domains.
 - [x] [33] v0.1 compare saved-suite input — run DNS comparison from saved suite domains.
 - [x] [34] v0.1 path-compare saved-suite input — run path comparison from saved suite domains.
+- [x] [35] v0.1 path-estimate saved-suite input — run path estimate from saved suite domains.
 
 ---
 
@@ -1749,4 +1750,57 @@ Result: 18 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 54 passed, 0 failed
+```
+
+---
+
+## Chunk 35: v0.1 Path-Estimate Saved-Suite Input
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `path-estimate --suite-db <path> --suite-id <id>`. Single-resolver
+connection-path estimates can now run against saved custom domain suites, making
+suite usage consistent across benchmark, compare, path-estimate, and
+path-compare.
+
+### Before
+
+```mermaid
+graph LR
+  SUITE[saved suites] --> SQLITE[SQLite snapshot]
+  EST[path-estimate CLI] --> DOMAIN[required --domain args]
+```
+
+### After
+
+```mermaid
+graph LR
+  SUITE[saved suites] --> SQLITE[SQLite snapshot]
+  SQLITE --> EST[path-estimate CLI CHANGED]
+  EST --> DOMAINS[suite domains plus ad hoc domains NEW]
+```
+
+### Edge Cases / Caveats
+
+- `--domain` or `--suite-id` is required.
+- `--suite-db` is required when `--suite-id` is used.
+- Saved suite domains can be combined with extra ad hoc `--domain` values.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_can_use_saved_domain_suite
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 19 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 55 passed, 0 failed
 ```

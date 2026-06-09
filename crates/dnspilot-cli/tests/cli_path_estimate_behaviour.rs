@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::fs;
 use std::net::{SocketAddr, TcpListener, UdpSocket};
 use std::process::Command;
 use std::thread;
@@ -82,6 +83,85 @@ fn path_estimate_command_outputs_dns_and_connect_metrics() {
         .expect("caveats")
         .iter()
         .any(|caveat| caveat.as_str().unwrap_or("").contains("TLS")));
+}
+
+#[test]
+fn path_estimate_command_can_use_saved_domain_suite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-path-estimate-suite-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "azure-lab",
+            "--name",
+            "Azure Lab",
+            "--domain",
+            "portal.azure.com",
+            "--domain",
+            "login.microsoftonline.com",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-add");
+
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let tcp_listener = TcpListener::bind("127.0.0.1:0").expect("bind local TCP listener");
+    let connect_port = tcp_listener.local_addr().expect("listener addr").port();
+    thread::spawn(move || {
+        for _ in 0..2 {
+            let _ = tcp_listener.accept().expect("accept TCP connection");
+        }
+    });
+
+    let resolver = start_fake_resolver(4);
+    let estimate = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "path-estimate",
+            "--resolver",
+            &resolver.to_string(),
+            "--suite-db",
+            db_path.to_str().expect("utf8 path"),
+            "--suite-id",
+            "azure-lab",
+            "--attempts",
+            "1",
+            "--dns-timeout-ms",
+            "500",
+            "--connect-timeout-ms",
+            "500",
+            "--connect-port",
+            &connect_port.to_string(),
+        ])
+        .output()
+        .expect("run dnspilot-cli path-estimate");
+
+    assert!(
+        estimate.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&estimate.stderr)
+    );
+
+    let stdout = String::from_utf8(estimate.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+
+    assert_eq!(json["summary"]["domain_count"], 2);
+    assert!(json["dns_samples"]
+        .as_array()
+        .expect("dns samples")
+        .iter()
+        .any(|sample| sample["domain"] == "portal.azure.com"));
+
+    let _ = fs::remove_file(db_path);
 }
 
 #[test]

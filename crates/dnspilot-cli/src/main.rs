@@ -72,8 +72,12 @@ enum Command {
     PathEstimate {
         #[arg(long)]
         resolver: SocketAddr,
-        #[arg(long = "domain", required = true)]
+        #[arg(long = "domain")]
         domains: Vec<String>,
+        #[arg(long)]
+        suite_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
         #[arg(long, default_value_t = 800)]
@@ -361,6 +365,8 @@ fn main() {
         Command::PathEstimate {
             resolver,
             domains,
+            suite_db,
+            suite_id,
             attempts,
             dns_timeout_ms,
             connect_timeout_ms,
@@ -369,6 +375,7 @@ fn main() {
             tls_handshake_timeout_ms,
             profile_id,
         } => {
+            let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let config = ConnectionPathConfig {
                 profile_id,
                 domains,
