@@ -35,6 +35,7 @@ DNS handling, and platform capability reporting.
 - [x] [24] v0.1 storage snapshot contract — versioned local data schema.
 - [x] [25] v0.1 SQLite storage backend — save/load versioned snapshots.
 - [x] [26] v0.1 storage smoke CLI — create and verify SQLite snapshot.
+- [x] [27] v0.1 custom profile persistence CLI — add/list custom DNS profiles.
 
 ---
 
@@ -1265,6 +1266,55 @@ Result: 10 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 45 passed, 0 failed
+```
+
+---
+
+## Chunk 27: v0.1 Custom Profile Persistence CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `profile-add` and `profile-list` CLI commands backed by SQLite snapshots.
+`profile-add` seeds a new DB with built-in catalog data when no snapshot exists,
+validates the custom plain DNS profile, saves it, and `profile-list` reads it
+back as JSON.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[storage-smoke] --> SQLITE[SQLite snapshot]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[storage-smoke] --> SQLITE[SQLite snapshot]
+  ADD[profile-add NEW] --> SQLITE
+  LIST[profile-list NEW] --> SQLITE
+```
+
+### Edge Cases / Caveats
+
+- Only plain DNS custom profiles are supported in this chunk.
+- Duplicate profile IDs are rejected by snapshot validation.
+- DoH/DoT custom profile fields are not exposed in CLI yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour
+Result: 2 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 11 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 46 passed, 0 failed
 ```
 
 ---

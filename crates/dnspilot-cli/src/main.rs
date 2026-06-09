@@ -9,8 +9,8 @@ use dnspilot_core::{
     dns_wire::RecordType,
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
-    BenchmarkMetrics, MeasurementScope, Platform, RecommendationMode, SqliteStorage,
-    StorageSnapshot, STORAGE_SCHEMA_VERSION,
+    BenchmarkMetrics, DnsProfile, DnsProtocol, FilteringType, MeasurementScope, Platform,
+    RecommendationMode, SqliteStorage, StorageSnapshot, STORAGE_SCHEMA_VERSION,
 };
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -91,6 +91,24 @@ enum Command {
         tls_handshake_timeout_ms: Option<u64>,
     },
     StorageSmoke {
+        #[arg(long)]
+        db: std::path::PathBuf,
+    },
+    ProfileAdd {
+        #[arg(long)]
+        db: std::path::PathBuf,
+        #[arg(long)]
+        id: String,
+        #[arg(long)]
+        name: String,
+        #[arg(long = "ipv4")]
+        ipv4_servers: Vec<String>,
+        #[arg(long = "ipv6")]
+        ipv6_servers: Vec<String>,
+        #[arg(long = "tag")]
+        tags: Vec<String>,
+    },
+    ProfileList {
         #[arg(long)]
         db: std::path::PathBuf,
     },
@@ -430,12 +448,7 @@ fn main() {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let snapshot = StorageSnapshot {
-                schema_version: STORAGE_SCHEMA_VERSION,
-                profiles: built_in_profiles(),
-                test_suites: built_in_test_suites(),
-                benchmark_history: Vec::new(),
-            };
+            let snapshot = builtin_storage_snapshot();
             storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
@@ -454,6 +467,72 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize storage smoke")
+            );
+        }
+        Command::ProfileAdd {
+            db,
+            id,
+            name,
+            ipv4_servers,
+            ipv6_servers,
+            tags,
+        } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            let profile = DnsProfile {
+                id: id.clone(),
+                name: name.clone(),
+                description: "Custom plain DNS profile.".into(),
+                ipv4_servers,
+                ipv6_servers,
+                protocol: DnsProtocol::Plain,
+                doh_url: None,
+                dot_hostname: None,
+                tags,
+                use_case: "custom".into(),
+                filtering_type: FilteringType::None,
+                security_notes: Vec::new(),
+                provider_metadata: std::collections::BTreeMap::new(),
+                created_at: None,
+                updated_at: None,
+            };
+            profile.validate().unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            snapshot.profiles.push(profile);
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "profile_id": id,
+                "profile_count": snapshot.profiles.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize profile add")
+            );
+        }
+        Command::ProfileList { db } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let snapshot = load_snapshot_or_builtin(&storage);
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "schema_version": snapshot.schema_version,
+                "profile_count": snapshot.profiles.len(),
+                "profiles": snapshot.profiles,
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize profile list")
             );
         }
         Command::RecommendSample => {
@@ -489,6 +568,28 @@ fn main() {
                 "{}",
                 serde_json::to_string_pretty(&recommendation).expect("serialize recommendation")
             );
+        }
+    }
+}
+
+fn builtin_storage_snapshot() -> StorageSnapshot {
+    StorageSnapshot {
+        schema_version: STORAGE_SCHEMA_VERSION,
+        profiles: built_in_profiles(),
+        test_suites: built_in_test_suites(),
+        benchmark_history: Vec::new(),
+    }
+}
+
+fn load_snapshot_or_builtin(storage: &SqliteStorage) -> StorageSnapshot {
+    match storage.load_snapshot() {
+        Ok(snapshot) => snapshot,
+        Err(error) if error.to_string().contains("Query returned no rows") => {
+            builtin_storage_snapshot()
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(2);
         }
     }
 }
