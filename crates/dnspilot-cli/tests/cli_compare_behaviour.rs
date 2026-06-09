@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::fs;
 use std::net::{SocketAddr, UdpSocket};
 use std::process::Command;
 use std::thread;
@@ -45,6 +46,74 @@ fn compare_command_recommends_fastest_dns_resolver() {
         .as_str()
         .expect("warning string")
         .contains("DNS-only"));
+}
+
+#[test]
+fn compare_command_can_save_history_to_sqlite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-compare-history-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let slow = start_fake_resolver(2, Duration::from_millis(60));
+    let fast = start_fake_resolver(2, Duration::from_millis(1));
+
+    let compare = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--resolver",
+            &format!("slow={slow}"),
+            "--resolver",
+            &format!("fast={fast}"),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+            "--save-db",
+            db_path.to_str().expect("utf8 path"),
+            "--history-id",
+            "dns-run-1",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(
+        compare.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&compare.stderr)
+    );
+    let compare_stdout = String::from_utf8(compare.stdout).expect("stdout should be utf8");
+    let compare_json: Value = serde_json::from_str(&compare_stdout).expect("stdout should be json");
+    assert_eq!(compare_json["saved_history_id"], "dns-run-1");
+
+    let list = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["history-list", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli history-list");
+
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+
+    let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    let history = json["benchmark_history"].as_array().expect("history array");
+
+    assert_eq!(json["benchmark_history_count"], 1);
+    assert_eq!(history[0]["id"], "dns-run-1");
+    assert_eq!(history[0]["scope"], "dns-only");
+    assert_eq!(history[0]["mode"], "fastest-raw-dns");
+    assert_eq!(history[0]["domains"][0], "example.com");
+    assert_eq!(history[0]["resolver_profile_ids"][0], "slow");
+    assert_eq!(history[0]["resolver_profile_ids"][1], "fast");
+    assert_eq!(history[0]["recommendation_profile_id"], "fast");
+    assert_eq!(history[0]["gate"]["can_recommend"], true);
+
+    let _ = fs::remove_file(db_path);
 }
 
 #[test]

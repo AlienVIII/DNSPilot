@@ -38,6 +38,7 @@ DNS handling, and platform capability reporting.
 - [x] [27] v0.1 custom profile persistence CLI — add/list custom DNS profiles.
 - [x] [28] v0.1 benchmark history persistence CLI — save/list benchmark history.
 - [x] [29] v0.1 path-compare history persistence CLI — save/list path comparison history.
+- [x] [30] v0.1 compare history persistence CLI — save/list DNS-only comparison history.
 
 ---
 
@@ -1479,4 +1480,59 @@ Result: 13 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 49 passed, 0 failed
+```
+
+---
+
+## Chunk 30: v0.1 Compare History Persistence CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `compare --save-db <path> --history-id <id>`. DNS-only multi-resolver
+comparisons now persist resolver IDs, domains, metrics, recommendation gate, and
+selected DNS recommendation into benchmark history.
+
+### Before
+
+```mermaid
+graph LR
+  COMPARE[compare CLI] --> JSON[live JSON only]
+  HISTORY[history-list CLI] --> SQLITE[SQLite snapshot]
+```
+
+### After
+
+```mermaid
+graph LR
+  COMPARE[compare CLI CHANGED] --> JSON[live JSON]
+  COMPARE --> HISTORY[benchmark history NEW]
+  HISTORY --> SQLITE[SQLite snapshot]
+  LIST[history-list CLI] --> SQLITE
+```
+
+### Edge Cases / Caveats
+
+- Saved scope is always `dns-only`; connection-path history remains owned by
+  `path-compare`.
+- Failed or inconclusive DNS comparisons can still be saved; they persist
+  `recommendation_profile_id: null`.
+- Duplicate history IDs are rejected by storage snapshot validation.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_can_save_history_to_sqlite
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour
+Result: 4 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 14 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 50 passed, 0 failed
 ```

@@ -56,6 +56,10 @@ enum Command {
         attempts: usize,
         #[arg(long, default_value_t = 800)]
         timeout_ms: u64,
+        #[arg(long)]
+        save_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        history_id: Option<String>,
     },
     PathEstimate {
         #[arg(long)]
@@ -223,15 +227,19 @@ fn main() {
             domains,
             attempts,
             timeout_ms,
+            save_db,
+            history_id,
         } => {
             if attempts == 0 {
                 eprintln!("--attempts must be greater than 0");
                 std::process::exit(2);
             }
 
+            let domains_for_history = domains.clone();
             let mut metrics = Vec::new();
             let mut runs = Vec::new();
             let mut seen_profile_ids = std::collections::BTreeSet::new();
+            let mut resolver_profile_ids = Vec::new();
 
             for (index, resolver_spec) in resolver_specs.iter().enumerate() {
                 let (profile_id, resolver) =
@@ -243,6 +251,7 @@ fn main() {
                     eprintln!("duplicate --resolver id '{profile_id}'");
                     std::process::exit(2);
                 }
+                resolver_profile_ids.push(profile_id.clone());
                 let config = DnsBenchmarkConfig {
                     profile_id: profile_id.clone(),
                     domains: domains.clone(),
@@ -270,6 +279,27 @@ fn main() {
             } else {
                 None
             };
+            let saved_history_id = save_db.as_ref().map(|db| {
+                let id = history_id.unwrap_or_else(|| default_history_id("compare"));
+                save_benchmark_history(
+                    db,
+                    BenchmarkHistoryRecord {
+                        id: id.clone(),
+                        started_at: default_history_id("started"),
+                        scope: MeasurementScope::DnsOnly,
+                        mode: RecommendationMode::FastestRawDns,
+                        domains: domains_for_history,
+                        resolver_profile_ids,
+                        metrics: metrics.clone(),
+                        gate: gate.clone(),
+                        recommendation_profile_id: recommendation
+                            .as_ref()
+                            .map(|item| item.profile_id.clone()),
+                        notes: vec!["Saved by compare CLI.".into()],
+                    },
+                );
+                id
+            });
             let payload = serde_json::json!({
                 "summary": {
                     "measurement_scope": "dns-only",
@@ -286,6 +316,7 @@ fn main() {
                 },
                 "runs": runs,
                 "recommendation": recommendation,
+                "saved_history_id": saved_history_id,
                 "warning": "DNS-only comparison estimates resolver lookup latency and reliability; it does not include TCP, TLS, HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior.",
             });
             println!(
