@@ -1,8 +1,8 @@
 use dnspilot_core::{
     built_in_profiles, built_in_test_suites, validate_storage_snapshot, BenchmarkHistoryRecord,
     BenchmarkMetrics, MeasurementScope, RecommendationGate, RecommendationHealth,
-    RecommendationIssue, RecommendationMode, StorageSnapshot, STORAGE_SCHEMA_VERSION,
-    SqliteStorage,
+    RecommendationIssue, RecommendationMode, SqliteStorage, StorageSnapshot,
+    STORAGE_SCHEMA_VERSION,
 };
 
 #[test]
@@ -74,6 +74,27 @@ fn sqlite_storage_saves_and_loads_snapshot() {
     assert_eq!(loaded.schema_version, STORAGE_SCHEMA_VERSION);
     assert_eq!(loaded.benchmark_history[0].id, "run-1");
     assert_eq!(loaded.profiles.len(), snapshot.profiles.len());
+}
+
+#[test]
+fn sqlite_storage_preserves_infinite_latency_metrics() {
+    let mut record = history_record("dns-only-run");
+    record.scope = MeasurementScope::DnsOnly;
+    record.metrics[0].median_connect_latency_ms = f64::INFINITY;
+    let snapshot = StorageSnapshot {
+        schema_version: STORAGE_SCHEMA_VERSION,
+        profiles: built_in_profiles(),
+        test_suites: built_in_test_suites(),
+        benchmark_history: vec![record],
+    };
+    let storage = SqliteStorage::open_in_memory().expect("open sqlite");
+
+    storage.save_snapshot(&snapshot).expect("save snapshot");
+    let loaded = storage.load_snapshot().expect("load snapshot");
+
+    assert!(loaded.benchmark_history[0].metrics[0]
+        .median_connect_latency_ms
+        .is_infinite());
 }
 
 fn history_record(id: &str) -> BenchmarkHistoryRecord {

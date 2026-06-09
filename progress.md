@@ -36,6 +36,7 @@ DNS handling, and platform capability reporting.
 - [x] [25] v0.1 SQLite storage backend — save/load versioned snapshots.
 - [x] [26] v0.1 storage smoke CLI — create and verify SQLite snapshot.
 - [x] [27] v0.1 custom profile persistence CLI — add/list custom DNS profiles.
+- [x] [28] v0.1 benchmark history persistence CLI — save/list benchmark history.
 
 ---
 
@@ -824,8 +825,6 @@ CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 31 passed, 0 failed
 ```
 
----
-
 ## Chunk 19: v0.1 Path Health Verdicts
 
 **Status:** Complete
@@ -879,8 +878,6 @@ Result: 2 passed, 0 failed
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 31 passed, 0 failed
 ```
-
----
 
 ## Chunk 20: v0.1 DNS Resolver Compare CLI
 
@@ -1370,4 +1367,60 @@ Result: 2 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 31 passed, 0 failed
+```
+
+---
+
+## Chunk 28: v0.1 Benchmark History Persistence CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `benchmark --save-db <path> --history-id <id>` and `history-list --db
+<path>`. Benchmark history now persists through the SQLite snapshot backend, and
+DNS-only records can round-trip path metrics where connect latency is not
+applicable.
+
+### Before
+
+```mermaid
+graph LR
+  BENCH[benchmark CLI] --> JSON[live JSON only]
+  SQLITE[SQLite snapshot] --> PROFILES[profiles/suites]
+```
+
+### After
+
+```mermaid
+graph LR
+  BENCH[benchmark CLI CHANGED] --> JSON[live JSON]
+  BENCH --> HISTORY[benchmark history NEW]
+  HISTORY --> SQLITE[SQLite snapshot CHANGED]
+  LIST[history-list CLI NEW] --> SQLITE
+```
+
+### Edge Cases / Caveats
+
+- `recommendation_profile_id` is stored only when the recommendation gate allows
+  a recommendation.
+- JSON turns non-finite latency values into `null`; storage deserialize maps only
+  latency `null` values back to `Infinity` and keeps rate/health fields strict.
+- This is still snapshot persistence, not normalized history tables.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test storage_behaviour
+Result: 5 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 12 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 48 passed, 0 failed
 ```

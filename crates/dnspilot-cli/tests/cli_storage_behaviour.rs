@@ -1,6 +1,8 @@
 use serde_json::Value;
 use std::fs;
+use std::net::{SocketAddr, UdpSocket};
 use std::process::Command;
+use std::thread;
 
 #[test]
 fn storage_smoke_command_saves_and_loads_builtin_snapshot() {
@@ -94,4 +96,89 @@ fn profile_add_command_persists_custom_plain_dns_profile() {
     }));
 
     let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn benchmark_command_can_save_history_to_sqlite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-benchmark-history-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let resolver = start_fake_resolver(2);
+
+    let benchmark = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "benchmark",
+            "--resolver",
+            &resolver.to_string(),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+            "--profile-id",
+            "custom-lab",
+            "--save-db",
+            db_path.to_str().expect("utf8 path"),
+            "--history-id",
+            "run-1",
+        ])
+        .output()
+        .expect("run dnspilot-cli benchmark");
+
+    assert!(
+        benchmark.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&benchmark.stderr)
+    );
+    let benchmark_stdout = String::from_utf8(benchmark.stdout).expect("stdout should be utf8");
+    let benchmark_json: Value =
+        serde_json::from_str(&benchmark_stdout).expect("stdout should be json");
+    assert_eq!(benchmark_json["saved_history_id"], "run-1");
+
+    let list = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["history-list", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli history-list");
+
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+
+    let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    let history = json["benchmark_history"].as_array().expect("history array");
+
+    assert_eq!(json["benchmark_history_count"], 1);
+    assert_eq!(history[0]["id"], "run-1");
+    assert_eq!(history[0]["scope"], "dns-only");
+    assert_eq!(history[0]["resolver_profile_ids"][0], "custom-lab");
+
+    let _ = fs::remove_file(db_path);
+}
+
+fn start_fake_resolver(query_count: usize) -> SocketAddr {
+    let socket = UdpSocket::bind("127.0.0.1:0").expect("bind fake resolver");
+    let addr = socket.local_addr().expect("local addr");
+
+    thread::spawn(move || {
+        let mut buffer = [0_u8; 512];
+        for _ in 0..query_count {
+            let (length, peer) = socket.recv_from(&mut buffer).expect("receive DNS query");
+            let request = &buffer[..length];
+            let mut response = vec![
+                request[0], request[1], 0x81, 0x80, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            ];
+            response.extend(&request[12..]);
+            socket
+                .send_to(&response, peer)
+                .expect("send fake DNS response");
+        }
+    });
+
+    addr
 }

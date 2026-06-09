@@ -9,8 +9,9 @@ use dnspilot_core::{
     dns_wire::RecordType,
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
-    BenchmarkMetrics, DnsProfile, DnsProtocol, FilteringType, MeasurementScope, Platform,
-    RecommendationMode, SqliteStorage, StorageSnapshot, STORAGE_SCHEMA_VERSION,
+    BenchmarkHistoryRecord, BenchmarkMetrics, DnsProfile, DnsProtocol, FilteringType,
+    MeasurementScope, Platform, RecommendationMode, SqliteStorage, StorageSnapshot,
+    STORAGE_SCHEMA_VERSION,
 };
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -41,6 +42,10 @@ enum Command {
         timeout_ms: u64,
         #[arg(long, default_value = "manual")]
         profile_id: String,
+        #[arg(long)]
+        save_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        history_id: Option<String>,
     },
     Compare {
         #[arg(long = "resolver", required = true)]
@@ -112,6 +117,10 @@ enum Command {
         #[arg(long)]
         db: std::path::PathBuf,
     },
+    HistoryList {
+        #[arg(long)]
+        db: std::path::PathBuf,
+    },
     RecommendSample,
 }
 
@@ -154,18 +163,50 @@ fn main() {
             attempts,
             timeout_ms,
             profile_id,
+            save_db,
+            history_id,
         } => {
+            let domains_for_history = domains.clone();
             let config = DnsBenchmarkConfig {
-                profile_id,
+                profile_id: profile_id.clone(),
                 domains,
                 attempts_per_record: attempts,
                 timeout: Duration::from_millis(timeout_ms),
                 first_transaction_id: 0x5000,
             };
             let run = run_udp_dns_benchmark(&config, resolver);
+            let saved_history_id = save_db.as_ref().map(|db| {
+                let id = history_id.unwrap_or_else(|| default_history_id("benchmark"));
+                let gate = recommendation_gate(
+                    std::slice::from_ref(&run.metrics),
+                    MeasurementScope::DnsOnly,
+                );
+                let recommendation_profile_id = if gate.can_recommend {
+                    Some(run.metrics.profile_id.clone())
+                } else {
+                    None
+                };
+                save_benchmark_history(
+                    db,
+                    BenchmarkHistoryRecord {
+                        id: id.clone(),
+                        started_at: default_history_id("started"),
+                        scope: MeasurementScope::DnsOnly,
+                        mode: RecommendationMode::FastestRawDns,
+                        domains: domains_for_history,
+                        resolver_profile_ids: vec![profile_id],
+                        metrics: vec![run.metrics.clone()],
+                        gate,
+                        recommendation_profile_id,
+                        notes: vec!["Saved by benchmark CLI.".into()],
+                    },
+                );
+                id
+            });
             let payload = serde_json::json!({
                 "metrics": run.metrics,
                 "samples": run.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
+                "saved_history_id": saved_history_id,
                 "warning": "Live DNS results estimate resolver behavior on this network; they do not prove full browser or app speed.",
             });
             println!(
@@ -535,6 +576,23 @@ fn main() {
                 serde_json::to_string_pretty(&payload).expect("serialize profile list")
             );
         }
+        Command::HistoryList { db } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let snapshot = load_snapshot_or_builtin(&storage);
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "schema_version": snapshot.schema_version,
+                "benchmark_history_count": snapshot.benchmark_history.len(),
+                "benchmark_history": snapshot.benchmark_history,
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize history list")
+            );
+        }
         Command::RecommendSample => {
             let current = BenchmarkMetrics {
                 profile_id: "current".into(),
@@ -592,6 +650,27 @@ fn load_snapshot_or_builtin(storage: &SqliteStorage) -> StorageSnapshot {
             std::process::exit(2);
         }
     }
+}
+
+fn save_benchmark_history(db: &std::path::Path, record: BenchmarkHistoryRecord) {
+    let storage = SqliteStorage::open(db).unwrap_or_else(|error| {
+        eprintln!("{error}");
+        std::process::exit(2);
+    });
+    let mut snapshot = load_snapshot_or_builtin(&storage);
+    snapshot.benchmark_history.push(record);
+    storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+        eprintln!("{error}");
+        std::process::exit(2);
+    });
+}
+
+fn default_history_id(prefix: &str) -> String {
+    let seconds = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0);
+    format!("{prefix}-{seconds}")
 }
 
 fn connect_sample_to_json(sample: &ConnectProbeSample) -> serde_json::Value {

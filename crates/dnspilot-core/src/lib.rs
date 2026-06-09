@@ -3,7 +3,7 @@
 //! This crate intentionally contains no OS mutation code. Store-safe and power
 //! editions call platform adapters around this core.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
 use std::net::IpAddr;
 
@@ -166,10 +166,13 @@ pub struct RecommendationGate {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BenchmarkMetrics {
     pub profile_id: String,
+    #[serde(deserialize_with = "deserialize_f64_or_infinity")]
     pub median_dns_latency_ms: f64,
+    #[serde(deserialize_with = "deserialize_f64_or_infinity")]
     pub p95_dns_latency_ms: f64,
     pub failure_rate: f64,
     pub timeout_rate: f64,
+    #[serde(deserialize_with = "deserialize_f64_or_infinity")]
     pub median_connect_latency_ms: f64,
     pub ipv4_health: f64,
     pub ipv6_health: f64,
@@ -686,6 +689,13 @@ fn confidence_for(metric: &BenchmarkMetrics, score: f64) -> Confidence {
     } else {
         Confidence::Low
     }
+}
+
+fn deserialize_f64_or_infinity<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Option::<f64>::deserialize(deserializer)?.unwrap_or(f64::INFINITY))
 }
 
 fn profile(
