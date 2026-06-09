@@ -14,6 +14,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Recommendation scoring for connection-path estimates.
 - Shared recommendation safety gate for `can_recommend`, health, and primary
   issue decisions before UI/apply prompts.
+- Versioned storage snapshot contract for profiles, test suites, and benchmark
+  history.
 - Store-safe platform capability matrix.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.
@@ -42,7 +44,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - OS-native TLS trust store integration for enterprise/corporate roots.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
-- SQLite persistence.
+- SQLite persistence backend.
 - SwiftUI, Kotlin/Compose, WinUI, GTK/libadwaita shells.
 - Platform apply adapters.
 - Desktop power edition admin/helper paths.

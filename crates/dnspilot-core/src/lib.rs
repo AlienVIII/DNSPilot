@@ -12,7 +12,12 @@ pub mod connection_path;
 pub mod dns_benchmark;
 pub mod dns_resolver;
 pub mod dns_wire;
+pub mod storage;
 pub mod tls_probe;
+
+pub use storage::{
+    validate_storage_snapshot, BenchmarkHistoryRecord, StorageSnapshot, STORAGE_SCHEMA_VERSION,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -256,6 +261,8 @@ pub enum DnsPilotError {
     InvalidIp(String),
     #[error("invalid DNS profile: {0}")]
     InvalidProfile(String),
+    #[error("invalid storage snapshot: {0}")]
+    InvalidStorage(String),
 }
 
 pub fn built_in_profiles() -> Vec<DnsProfile> {

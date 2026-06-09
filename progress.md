@@ -32,6 +32,7 @@ DNS handling, and platform capability reporting.
 - [x] [21] v0.1 connection-path compare CLI — DNS+TCP multi-resolver recommendation.
 - [x] [22] v0.1 TLS path-compare CLI — optional TLS/SNI multi-resolver comparison.
 - [x] [23] v0.1 recommendation safety gate — shared core gate for recommend/apply readiness.
+- [x] [24] v0.1 storage snapshot contract — versioned local data schema.
 
 ---
 
@@ -1107,6 +1108,60 @@ Result: 9 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 40 passed, 0 failed
+```
+
+---
+
+## Chunk 24: v0.1 Storage Snapshot Contract
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/storage.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added a versioned storage snapshot contract for local profiles, test suites, and
+benchmark history. The core now validates schema version, duplicate IDs,
+profile validity, suite domains, and benchmark history shape before future
+SQLite/native shells persist user data.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[core] --> PROFILE[profiles]
+  CORE --> SUITE[test suites]
+  CORE --> BENCH[benchmark metrics]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[core CHANGED] --> PROFILE[profiles]
+  CORE --> SUITE[test suites]
+  CORE --> BENCH[benchmark metrics]
+  CORE --> STORAGE[storage snapshot contract NEW]
+  STORAGE --> VALIDATE[validation NEW]
+```
+
+### Edge Cases / Caveats
+
+- This is a schema contract, not SQLite I/O yet.
+- Schema version is strict; future migrations need explicit version handling.
+- History records currently persist metrics/gate/recommendation profile id, not
+  raw DNS/TCP/TLS sample arrays.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test storage_behaviour
+Result: 3 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 34 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 43 passed, 0 failed
 ```
 
 ---
