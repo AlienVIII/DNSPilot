@@ -10,7 +10,7 @@ use dnspilot_core::{
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkHistoryRecord, BenchmarkMetrics, DnsProfile, DnsProtocol, FilteringType,
-    MeasurementScope, Platform, RecommendationMode, SqliteStorage, StorageSnapshot,
+    MeasurementScope, Platform, RecommendationMode, SqliteStorage, StorageSnapshot, TestSuite,
     STORAGE_SCHEMA_VERSION,
 };
 use std::net::SocketAddr;
@@ -122,6 +122,22 @@ enum Command {
         tags: Vec<String>,
     },
     ProfileList {
+        #[arg(long)]
+        db: std::path::PathBuf,
+    },
+    SuiteAdd {
+        #[arg(long)]
+        db: std::path::PathBuf,
+        #[arg(long)]
+        id: String,
+        #[arg(long)]
+        name: String,
+        #[arg(long = "domain", required = true)]
+        domains: Vec<String>,
+        #[arg(long = "tag")]
+        tags: Vec<String>,
+    },
+    SuiteList {
         #[arg(long)]
         db: std::path::PathBuf,
     },
@@ -636,6 +652,56 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize profile list")
+            );
+        }
+        Command::SuiteAdd {
+            db,
+            id,
+            name,
+            domains,
+            tags,
+        } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            snapshot.test_suites.push(TestSuite {
+                id: id.clone(),
+                name: name.clone(),
+                description: "Custom domain test suite.".into(),
+                domains,
+                tags,
+            });
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "test_suite_id": id,
+                "test_suite_count": snapshot.test_suites.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize suite add")
+            );
+        }
+        Command::SuiteList { db } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let snapshot = load_snapshot_or_builtin(&storage);
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "schema_version": snapshot.schema_version,
+                "test_suite_count": snapshot.test_suites.len(),
+                "test_suites": snapshot.test_suites,
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize suite list")
             );
         }
         Command::HistoryList { db } => {

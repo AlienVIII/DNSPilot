@@ -39,6 +39,7 @@ DNS handling, and platform capability reporting.
 - [x] [28] v0.1 benchmark history persistence CLI — save/list benchmark history.
 - [x] [29] v0.1 path-compare history persistence CLI — save/list path comparison history.
 - [x] [30] v0.1 compare history persistence CLI — save/list DNS-only comparison history.
+- [x] [31] v0.1 custom suite persistence CLI — add/list custom domain suites.
 
 ---
 
@@ -1535,4 +1536,58 @@ Result: 14 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 50 passed, 0 failed
+```
+
+---
+
+## Chunk 31: v0.1 Custom Suite Persistence CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `suite-add` and `suite-list` CLI commands backed by SQLite snapshots. This
+lets custom domain test suites, such as Azure-focused checks, be saved as a
+local option instead of typed repeatedly.
+
+### Before
+
+```mermaid
+graph LR
+  BUILTIN[built-in test suites] --> SNAPSHOT[SQLite snapshot]
+  CLI[CLI] --> DOMAINS[ad hoc --domain args]
+```
+
+### After
+
+```mermaid
+graph LR
+  BUILTIN[built-in test suites] --> SNAPSHOT[SQLite snapshot]
+  ADD[suite-add CLI NEW] --> SNAPSHOT
+  LIST[suite-list CLI NEW] --> SNAPSHOT
+  CLI[CLI] --> DOMAINS[ad hoc --domain args]
+```
+
+### Edge Cases / Caveats
+
+- Duplicate suite IDs are rejected by storage snapshot validation.
+- `suite-add` requires at least one `--domain`.
+- Saved suites are persisted and listed; benchmark commands do not consume
+  `--suite-id` yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour suite_add_command_persists_custom_domain_suite
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour
+Result: 4 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 15 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 51 passed, 0 failed
 ```
