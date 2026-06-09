@@ -49,6 +49,77 @@ fn compare_command_recommends_fastest_dns_resolver() {
 }
 
 #[test]
+fn compare_command_can_use_saved_domain_suite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-compare-suite-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "azure-lab",
+            "--name",
+            "Azure Lab",
+            "--domain",
+            "portal.azure.com",
+            "--domain",
+            "login.microsoftonline.com",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-add");
+
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let slow = start_fake_resolver(4, Duration::from_millis(60));
+    let fast = start_fake_resolver(4, Duration::from_millis(1));
+    let compare = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--resolver",
+            &format!("slow={slow}"),
+            "--resolver",
+            &format!("fast={fast}"),
+            "--suite-db",
+            db_path.to_str().expect("utf8 path"),
+            "--suite-id",
+            "azure-lab",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(
+        compare.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&compare.stderr)
+    );
+
+    let stdout = String::from_utf8(compare.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+
+    assert_eq!(json["summary"]["domain_count"], 2);
+    assert_eq!(json["recommendation"]["profile_id"], "fast");
+    assert!(json["runs"][0]["samples"]
+        .as_array()
+        .expect("samples")
+        .iter()
+        .any(|sample| sample["domain"] == "portal.azure.com"));
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn compare_command_can_save_history_to_sqlite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-compare-history-{}.sqlite",

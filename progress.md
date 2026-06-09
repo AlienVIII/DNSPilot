@@ -41,6 +41,7 @@ DNS handling, and platform capability reporting.
 - [x] [30] v0.1 compare history persistence CLI — save/list DNS-only comparison history.
 - [x] [31] v0.1 custom suite persistence CLI — add/list custom domain suites.
 - [x] [32] v0.1 benchmark saved-suite input — run benchmark from saved suite domains.
+- [x] [33] v0.1 compare saved-suite input — run DNS comparison from saved suite domains.
 
 ---
 
@@ -1643,4 +1644,56 @@ Result: 16 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 52 passed, 0 failed
+```
+
+---
+
+## Chunk 33: v0.1 Compare Saved-Suite Input
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `compare --suite-db <path> --suite-id <id>`. DNS-only multi-resolver
+comparison can now run against saved custom domain suites and still supports
+additional ad hoc `--domain` values.
+
+### Before
+
+```mermaid
+graph LR
+  SUITE[saved suites] --> SQLITE[SQLite snapshot]
+  COMPARE[compare CLI] --> DOMAIN[required --domain args]
+```
+
+### After
+
+```mermaid
+graph LR
+  SUITE[saved suites] --> SQLITE[SQLite snapshot]
+  SQLITE --> COMPARE[compare CLI CHANGED]
+  COMPARE --> DOMAINS[suite domains plus ad hoc domains NEW]
+```
+
+### Edge Cases / Caveats
+
+- `--domain` or `--suite-id` is required.
+- `--suite-db` is required when `--suite-id` is used.
+- `path-compare` does not consume saved suites yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_can_use_saved_domain_suite
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour
+Result: 5 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 17 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 53 passed, 0 failed
 ```

@@ -54,8 +54,12 @@ enum Command {
     Compare {
         #[arg(long = "resolver", required = true)]
         resolver_specs: Vec<String>,
-        #[arg(long = "domain", required = true)]
+        #[arg(long = "domain")]
         domains: Vec<String>,
+        #[arg(long)]
+        suite_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
         #[arg(long, default_value_t = 800)]
@@ -248,6 +252,8 @@ fn main() {
         Command::Compare {
             resolver_specs,
             domains,
+            suite_db,
+            suite_id,
             attempts,
             timeout_ms,
             save_db,
@@ -258,6 +264,7 @@ fn main() {
                 std::process::exit(2);
             }
 
+            let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
             let mut metrics = Vec::new();
             let mut runs = Vec::new();
