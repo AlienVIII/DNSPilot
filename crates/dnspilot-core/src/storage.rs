@@ -2,8 +2,10 @@ use crate::{
     BenchmarkMetrics, DnsPilotError, DnsProfile, MeasurementScope, RecommendationGate,
     RecommendationMode, TestSuite,
 };
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+use std::path::Path;
 
 pub const STORAGE_SCHEMA_VERSION: u32 = 1;
 
@@ -27,6 +29,78 @@ pub struct BenchmarkHistoryRecord {
     pub gate: RecommendationGate,
     pub recommendation_profile_id: Option<String>,
     pub notes: Vec<String>,
+}
+
+pub struct SqliteStorage {
+    connection: Connection,
+}
+
+impl SqliteStorage {
+    pub fn open(path: impl AsRef<Path>) -> Result<Self, DnsPilotError> {
+        let storage = Self {
+            connection: Connection::open(path).map_err(storage_error)?,
+        };
+        storage.initialize()?;
+        Ok(storage)
+    }
+
+    pub fn open_in_memory() -> Result<Self, DnsPilotError> {
+        let storage = Self {
+            connection: Connection::open_in_memory().map_err(storage_error)?,
+        };
+        storage.initialize()?;
+        Ok(storage)
+    }
+
+    pub fn save_snapshot(&self, snapshot: &StorageSnapshot) -> Result<(), DnsPilotError> {
+        validate_storage_snapshot(snapshot)?;
+        let payload = serde_json::to_string(snapshot).map_err(storage_error)?;
+        self.connection
+            .execute(
+                "INSERT INTO storage_metadata (key, value) VALUES ('schema_version', ?1)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                params![snapshot.schema_version.to_string()],
+            )
+            .map_err(storage_error)?;
+        self.connection
+            .execute(
+                "INSERT INTO storage_snapshots (id, payload_json) VALUES (1, ?1)
+                 ON CONFLICT(id) DO UPDATE SET payload_json = excluded.payload_json",
+                params![payload],
+            )
+            .map_err(storage_error)?;
+        Ok(())
+    }
+
+    pub fn load_snapshot(&self) -> Result<StorageSnapshot, DnsPilotError> {
+        let payload: String = self
+            .connection
+            .query_row(
+                "SELECT payload_json FROM storage_snapshots WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(storage_error)?;
+        let snapshot: StorageSnapshot = serde_json::from_str(&payload).map_err(storage_error)?;
+        validate_storage_snapshot(&snapshot)?;
+        Ok(snapshot)
+    }
+
+    fn initialize(&self) -> Result<(), DnsPilotError> {
+        self.connection
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS storage_metadata (
+                    key TEXT PRIMARY KEY NOT NULL,
+                    value TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS storage_snapshots (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    payload_json TEXT NOT NULL
+                );",
+            )
+            .map_err(storage_error)?;
+        Ok(())
+    }
 }
 
 pub fn validate_storage_snapshot(snapshot: &StorageSnapshot) -> Result<(), DnsPilotError> {
@@ -74,6 +148,10 @@ pub fn validate_storage_snapshot(snapshot: &StorageSnapshot) -> Result<(), DnsPi
     }
 
     Ok(())
+}
+
+fn storage_error(error: impl std::error::Error) -> DnsPilotError {
+    DnsPilotError::InvalidStorage(error.to_string())
 }
 
 fn ensure_unique_ids<'a, I>(ids: I, label: &str) -> Result<(), DnsPilotError>

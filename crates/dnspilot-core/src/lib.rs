@@ -16,7 +16,8 @@ pub mod storage;
 pub mod tls_probe;
 
 pub use storage::{
-    validate_storage_snapshot, BenchmarkHistoryRecord, StorageSnapshot, STORAGE_SCHEMA_VERSION,
+    validate_storage_snapshot, BenchmarkHistoryRecord, SqliteStorage, StorageSnapshot,
+    STORAGE_SCHEMA_VERSION,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

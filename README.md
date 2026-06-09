@@ -16,6 +16,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   issue decisions before UI/apply prompts.
 - Versioned storage snapshot contract for profiles, test suites, and benchmark
   history.
+- SQLite storage backend for saving/loading the versioned snapshot.
 - Store-safe platform capability matrix.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.
@@ -44,7 +45,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - OS-native TLS trust store integration for enterprise/corporate roots.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
-- SQLite persistence backend.
+- Incremental normalized SQLite tables beyond the current snapshot backend.
 - SwiftUI, Kotlin/Compose, WinUI, GTK/libadwaita shells.
 - Platform apply adapters.
 - Desktop power edition admin/helper paths.

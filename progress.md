@@ -33,6 +33,7 @@ DNS handling, and platform capability reporting.
 - [x] [22] v0.1 TLS path-compare CLI — optional TLS/SNI multi-resolver comparison.
 - [x] [23] v0.1 recommendation safety gate — shared core gate for recommend/apply readiness.
 - [x] [24] v0.1 storage snapshot contract — versioned local data schema.
+- [x] [25] v0.1 SQLite storage backend — save/load versioned snapshots.
 
 ---
 
@@ -1162,6 +1163,58 @@ Result: 34 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 43 passed, 0 failed
+```
+
+---
+
+## Chunk 25: v0.1 SQLite Storage Backend
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/Cargo.toml`, `Cargo.lock`, `crates/dnspilot-core/src/storage.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `SqliteStorage`, a core SQLite backend that initializes local tables,
+saves a validated `StorageSnapshot`, and loads it back with validation. The
+first backend stores the versioned snapshot JSON as the source of truth, keeping
+migration and normalized-table work separate.
+
+### Before
+
+```mermaid
+graph LR
+  STORAGE[storage snapshot contract] --> JSON[JSON serialize/validate]
+```
+
+### After
+
+```mermaid
+graph LR
+  STORAGE[storage snapshot contract] --> JSON[JSON serialize/validate]
+  SQLITE[SQLite backend NEW] --> STORAGE
+  SQLITE --> LOAD[load snapshot NEW]
+  SQLITE --> SAVE[save snapshot NEW]
+```
+
+### Edge Cases / Caveats
+
+- `rusqlite` is pinned to `0.32` because `0.40.1` pulled a `libsqlite3-sys`
+  build script using unstable `cfg_select` on the current stable toolchain.
+- The backend currently stores one snapshot blob, not normalized profile/history
+  tables.
+- `load_snapshot` returns an error when no snapshot has been saved yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test storage_behaviour
+Result: 4 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 35 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 44 passed, 0 failed
 ```
 
 ---
