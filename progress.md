@@ -42,6 +42,7 @@ DNS handling, and platform capability reporting.
 - [x] [31] v0.1 custom suite persistence CLI — add/list custom domain suites.
 - [x] [32] v0.1 benchmark saved-suite input — run benchmark from saved suite domains.
 - [x] [33] v0.1 compare saved-suite input — run DNS comparison from saved suite domains.
+- [x] [34] v0.1 path-compare saved-suite input — run path comparison from saved suite domains.
 
 ---
 
@@ -1696,4 +1697,56 @@ Result: 17 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 53 passed, 0 failed
+```
+
+---
+
+## Chunk 34: v0.1 Path-Compare Saved-Suite Input
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `path-compare --suite-db <path> --suite-id <id>`. Connection-path
+multi-resolver comparison can now run against saved custom domain suites while
+still allowing extra ad hoc `--domain` values.
+
+### Before
+
+```mermaid
+graph LR
+  SUITE[saved suites] --> SQLITE[SQLite snapshot]
+  PATH[path-compare CLI] --> DOMAIN[required --domain args]
+```
+
+### After
+
+```mermaid
+graph LR
+  SUITE[saved suites] --> SQLITE[SQLite snapshot]
+  SQLITE --> PATH[path-compare CLI CHANGED]
+  PATH --> DOMAINS[suite domains plus ad hoc domains NEW]
+```
+
+### Edge Cases / Caveats
+
+- `--domain` or `--suite-id` is required.
+- `--suite-db` is required when `--suite-id` is used.
+- `path-estimate` does not consume saved suites yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour path_compare_command_can_use_saved_domain_suite
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour
+Result: 5 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 18 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 54 passed, 0 failed
 ```

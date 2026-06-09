@@ -92,8 +92,12 @@ enum Command {
     PathCompare {
         #[arg(long = "resolver", required = true)]
         resolver_specs: Vec<String>,
-        #[arg(long = "domain", required = true)]
+        #[arg(long = "domain")]
         domains: Vec<String>,
+        #[arg(long)]
+        suite_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
         #[arg(long, default_value_t = 800)]
@@ -428,6 +432,8 @@ fn main() {
         Command::PathCompare {
             resolver_specs,
             domains,
+            suite_db,
+            suite_id,
             attempts,
             dns_timeout_ms,
             connect_timeout_ms,
@@ -442,6 +448,7 @@ fn main() {
                 std::process::exit(2);
             }
 
+            let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
             let tls_enabled = tls_handshake_timeout_ms.is_some();
             let mut metrics = Vec::new();
