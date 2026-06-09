@@ -37,6 +37,7 @@ DNS handling, and platform capability reporting.
 - [x] [26] v0.1 storage smoke CLI — create and verify SQLite snapshot.
 - [x] [27] v0.1 custom profile persistence CLI — add/list custom DNS profiles.
 - [x] [28] v0.1 benchmark history persistence CLI — save/list benchmark history.
+- [x] [29] v0.1 path-compare history persistence CLI — save/list path comparison history.
 
 ---
 
@@ -1423,4 +1424,59 @@ Result: 12 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 48 passed, 0 failed
+```
+
+---
+
+## Chunk 29: v0.1 Path-Compare History Persistence CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `path-compare --save-db <path> --history-id <id>`. Multi-resolver
+connection-path comparisons now persist resolver IDs, domains, metrics,
+recommendation gate, and selected recommendation profile into benchmark history.
+
+### Before
+
+```mermaid
+graph LR
+  PATH[path-compare CLI] --> JSON[live JSON only]
+  HISTORY[history-list CLI] --> SQLITE[SQLite snapshot]
+```
+
+### After
+
+```mermaid
+graph LR
+  PATH[path-compare CLI CHANGED] --> JSON[live JSON]
+  PATH --> HISTORY[benchmark history NEW]
+  HISTORY --> SQLITE[SQLite snapshot]
+  LIST[history-list CLI] --> SQLITE
+```
+
+### Edge Cases / Caveats
+
+- Saved scope is `dns-tcp` by default and `dns-tcp-tls` when TLS probing is
+  enabled.
+- Duplicate history IDs are rejected by storage snapshot validation.
+- Failed or inconclusive path comparisons can still be saved; they persist
+  `recommendation_profile_id: null`.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour path_compare_command_can_save_history_to_sqlite
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour
+Result: 4 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 13 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 49 passed, 0 failed
 ```

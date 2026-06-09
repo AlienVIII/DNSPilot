@@ -94,6 +94,10 @@ enum Command {
         max_connect_targets_per_domain: usize,
         #[arg(long)]
         tls_handshake_timeout_ms: Option<u64>,
+        #[arg(long)]
+        save_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        history_id: Option<String>,
     },
     StorageSmoke {
         #[arg(long)]
@@ -369,17 +373,21 @@ fn main() {
             connect_port,
             max_connect_targets_per_domain,
             tls_handshake_timeout_ms,
+            save_db,
+            history_id,
         } => {
             if attempts == 0 {
                 eprintln!("--attempts must be greater than 0");
                 std::process::exit(2);
             }
 
+            let domains_for_history = domains.clone();
             let tls_enabled = tls_handshake_timeout_ms.is_some();
             let mut metrics = Vec::new();
             let mut runs = Vec::new();
             let mut run_json = Vec::new();
             let mut seen_profile_ids = std::collections::BTreeSet::new();
+            let mut resolver_profile_ids = Vec::new();
 
             for (index, resolver_spec) in resolver_specs.iter().enumerate() {
                 let (profile_id, resolver) =
@@ -391,6 +399,7 @@ fn main() {
                     eprintln!("duplicate --resolver id '{profile_id}'");
                     std::process::exit(2);
                 }
+                resolver_profile_ids.push(profile_id.clone());
 
                 let config = ConnectionPathConfig {
                     profile_id: profile_id.clone(),
@@ -445,6 +454,27 @@ fn main() {
             } else {
                 None
             };
+            let saved_history_id = save_db.as_ref().map(|db| {
+                let id = history_id.unwrap_or_else(|| default_history_id("path-compare"));
+                save_benchmark_history(
+                    db,
+                    BenchmarkHistoryRecord {
+                        id: id.clone(),
+                        started_at: default_history_id("started"),
+                        scope,
+                        mode: RecommendationMode::BestOverall,
+                        domains: domains_for_history,
+                        resolver_profile_ids,
+                        metrics: metrics.clone(),
+                        gate: gate.clone(),
+                        recommendation_profile_id: recommendation
+                            .as_ref()
+                            .map(|item| item.profile_id.clone()),
+                        notes: vec!["Saved by path-compare CLI.".into()],
+                    },
+                );
+                id
+            });
             let warning = if tls_enabled {
                 "Path comparison estimates DNS, TCP connect, and TLS/SNI handshake timing only; it does not include HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior."
             } else {
@@ -477,6 +507,7 @@ fn main() {
                 },
                 "runs": run_json,
                 "recommendation": recommendation,
+                "saved_history_id": saved_history_id,
                 "warning": warning,
             });
             println!(

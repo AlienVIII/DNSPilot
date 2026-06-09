@@ -19,7 +19,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - SQLite storage backend for saving/loading the versioned snapshot.
 - CLI storage smoke command for creating and verifying a local SQLite snapshot.
 - CLI custom profile add/list commands backed by SQLite snapshots.
-- CLI benchmark history save/list commands backed by SQLite snapshots.
+- CLI benchmark and path-compare history save/list commands backed by SQLite
+  snapshots.
 - Store-safe platform capability matrix.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.
@@ -70,5 +71,6 @@ cargo run -p dnspilot-cli -- storage-smoke --db /tmp/dnspilot.sqlite
 cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id custom-lab --name "Custom Lab" --ipv4 4.4.4.4 --tag custom
 cargo run -p dnspilot-cli -- profile-list --db /tmp/dnspilot.sqlite
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1 --save-db /tmp/dnspilot.sqlite --history-id manual-run
+cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --save-db /tmp/dnspilot.sqlite --history-id manual-path-run
 cargo run -p dnspilot-cli -- history-list --db /tmp/dnspilot.sqlite
 ```

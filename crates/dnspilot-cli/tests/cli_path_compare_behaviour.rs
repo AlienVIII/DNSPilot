@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::fs;
 use std::net::{Ipv4Addr, SocketAddr, TcpListener, UdpSocket};
 use std::process::Command;
 use std::thread;
@@ -63,6 +64,93 @@ fn path_compare_command_recommends_better_connection_path_over_raw_dns_speed() {
         .as_str()
         .expect("warning string")
         .contains("DNS plus TCP"));
+}
+
+#[test]
+fn path_compare_command_can_save_history_to_sqlite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-path-compare-history-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let tcp_listener = TcpListener::bind("127.0.0.1:0").expect("bind local TCP listener");
+    let connect_port = tcp_listener.local_addr().expect("listener addr").port();
+    thread::spawn(move || {
+        let _ = tcp_listener.accept().expect("accept one TCP connection");
+    });
+
+    let dns_fast_bad_path =
+        start_fake_resolver_with_a(2, Duration::from_millis(1), Ipv4Addr::new(127, 0, 0, 2));
+    let dns_slower_good_path =
+        start_fake_resolver_with_a(2, Duration::from_millis(50), Ipv4Addr::new(127, 0, 0, 1));
+
+    let compare = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "path-compare",
+            "--resolver",
+            &format!("dns-fast-bad-path={dns_fast_bad_path}"),
+            "--resolver",
+            &format!("path-good={dns_slower_good_path}"),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--dns-timeout-ms",
+            "500",
+            "--connect-timeout-ms",
+            "500",
+            "--connect-port",
+            &connect_port.to_string(),
+            "--save-db",
+            db_path.to_str().expect("utf8 path"),
+            "--history-id",
+            "path-run-1",
+        ])
+        .output()
+        .expect("run dnspilot-cli path-compare");
+
+    assert!(
+        compare.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&compare.stderr)
+    );
+    let compare_stdout = String::from_utf8(compare.stdout).expect("stdout should be utf8");
+    let compare_json: Value = serde_json::from_str(&compare_stdout).expect("stdout should be json");
+    assert_eq!(compare_json["saved_history_id"], "path-run-1");
+
+    let list = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["history-list", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli history-list");
+
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+
+    let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    let history = json["benchmark_history"].as_array().expect("history array");
+
+    assert_eq!(json["benchmark_history_count"], 1);
+    assert_eq!(history[0]["id"], "path-run-1");
+    assert_eq!(history[0]["scope"], "dns-tcp");
+    assert_eq!(history[0]["mode"], "best-overall");
+    assert_eq!(history[0]["domains"][0], "example.com");
+    assert_eq!(
+        history[0]["resolver_profile_ids"]
+            .as_array()
+            .expect("resolver ids")
+            .len(),
+        2
+    );
+    assert_eq!(history[0]["resolver_profile_ids"][0], "dns-fast-bad-path");
+    assert_eq!(history[0]["resolver_profile_ids"][1], "path-good");
+    assert_eq!(history[0]["recommendation_profile_id"], "path-good");
+    assert_eq!(history[0]["gate"]["can_recommend"], true);
+
+    let _ = fs::remove_file(db_path);
 }
 
 #[test]
