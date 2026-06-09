@@ -34,6 +34,7 @@ DNS handling, and platform capability reporting.
 - [x] [23] v0.1 recommendation safety gate — shared core gate for recommend/apply readiness.
 - [x] [24] v0.1 storage snapshot contract — versioned local data schema.
 - [x] [25] v0.1 SQLite storage backend — save/load versioned snapshots.
+- [x] [26] v0.1 storage smoke CLI — create and verify SQLite snapshot.
 
 ---
 
@@ -1215,6 +1216,55 @@ Result: 35 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 44 passed, 0 failed
+```
+
+---
+
+## Chunk 26: v0.1 Storage Smoke CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `dnspilot-cli storage-smoke --db <path>`. The command creates a SQLite
+storage backend, saves a built-in catalog snapshot, loads it back, and prints a
+JSON summary for manual persistence checks.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[SQLite backend] --> TEST[core storage tests]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[SQLite backend] --> TEST[core storage tests]
+  CLI[storage-smoke CLI NEW] --> CORE
+  CLI --> JSON[summary JSON NEW]
+```
+
+### Edge Cases / Caveats
+
+- This persists built-in profiles/suites only; custom profile/history CLI flows
+  are not implemented yet.
+- Existing DB path is overwritten at snapshot row `id = 1`.
+- The command is a smoke tool, not final user-facing UX.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 10 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 45 passed, 0 failed
 ```
 
 ---

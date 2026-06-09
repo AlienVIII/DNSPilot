@@ -9,7 +9,8 @@ use dnspilot_core::{
     dns_wire::RecordType,
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
-    BenchmarkMetrics, MeasurementScope, Platform, RecommendationMode,
+    BenchmarkMetrics, MeasurementScope, Platform, RecommendationMode, SqliteStorage,
+    StorageSnapshot, STORAGE_SCHEMA_VERSION,
 };
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -88,6 +89,10 @@ enum Command {
         max_connect_targets_per_domain: usize,
         #[arg(long)]
         tls_handshake_timeout_ms: Option<u64>,
+    },
+    StorageSmoke {
+        #[arg(long)]
+        db: std::path::PathBuf,
     },
     RecommendSample,
 }
@@ -418,6 +423,37 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize path compare")
+            );
+        }
+        Command::StorageSmoke { db } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let snapshot = StorageSnapshot {
+                schema_version: STORAGE_SCHEMA_VERSION,
+                profiles: built_in_profiles(),
+                test_suites: built_in_test_suites(),
+                benchmark_history: Vec::new(),
+            };
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let loaded = storage.load_snapshot().unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "schema_version": loaded.schema_version,
+                "profile_count": loaded.profiles.len(),
+                "test_suite_count": loaded.test_suites.len(),
+                "benchmark_history_count": loaded.benchmark_history.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize storage smoke")
             );
         }
         Command::RecommendSample => {
