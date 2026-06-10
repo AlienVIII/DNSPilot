@@ -307,6 +307,32 @@ pub struct BenchmarkPreflight {
     pub notes: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct NetworkEnvironment {
+    pub vpn_active: bool,
+    pub mdm_profile_active: bool,
+    pub corporate_dns_detected: bool,
+    pub captive_portal_detected: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ApplyPromptDisposition {
+    Allow,
+    GuideOnly,
+    ProtectCurrentDns,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApplyPromptPolicy {
+    pub platform: Platform,
+    pub apply_capability: ApplyCapability,
+    pub disposition: ApplyPromptDisposition,
+    pub can_prompt_apply: bool,
+    pub notes: Vec<String>,
+}
+
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum DnsPilotError {
     #[error("no benchmark metrics provided")]
@@ -766,6 +792,67 @@ pub fn benchmark_preflight_for(
         flush_capability: capability.flush,
         flush_requirement,
         notes,
+    }
+}
+
+pub fn apply_prompt_policy_for(
+    platform: Platform,
+    environment: &NetworkEnvironment,
+) -> ApplyPromptPolicy {
+    let capability = capability_for(platform);
+    let mut notes = Vec::new();
+
+    if environment.vpn_active {
+        notes.push("VPN is active; protect current DNS and avoid apply prompts.".into());
+    }
+    if environment.mdm_profile_active {
+        notes.push("MDM profile is active; protect current DNS and avoid apply prompts.".into());
+    }
+    if environment.corporate_dns_detected {
+        notes.push(
+            "corporate DNS was detected; protect current DNS and avoid apply prompts.".into(),
+        );
+    }
+    if environment.captive_portal_detected {
+        notes.push(
+            "Captive portal was detected; finish portal login before DNS apply prompts.".into(),
+        );
+    }
+
+    if !notes.is_empty() {
+        return ApplyPromptPolicy {
+            platform,
+            apply_capability: capability.apply,
+            disposition: ApplyPromptDisposition::ProtectCurrentDns,
+            can_prompt_apply: false,
+            notes,
+        };
+    }
+
+    let (disposition, can_prompt_apply, note) = match capability.apply {
+        ApplyCapability::GuidedSettings => (
+            ApplyPromptDisposition::GuideOnly,
+            true,
+            "Platform requires guided settings; do not perform hidden DNS changes.",
+        ),
+        ApplyCapability::Unsupported => (
+            ApplyPromptDisposition::Unsupported,
+            false,
+            "Platform does not support DNS apply prompts.",
+        ),
+        _ => (
+            ApplyPromptDisposition::Allow,
+            true,
+            "Platform capability allows an explicit user-approved apply prompt.",
+        ),
+    };
+
+    ApplyPromptPolicy {
+        platform,
+        apply_capability: capability.apply,
+        disposition,
+        can_prompt_apply,
+        notes: vec![note.into()],
     }
 }
 

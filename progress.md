@@ -54,6 +54,7 @@ DNS handling, and platform capability reporting.
 - [x] [43] v0.1 full capability matrix CLI — emit all platform capabilities at once.
 - [x] [44] v0.1 benchmark preflight policy — avoid flushing for direct resolver tests.
 - [x] [45] v0.1 benchmark preflight CLI — expose flush guidance as JSON.
+- [x] [46] v0.1 apply prompt safety policy — protect managed/intercepted networks.
 
 ---
 
@@ -2347,4 +2348,59 @@ Result: 2 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 66 passed, 0 failed
+```
+
+---
+
+## Chunk 46: v0.1 Apply Prompt Safety Policy
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `README.md`
+
+### What changed
+
+Added an apply-prompt policy for network environments. The core now defaults to
+protecting the current DNS and suppressing apply prompts when VPN, MDM,
+corporate DNS, or captive portal signals are present, even if a benchmark found
+a faster resolver.
+
+### Before
+
+```mermaid
+graph LR
+  REC[recommendation] --> APPLY[apply prompt]
+```
+
+### After
+
+```mermaid
+graph LR
+  REC[recommendation] --> POLICY[apply prompt policy NEW]
+  ENV[network environment NEW] --> POLICY
+  POLICY --> ALLOW[allow or guide]
+  POLICY --> PROTECT[protect current DNS NEW]
+```
+
+### Edge Cases / Caveats
+
+- VPN and MDM can intentionally own DNS; changing DNS can break security or
+  corporate access.
+- Captive portals can make DNS behavior look broken until login finishes.
+- Windows Store and similar store-safe builds can guide settings, but should not
+  perform hidden DNS changes.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour apply_prompt_policy_protects_managed_or_intercepted_networks
+RED result: failed because apply prompt policy types/function did not exist
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour apply_prompt_policy_protects_managed_or_intercepted_networks
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 39 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 67 passed, 0 failed
 ```

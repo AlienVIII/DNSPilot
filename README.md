@@ -14,6 +14,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Recommendation scoring for connection-path estimates.
 - Shared recommendation safety gate for `can_recommend`, health, and primary
   issue decisions before UI/apply prompts.
+- Apply-prompt safety policy that protects VPN, MDM, corporate DNS, and captive
+  portal networks.
 - Versioned storage snapshot contract for profiles, test suites, and benchmark
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.

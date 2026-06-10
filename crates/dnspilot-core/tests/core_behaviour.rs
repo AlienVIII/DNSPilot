@@ -1,10 +1,11 @@
 use dnspilot_core::{
+    apply_prompt_policy_for,
     benchmark_preflight_for,
     built_in_profiles, built_in_test_suites, capability_for, classify_resolution_outcome,
-    recommend, recommendation_gate, ApplyCapability, BenchmarkMetrics, BenchmarkPreflightScope,
-    Confidence, FilteringType, FlushCapability, FlushRequirement, MeasurementScope, Platform,
-    RecommendationDecision, RecommendationHealth, RecommendationIssue, RecommendationMode,
-    ResolutionOutcome,
+    recommend, recommendation_gate, ApplyCapability, ApplyPromptDisposition, BenchmarkMetrics,
+    BenchmarkPreflightScope, Confidence, FilteringType, FlushCapability, FlushRequirement,
+    MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision, RecommendationHealth,
+    RecommendationIssue, RecommendationMode, ResolutionOutcome,
 };
 
 fn metrics(
@@ -240,6 +241,33 @@ fn benchmark_preflight_distinguishes_direct_resolver_from_system_validation() {
         FlushRequirement::RecommendedButUnsupported
     );
     assert_eq!(ios_validation.flush_capability, FlushCapability::Unsupported);
+}
+
+#[test]
+fn apply_prompt_policy_protects_managed_or_intercepted_networks() {
+    let protected = NetworkEnvironment {
+        vpn_active: true,
+        mdm_profile_active: true,
+        corporate_dns_detected: true,
+        captive_portal_detected: false,
+    };
+
+    let policy = apply_prompt_policy_for(Platform::MacOSStore, &protected);
+
+    assert!(!policy.can_prompt_apply);
+    assert_eq!(policy.disposition, ApplyPromptDisposition::ProtectCurrentDns);
+    assert_eq!(
+        policy.apply_capability,
+        ApplyCapability::AppleNetworkExtensionDnsSettings
+    );
+    assert!(policy.notes.iter().any(|note| note.contains("VPN")));
+    assert!(policy.notes.iter().any(|note| note.contains("MDM")));
+    assert!(policy.notes.iter().any(|note| note.contains("corporate DNS")));
+
+    let guided = apply_prompt_policy_for(Platform::WindowsStore, &NetworkEnvironment::default());
+    assert!(guided.can_prompt_apply);
+    assert_eq!(guided.disposition, ApplyPromptDisposition::GuideOnly);
+    assert_eq!(guided.apply_capability, ApplyCapability::GuidedSettings);
 }
 
 #[test]
