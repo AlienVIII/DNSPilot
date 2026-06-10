@@ -64,6 +64,7 @@ DNS handling, and platform capability reporting.
 - [x] [53] v0.1 zero-port CLI guards — reject invalid resolver/connect ports.
 - [x] [54] v0.1 resolved-domain CLI validation — reject invalid/duplicate domains.
 - [x] [55] v0.1 encrypted profile endpoint validation — reject insecure DoH/invalid DoT.
+- [x] [56] v0.1 macOS SwiftUI shell scaffold — add design tokens and capability ViewModel.
 
 ---
 
@@ -2956,4 +2957,55 @@ Result: 42 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 88 passed, 0 failed
+```
+
+---
+
+## Chunk 56: v0.1 macOS SwiftUI Shell Scaffold
+
+**Status:** Complete
+**Files changed:** `.gitignore`, `apps/macos/DNSPilotMac/Package.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/*`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CapabilityMatrixViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added the first macOS 14+ SwiftUI shell scaffold as a Swift Package. The shell
+has centralized design tokens, capability matrix models, a bridge protocol with
+preview data, ViewModel tests, and a simple SwiftUI capability matrix window.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[Rust core/CLI] --> NONE[no native shell]
+```
+
+### After
+
+```mermaid
+graph LR
+  MAC[macOS SwiftUI shell NEW] --> VM[capability ViewModel NEW]
+  VM --> BRIDGE[core bridge protocol NEW]
+  MAC --> TOKENS[design tokens NEW]
+  BRIDGE --> PREVIEW[preview data NEW]
+```
+
+### Edge Cases / Caveats
+
+- The macOS shell currently uses preview bridge data; real Rust/UniFFI or CLI
+  bridge wiring is a separate chunk.
+- Visual/manual app inspection is not claimed yet; this chunk only verifies
+  package build and ViewModel/design-token tests.
+- `.build/` is ignored so SwiftPM artifacts stay out of git.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because CapabilityMatrixViewModel and DNSPilotDesign did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 2 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
 ```

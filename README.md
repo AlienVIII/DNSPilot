@@ -5,6 +5,7 @@ DNS Pilot is a store-safe, cross-platform DNS recommendation foundation.
 This repository currently implements the reusable Rust core and a smoke CLI.
 Native platform shells are expected to bind to this core instead of duplicating
 benchmark scoring, provider catalogs, test suites, and capability rules.
+The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 
 ## Current Scope
 
@@ -39,6 +40,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Platform DNS cache flush capability matrix for store-safe versus power builds.
 - Benchmark preflight policy that distinguishes direct resolver tests from
   system-DNS validation after apply.
+- macOS SwiftUI shell scaffold with centralized design tokens and capability
+  matrix view model tests.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
@@ -83,6 +86,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 
 ```sh
 cargo test -p dnspilot-core
+swift test --package-path apps/macos/DNSPilotMac
+swift build --package-path apps/macos/DNSPilotMac
 cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- capabilities
