@@ -43,6 +43,18 @@ final class CatalogViewModelTests: XCTestCase {
         XCTAssertThrowsError(try CatalogJSONDecoder().decode(Data(json.utf8)))
     }
 
+    func testCatalogDecoderRejectsUnsupportedSchemaVersion() {
+        let json = """
+        {
+          "schema_version": 2,
+          "profiles": [],
+          "testSuites": []
+        }
+        """
+
+        XCTAssertThrowsError(try CatalogJSONDecoder().decode(Data(json.utf8)))
+    }
+
     func testCatalogViewModelLoadsSnapshotFromJSONBridge() {
         let viewModel = CatalogViewModel(bridge: CatalogJSONBridge(data: Data(catalogFixtureJSON.utf8)))
 

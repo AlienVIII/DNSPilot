@@ -87,11 +87,23 @@ public struct CatalogTestSuite: Decodable, Equatable, Identifiable {
 }
 
 public struct CatalogSnapshot: Decodable, Equatable {
+    public let schemaVersion: Int
     public let profiles: [CatalogProfile]
     public let testSuites: [CatalogTestSuite]
 
-    public init(profiles: [CatalogProfile], testSuites: [CatalogTestSuite]) {
+    public init(
+        schemaVersion: Int = ShellPayloadSchema.supportedVersion,
+        profiles: [CatalogProfile],
+        testSuites: [CatalogTestSuite]
+    ) {
+        self.schemaVersion = schemaVersion
         self.profiles = profiles
         self.testSuites = testSuites
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case profiles
+        case testSuites
     }
 }

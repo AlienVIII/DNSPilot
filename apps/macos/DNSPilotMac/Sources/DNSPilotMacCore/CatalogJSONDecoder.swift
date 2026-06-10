@@ -8,7 +8,9 @@ public struct CatalogJSONDecoder {
     }
 
     public func decode(_ data: Data) throws -> CatalogSnapshot {
-        try decoder.decode(CatalogSnapshot.self, from: data)
+        let snapshot = try decoder.decode(CatalogSnapshot.self, from: data)
+        try ShellPayloadSchema.validate(snapshot.schemaVersion)
+        return snapshot
     }
 }
 

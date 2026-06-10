@@ -23,6 +23,7 @@ public struct CapabilityMatrixJSONDecoder {
 
     public func decode(_ data: Data) throws -> [CapabilityRow] {
         let payload = try decoder.decode(CapabilitiesPayload.self, from: data)
+        try ShellPayloadSchema.validate(payload.schemaVersion)
         return try payload.capabilities.map(Self.map)
     }
 
@@ -123,7 +124,13 @@ public struct CapabilityMatrixJSONBridge: DNSPilotCoreBridge {
 }
 
 private struct CapabilitiesPayload: Decodable {
+    let schemaVersion: Int
     let capabilities: [CapabilityEntry]
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case capabilities
+    }
 }
 
 private struct CapabilityEntry: Decodable {

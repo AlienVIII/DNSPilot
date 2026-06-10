@@ -69,6 +69,7 @@ DNS handling, and platform capability reporting.
 - [x] [58] v0.1 macOS catalog JSON bridge — decode Rust catalog schema into Swift ViewModel.
 - [x] [59] v0.1 core shell payload contracts — expose catalog/capability payloads from Rust core.
 - [x] [60] v0.1 shell payload schema version — version catalog/capability JSON contracts.
+- [x] [61] v0.1 macOS schema version gate — reject unsupported shell payload versions.
 
 ---
 
@@ -3238,4 +3239,54 @@ Result: 1 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_capability_behaviour
 Result: 1 passed, 0 failed
+```
+
+---
+
+## Chunk 61: v0.1 macOS Schema Version Gate
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ShellPayloadSchema.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogJSONDecoder.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CapabilityMatrixJSONDecoder.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CatalogViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CapabilityMatrixViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added a shared Swift schema gate for shell payloads and wired it into catalog
+and capability decoders. macOS now rejects unsupported payload schema versions
+instead of parsing future contracts with v1 assumptions.
+
+### Before
+
+```mermaid
+graph LR
+  JSON[payload schema_version] --> DECODER[Swift decoder ignores version]
+  DECODER --> VM[ViewModel]
+```
+
+### After
+
+```mermaid
+graph LR
+  JSON[payload schema_version] --> GATE[Swift schema gate NEW]
+  GATE --> DECODER[Swift decoder CHANGED]
+  DECODER --> VM[ViewModel]
+  GATE --> ERROR[unsupported version error NEW]
+```
+
+### Edge Cases / Caveats
+
+- Decoders now require `schema_version`; older payloads without it fail decode.
+- Only version `1` is supported.
+- This still does not implement migrations for future schema versions.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CapabilityMatrixViewModelTests/testCapabilitiesDecoderRejectsUnsupportedSchemaVersion
+RED result: failed because the decoder did not throw for schema_version 2
+
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests/testCatalogDecoderRejectsUnsupportedSchemaVersion
+RED result: failed because the decoder did not throw for schema_version 2
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 12 passed, 0 failed
 ```

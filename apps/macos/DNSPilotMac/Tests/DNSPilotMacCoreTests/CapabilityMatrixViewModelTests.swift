@@ -85,6 +85,17 @@ final class CapabilityMatrixViewModelTests: XCTestCase {
         XCTAssertThrowsError(try CapabilityMatrixJSONDecoder().decode(Data(json.utf8)))
     }
 
+    func testCapabilitiesDecoderRejectsUnsupportedSchemaVersion() {
+        let json = """
+        {
+          "schema_version": 2,
+          "capabilities": []
+        }
+        """
+
+        XCTAssertThrowsError(try CapabilityMatrixJSONDecoder().decode(Data(json.utf8)))
+    }
+
     func testViewModelLoadsRowsFromJSONBridge() {
         let viewModel = CapabilityMatrixViewModel(
             bridge: CapabilityMatrixJSONBridge(data: Data(capabilitiesFixtureJSON.utf8))
