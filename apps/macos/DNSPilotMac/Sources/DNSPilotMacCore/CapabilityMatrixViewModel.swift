@@ -1,12 +1,19 @@
 public protocol DNSPilotCoreBridge {
-    func loadCapabilities() -> [CapabilityRow]
+    func loadCapabilities() throws -> [CapabilityRow]
 }
 
 public struct CapabilityMatrixViewModel {
     public let rows: [CapabilityRow]
+    public let loadErrorMessage: String?
 
     public init(bridge: DNSPilotCoreBridge = PreviewDNSPilotCoreBridge()) {
-        rows = bridge.loadCapabilities()
+        do {
+            rows = try bridge.loadCapabilities()
+            loadErrorMessage = nil
+        } catch {
+            rows = []
+            loadErrorMessage = error.localizedDescription
+        }
     }
 }
 

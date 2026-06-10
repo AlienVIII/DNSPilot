@@ -65,6 +65,7 @@ DNS handling, and platform capability reporting.
 - [x] [54] v0.1 resolved-domain CLI validation — reject invalid/duplicate domains.
 - [x] [55] v0.1 encrypted profile endpoint validation — reject insecure DoH/invalid DoT.
 - [x] [56] v0.1 macOS SwiftUI shell scaffold — add design tokens and capability ViewModel.
+- [x] [57] v0.1 macOS capability JSON bridge — decode Rust capability schema into Swift ViewModel.
 
 ---
 
@@ -3005,6 +3006,63 @@ RED result: failed because CapabilityMatrixViewModel and DNSPilotDesign did not 
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 2 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+```
+
+---
+
+## Chunk 57: v0.1 macOS Capability JSON Bridge
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CapabilityMatrixJSONDecoder.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CapabilityMatrixViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CapabilityMatrixViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added a Swift decoder and bridge for the Rust CLI/core `capabilities` JSON
+schema. The ViewModel now supports throwing bridges and exposes a load error
+message, so future CLI/FFI bridge failures do not silently render an empty
+matrix.
+
+### Before
+
+```mermaid
+graph LR
+  VM[capability ViewModel] --> PREVIEW[preview bridge only]
+  RUST[Rust capabilities JSON] --> GAP[not decoded by macOS shell]
+```
+
+### After
+
+```mermaid
+graph LR
+  RUST[Rust capabilities JSON] --> DECODER[Swift JSON decoder NEW]
+  DECODER --> JSONBRIDGE[JSON capability bridge NEW]
+  JSONBRIDGE --> VM[capability ViewModel CHANGED]
+  PREVIEW[preview bridge] --> VM
+  VM --> ERROR[load error message NEW]
+```
+
+### Edge Cases / Caveats
+
+- Unknown `apply` or `flush` values fail fast to catch schema drift.
+- Unknown platform IDs still get a readable fallback display name, so new
+  platforms can appear without losing the row.
+- The macOS app still does not execute the Rust CLI or link Rust FFI at runtime;
+  this chunk only locks the data contract and error path.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CapabilityMatrixViewModelTests/testCapabilitiesDecoderMapsRustCliSchema
+RED result: failed because CapabilityMatrixJSONDecoder did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter CapabilityMatrixViewModelTests/testViewModelLoadsRowsFromJSONBridge
+RED result: failed because the bridge protocol was non-throwing, CapabilityMatrixJSONBridge did not exist, and ViewModel had no loadErrorMessage
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 6 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete

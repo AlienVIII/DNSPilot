@@ -42,6 +42,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   system-DNS validation after apply.
 - macOS SwiftUI shell scaffold with centralized design tokens and capability
   matrix view model tests.
+- macOS capability JSON decoder/bridge for the Rust `capabilities` schema and
+  ViewModel load-error handling.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
@@ -78,7 +80,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
 - Incremental normalized SQLite tables beyond the current snapshot backend.
-- SwiftUI, Kotlin/Compose, WinUI, GTK/libadwaita shells.
+- Runtime Rust FFI/CLI wiring for the macOS SwiftUI shell.
+- Kotlin/Compose, WinUI, GTK/libadwaita shells.
 - Platform apply adapters.
 - Desktop power edition admin/helper paths.
 

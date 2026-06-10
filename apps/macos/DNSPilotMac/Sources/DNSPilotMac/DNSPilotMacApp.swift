@@ -25,21 +25,26 @@ private struct CapabilityMatrixView: View {
                 Text("Capability Matrix")
                     .font(.title2.weight(.semibold))
 
-                Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: DNSPilotDesign.Spacing.row) {
-                    GridRow {
-                        Text("Platform").font(.headline)
-                        Text("Benchmark").font(.headline)
-                        Text("Apply").font(.headline)
-                        Text("Flush").font(.headline)
-                    }
-
-                    ForEach(viewModel.rows) { row in
+                if let loadErrorMessage = viewModel.loadErrorMessage {
+                    Label(loadErrorMessage, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: DNSPilotDesign.Spacing.row) {
                         GridRow {
-                            Text(row.platformName)
-                            Image(systemName: row.canBenchmark ? "speedometer" : "minus.circle")
-                                .help(row.canBenchmark ? "Can benchmark" : "Cannot benchmark")
-                            Text(label(for: row.applyDisposition))
-                            Text(label(for: row.flush))
+                            Text("Platform").font(.headline)
+                            Text("Benchmark").font(.headline)
+                            Text("Apply").font(.headline)
+                            Text("Flush").font(.headline)
+                        }
+
+                        ForEach(viewModel.rows) { row in
+                            GridRow {
+                                Text(row.platformName)
+                                Image(systemName: row.canBenchmark ? "speedometer" : "minus.circle")
+                                    .help(row.canBenchmark ? "Can benchmark" : "Cannot benchmark")
+                                Text(label(for: row.applyDisposition))
+                                Text(label(for: row.flush))
+                            }
                         }
                     }
                 }
