@@ -160,6 +160,8 @@ enum Command {
         doh_url: Option<String>,
         #[arg(long)]
         dot_hostname: Option<String>,
+        #[arg(long, value_enum, default_value_t = FilteringTypeArg::None)]
+        filtering: FilteringTypeArg,
         #[arg(long = "tag")]
         tags: Vec<String>,
     },
@@ -208,6 +210,15 @@ enum ProfileProtocolArg {
     Plain,
     Doh,
     Dot,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum FilteringTypeArg {
+    None,
+    Malware,
+    Family,
+    Ads,
+    Security,
 }
 
 fn main() {
@@ -708,6 +719,7 @@ fn main() {
             ipv6_servers,
             doh_url,
             dot_hostname,
+            filtering,
             tags,
         } => {
             let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
@@ -726,8 +738,12 @@ fn main() {
                 dot_hostname,
                 tags,
                 use_case: "custom".into(),
-                filtering_type: FilteringType::None,
-                security_notes: Vec::new(),
+                filtering_type: filtering.into(),
+                security_notes: if filtering == FilteringTypeArg::None {
+                    Vec::new()
+                } else {
+                    vec!["Filtered DNS may intentionally block some domains.".into()]
+                },
                 provider_metadata: std::collections::BTreeMap::new(),
                 created_at: None,
                 updated_at: None,
@@ -1202,6 +1218,18 @@ impl From<ProfileProtocolArg> for DnsProtocol {
             ProfileProtocolArg::Plain => DnsProtocol::Plain,
             ProfileProtocolArg::Doh => DnsProtocol::Doh,
             ProfileProtocolArg::Dot => DnsProtocol::Dot,
+        }
+    }
+}
+
+impl From<FilteringTypeArg> for FilteringType {
+    fn from(value: FilteringTypeArg) -> Self {
+        match value {
+            FilteringTypeArg::None => FilteringType::None,
+            FilteringTypeArg::Malware => FilteringType::Malware,
+            FilteringTypeArg::Family => FilteringType::Family,
+            FilteringTypeArg::Ads => FilteringType::Ads,
+            FilteringTypeArg::Security => FilteringType::Security,
         }
     }
 }

@@ -49,6 +49,7 @@ DNS handling, and platform capability reporting.
 - [x] [38] v0.1 path-estimate saved-profile input — run path estimate from saved plain DNS profile.
 - [x] [39] v0.1 path-compare saved-profile input — run path comparison from saved plain DNS profiles.
 - [x] [40] v0.1 custom encrypted profile persistence CLI — add/list DoH and DoT profiles.
+- [x] [41] v0.1 custom filtering profile metadata — persist filtering DNS category.
 
 ---
 
@@ -2075,4 +2076,58 @@ Result: 24 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 60 passed, 0 failed
+```
+
+---
+
+## Chunk 41: v0.1 Custom Filtering Profile Metadata
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `profile-add --filtering none|malware|family|ads|security`. Custom DNS
+profiles can now preserve their filtering category and security note metadata,
+which is needed so filtered DNS can be benchmarked and explained separately from
+plain performance DNS.
+
+### Before
+
+```mermaid
+graph LR
+  ADD[profile-add CLI] --> PROFILE[custom profile]
+  PROFILE --> NONE[filtering_type none only]
+```
+
+### After
+
+```mermaid
+graph LR
+  ADD[profile-add CLI CHANGED] --> PROFILE[custom profile]
+  PROFILE --> FILTER[filtering category NEW]
+  FILTER --> NOTES[filtered DNS security note NEW]
+```
+
+### Edge Cases / Caveats
+
+- Default filtering remains `none`.
+- Filtered DNS may intentionally block domains; UI/recommendation flows must not
+  treat expected blocks as generic failures.
+- Runner classification still needs selected test mode/filtering goal context.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour profile_add_command_persists_custom_filtering_type
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour
+Result: 8 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 25 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 61 passed, 0 failed
 ```
