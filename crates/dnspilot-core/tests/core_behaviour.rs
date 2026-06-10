@@ -1,8 +1,8 @@
 use dnspilot_core::{
     built_in_profiles, built_in_test_suites, capability_for, classify_resolution_outcome,
     recommend, recommendation_gate, ApplyCapability, BenchmarkMetrics, Confidence, FilteringType,
-    MeasurementScope, Platform, RecommendationDecision, RecommendationHealth, RecommendationIssue,
-    RecommendationMode, ResolutionOutcome,
+    FlushCapability, MeasurementScope, Platform, RecommendationDecision, RecommendationHealth,
+    RecommendationIssue, RecommendationMode, ResolutionOutcome,
 };
 
 fn metrics(
@@ -178,6 +178,30 @@ fn store_safe_capabilities_match_platform_constraints() {
     assert_eq!(
         capability_for(Platform::LinuxNativePower).apply,
         ApplyCapability::LinuxNetworkManagerPolkit
+    );
+}
+
+#[test]
+fn flush_capabilities_match_platform_constraints() {
+    assert_eq!(
+        capability_for(Platform::MacOSStore).flush,
+        FlushCapability::GuidedUserAction
+    );
+    assert_eq!(
+        capability_for(Platform::IOS).flush,
+        FlushCapability::Unsupported
+    );
+    assert_eq!(
+        capability_for(Platform::WindowsStore).flush,
+        FlushCapability::GuidedUserAction
+    );
+    assert_eq!(
+        capability_for(Platform::LinuxNativePower).flush,
+        FlushCapability::LinuxSystemResolverPolkit
+    );
+    assert_eq!(
+        capability_for(Platform::MacOSPower).flush,
+        FlushCapability::DesktopAdminService
     );
 }
 

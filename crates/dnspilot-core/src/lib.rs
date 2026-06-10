@@ -248,11 +248,21 @@ pub enum ApplyCapability {
     Unsupported,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FlushCapability {
+    GuidedUserAction,
+    DesktopAdminService,
+    LinuxSystemResolverPolkit,
+    Unsupported,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlatformCapability {
     pub platform: Platform,
     pub can_benchmark: bool,
     pub apply: ApplyCapability,
+    pub flush: FlushCapability,
     pub store_safe: bool,
     pub notes: Vec<String>,
 }
@@ -591,57 +601,92 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::AppleNetworkExtensionDnsSettings,
+            flush: FlushCapability::GuidedUserAction,
             store_safe: true,
-            notes: vec!["DoH/DoT DNS Settings require explicit user enablement.".into()],
+            notes: vec![
+                "DoH/DoT DNS Settings require explicit user enablement.".into(),
+                "Store builds should guide DNS cache flush rather than running system commands."
+                    .into(),
+            ],
         },
         Platform::IOS => PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::AppleNetworkExtensionDnsSettings,
+            flush: FlushCapability::Unsupported,
             store_safe: true,
-            notes: vec!["Plain system DNS switching is not available to normal apps.".into()],
+            notes: vec![
+                "Plain system DNS switching is not available to normal apps.".into(),
+                "System DNS cache flush is not available to normal apps.".into(),
+            ],
         },
         Platform::AndroidPlay => PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::GuidedSettings,
+            flush: FlushCapability::GuidedUserAction,
             store_safe: true,
-            notes: vec!["VpnService is deferred until disclosure and policy review are ready.".into()],
+            notes: vec![
+                "VpnService is deferred until disclosure and policy review are ready.".into(),
+                "Store builds should guide users through network/private DNS reset steps.".into(),
+            ],
         },
         Platform::WindowsStore => PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::GuidedSettings,
+            flush: FlushCapability::GuidedUserAction,
             store_safe: true,
-            notes: vec!["Store builds must not depend on administrator elevation.".into()],
+            notes: vec![
+                "Store builds must not depend on administrator elevation.".into(),
+                "DNS cache flush should be guided unless an admin service is installed.".into(),
+            ],
         },
         Platform::LinuxFlatpak => PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::GuidedSettings,
+            flush: FlushCapability::GuidedUserAction,
             store_safe: true,
-            notes: vec!["Flatpak should avoid broad system D-Bus access for MVP.".into()],
+            notes: vec![
+                "Flatpak should avoid broad system D-Bus access for MVP.".into(),
+                "Resolver cache flush varies by distro and should be guided in sandboxed builds."
+                    .into(),
+            ],
         },
         Platform::LinuxSnap => PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::GuidedSettings,
+            flush: FlushCapability::GuidedUserAction,
             store_safe: true,
-            notes: vec!["network-manager plug is privileged and not auto-connected.".into()],
+            notes: vec![
+                "network-manager plug is privileged and not auto-connected.".into(),
+                "Resolver cache flush varies by distro and snap interfaces.".into(),
+            ],
         },
         Platform::LinuxNativePower => PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::LinuxNetworkManagerPolkit,
+            flush: FlushCapability::LinuxSystemResolverPolkit,
             store_safe: false,
-            notes: vec!["Native deb/rpm can use NetworkManager/systemd-resolved with polkit.".into()],
+            notes: vec![
+                "Native deb/rpm can use NetworkManager/systemd-resolved with polkit.".into(),
+                "Resolver cache flush can use systemd-resolved or NetworkManager when available."
+                    .into(),
+            ],
         },
         Platform::MacOSPower | Platform::WindowsPower => PlatformCapability {
             platform,
             can_benchmark: true,
             apply: ApplyCapability::DesktopAdminService,
+            flush: FlushCapability::DesktopAdminService,
             store_safe: false,
-            notes: vec!["Power edition is separate from store-safe builds.".into()],
+            notes: vec![
+                "Power edition is separate from store-safe builds.".into(),
+                "DNS cache flush requires an approved local helper/admin path.".into(),
+            ],
         },
     }
 }

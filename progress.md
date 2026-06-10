@@ -50,6 +50,7 @@ DNS handling, and platform capability reporting.
 - [x] [39] v0.1 path-compare saved-profile input — run path comparison from saved plain DNS profiles.
 - [x] [40] v0.1 custom encrypted profile persistence CLI — add/list DoH and DoT profiles.
 - [x] [41] v0.1 custom filtering profile metadata — persist filtering DNS category.
+- [x] [42] v0.1 DNS flush capability matrix — model flush support per platform.
 
 ---
 
@@ -2130,4 +2131,53 @@ Result: 25 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 61 passed, 0 failed
+```
+
+---
+
+## Chunk 42: v0.1 DNS Flush Capability Matrix
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `FlushCapability` to `PlatformCapability`. The core now explicitly tells
+platform shells whether DNS cache flush should be guided, unsupported, handled
+by a desktop admin service, or handled through Linux resolver/polkit paths.
+
+### Before
+
+```mermaid
+graph LR
+  CAP[platform capability] --> APPLY[apply capability]
+  CAP --> NOTES[notes only for flush ambiguity]
+```
+
+### After
+
+```mermaid
+graph LR
+  CAP[platform capability CHANGED] --> APPLY[apply capability]
+  CAP --> FLUSH[flush capability NEW]
+  FLUSH --> UI[flush/test UI decisions]
+```
+
+### Edge Cases / Caveats
+
+- Store-safe builds do not claim automatic DNS cache flush.
+- iOS exposes flush as unsupported for normal apps.
+- Power/native builds can later wire helper, admin service, or polkit adapters.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour flush_capabilities_match_platform_constraints
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 37 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 62 passed, 0 failed
 ```

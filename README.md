@@ -28,6 +28,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - CLI benchmark, compare, and path-compare history save/list commands backed by
   SQLite snapshots.
 - Store-safe platform capability matrix.
+- Platform DNS cache flush capability matrix for store-safe versus power builds.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.
 - UDP resolver client with timeout and transaction ID validation.
