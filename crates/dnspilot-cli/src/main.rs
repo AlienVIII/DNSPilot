@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    all_platforms, benchmark_preflight_for, built_in_profiles, built_in_test_suites, capability_for,
+    all_platforms, apply_prompt_policy_for, benchmark_preflight_for, built_in_profiles,
+    built_in_test_suites, capability_for,
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{
@@ -10,7 +11,7 @@ use dnspilot_core::{
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, DnsProfile, DnsProtocol,
-    FilteringType, MeasurementScope, Platform, RecommendationMode, SqliteStorage,
+    FilteringType, MeasurementScope, NetworkEnvironment, Platform, RecommendationMode, SqliteStorage,
     StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
@@ -37,6 +38,18 @@ enum Command {
         platform: PlatformArg,
         #[arg(long, value_enum, default_value_t = PreflightScopeArg::DirectResolverBenchmark)]
         scope: PreflightScopeArg,
+    },
+    ApplyPolicy {
+        #[arg(value_enum)]
+        platform: PlatformArg,
+        #[arg(long)]
+        vpn_active: bool,
+        #[arg(long)]
+        mdm_profile_active: bool,
+        #[arg(long)]
+        corporate_dns_detected: bool,
+        #[arg(long)]
+        captive_portal_detected: bool,
     },
     Benchmark {
         #[arg(long)]
@@ -272,6 +285,25 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&preflight).expect("serialize preflight")
+            );
+        }
+        Command::ApplyPolicy {
+            platform,
+            vpn_active,
+            mdm_profile_active,
+            corporate_dns_detected,
+            captive_portal_detected,
+        } => {
+            let environment = NetworkEnvironment {
+                vpn_active,
+                mdm_profile_active,
+                corporate_dns_detected,
+                captive_portal_detected,
+            };
+            let policy = apply_prompt_policy_for(platform.into(), &environment);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&policy).expect("serialize apply policy")
             );
         }
         Command::Benchmark {

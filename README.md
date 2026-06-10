@@ -35,6 +35,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   system-DNS validation after apply.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
+- CLI apply-policy command for protected-network apply prompt checks.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.
 - UDP resolver client with timeout and transaction ID validation.
@@ -75,6 +76,7 @@ cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- capabilities
 cargo run -p dnspilot-cli -- preflight macos-store --scope system-dns-validation
+cargo run -p dnspilot-cli -- apply-policy macos-store --vpn-active
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1

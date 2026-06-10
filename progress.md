@@ -55,6 +55,7 @@ DNS handling, and platform capability reporting.
 - [x] [44] v0.1 benchmark preflight policy — avoid flushing for direct resolver tests.
 - [x] [45] v0.1 benchmark preflight CLI — expose flush guidance as JSON.
 - [x] [46] v0.1 apply prompt safety policy — protect managed/intercepted networks.
+- [x] [47] v0.1 apply prompt policy CLI — expose protected-network policy as JSON.
 
 ---
 
@@ -2403,4 +2404,54 @@ Result: 39 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 67 passed, 0 failed
+```
+
+---
+
+## Chunk 47: v0.1 Apply Prompt Policy CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_apply_policy_behaviour.rs`, `README.md`
+
+### What changed
+
+Added a CLI `apply-policy` command that exposes the protected-network apply
+prompt policy as JSON. Platform shells can pass detected VPN, MDM, corporate
+DNS, or captive portal signals and receive an explicit allow/guide/protect
+decision.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[core apply policy] --> LIB[core consumers only]
+```
+
+### After
+
+```mermaid
+graph LR
+  SIGNALS[platform network signals] --> CLI[apply-policy CLI NEW]
+  CORE[core apply policy] --> CLI
+  CLI --> JSON[apply prompt JSON NEW]
+```
+
+### Edge Cases / Caveats
+
+- The CLI does not detect VPN/MDM/corporate state itself; native shells provide
+  those signals.
+- A protected signal overrides otherwise valid apply capability.
+- Guided store flows remain guide-only and must not imply automatic DNS changes.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_apply_policy_behaviour
+RED result: failed because subcommand `apply-policy` did not exist
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_apply_policy_behaviour
+Result: 2 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 69 passed, 0 failed
 ```
