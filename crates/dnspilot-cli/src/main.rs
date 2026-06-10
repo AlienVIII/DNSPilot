@@ -319,6 +319,11 @@ fn main() {
             save_db,
             history_id,
         } => {
+            if attempts == 0 {
+                eprintln!("--attempts must be greater than 0");
+                std::process::exit(2);
+            }
+
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let resolver = resolve_benchmark_resolver(
                 resolver,
@@ -511,6 +516,11 @@ fn main() {
             profile_id,
             resolver_port,
         } => {
+            if attempts == 0 {
+                eprintln!("--attempts must be greater than 0");
+                std::process::exit(2);
+            }
+
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let resolver = resolve_benchmark_resolver(
                 resolver,

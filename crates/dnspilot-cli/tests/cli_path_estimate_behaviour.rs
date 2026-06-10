@@ -86,6 +86,32 @@ fn path_estimate_command_outputs_dns_and_connect_metrics() {
 }
 
 #[test]
+fn path_estimate_command_rejects_zero_attempts() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "path-estimate",
+            "--resolver",
+            "127.0.0.1:9",
+            "--domain",
+            "github.com",
+            "--attempts",
+            "0",
+        ])
+        .output()
+        .expect("run dnspilot-cli path-estimate");
+
+    assert!(
+        !output.status.success(),
+        "path-estimate should reject zero attempts"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--attempts must be greater than 0"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
 fn path_estimate_command_can_use_saved_plain_dns_profile() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-path-estimate-profile-{}.sqlite",

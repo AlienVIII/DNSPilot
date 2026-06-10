@@ -58,6 +58,7 @@ DNS handling, and platform capability reporting.
 - [x] [47] v0.1 apply prompt policy CLI — expose protected-network policy as JSON.
 - [x] [48] v0.1 custom suite domain validation — reject invalid/duplicate domains.
 - [x] [49] v0.1 custom profile server validation — reject family mismatch/duplicates.
+- [x] [50] v0.1 zero-attempt CLI guards — reject empty benchmark runs consistently.
 
 ---
 
@@ -2579,4 +2580,63 @@ Result: 41 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 73 passed, 0 failed
+```
+
+---
+
+## Chunk 50: v0.1 Zero-Attempt CLI Guards
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `README.md`
+
+### What changed
+
+Added zero-attempt validation to `benchmark` and `path-estimate` so all benchmark
+entry points reject empty runs consistently. `compare` and `path-compare` already
+had this guard; this closes the remaining direct command gap.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[benchmark/path-estimate] --> ZERO[attempts 0]
+  ZERO --> EMPTY[empty run output]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[benchmark/path-estimate CHANGED] --> CHECK[attempts guard NEW]
+  CHECK --> REJECT[exit 2 with message NEW]
+  CHECK --> RUN[run benchmark]
+```
+
+### Edge Cases / Caveats
+
+- Zero samples can produce misleading success output and invalid statistics.
+- Validation happens before resolver/domain work, so bad runs do not touch the
+  network.
+- The same user-facing error string is used across benchmark commands.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour benchmark_command_rejects_zero_attempts
+RED result: failed because benchmark accepted `--attempts 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_rejects_zero_attempts
+RED result: failed because path-estimate accepted `--attempts 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour benchmark_command_rejects_zero_attempts
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_rejects_zero_attempts
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 34 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 75 passed, 0 failed
 ```

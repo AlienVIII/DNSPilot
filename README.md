@@ -44,6 +44,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - UDP resolver client with timeout and transaction ID validation.
 - Multi-sample DNS benchmark aggregation for median, P95, failure rate,
   timeout rate, and IPv4/IPv6 health.
+- CLI benchmark commands reject zero-attempt runs before network activity.
 - TCP connect probe aggregation for connection-path estimates.
 - Connection-path estimator that combines DNS lookup metrics with TCP connect
   metrics, optional TLS/SNI handshake metrics, and conservative caveats.
