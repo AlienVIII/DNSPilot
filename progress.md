@@ -71,6 +71,7 @@ DNS handling, and platform capability reporting.
 - [x] [60] v0.1 shell payload schema version — version catalog/capability JSON contracts.
 - [x] [61] v0.1 macOS schema version gate — reject unsupported shell payload versions.
 - [x] [62] v0.1 macOS preview catalog summary — add default catalog bridge and summary metrics.
+- [x] [63] v0.1 macOS catalog display summaries — prepare provider/suite labels for UI.
 
 ---
 
@@ -3337,4 +3338,52 @@ RED result: failed because CatalogViewModel required an explicit bridge and had 
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 13 passed, 0 failed
+```
+
+---
+
+## Chunk 63: v0.1 macOS Catalog Display Summaries
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CatalogViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added provider and test-suite summary rows to CatalogViewModel. The future
+SwiftUI catalog surface can bind to preformatted server counts, filtering
+labels, and domain-count labels instead of embedding formatting logic in views.
+
+### Before
+
+```mermaid
+graph LR
+  CATVM[Catalog ViewModel] --> RAW[raw catalog snapshot]
+  UI[future UI] --> FORMAT[would need inline formatting]
+```
+
+### After
+
+```mermaid
+graph LR
+  CATVM[Catalog ViewModel CHANGED] --> RAW[raw catalog snapshot]
+  CATVM --> PROFILES[profile summaries NEW]
+  CATVM --> SUITES[test suite summaries NEW]
+  PROFILES --> UI[future UI]
+  SUITES --> UI
+```
+
+### Edge Cases / Caveats
+
+- Summary strings are UI-facing and English-only for now.
+- IPv4/IPv6 counts are summaries, not server health checks.
+- This still does not render the catalog in SwiftUI.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests/testCatalogViewModelBuildsDisplaySummaries
+RED result: failed because CatalogViewModel had no profileSummaries or testSuiteSummaries
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 14 passed, 0 failed
 ```

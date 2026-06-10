@@ -22,6 +22,14 @@ public struct CatalogViewModel {
         catalog?.testSuites.contains { $0.id == "azure-microsoft" } ?? false
     }
 
+    public var profileSummaries: [CatalogProfileSummary] {
+        catalog?.profiles.map(CatalogProfileSummary.init(profile:)) ?? []
+    }
+
+    public var testSuiteSummaries: [CatalogTestSuiteSummary] {
+        catalog?.testSuites.map(CatalogTestSuiteSummary.init(testSuite:)) ?? []
+    }
+
     public init(bridge: DNSPilotCatalogBridge = PreviewCatalogBridge()) {
         do {
             catalog = try bridge.loadCatalog()
@@ -30,6 +38,53 @@ public struct CatalogViewModel {
             catalog = nil
             loadErrorMessage = error.localizedDescription
         }
+    }
+}
+
+public struct CatalogProfileSummary: Equatable, Identifiable {
+    public let id: String
+    public let name: String
+    public let description: String
+    public let serverSummary: String
+    public let filteringLabel: String
+
+    public init(profile: CatalogProfile) {
+        id = profile.id
+        name = profile.name
+        description = profile.description
+        serverSummary = "\(profile.ipv4Servers.count) IPv4 / \(profile.ipv6Servers.count) IPv6"
+        filteringLabel = Self.label(for: profile.filteringType)
+    }
+
+    private static func label(for filteringType: CatalogFilteringType) -> String {
+        switch filteringType {
+        case .none:
+            "Unfiltered"
+        case .malware:
+            "Malware"
+        case .family:
+            "Family"
+        case .ads:
+            "Ads"
+        case .security:
+            "Security"
+        }
+    }
+}
+
+public struct CatalogTestSuiteSummary: Equatable, Identifiable {
+    public let id: String
+    public let name: String
+    public let description: String
+    public let domainCountLabel: String
+
+    public init(testSuite: CatalogTestSuite) {
+        id = testSuite.id
+        name = testSuite.name
+        description = testSuite.description
+        domainCountLabel = testSuite.domains.count == 1
+            ? "1 domain"
+            : "\(testSuite.domains.count) domains"
     }
 }
 

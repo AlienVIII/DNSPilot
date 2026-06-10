@@ -13,6 +13,16 @@ final class CatalogViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.hasAzureSuite)
     }
 
+    func testCatalogViewModelBuildsDisplaySummaries() {
+        let viewModel = CatalogViewModel(bridge: CatalogJSONBridge(data: Data(catalogFixtureJSON.utf8)))
+
+        XCTAssertEqual(viewModel.profileSummaries.first?.name, "Cloudflare")
+        XCTAssertEqual(viewModel.profileSummaries.first?.serverSummary, "2 IPv4 / 1 IPv6")
+        XCTAssertEqual(viewModel.profileSummaries.first?.filteringLabel, "Unfiltered")
+        XCTAssertEqual(viewModel.profileSummaries.last?.filteringLabel, "Malware")
+        XCTAssertEqual(viewModel.testSuiteSummaries.first?.domainCountLabel, "2 domains")
+    }
+
     func testCatalogDecoderMapsRustCliSchema() throws {
         let catalog = try CatalogJSONDecoder().decode(Data(catalogFixtureJSON.utf8))
 
