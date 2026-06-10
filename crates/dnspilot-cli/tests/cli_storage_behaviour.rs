@@ -99,6 +99,71 @@ fn profile_add_command_persists_custom_plain_dns_profile() {
 }
 
 #[test]
+fn benchmark_command_can_use_saved_plain_dns_profile() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-benchmark-profile-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let resolver = start_fake_resolver(2);
+
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "custom-lab",
+            "--name",
+            "Custom Lab",
+            "--ipv4",
+            "127.0.0.1",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add");
+
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let benchmark = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "benchmark",
+            "--profile-db",
+            db_path.to_str().expect("utf8 path"),
+            "--profile-id",
+            "custom-lab",
+            "--resolver-port",
+            &resolver.port().to_string(),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+        ])
+        .output()
+        .expect("run dnspilot-cli benchmark");
+
+    assert!(
+        benchmark.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&benchmark.stderr)
+    );
+
+    let stdout = String::from_utf8(benchmark.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+
+    assert_eq!(json["metrics"]["profile_id"], "custom-lab");
+    assert_eq!(json["metrics"]["failure_rate"], 0.0);
+    assert_eq!(json["samples"].as_array().expect("samples").len(), 2);
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn suite_add_command_persists_custom_domain_suite() {
     let db_path =
         std::env::temp_dir().join(format!("dnspilot-suite-add-{}.sqlite", std::process::id()));

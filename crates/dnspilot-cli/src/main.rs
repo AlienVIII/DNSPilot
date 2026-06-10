@@ -13,7 +13,7 @@ use dnspilot_core::{
     MeasurementScope, Platform, RecommendationMode, SqliteStorage, StorageSnapshot, TestSuite,
     STORAGE_SCHEMA_VERSION,
 };
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
 #[derive(Debug, Parser)]
@@ -33,7 +33,9 @@ enum Command {
     },
     Benchmark {
         #[arg(long)]
-        resolver: SocketAddr,
+        resolver: Option<SocketAddr>,
+        #[arg(long)]
+        profile_db: Option<std::path::PathBuf>,
         #[arg(long = "domain")]
         domains: Vec<String>,
         #[arg(long)]
@@ -46,6 +48,8 @@ enum Command {
         timeout_ms: u64,
         #[arg(long, default_value = "manual")]
         profile_id: String,
+        #[arg(long, default_value_t = 53)]
+        resolver_port: u16,
         #[arg(long)]
         save_db: Option<std::path::PathBuf>,
         #[arg(long)]
@@ -199,16 +203,24 @@ fn main() {
         }
         Command::Benchmark {
             resolver,
+            profile_db,
             domains,
             suite_db,
             suite_id,
             attempts,
             timeout_ms,
             profile_id,
+            resolver_port,
             save_db,
             history_id,
         } => {
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
+            let resolver = resolve_benchmark_resolver(
+                resolver,
+                profile_db.as_deref(),
+                &profile_id,
+                resolver_port,
+            );
             let domains_for_history = domains.clone();
             let config = DnsBenchmarkConfig {
                 profile_id: profile_id.clone(),
@@ -840,6 +852,55 @@ fn resolve_domains(
         std::process::exit(2);
     }
     resolved
+}
+
+fn resolve_benchmark_resolver(
+    resolver: Option<SocketAddr>,
+    profile_db: Option<&std::path::Path>,
+    profile_id: &str,
+    resolver_port: u16,
+) -> SocketAddr {
+    if let Some(resolver) = resolver {
+        return resolver;
+    }
+
+    let profile_db = profile_db.unwrap_or_else(|| {
+        eprintln!("--resolver or --profile-db is required");
+        std::process::exit(2);
+    });
+    let storage = SqliteStorage::open(profile_db).unwrap_or_else(|error| {
+        eprintln!("{error}");
+        std::process::exit(2);
+    });
+    let snapshot = load_snapshot_or_builtin(&storage);
+    let profile = snapshot
+        .profiles
+        .iter()
+        .find(|profile| profile.id == profile_id)
+        .unwrap_or_else(|| {
+            eprintln!("DNS profile '{profile_id}' not found");
+            std::process::exit(2);
+        });
+    if profile.protocol != DnsProtocol::Plain {
+        eprintln!("DNS profile '{profile_id}' is not plain DNS");
+        std::process::exit(2);
+    }
+
+    let server = profile
+        .ipv4_servers
+        .iter()
+        .chain(profile.ipv6_servers.iter())
+        .next()
+        .unwrap_or_else(|| {
+            eprintln!("DNS profile '{profile_id}' has no resolver addresses");
+            std::process::exit(2);
+        });
+    let ip = server.parse::<IpAddr>().unwrap_or_else(|error| {
+        eprintln!("invalid DNS profile resolver '{server}': {error}");
+        std::process::exit(2);
+    });
+
+    SocketAddr::new(ip, resolver_port)
 }
 
 fn save_benchmark_history(db: &std::path::Path, record: BenchmarkHistoryRecord) {
