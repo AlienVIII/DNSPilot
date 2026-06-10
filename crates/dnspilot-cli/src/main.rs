@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    all_platforms, built_in_profiles, built_in_test_suites, capability_for,
+    all_platforms, benchmark_preflight_for, built_in_profiles, built_in_test_suites, capability_for,
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{
@@ -9,9 +9,9 @@ use dnspilot_core::{
     dns_wire::RecordType,
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
-    BenchmarkHistoryRecord, BenchmarkMetrics, DnsProfile, DnsProtocol, FilteringType,
-    MeasurementScope, Platform, RecommendationMode, SqliteStorage, StorageSnapshot, TestSuite,
-    STORAGE_SCHEMA_VERSION,
+    BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, DnsProfile, DnsProtocol,
+    FilteringType, MeasurementScope, Platform, RecommendationMode, SqliteStorage,
+    StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
@@ -32,6 +32,12 @@ enum Command {
         platform: PlatformArg,
     },
     Capabilities,
+    Preflight {
+        #[arg(value_enum)]
+        platform: PlatformArg,
+        #[arg(long, value_enum, default_value_t = PreflightScopeArg::DirectResolverBenchmark)]
+        scope: PreflightScopeArg,
+    },
     Benchmark {
         #[arg(long)]
         resolver: Option<SocketAddr>,
@@ -213,6 +219,12 @@ enum ProfileProtocolArg {
     Dot,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum PreflightScopeArg {
+    DirectResolverBenchmark,
+    SystemDnsValidation,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum FilteringTypeArg {
     None,
@@ -253,6 +265,13 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize capabilities")
+            );
+        }
+        Command::Preflight { platform, scope } => {
+            let preflight = benchmark_preflight_for(platform.into(), scope.into());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&preflight).expect("serialize preflight")
             );
         }
         Command::Benchmark {
@@ -1222,6 +1241,17 @@ impl From<PlatformArg> for Platform {
             PlatformArg::LinuxNativePower => Platform::LinuxNativePower,
             PlatformArg::MacosPower => Platform::MacOSPower,
             PlatformArg::WindowsPower => Platform::WindowsPower,
+        }
+    }
+}
+
+impl From<PreflightScopeArg> for BenchmarkPreflightScope {
+    fn from(value: PreflightScopeArg) -> Self {
+        match value {
+            PreflightScopeArg::DirectResolverBenchmark => {
+                BenchmarkPreflightScope::DirectResolverBenchmark
+            }
+            PreflightScopeArg::SystemDnsValidation => BenchmarkPreflightScope::SystemDnsValidation,
         }
     }
 }

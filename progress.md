@@ -53,6 +53,7 @@ DNS handling, and platform capability reporting.
 - [x] [42] v0.1 DNS flush capability matrix — model flush support per platform.
 - [x] [43] v0.1 full capability matrix CLI — emit all platform capabilities at once.
 - [x] [44] v0.1 benchmark preflight policy — avoid flushing for direct resolver tests.
+- [x] [45] v0.1 benchmark preflight CLI — expose flush guidance as JSON.
 
 ---
 
@@ -2295,4 +2296,55 @@ Result: 38 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 64 passed, 0 failed
+```
+
+---
+
+## Chunk 45: v0.1 Benchmark Preflight CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_preflight_behaviour.rs`, `README.md`
+
+### What changed
+
+Added a CLI `preflight` command that emits the core benchmark preflight policy
+as JSON. Native shells and smoke scripts can now ask whether a direct resolver
+benchmark or system-DNS validation needs DNS cache flush guidance for a specific
+platform.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[core preflight policy] --> LIB[core consumers only]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[core preflight policy] --> CLI[preflight CLI NEW]
+  CLI --> JSON[platform/scope flush JSON NEW]
+```
+
+### Edge Cases / Caveats
+
+- The command defaults to direct resolver benchmarking, where flush is not
+  needed.
+- System-DNS validation remains advisory; it cannot prove browser/app traffic
+  used the system resolver.
+- Store-safe shells should use this output to show guidance, not to execute
+  hidden admin commands.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_preflight_behaviour
+RED result: failed because subcommand `preflight` did not exist
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_preflight_behaviour
+Result: 2 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 66 passed, 0 failed
 ```
