@@ -283,6 +283,30 @@ pub struct PlatformCapability {
     pub notes: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BenchmarkPreflightScope {
+    DirectResolverBenchmark,
+    SystemDnsValidation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FlushRequirement {
+    NotNeeded,
+    RecommendedBeforeTest,
+    RecommendedButUnsupported,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BenchmarkPreflight {
+    pub platform: Platform,
+    pub scope: BenchmarkPreflightScope,
+    pub flush_capability: FlushCapability,
+    pub flush_requirement: FlushRequirement,
+    pub notes: Vec<String>,
+}
+
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum DnsPilotError {
     #[error("no benchmark metrics provided")]
@@ -704,6 +728,44 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
                 "DNS cache flush requires an approved local helper/admin path.".into(),
             ],
         },
+    }
+}
+
+pub fn benchmark_preflight_for(
+    platform: Platform,
+    scope: BenchmarkPreflightScope,
+) -> BenchmarkPreflight {
+    let capability = capability_for(platform);
+    let (flush_requirement, notes) = match scope {
+        BenchmarkPreflightScope::DirectResolverBenchmark => (
+            FlushRequirement::NotNeeded,
+            vec![
+                "A direct resolver benchmark sends DNS queries to the selected resolver and bypasses the OS DNS cache.".into(),
+                "Do not flush system DNS cache as a prerequisite for direct resolver scoring.".into(),
+            ],
+        ),
+        BenchmarkPreflightScope::SystemDnsValidation => {
+            let requirement = if capability.flush == FlushCapability::Unsupported {
+                FlushRequirement::RecommendedButUnsupported
+            } else {
+                FlushRequirement::RecommendedBeforeTest
+            };
+            (
+                requirement,
+                vec![
+                    "System DNS validation after apply can be polluted by stale OS resolver cache.".into(),
+                    "Browser Secure DNS, VPN, MDM, captive portals, and app caches may still bypass or distort system DNS validation.".into(),
+                ],
+            )
+        }
+    };
+
+    BenchmarkPreflight {
+        platform,
+        scope,
+        flush_capability: capability.flush,
+        flush_requirement,
+        notes,
     }
 }
 

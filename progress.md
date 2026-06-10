@@ -52,6 +52,7 @@ DNS handling, and platform capability reporting.
 - [x] [41] v0.1 custom filtering profile metadata — persist filtering DNS category.
 - [x] [42] v0.1 DNS flush capability matrix — model flush support per platform.
 - [x] [43] v0.1 full capability matrix CLI — emit all platform capabilities at once.
+- [x] [44] v0.1 benchmark preflight policy — avoid flushing for direct resolver tests.
 
 ---
 
@@ -2235,4 +2236,63 @@ Result: 1 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 63 passed, 0 failed
+```
+
+---
+
+## Chunk 44: v0.1 Benchmark Preflight Policy
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `README.md`
+
+### What changed
+
+Added a core benchmark preflight contract that separates direct resolver
+benchmarks from system-DNS validation after apply. Direct resolver scoring does
+not require OS DNS cache flush because it sends DNS packets to the selected
+resolver directly; system-DNS validation can recommend flush/guidance based on
+the platform capability matrix.
+
+### Before
+
+```mermaid
+graph LR
+  TEST[test action] --> FLUSH[flush assumption]
+  FLUSH --> BENCH[benchmark]
+```
+
+### After
+
+```mermaid
+graph LR
+  TEST[test action CHANGED] --> SCOPE{preflight scope NEW}
+  SCOPE --> DIRECT[direct resolver benchmark]
+  SCOPE --> SYSTEM[system DNS validation after apply]
+  DIRECT --> NOFLUSH[flush not needed NEW]
+  SYSTEM --> POLICY[platform flush policy NEW]
+```
+
+### Edge Cases / Caveats
+
+- Unconditional flush before every benchmark is misleading and may imply the CLI
+  is testing OS resolver state when it is actually testing a selected resolver.
+- iOS can recommend validation caution while still reporting normal-app DNS
+  cache flush as unsupported.
+- Even after flush, browser Secure DNS, VPN, MDM, captive portal, and app caches
+  can invalidate system-DNS validation results.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour benchmark_preflight_distinguishes_direct_resolver_from_system_validation
+RED result: failed because benchmark preflight types/function did not exist
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour benchmark_preflight_distinguishes_direct_resolver_from_system_validation
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 38 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 64 passed, 0 failed
 ```

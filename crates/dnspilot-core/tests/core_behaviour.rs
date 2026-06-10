@@ -1,8 +1,10 @@
 use dnspilot_core::{
+    benchmark_preflight_for,
     built_in_profiles, built_in_test_suites, capability_for, classify_resolution_outcome,
-    recommend, recommendation_gate, ApplyCapability, BenchmarkMetrics, Confidence, FilteringType,
-    FlushCapability, MeasurementScope, Platform, RecommendationDecision, RecommendationHealth,
-    RecommendationIssue, RecommendationMode, ResolutionOutcome,
+    recommend, recommendation_gate, ApplyCapability, BenchmarkMetrics, BenchmarkPreflightScope,
+    Confidence, FilteringType, FlushCapability, FlushRequirement, MeasurementScope, Platform,
+    RecommendationDecision, RecommendationHealth, RecommendationIssue, RecommendationMode,
+    ResolutionOutcome,
 };
 
 fn metrics(
@@ -203,6 +205,41 @@ fn flush_capabilities_match_platform_constraints() {
         capability_for(Platform::MacOSPower).flush,
         FlushCapability::DesktopAdminService
     );
+}
+
+#[test]
+fn benchmark_preflight_distinguishes_direct_resolver_from_system_validation() {
+    let direct = benchmark_preflight_for(
+        Platform::MacOSStore,
+        BenchmarkPreflightScope::DirectResolverBenchmark,
+    );
+    assert_eq!(direct.flush_requirement, FlushRequirement::NotNeeded);
+    assert_eq!(direct.flush_capability, FlushCapability::GuidedUserAction);
+    assert!(direct
+        .notes
+        .iter()
+        .any(|note| note.contains("bypasses the OS DNS cache")));
+
+    let system_validation = benchmark_preflight_for(
+        Platform::MacOSStore,
+        BenchmarkPreflightScope::SystemDnsValidation,
+    );
+    assert_eq!(
+        system_validation.flush_requirement,
+        FlushRequirement::RecommendedBeforeTest
+    );
+    assert_eq!(
+        system_validation.flush_capability,
+        FlushCapability::GuidedUserAction
+    );
+
+    let ios_validation =
+        benchmark_preflight_for(Platform::IOS, BenchmarkPreflightScope::SystemDnsValidation);
+    assert_eq!(
+        ios_validation.flush_requirement,
+        FlushRequirement::RecommendedButUnsupported
+    );
+    assert_eq!(ios_validation.flush_capability, FlushCapability::Unsupported);
 }
 
 #[test]
