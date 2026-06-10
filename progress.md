@@ -66,6 +66,7 @@ DNS handling, and platform capability reporting.
 - [x] [55] v0.1 encrypted profile endpoint validation — reject insecure DoH/invalid DoT.
 - [x] [56] v0.1 macOS SwiftUI shell scaffold — add design tokens and capability ViewModel.
 - [x] [57] v0.1 macOS capability JSON bridge — decode Rust capability schema into Swift ViewModel.
+- [x] [58] v0.1 macOS catalog JSON bridge — decode Rust catalog schema into Swift ViewModel.
 
 ---
 
@@ -3066,4 +3067,57 @@ Result: 6 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
+```
+
+---
+
+## Chunk 58: v0.1 macOS Catalog JSON Bridge
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogJSONDecoder.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CatalogViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added Swift catalog models, a JSON decoder, a JSON bridge, and a CatalogViewModel
+for the Rust CLI/core `catalog` schema. This covers DNS profiles and test
+suites so the macOS shell can later show provider and suite data without
+duplicating catalog rules.
+
+### Before
+
+```mermaid
+graph LR
+  RUSTCAT[Rust catalog JSON] --> GAP[not decoded by macOS shell]
+  MAC[macOS shell] --> CAP[capability bridge only]
+```
+
+### After
+
+```mermaid
+graph LR
+  RUSTCAT[Rust catalog JSON] --> CATDECODER[Swift catalog decoder NEW]
+  CATDECODER --> CATBRIDGE[catalog JSON bridge NEW]
+  CATBRIDGE --> CATVM[Catalog ViewModel NEW]
+  MAC[macOS shell] --> CAP[capability bridge]
+```
+
+### Edge Cases / Caveats
+
+- Unknown DNS protocol or filtering enum values fail decode, which catches
+  schema drift before UI recommendation code consumes bad assumptions.
+- Provider metadata and created/updated timestamps are intentionally not shown
+  in the Swift shell model yet.
+- Catalog data is decoded and view-modeled, but not rendered in the app UI yet.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests/testCatalogDecoderMapsRustCliSchema
+RED result: failed because CatalogSnapshot, DNSPilotCatalogBridge, CatalogJSONDecoder, CatalogJSONBridge, and CatalogViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Intermediate result: failed because optional `.none` in the test assertion resolved to Optional.none instead of CatalogFilteringType.none
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 10 passed, 0 failed
 ```

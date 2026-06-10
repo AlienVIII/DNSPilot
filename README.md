@@ -44,6 +44,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   matrix view model tests.
 - macOS capability JSON decoder/bridge for the Rust `capabilities` schema and
   ViewModel load-error handling.
+- macOS catalog JSON decoder/bridge for the Rust `catalog` schema and
+  ViewModel load-error handling.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
