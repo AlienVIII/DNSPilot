@@ -319,10 +319,8 @@ fn main() {
             save_db,
             history_id,
         } => {
-            if attempts == 0 {
-                eprintln!("--attempts must be greater than 0");
-                std::process::exit(2);
-            }
+            reject_zero_usize("--attempts", attempts);
+            reject_zero_u64("--timeout-ms", timeout_ms);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let resolver = resolve_benchmark_resolver(
@@ -392,10 +390,8 @@ fn main() {
             save_db,
             history_id,
         } => {
-            if attempts == 0 {
-                eprintln!("--attempts must be greater than 0");
-                std::process::exit(2);
-            }
+            reject_zero_usize("--attempts", attempts);
+            reject_zero_u64("--timeout-ms", timeout_ms);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
@@ -516,10 +512,10 @@ fn main() {
             profile_id,
             resolver_port,
         } => {
-            if attempts == 0 {
-                eprintln!("--attempts must be greater than 0");
-                std::process::exit(2);
-            }
+            reject_zero_usize("--attempts", attempts);
+            reject_zero_u64("--dns-timeout-ms", dns_timeout_ms);
+            reject_zero_u64("--connect-timeout-ms", connect_timeout_ms);
+            reject_zero_optional_u64("--tls-handshake-timeout-ms", tls_handshake_timeout_ms);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let resolver = resolve_benchmark_resolver(
@@ -605,10 +601,10 @@ fn main() {
             save_db,
             history_id,
         } => {
-            if attempts == 0 {
-                eprintln!("--attempts must be greater than 0");
-                std::process::exit(2);
-            }
+            reject_zero_usize("--attempts", attempts);
+            reject_zero_u64("--dns-timeout-ms", dns_timeout_ms);
+            reject_zero_u64("--connect-timeout-ms", connect_timeout_ms);
+            reject_zero_optional_u64("--tls-handshake-timeout-ms", tls_handshake_timeout_ms);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
@@ -1247,6 +1243,27 @@ fn outcome_name(outcome: DnsSampleOutcome) -> &'static str {
         DnsSampleOutcome::Success => "success",
         DnsSampleOutcome::Timeout => "timeout",
         DnsSampleOutcome::Failure => "failure",
+    }
+}
+
+fn reject_zero_usize(flag: &str, value: usize) {
+    if value == 0 {
+        eprintln!("{flag} must be greater than 0");
+        std::process::exit(2);
+    }
+}
+
+fn reject_zero_u64(flag: &str, value: u64) {
+    if value == 0 {
+        eprintln!("{flag} must be greater than 0");
+        std::process::exit(2);
+    }
+}
+
+fn reject_zero_optional_u64(flag: &str, value: Option<u64>) {
+    if value == Some(0) {
+        eprintln!("{flag} must be greater than 0");
+        std::process::exit(2);
     }
 }
 

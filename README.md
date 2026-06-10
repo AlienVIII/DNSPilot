@@ -45,6 +45,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Multi-sample DNS benchmark aggregation for median, P95, failure rate,
   timeout rate, and IPv4/IPv6 health.
 - CLI benchmark commands reject zero-attempt runs before network activity.
+- CLI benchmark commands reject zero timeout settings before network activity.
 - TCP connect probe aggregation for connection-path estimates.
 - Connection-path estimator that combines DNS lookup metrics with TCP connect
   metrics, optional TLS/SNI handshake metrics, and conservative caveats.

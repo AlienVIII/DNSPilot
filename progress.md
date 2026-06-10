@@ -59,6 +59,7 @@ DNS handling, and platform capability reporting.
 - [x] [48] v0.1 custom suite domain validation — reject invalid/duplicate domains.
 - [x] [49] v0.1 custom profile server validation — reject family mismatch/duplicates.
 - [x] [50] v0.1 zero-attempt CLI guards — reject empty benchmark runs consistently.
+- [x] [51] v0.1 zero-timeout CLI guards — reject impossible benchmark timeouts.
 
 ---
 
@@ -2639,4 +2640,65 @@ Result: 34 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 75 passed, 0 failed
+```
+
+---
+
+## Chunk 51: v0.1 Zero-Timeout CLI Guards
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `crates/dnspilot-cli/tests/cli_compare_behaviour.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `crates/dnspilot-cli/tests/cli_path_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added zero-timeout validation across benchmark, compare, path-estimate, and
+path-compare commands. DNS, TCP connect, and optional TLS/SNI timeouts now reject
+`0` before any network work starts.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[benchmark CLI] --> ZERO[timeout 0ms]
+  ZERO --> RUN[network run with impossible timeout]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[benchmark CLI CHANGED] --> CHECK[timeout guard NEW]
+  CHECK --> REJECT[exit 2 with flag-specific message NEW]
+  CHECK --> RUN[network run]
+```
+
+### Edge Cases / Caveats
+
+- `0ms` timeout creates deterministic failure/noise, not useful benchmark data.
+- Optional TLS timeout also rejects `0`; absence still means TLS probing disabled.
+- Validation shares the same helper style as zero-attempt guards.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour benchmark_command_rejects_zero_timeout
+RED result: failed because benchmark accepted `--timeout-ms 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_rejects_zero_timeout
+RED result: failed because compare accepted `--timeout-ms 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_rejects_zero_connect_timeout
+RED result: failed because path-estimate accepted `--connect-timeout-ms 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour path_compare_command_rejects_zero_tls_timeout
+RED result: failed because path-compare accepted `--tls-handshake-timeout-ms 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests zero
+Result: 7 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 38 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 79 passed, 0 failed
 ```

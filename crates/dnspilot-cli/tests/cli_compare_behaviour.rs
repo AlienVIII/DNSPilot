@@ -283,6 +283,31 @@ fn compare_command_rejects_duplicate_resolver_ids() {
 }
 
 #[test]
+fn compare_command_rejects_zero_timeout() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--resolver",
+            "cloudflare=127.0.0.1:9",
+            "--domain",
+            "github.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "0",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(!output.status.success(), "compare should reject zero timeout");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--timeout-ms must be greater than 0"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
 fn compare_command_marks_recommendation_inconclusive_when_all_resolvers_fail() {
     let first = start_silent_resolver(Duration::from_secs(1));
     let second = start_silent_resolver(Duration::from_secs(1));
