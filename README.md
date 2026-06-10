@@ -12,6 +12,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - Built-in DNS provider catalog.
 - Built-in test suites for General, Developer, Azure/Microsoft,
   Google/Firebase, and Vietnam/Daily use cases.
+- Core-owned shell payload contracts for catalog and capability matrix JSON.
 - Recommendation scoring for connection-path estimates.
 - Shared recommendation safety gate for `can_recommend`, health, and primary
   issue decisions before UI/apply prompts.

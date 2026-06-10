@@ -369,6 +369,18 @@ pub struct PlatformCapability {
     pub notes: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CatalogPayload {
+    pub profiles: Vec<DnsProfile>,
+    #[serde(rename = "testSuites")]
+    pub test_suites: Vec<TestSuite>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CapabilityMatrixPayload {
+    pub capabilities: Vec<PlatformCapability>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BenchmarkPreflightScope {
@@ -431,6 +443,23 @@ pub enum DnsPilotError {
     InvalidTestSuite(String),
     #[error("invalid storage snapshot: {0}")]
     InvalidStorage(String),
+}
+
+pub fn catalog_payload() -> CatalogPayload {
+    CatalogPayload {
+        profiles: built_in_profiles(),
+        test_suites: built_in_test_suites(),
+    }
+}
+
+pub fn capability_matrix_payload() -> CapabilityMatrixPayload {
+    CapabilityMatrixPayload {
+        capabilities: all_platforms()
+            .iter()
+            .copied()
+            .map(capability_for)
+            .collect(),
+    }
 }
 
 pub fn built_in_profiles() -> Vec<DnsProfile> {

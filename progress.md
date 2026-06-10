@@ -67,6 +67,7 @@ DNS handling, and platform capability reporting.
 - [x] [56] v0.1 macOS SwiftUI shell scaffold — add design tokens and capability ViewModel.
 - [x] [57] v0.1 macOS capability JSON bridge — decode Rust capability schema into Swift ViewModel.
 - [x] [58] v0.1 macOS catalog JSON bridge — decode Rust catalog schema into Swift ViewModel.
+- [x] [59] v0.1 core shell payload contracts — expose catalog/capability payloads from Rust core.
 
 ---
 
@@ -3120,4 +3121,63 @@ Intermediate result: failed because optional `.none` in the test assertion resol
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 10 passed, 0 failed
+```
+
+---
+
+## Chunk 59: v0.1 Core Shell Payload Contracts
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `crates/dnspilot-cli/src/main.rs`, `README.md`
+
+### What changed
+
+Added core-owned payload structs and factory functions for the shell-facing
+`catalog` and `capabilities` contracts. The CLI now serializes those core
+payloads instead of hand-building duplicate JSON wrappers.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[core built-ins] --> CLIJSON[CLI hand-built JSON]
+  CORE --> FUTURE[future FFI bridge]
+  CLIJSON --> SWIFT[Swift JSON decoders]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[core built-ins] --> PAYLOADS[core payload contracts NEW]
+  PAYLOADS --> CLI[CLI catalog/capabilities CHANGED]
+  PAYLOADS --> FUTURE[future FFI bridge]
+  CLI --> SWIFT[Swift JSON decoders]
+```
+
+### Edge Cases / Caveats
+
+- CLI object field order may differ because it now serializes typed structs
+  directly; consumers must parse JSON fields rather than compare raw text.
+- `testSuites` remains explicitly camel-cased for the macOS decoder contract.
+- This still does not bind Rust into Swift at runtime; it creates the single
+  Rust source for the bridge payload shape.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour
+RED result: failed because catalog_payload and capability_matrix_payload did not exist
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour
+Result: 16 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_capability_behaviour
+Intermediate result: failed because builtin storage snapshot still needed built_in_profiles and built_in_test_suites imports
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_capability_behaviour
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo run -p dnspilot-cli -- catalog
+Result: command emitted profiles and testSuites JSON
 ```

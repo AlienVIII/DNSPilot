@@ -1,11 +1,12 @@
 use dnspilot_core::{
     apply_prompt_policy_for,
     benchmark_preflight_for,
-    built_in_profiles, built_in_test_suites, capability_for, classify_resolution_outcome,
-    recommend, recommendation_gate, ApplyCapability, ApplyPromptDisposition, BenchmarkMetrics,
-    BenchmarkPreflightScope, Confidence, DnsProtocol, FilteringType, FlushCapability,
-    FlushRequirement, MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision,
-    RecommendationHealth, RecommendationIssue, RecommendationMode, ResolutionOutcome,
+    built_in_profiles, built_in_test_suites, capability_for, capability_matrix_payload,
+    catalog_payload, classify_resolution_outcome, recommend, recommendation_gate, ApplyCapability,
+    ApplyPromptDisposition, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProtocol,
+    FilteringType, FlushCapability, FlushRequirement, MeasurementScope, NetworkEnvironment,
+    Platform, RecommendationDecision, RecommendationHealth, RecommendationIssue, RecommendationMode,
+    ResolutionOutcome,
 };
 
 fn metrics(
@@ -55,6 +56,33 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
         .expect("Azure suite should exist");
     assert!(azure.domains.contains(&"login.microsoftonline.com".to_string()));
     assert!(azure.domains.contains(&"blob.core.windows.net".to_string()));
+}
+
+#[test]
+fn catalog_payload_matches_builtin_catalog_contract() {
+    let payload = catalog_payload();
+    let json = serde_json::to_value(&payload).expect("catalog payload should serialize");
+
+    assert_eq!(payload.profiles, built_in_profiles());
+    assert_eq!(payload.test_suites, built_in_test_suites());
+    assert!(json.get("profiles").is_some());
+    assert!(json.get("testSuites").is_some());
+    assert!(json.get("test_suites").is_none());
+}
+
+#[test]
+fn capability_matrix_payload_matches_platform_capability_contract() {
+    let payload = capability_matrix_payload();
+    let expected = dnspilot_core::all_platforms()
+        .iter()
+        .copied()
+        .map(capability_for)
+        .collect::<Vec<_>>();
+    let json = serde_json::to_value(&payload).expect("capability payload should serialize");
+
+    assert_eq!(payload.capabilities, expected);
+    assert_eq!(payload.capabilities.len(), dnspilot_core::all_platforms().len());
+    assert!(json.get("capabilities").is_some());
 }
 
 #[test]

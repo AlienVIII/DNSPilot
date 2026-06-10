@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    all_platforms, apply_prompt_policy_for, benchmark_preflight_for, built_in_profiles,
-    built_in_test_suites, capability_for,
+    apply_prompt_policy_for, benchmark_preflight_for, built_in_profiles, built_in_test_suites,
+    capability_for, capability_matrix_payload, catalog_payload,
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{
@@ -251,13 +251,9 @@ fn main() {
     let cli = Cli::parse();
     match cli.command {
         Command::Catalog => {
-            let payload = serde_json::json!({
-                "profiles": built_in_profiles(),
-                "testSuites": built_in_test_suites(),
-            });
             println!(
                 "{}",
-                serde_json::to_string_pretty(&payload).expect("serialize catalog")
+                serde_json::to_string_pretty(&catalog_payload()).expect("serialize catalog")
             );
         }
         Command::Capability { platform } => {
@@ -268,16 +264,10 @@ fn main() {
             );
         }
         Command::Capabilities => {
-            let payload = serde_json::json!({
-                "capabilities": all_platforms()
-                    .iter()
-                    .copied()
-                    .map(capability_for)
-                    .collect::<Vec<_>>(),
-            });
             println!(
                 "{}",
-                serde_json::to_string_pretty(&payload).expect("serialize capabilities")
+                serde_json::to_string_pretty(&capability_matrix_payload())
+                    .expect("serialize capabilities")
             );
         }
         Command::Preflight { platform, scope } => {
