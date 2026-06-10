@@ -62,6 +62,7 @@ DNS handling, and platform capability reporting.
 - [x] [51] v0.1 zero-timeout CLI guards — reject impossible benchmark timeouts.
 - [x] [52] v0.1 zero connection-target CLI guards — reject empty path probes.
 - [x] [53] v0.1 zero-port CLI guards — reject invalid resolver/connect ports.
+- [x] [54] v0.1 resolved-domain CLI validation — reject invalid/duplicate domains.
 
 ---
 
@@ -2827,4 +2828,66 @@ Result: 43 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 84 passed, 0 failed
+```
+
+---
+
+## Chunk 54: v0.1 Resolved-Domain CLI Validation
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `crates/dnspilot-cli/tests/cli_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added validation after suite and explicit `--domain` values are merged. CLI
+benchmark commands now reject invalid DNS names and duplicate resolved domains
+before starting network work.
+
+### Before
+
+```mermaid
+graph LR
+  SUITE[suite domains] --> MERGE[merge domains]
+  CLI[--domain values] --> MERGE
+  MERGE --> RUN[benchmark run]
+```
+
+### After
+
+```mermaid
+graph LR
+  SUITE[suite domains] --> MERGE[merge domains CHANGED]
+  CLI[--domain values] --> MERGE
+  MERGE --> VALIDATE[DNS wire validation + dedupe NEW]
+  VALIDATE --> REJECT[reject invalid/duplicate NEW]
+  VALIDATE --> RUN[benchmark run]
+```
+
+### Edge Cases / Caveats
+
+- Invalid explicit domains should not be counted as resolver failures.
+- Duplicate domains can overweight one destination and distort ranking.
+- Suite and CLI domains are validated after merge so cross-source duplicates are
+  also caught.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour benchmark_command_rejects_invalid_domain_before_network
+RED result: failed because benchmark accepted invalid explicit domain
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_rejects_duplicate_domains
+RED result: failed because compare accepted duplicate domains
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour benchmark_command_rejects_invalid_domain_before_network
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_rejects_duplicate_domains
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 45 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 86 passed, 0 failed
 ```

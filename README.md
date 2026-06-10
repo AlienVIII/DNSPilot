@@ -30,6 +30,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - Custom domain suite validation for invalid and duplicate domains.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom domain suites.
+- CLI benchmark commands reject invalid or duplicate resolved domains before
+  network activity.
 - CLI benchmark, compare, and path-compare history save/list commands backed by
   SQLite snapshots.
 - Store-safe platform capability matrix.

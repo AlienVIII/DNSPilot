@@ -334,6 +334,31 @@ fn compare_command_rejects_zero_resolver_port() {
 }
 
 #[test]
+fn compare_command_rejects_duplicate_domains() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--resolver",
+            "cloudflare=127.0.0.1:9",
+            "--domain",
+            "github.com",
+            "--domain",
+            "github.com",
+            "--attempts",
+            "1",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(
+        !output.status.success(),
+        "compare should reject duplicate domains"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("duplicate domain"), "stderr: {stderr}");
+}
+
+#[test]
 fn compare_command_marks_recommendation_inconclusive_when_all_resolvers_fail() {
     let first = start_silent_resolver(Duration::from_secs(1));
     let second = start_silent_resolver(Duration::from_secs(1));

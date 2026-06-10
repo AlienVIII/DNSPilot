@@ -111,6 +111,29 @@ fn benchmark_command_rejects_zero_resolver_port() {
     );
 }
 
+#[test]
+fn benchmark_command_rejects_invalid_domain_before_network() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "benchmark",
+            "--resolver",
+            "127.0.0.1:9",
+            "--domain",
+            "bad domain",
+            "--attempts",
+            "1",
+        ])
+        .output()
+        .expect("run dnspilot-cli benchmark");
+
+    assert!(
+        !output.status.success(),
+        "benchmark should reject invalid domain"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("invalid --domain"), "stderr: {stderr}");
+}
+
 fn start_fake_resolver(query_count: usize) -> SocketAddr {
     let socket = UdpSocket::bind("127.0.0.1:0").expect("bind fake resolver");
     let addr = socket.local_addr().expect("local addr");

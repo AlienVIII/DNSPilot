@@ -7,7 +7,7 @@ use dnspilot_core::{
     dns_benchmark::{
         run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome,
     },
-    dns_wire::RecordType,
+    dns_wire::{validate_domain_name, RecordType},
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, DnsProfile, DnsProtocol,
@@ -1028,7 +1028,23 @@ fn resolve_domains(
         eprintln!("--domain or --suite-id is required");
         std::process::exit(2);
     }
+    validate_domains(&resolved);
     resolved
+}
+
+fn validate_domains(domains: &[String]) {
+    let mut seen = std::collections::BTreeSet::new();
+    for domain in domains {
+        validate_domain_name(domain).unwrap_or_else(|error| {
+            eprintln!("invalid --domain '{domain}': {error}");
+            std::process::exit(2);
+        });
+        let normalized = domain.trim_end_matches('.').to_ascii_lowercase();
+        if !seen.insert(normalized) {
+            eprintln!("duplicate domain '{domain}'");
+            std::process::exit(2);
+        }
+    }
 }
 
 fn resolve_benchmark_resolver(
