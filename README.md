@@ -23,6 +23,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - CLI custom plain/DoH/DoT profile add/list commands backed by SQLite snapshots.
 - Custom DNS profile validation for IPv4/IPv6 family mismatch and duplicate
   servers.
+- Custom encrypted DNS profile validation for HTTPS DoH URLs and DoT hostnames.
 - CLI custom profile filtering metadata for malware/family/ads/security DNS.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom plain DNS profiles.

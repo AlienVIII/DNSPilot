@@ -63,6 +63,7 @@ DNS handling, and platform capability reporting.
 - [x] [52] v0.1 zero connection-target CLI guards — reject empty path probes.
 - [x] [53] v0.1 zero-port CLI guards — reject invalid resolver/connect ports.
 - [x] [54] v0.1 resolved-domain CLI validation — reject invalid/duplicate domains.
+- [x] [55] v0.1 encrypted profile endpoint validation — reject insecure DoH/invalid DoT.
 
 ---
 
@@ -2890,4 +2891,69 @@ Result: 45 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 86 passed, 0 failed
+```
+
+---
+
+## Chunk 55: v0.1 Encrypted Profile Endpoint Validation
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/Cargo.toml`, `Cargo.lock`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added validation for encrypted DNS profile endpoints. DoH profiles now require a
+parseable HTTPS URL with a host, and DoT profiles validate their hostname using
+the DNS wire domain validator.
+
+### Before
+
+```mermaid
+graph LR
+  PROFILE[encrypted profile] --> FIELD[field exists]
+  FIELD --> SAVE[save profile]
+```
+
+### After
+
+```mermaid
+graph LR
+  PROFILE[encrypted profile CHANGED] --> DOH[DoH URL validation NEW]
+  PROFILE --> DOT[DoT hostname validation NEW]
+  DOH --> SAVE[save profile]
+  DOT --> SAVE
+  DOH --> REJECT[reject insecure/invalid endpoint NEW]
+  DOT --> REJECT
+```
+
+### Edge Cases / Caveats
+
+- `http://` is not acceptable for DoH.
+- DoT needs a DNS hostname suitable for SNI, not arbitrary text.
+- This still does not implement encrypted DNS benchmarking; it only validates
+  stored profile metadata for future store-safe apply flows.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour dns_profile_validation_rejects_invalid_encrypted_endpoints
+RED result: failed because insecure DoH URL was accepted
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour profile_add_command_rejects_insecure_doh_url
+RED result: failed because profile-add accepted insecure DoH URL
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour dns_profile_validation_rejects_invalid_encrypted_endpoints
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour profile_add_command_rejects_insecure_doh_url
+Result: 1 passed, 0 failed
+
+cargo clean
+Reason: stable toolchain updated from rustc 1.93 artifacts to rustc 1.96 during dependency fetch; target cache had incompatible proc-macro artifacts.
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 42 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 88 passed, 0 failed
 ```

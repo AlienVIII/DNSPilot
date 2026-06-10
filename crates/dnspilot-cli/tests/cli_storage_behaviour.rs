@@ -212,6 +212,38 @@ fn profile_add_command_persists_custom_encrypted_dns_profiles() {
 }
 
 #[test]
+fn profile_add_command_rejects_insecure_doh_url() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-insecure-doh-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "bad-doh",
+            "--name",
+            "Bad DoH",
+            "--protocol",
+            "doh",
+            "--doh-url",
+            "http://dns.example/dns-query",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add");
+
+    assert!(!add.status.success(), "profile-add should reject insecure DoH URL");
+    let stderr = String::from_utf8_lossy(&add.stderr);
+    assert!(stderr.contains("DoH URL must use https"), "stderr: {stderr}");
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn profile_add_command_persists_custom_filtering_type() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-profile-filtering-{}.sqlite",

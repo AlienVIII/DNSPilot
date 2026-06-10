@@ -6,6 +6,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
+use url::Url;
 
 pub mod connect_probe;
 pub mod connection_path;
@@ -94,16 +95,45 @@ impl DnsProfile {
             }
         }
 
-        if self.protocol == DnsProtocol::Doh && self.doh_url.is_none() {
-            return Err(DnsPilotError::InvalidProfile("DoH URL is required".into()));
+        if self.protocol == DnsProtocol::Doh {
+            let doh_url = self
+                .doh_url
+                .as_deref()
+                .ok_or_else(|| DnsPilotError::InvalidProfile("DoH URL is required".into()))?;
+            validate_doh_url(doh_url)?;
         }
 
-        if self.protocol == DnsProtocol::Dot && self.dot_hostname.is_none() {
-            return Err(DnsPilotError::InvalidProfile("DoT hostname is required".into()));
+        if self.protocol == DnsProtocol::Dot {
+            let dot_hostname = self
+                .dot_hostname
+                .as_deref()
+                .ok_or_else(|| DnsPilotError::InvalidProfile("DoT hostname is required".into()))?;
+            dns_wire::validate_domain_name(dot_hostname).map_err(|error| {
+                DnsPilotError::InvalidProfile(format!(
+                    "invalid DoT hostname '{dot_hostname}': {error}"
+                ))
+            })?;
         }
 
         Ok(())
     }
+}
+
+fn validate_doh_url(doh_url: &str) -> Result<(), DnsPilotError> {
+    let parsed = Url::parse(doh_url).map_err(|error| {
+        DnsPilotError::InvalidProfile(format!("invalid DoH URL '{doh_url}': {error}"))
+    })?;
+    if parsed.scheme() != "https" {
+        return Err(DnsPilotError::InvalidProfile(
+            "DoH URL must use https".into(),
+        ));
+    }
+    if parsed.host_str().is_none() {
+        return Err(DnsPilotError::InvalidProfile(
+            "DoH URL requires a host".into(),
+        ));
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

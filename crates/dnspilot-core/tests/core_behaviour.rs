@@ -3,9 +3,9 @@ use dnspilot_core::{
     benchmark_preflight_for,
     built_in_profiles, built_in_test_suites, capability_for, classify_resolution_outcome,
     recommend, recommendation_gate, ApplyCapability, ApplyPromptDisposition, BenchmarkMetrics,
-    BenchmarkPreflightScope, Confidence, FilteringType, FlushCapability, FlushRequirement,
-    MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision, RecommendationHealth,
-    RecommendationIssue, RecommendationMode, ResolutionOutcome,
+    BenchmarkPreflightScope, Confidence, DnsProtocol, FilteringType, FlushCapability,
+    FlushRequirement, MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision,
+    RecommendationHealth, RecommendationIssue, RecommendationMode, ResolutionOutcome,
 };
 
 fn metrics(
@@ -84,6 +84,35 @@ fn dns_profile_validation_rejects_mismatched_or_duplicate_server_families() {
         .validate()
         .expect_err("duplicate DNS server should be rejected");
     assert!(duplicate_error.to_string().contains("duplicate DNS server"));
+}
+
+#[test]
+fn dns_profile_validation_rejects_invalid_encrypted_endpoints() {
+    let mut doh = built_in_profiles()
+        .into_iter()
+        .find(|profile| profile.id == "cloudflare")
+        .expect("cloudflare profile");
+    doh.id = "bad-doh".into();
+    doh.protocol = DnsProtocol::Doh;
+    doh.doh_url = Some("http://dns.example/dns-query".into());
+
+    let doh_error = doh
+        .validate()
+        .expect_err("insecure DoH URL should be rejected");
+    assert!(doh_error.to_string().contains("DoH URL must use https"));
+
+    let mut dot = built_in_profiles()
+        .into_iter()
+        .find(|profile| profile.id == "cloudflare")
+        .expect("cloudflare profile");
+    dot.id = "bad-dot".into();
+    dot.protocol = DnsProtocol::Dot;
+    dot.dot_hostname = Some("bad host".into());
+
+    let dot_error = dot
+        .validate()
+        .expect_err("invalid DoT hostname should be rejected");
+    assert!(dot_error.to_string().contains("invalid DoT hostname"));
 }
 
 #[test]
