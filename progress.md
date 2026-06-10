@@ -46,6 +46,7 @@ DNS handling, and platform capability reporting.
 - [x] [35] v0.1 path-estimate saved-suite input — run path estimate from saved suite domains.
 - [x] [36] v0.1 benchmark saved-profile input — run benchmark from saved plain DNS profile.
 - [x] [37] v0.1 compare saved-profile input — run DNS comparison from saved plain DNS profiles.
+- [x] [38] v0.1 path-estimate saved-profile input — run path estimate from saved plain DNS profile.
 
 ---
 
@@ -1911,4 +1912,56 @@ Result: 21 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 57 passed, 0 failed
+```
+
+---
+
+## Chunk 38: v0.1 Path-Estimate Saved-Profile Input
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `path-estimate --profile-db <path> --profile-id <id>`. A saved plain DNS
+profile can now provide the resolver address for single-resolver
+connection-path estimates.
+
+### Before
+
+```mermaid
+graph LR
+  PROFILE[profile-add/profile-list] --> SQLITE[SQLite snapshot]
+  EST[path-estimate CLI] --> RESOLVER[required --resolver address]
+```
+
+### After
+
+```mermaid
+graph LR
+  PROFILE[profile-add/profile-list] --> SQLITE[SQLite snapshot]
+  SQLITE --> EST[path-estimate CLI CHANGED]
+  EST --> RESOLVER[saved plain DNS resolver NEW]
+```
+
+### Edge Cases / Caveats
+
+- Only plain DNS profiles are runnable.
+- Saved profile IPs use port 53 unless `--resolver-port` is provided.
+- `path-compare` does not consume saved profiles yet.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_can_use_saved_plain_dns_profile
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour
+Result: 4 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 22 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 58 passed, 0 failed
 ```

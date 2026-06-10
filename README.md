@@ -19,7 +19,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - SQLite storage backend for saving/loading the versioned snapshot.
 - CLI storage smoke command for creating and verifying a local SQLite snapshot.
 - CLI custom profile add/list commands backed by SQLite snapshots.
-- CLI benchmark and compare commands can use saved custom plain DNS profiles.
+- CLI benchmark, compare, and path-estimate commands can use saved custom plain
+  DNS profiles.
 - CLI custom domain suite add/list commands backed by SQLite snapshots.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom domain suites.
@@ -76,6 +77,7 @@ cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id custom-l
 cargo run -p dnspilot-cli -- profile-list --db /tmp/dnspilot.sqlite
 cargo run -p dnspilot-cli -- benchmark --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
+cargo run -p dnspilot-cli -- path-estimate --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- suite-add --db /tmp/dnspilot.sqlite --id azure-lab --name "Azure Lab" --domain portal.azure.com --domain login.microsoftonline.com --tag azure
 cargo run -p dnspilot-cli -- suite-list --db /tmp/dnspilot.sqlite
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --suite-db /tmp/dnspilot.sqlite --suite-id azure-lab --attempts 1

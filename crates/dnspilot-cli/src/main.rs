@@ -81,7 +81,9 @@ enum Command {
     },
     PathEstimate {
         #[arg(long)]
-        resolver: SocketAddr,
+        resolver: Option<SocketAddr>,
+        #[arg(long)]
+        profile_db: Option<std::path::PathBuf>,
         #[arg(long = "domain")]
         domains: Vec<String>,
         #[arg(long)]
@@ -102,6 +104,8 @@ enum Command {
         tls_handshake_timeout_ms: Option<u64>,
         #[arg(long, default_value = "manual")]
         profile_id: String,
+        #[arg(long, default_value_t = 53)]
+        resolver_port: u16,
     },
     PathCompare {
         #[arg(long = "resolver", required = true)]
@@ -399,6 +403,7 @@ fn main() {
         }
         Command::PathEstimate {
             resolver,
+            profile_db,
             domains,
             suite_db,
             suite_id,
@@ -409,8 +414,15 @@ fn main() {
             max_connect_targets_per_domain,
             tls_handshake_timeout_ms,
             profile_id,
+            resolver_port,
         } => {
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
+            let resolver = resolve_benchmark_resolver(
+                resolver,
+                profile_db.as_deref(),
+                &profile_id,
+                resolver_port,
+            );
             let config = ConnectionPathConfig {
                 profile_id,
                 domains,

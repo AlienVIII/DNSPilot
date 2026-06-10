@@ -86,6 +86,80 @@ fn path_estimate_command_outputs_dns_and_connect_metrics() {
 }
 
 #[test]
+fn path_estimate_command_can_use_saved_plain_dns_profile() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-path-estimate-profile-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "custom-lab",
+            "--name",
+            "Custom Lab",
+            "--ipv4",
+            "127.0.0.1",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add");
+
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let tcp_listener = TcpListener::bind("127.0.0.1:0").expect("bind local TCP listener");
+    let connect_port = tcp_listener.local_addr().expect("listener addr").port();
+    thread::spawn(move || {
+        let _ = tcp_listener.accept().expect("accept TCP connection");
+    });
+
+    let resolver = start_fake_resolver(2);
+    let estimate = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "path-estimate",
+            "--profile-db",
+            db_path.to_str().expect("utf8 path"),
+            "--profile-id",
+            "custom-lab",
+            "--resolver-port",
+            &resolver.port().to_string(),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--dns-timeout-ms",
+            "500",
+            "--connect-timeout-ms",
+            "500",
+            "--connect-port",
+            &connect_port.to_string(),
+        ])
+        .output()
+        .expect("run dnspilot-cli path-estimate");
+
+    assert!(
+        estimate.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&estimate.stderr)
+    );
+
+    let stdout = String::from_utf8(estimate.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+
+    assert_eq!(json["metrics"]["profile_id"], "custom-lab");
+    assert_eq!(json["summary"]["domain_count"], 1);
+    assert_eq!(json["summary"]["dns_sample_count"], 2);
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn path_estimate_command_can_use_saved_domain_suite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-path-estimate-suite-{}.sqlite",
