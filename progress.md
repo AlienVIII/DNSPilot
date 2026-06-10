@@ -70,6 +70,7 @@ DNS handling, and platform capability reporting.
 - [x] [59] v0.1 core shell payload contracts — expose catalog/capability payloads from Rust core.
 - [x] [60] v0.1 shell payload schema version — version catalog/capability JSON contracts.
 - [x] [61] v0.1 macOS schema version gate — reject unsupported shell payload versions.
+- [x] [62] v0.1 macOS preview catalog summary — add default catalog bridge and summary metrics.
 
 ---
 
@@ -3289,4 +3290,51 @@ RED result: failed because the decoder did not throw for schema_version 2
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 12 passed, 0 failed
+```
+
+---
+
+## Chunk 62: v0.1 macOS Preview Catalog Summary
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CatalogViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added a default preview catalog bridge and summary metrics on CatalogViewModel.
+The macOS shell now has testable catalog counts and Azure-suite presence before
+the UI renders catalog panels or runtime Rust data is wired.
+
+### Before
+
+```mermaid
+graph LR
+  CALLER[caller] --> CATVM[Catalog ViewModel requires injected bridge]
+  CATVM --> SNAPSHOT[catalog snapshot]
+```
+
+### After
+
+```mermaid
+graph LR
+  CATVM[Catalog ViewModel CHANGED] --> PREVIEW[preview catalog bridge NEW]
+  CATVM --> COUNTS[summary metrics NEW]
+  PREVIEW --> SNAPSHOT[catalog snapshot]
+```
+
+### Edge Cases / Caveats
+
+- Preview catalog data is intentionally small and is not the canonical built-in
+  catalog.
+- Runtime Rust catalog loading is still not wired.
+- Summary counts return zero if the bridge fails and catalog is unavailable.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests/testDefaultCatalogViewModelProvidesPreviewSummary
+RED result: failed because CatalogViewModel required an explicit bridge and had no summary metrics
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 13 passed, 0 failed
 ```

@@ -48,6 +48,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   ViewModel load-error handling.
 - macOS catalog JSON decoder/bridge for the Rust `catalog` schema and
   ViewModel load-error handling.
+- macOS preview catalog bridge with summary metrics for native shell UI.
 - macOS shell payload decoders reject unsupported `schema_version` values.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.

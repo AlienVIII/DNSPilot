@@ -3,6 +3,16 @@ import XCTest
 @testable import DNSPilotMacCore
 
 final class CatalogViewModelTests: XCTestCase {
+    func testDefaultCatalogViewModelProvidesPreviewSummary() {
+        let viewModel = CatalogViewModel()
+
+        XCTAssertNil(viewModel.loadErrorMessage)
+        XCTAssertGreaterThanOrEqual(viewModel.profileCount, 2)
+        XCTAssertGreaterThanOrEqual(viewModel.testSuiteCount, 1)
+        XCTAssertGreaterThanOrEqual(viewModel.filteredProfileCount, 1)
+        XCTAssertTrue(viewModel.hasAzureSuite)
+    }
+
     func testCatalogDecoderMapsRustCliSchema() throws {
         let catalog = try CatalogJSONDecoder().decode(Data(catalogFixtureJSON.utf8))
 
