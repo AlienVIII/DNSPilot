@@ -72,6 +72,7 @@ DNS handling, and platform capability reporting.
 - [x] [61] v0.1 macOS schema version gate — reject unsupported shell payload versions.
 - [x] [62] v0.1 macOS preview catalog summary — add default catalog bridge and summary metrics.
 - [x] [63] v0.1 macOS catalog display summaries — prepare provider/suite labels for UI.
+- [x] [64] v0.1 macOS catalog overview UI — render catalog summaries in the shell.
 
 ---
 
@@ -3386,4 +3387,56 @@ RED result: failed because CatalogViewModel had no profileSummaries or testSuite
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 14 passed, 0 failed
+```
+
+---
+
+## Chunk 64: v0.1 macOS Catalog Overview UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Reworked the macOS shell into a sidebar-driven shell with Capabilities and
+Catalog destinations. The Catalog detail now renders provider/test-suite
+summary metrics and rows using the existing design tokens.
+
+### Before
+
+```mermaid
+graph LR
+  APP[macOS app] --> CAP[capability matrix only]
+  CATVM[catalog ViewModel] --> UNUSED[not rendered]
+```
+
+### After
+
+```mermaid
+graph LR
+  APP[macOS app CHANGED] --> SIDEBAR[sidebar navigation NEW]
+  SIDEBAR --> CAP[capability matrix]
+  SIDEBAR --> CAT[catalog overview NEW]
+  CAT --> METRICS[summary metrics NEW]
+  CAT --> ROWS[provider/suite rows NEW]
+```
+
+### Edge Cases / Caveats
+
+- Catalog UI currently uses preview catalog data, not live Rust runtime data.
+- Unit/build tests verify compilation, but visual spacing and sidebar behavior
+  need manual inspection in the running macOS app.
+- Menu bar/tray behavior is still not implemented.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+Result: 14 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 91 passed, 0 failed
 ```
