@@ -321,6 +321,8 @@ fn main() {
         } => {
             reject_zero_usize("--attempts", attempts);
             reject_zero_u64("--timeout-ms", timeout_ms);
+            reject_zero_optional_socket_port("--resolver", resolver);
+            reject_zero_u16("--resolver-port", resolver_port);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let resolver = resolve_benchmark_resolver(
@@ -392,6 +394,7 @@ fn main() {
         } => {
             reject_zero_usize("--attempts", attempts);
             reject_zero_u64("--timeout-ms", timeout_ms);
+            reject_zero_u16("--resolver-port", resolver_port);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
@@ -520,6 +523,9 @@ fn main() {
                 "--max-connect-targets-per-domain",
                 max_connect_targets_per_domain,
             );
+            reject_zero_optional_socket_port("--resolver", resolver);
+            reject_zero_u16("--resolver-port", resolver_port);
+            reject_zero_u16("--connect-port", connect_port);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let resolver = resolve_benchmark_resolver(
@@ -613,6 +619,8 @@ fn main() {
                 "--max-connect-targets-per-domain",
                 max_connect_targets_per_domain,
             );
+            reject_zero_u16("--resolver-port", resolver_port);
+            reject_zero_u16("--connect-port", connect_port);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
@@ -1268,9 +1276,23 @@ fn reject_zero_u64(flag: &str, value: u64) {
     }
 }
 
+fn reject_zero_u16(flag: &str, value: u16) {
+    if value == 0 {
+        eprintln!("{flag} must be greater than 0");
+        std::process::exit(2);
+    }
+}
+
 fn reject_zero_optional_u64(flag: &str, value: Option<u64>) {
     if value == Some(0) {
         eprintln!("{flag} must be greater than 0");
+        std::process::exit(2);
+    }
+}
+
+fn reject_zero_optional_socket_port(flag: &str, value: Option<SocketAddr>) {
+    if value.is_some_and(|address| address.port() == 0) {
+        eprintln!("{flag} port must be greater than 0");
         std::process::exit(2);
     }
 }
@@ -1292,6 +1314,11 @@ fn parse_resolver_spec(spec: &str) -> Result<(String, SocketAddr), String> {
     let resolver = resolver.trim().parse::<SocketAddr>().map_err(|error| {
         format!("invalid --resolver '{spec}'; resolver address must be host:port ({error})")
     })?;
+    if resolver.port() == 0 {
+        return Err(format!(
+            "invalid --resolver '{spec}'; --resolver port must be greater than 0"
+        ));
+    }
 
     Ok((profile_id.into(), resolver))
 }

@@ -85,6 +85,32 @@ fn benchmark_command_rejects_zero_timeout() {
     );
 }
 
+#[test]
+fn benchmark_command_rejects_zero_resolver_port() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "benchmark",
+            "--resolver",
+            "127.0.0.1:0",
+            "--domain",
+            "github.com",
+            "--attempts",
+            "1",
+        ])
+        .output()
+        .expect("run dnspilot-cli benchmark");
+
+    assert!(
+        !output.status.success(),
+        "benchmark should reject zero resolver port"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--resolver port must be greater than 0"),
+        "stderr: {stderr}"
+    );
+}
+
 fn start_fake_resolver(query_count: usize) -> SocketAddr {
     let socket = UdpSocket::bind("127.0.0.1:0").expect("bind fake resolver");
     let addr = socket.local_addr().expect("local addr");

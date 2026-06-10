@@ -168,6 +168,34 @@ fn path_estimate_command_rejects_zero_max_connect_targets() {
 }
 
 #[test]
+fn path_estimate_command_rejects_zero_connect_port() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "path-estimate",
+            "--resolver",
+            "127.0.0.1:9",
+            "--domain",
+            "github.com",
+            "--attempts",
+            "1",
+            "--connect-port",
+            "0",
+        ])
+        .output()
+        .expect("run dnspilot-cli path-estimate");
+
+    assert!(
+        !output.status.success(),
+        "path-estimate should reject zero connect port"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--connect-port must be greater than 0"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
 fn path_estimate_command_can_use_saved_plain_dns_profile() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-path-estimate-profile-{}.sqlite",

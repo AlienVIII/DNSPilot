@@ -61,6 +61,7 @@ DNS handling, and platform capability reporting.
 - [x] [50] v0.1 zero-attempt CLI guards — reject empty benchmark runs consistently.
 - [x] [51] v0.1 zero-timeout CLI guards — reject impossible benchmark timeouts.
 - [x] [52] v0.1 zero connection-target CLI guards — reject empty path probes.
+- [x] [53] v0.1 zero-port CLI guards — reject invalid resolver/connect ports.
 
 ---
 
@@ -2760,4 +2761,70 @@ Result: 40 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 81 passed, 0 failed
+```
+
+---
+
+## Chunk 53: v0.1 Zero-Port CLI Guards
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `crates/dnspilot-cli/tests/cli_compare_behaviour.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `README.md`
+
+### What changed
+
+Added port validation for resolver and connect ports. Direct resolver addresses,
+multi-resolver specs, saved-profile resolver-port fallback, and path connect
+ports now reject `0` before network work starts.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[benchmark CLI] --> PORT[port 0]
+  PORT --> RUN[network run with invalid target]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[benchmark CLI CHANGED] --> CHECK[port guard NEW]
+  CHECK --> REJECT[exit 2 with message NEW]
+  CHECK --> RUN[network run]
+```
+
+### Edge Cases / Caveats
+
+- `SocketAddr` can parse port `0`, but it is not a meaningful DNS resolver or
+  TCP connect target for this app.
+- Resolver specs and direct resolver args use the same `--resolver port` message.
+- `--resolver-port` fallback is guarded for saved profile runs even when no
+  direct resolver argument is provided.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour benchmark_command_rejects_zero_resolver_port
+RED result: failed because benchmark accepted `--resolver 127.0.0.1:0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_rejects_zero_resolver_port
+RED result: failed because compare accepted resolver spec port 0
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_rejects_zero_connect_port
+RED result: failed because path-estimate accepted `--connect-port 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour benchmark_command_rejects_zero_resolver_port
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_rejects_zero_resolver_port
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_rejects_zero_connect_port
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 43 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 84 passed, 0 failed
 ```
