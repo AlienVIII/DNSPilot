@@ -68,6 +68,7 @@ DNS handling, and platform capability reporting.
 - [x] [57] v0.1 macOS capability JSON bridge — decode Rust capability schema into Swift ViewModel.
 - [x] [58] v0.1 macOS catalog JSON bridge — decode Rust catalog schema into Swift ViewModel.
 - [x] [59] v0.1 core shell payload contracts — expose catalog/capability payloads from Rust core.
+- [x] [60] v0.1 shell payload schema version — version catalog/capability JSON contracts.
 
 ---
 
@@ -3180,4 +3181,61 @@ Result: 1 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo run -p dnspilot-cli -- catalog
 Result: command emitted profiles and testSuites JSON
+```
+
+---
+
+## Chunk 60: v0.1 Shell Payload Schema Version
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `crates/dnspilot-cli/tests/cli_catalog_behaviour.rs`, `crates/dnspilot-cli/tests/cli_capability_behaviour.rs`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CatalogViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CapabilityMatrixViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added `schema_version` to the core-owned catalog and capability payloads and
+locked it through CLI tests. Swift fixtures now include the version field while
+the decoders continue to ignore unknown root fields they do not need.
+
+### Before
+
+```mermaid
+graph LR
+  PAYLOADS[core shell payloads] --> JSON[JSON without schema_version]
+  JSON --> SWIFT[Swift decoders]
+```
+
+### After
+
+```mermaid
+graph LR
+  PAYLOADS[core shell payloads CHANGED] --> VERSION[schema_version NEW]
+  VERSION --> CLI[CLI contract tests NEW]
+  VERSION --> SWIFT[Swift fixtures CHANGED]
+```
+
+### Edge Cases / Caveats
+
+- This is payload schema versioning, not storage schema versioning.
+- Swift currently tolerates extra root fields; if Swift later needs strict
+  migration behavior, it should decode and gate on `schema_version`.
+- Version stays `1` because the added field is backward-compatible for current
+  decoders.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour catalog_payload_matches_builtin_catalog_contract
+RED result: failed because CatalogPayload and CapabilityMatrixPayload had no schema_version field
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_catalog_behaviour
+RED result: failed because catalog JSON emitted null schema_version
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour catalog_payload_matches_builtin_catalog_contract
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_catalog_behaviour
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_capability_behaviour
+Result: 1 passed, 0 failed
 ```

@@ -335,6 +335,8 @@ pub const ALL_PLATFORMS: [Platform; 9] = [
     Platform::WindowsPower,
 ];
 
+pub const SHELL_PAYLOAD_SCHEMA_VERSION: u32 = 1;
+
 pub fn all_platforms() -> &'static [Platform] {
     &ALL_PLATFORMS
 }
@@ -371,6 +373,7 @@ pub struct PlatformCapability {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CatalogPayload {
+    pub schema_version: u32,
     pub profiles: Vec<DnsProfile>,
     #[serde(rename = "testSuites")]
     pub test_suites: Vec<TestSuite>,
@@ -378,6 +381,7 @@ pub struct CatalogPayload {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityMatrixPayload {
+    pub schema_version: u32,
     pub capabilities: Vec<PlatformCapability>,
 }
 
@@ -447,6 +451,7 @@ pub enum DnsPilotError {
 
 pub fn catalog_payload() -> CatalogPayload {
     CatalogPayload {
+        schema_version: SHELL_PAYLOAD_SCHEMA_VERSION,
         profiles: built_in_profiles(),
         test_suites: built_in_test_suites(),
     }
@@ -454,6 +459,7 @@ pub fn catalog_payload() -> CatalogPayload {
 
 pub fn capability_matrix_payload() -> CapabilityMatrixPayload {
     CapabilityMatrixPayload {
+        schema_version: SHELL_PAYLOAD_SCHEMA_VERSION,
         capabilities: all_platforms()
             .iter()
             .copied()

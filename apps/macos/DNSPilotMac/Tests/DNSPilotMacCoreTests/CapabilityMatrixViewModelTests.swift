@@ -31,6 +31,7 @@ final class CapabilityMatrixViewModelTests: XCTestCase {
     func testCapabilitiesDecoderMapsRustCliSchema() throws {
         let json = """
         {
+          "schema_version": 1,
           "capabilities": [
             {
               "apply": "apple-network-extension-dns-settings",
@@ -67,6 +68,7 @@ final class CapabilityMatrixViewModelTests: XCTestCase {
     func testCapabilitiesDecoderRejectsUnknownCapabilityValues() {
         let json = """
         {
+          "schema_version": 1,
           "capabilities": [
             {
               "apply": "new-system-api",
@@ -109,6 +111,7 @@ private struct FailingCapabilityBridge: DNSPilotCoreBridge {
 
 private let capabilitiesFixtureJSON = """
 {
+  "schema_version": 1,
   "capabilities": [
     {
       "apply": "apple-network-extension-dns-settings",

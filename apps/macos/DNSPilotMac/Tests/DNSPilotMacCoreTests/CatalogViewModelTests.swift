@@ -19,6 +19,7 @@ final class CatalogViewModelTests: XCTestCase {
     func testCatalogDecoderRejectsUnknownProtocolValues() {
         let json = """
         {
+          "schema_version": 1,
           "profiles": [
             {
               "description": "Unsupported protocol.",
@@ -66,6 +67,7 @@ private struct FailingCatalogBridge: DNSPilotCatalogBridge {
 
 private let catalogFixtureJSON = """
 {
+  "schema_version": 1,
   "profiles": [
     {
       "description": "Fast unfiltered public DNS.",

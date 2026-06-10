@@ -63,8 +63,10 @@ fn catalog_payload_matches_builtin_catalog_contract() {
     let payload = catalog_payload();
     let json = serde_json::to_value(&payload).expect("catalog payload should serialize");
 
+    assert_eq!(payload.schema_version, 1);
     assert_eq!(payload.profiles, built_in_profiles());
     assert_eq!(payload.test_suites, built_in_test_suites());
+    assert_eq!(json["schema_version"], 1);
     assert!(json.get("profiles").is_some());
     assert!(json.get("testSuites").is_some());
     assert!(json.get("test_suites").is_none());
@@ -80,8 +82,10 @@ fn capability_matrix_payload_matches_platform_capability_contract() {
         .collect::<Vec<_>>();
     let json = serde_json::to_value(&payload).expect("capability payload should serialize");
 
+    assert_eq!(payload.schema_version, 1);
     assert_eq!(payload.capabilities, expected);
     assert_eq!(payload.capabilities.len(), dnspilot_core::all_platforms().len());
+    assert_eq!(json["schema_version"], 1);
     assert!(json.get("capabilities").is_some());
 }
 

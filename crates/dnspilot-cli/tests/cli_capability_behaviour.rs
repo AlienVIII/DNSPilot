@@ -16,6 +16,8 @@ fn capabilities_command_outputs_full_matrix_with_flush_contract() {
 
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
     let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    assert_eq!(json["schema_version"], 1);
+
     let capabilities = json["capabilities"]
         .as_array()
         .expect("capabilities should be an array");
