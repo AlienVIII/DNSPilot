@@ -99,6 +99,89 @@ fn profile_add_command_persists_custom_plain_dns_profile() {
 }
 
 #[test]
+fn profile_add_command_persists_custom_encrypted_dns_profiles() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-encrypted-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let doh = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "custom-doh",
+            "--name",
+            "Custom DoH",
+            "--protocol",
+            "doh",
+            "--doh-url",
+            "https://dns.example/dns-query",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add DoH");
+
+    assert!(
+        doh.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&doh.stderr)
+    );
+
+    let dot = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "custom-dot",
+            "--name",
+            "Custom DoT",
+            "--protocol",
+            "dot",
+            "--dot-hostname",
+            "dns.example",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add DoT");
+
+    assert!(
+        dot.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&dot.stderr)
+    );
+
+    let list = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["profile-list", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli profile-list");
+
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+
+    let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    let profiles = json["profiles"].as_array().expect("profiles array");
+
+    assert!(profiles.iter().any(|profile| {
+        profile["id"] == "custom-doh"
+            && profile["protocol"] == "doh"
+            && profile["doh_url"] == "https://dns.example/dns-query"
+    }));
+    assert!(profiles.iter().any(|profile| {
+        profile["id"] == "custom-dot"
+            && profile["protocol"] == "dot"
+            && profile["dot_hostname"] == "dns.example"
+    }));
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn benchmark_command_can_use_saved_plain_dns_profile() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-benchmark-profile-{}.sqlite",

@@ -150,10 +150,16 @@ enum Command {
         id: String,
         #[arg(long)]
         name: String,
+        #[arg(long, value_enum, default_value_t = ProfileProtocolArg::Plain)]
+        protocol: ProfileProtocolArg,
         #[arg(long = "ipv4")]
         ipv4_servers: Vec<String>,
         #[arg(long = "ipv6")]
         ipv6_servers: Vec<String>,
+        #[arg(long)]
+        doh_url: Option<String>,
+        #[arg(long)]
+        dot_hostname: Option<String>,
         #[arg(long = "tag")]
         tags: Vec<String>,
     },
@@ -195,6 +201,13 @@ enum PlatformArg {
     LinuxNativePower,
     MacosPower,
     WindowsPower,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum ProfileProtocolArg {
+    Plain,
+    Doh,
+    Dot,
 }
 
 fn main() {
@@ -690,8 +703,11 @@ fn main() {
             db,
             id,
             name,
+            protocol,
             ipv4_servers,
             ipv6_servers,
+            doh_url,
+            dot_hostname,
             tags,
         } => {
             let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
@@ -702,12 +718,12 @@ fn main() {
             let profile = DnsProfile {
                 id: id.clone(),
                 name: name.clone(),
-                description: "Custom plain DNS profile.".into(),
+                description: "Custom DNS profile.".into(),
                 ipv4_servers,
                 ipv6_servers,
-                protocol: DnsProtocol::Plain,
-                doh_url: None,
-                dot_hostname: None,
+                protocol: protocol.into(),
+                doh_url,
+                dot_hostname,
                 tags,
                 use_case: "custom".into(),
                 filtering_type: FilteringType::None,
@@ -1176,6 +1192,16 @@ impl From<PlatformArg> for Platform {
             PlatformArg::LinuxNativePower => Platform::LinuxNativePower,
             PlatformArg::MacosPower => Platform::MacOSPower,
             PlatformArg::WindowsPower => Platform::WindowsPower,
+        }
+    }
+}
+
+impl From<ProfileProtocolArg> for DnsProtocol {
+    fn from(value: ProfileProtocolArg) -> Self {
+        match value {
+            ProfileProtocolArg::Plain => DnsProtocol::Plain,
+            ProfileProtocolArg::Doh => DnsProtocol::Doh,
+            ProfileProtocolArg::Dot => DnsProtocol::Dot,
         }
     }
 }

@@ -48,6 +48,7 @@ DNS handling, and platform capability reporting.
 - [x] [37] v0.1 compare saved-profile input — run DNS comparison from saved plain DNS profiles.
 - [x] [38] v0.1 path-estimate saved-profile input — run path estimate from saved plain DNS profile.
 - [x] [39] v0.1 path-compare saved-profile input — run path comparison from saved plain DNS profiles.
+- [x] [40] v0.1 custom encrypted profile persistence CLI — add/list DoH and DoT profiles.
 
 ---
 
@@ -2018,4 +2019,60 @@ Result: 23 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 59 passed, 0 failed
+```
+
+---
+
+## Chunk 40: v0.1 Custom Encrypted Profile Persistence CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Extended `profile-add` with `--protocol plain|doh|dot`, `--doh-url`, and
+`--dot-hostname`. Custom DoH and DoT profiles can now be stored and listed in
+the same SQLite snapshot as plain DNS profiles.
+
+### Before
+
+```mermaid
+graph LR
+  ADD[profile-add CLI] --> PLAIN[plain DNS only]
+  PLAIN --> SQLITE[SQLite snapshot]
+```
+
+### After
+
+```mermaid
+graph LR
+  ADD[profile-add CLI CHANGED] --> PLAIN[plain DNS]
+  ADD --> DOH[DoH profile NEW]
+  ADD --> DOT[DoT profile NEW]
+  PLAIN --> SQLITE[SQLite snapshot]
+  DOH --> SQLITE
+  DOT --> SQLITE
+```
+
+### Edge Cases / Caveats
+
+- DoH profiles require `--doh-url`.
+- DoT profiles require `--dot-hostname`.
+- Benchmark runners still only execute plain DNS profiles; DoH/DoT persistence
+  prepares store-safe apply/profile flows.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour profile_add_command_persists_custom_encrypted_dns_profiles
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour
+Result: 7 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 24 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 60 passed, 0 failed
 ```

@@ -18,7 +18,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.
 - CLI storage smoke command for creating and verifying a local SQLite snapshot.
-- CLI custom profile add/list commands backed by SQLite snapshots.
+- CLI custom plain/DoH/DoT profile add/list commands backed by SQLite snapshots.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom plain DNS profiles.
 - CLI custom domain suite add/list commands backed by SQLite snapshots.
@@ -74,6 +74,8 @@ cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --tls-handshake-timeout-ms 1000
 cargo run -p dnspilot-cli -- storage-smoke --db /tmp/dnspilot.sqlite
 cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id custom-lab --name "Custom Lab" --ipv4 4.4.4.4 --tag custom
+cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id custom-doh --name "Custom DoH" --protocol doh --doh-url https://dns.example/dns-query
+cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id custom-dot --name "Custom DoT" --protocol dot --dot-hostname dns.example
 cargo run -p dnspilot-cli -- profile-list --db /tmp/dnspilot.sqlite
 cargo run -p dnspilot-cli -- benchmark --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
