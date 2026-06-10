@@ -120,6 +120,75 @@ fn compare_command_can_use_saved_domain_suite() {
 }
 
 #[test]
+fn compare_command_can_use_saved_plain_dns_profiles() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-compare-profiles-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    let resolver = start_fake_resolver(4, Duration::from_millis(1));
+
+    for id in ["lab-a", "lab-b"] {
+        let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+            .args([
+                "profile-add",
+                "--db",
+                db_path.to_str().expect("utf8 path"),
+                "--id",
+                id,
+                "--name",
+                id,
+                "--ipv4",
+                "127.0.0.1",
+            ])
+            .output()
+            .expect("run dnspilot-cli profile-add");
+
+        assert!(
+            add.status.success(),
+            "stderr: {}",
+            String::from_utf8_lossy(&add.stderr)
+        );
+    }
+
+    let compare = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--profile-db",
+            db_path.to_str().expect("utf8 path"),
+            "--profile-id",
+            "lab-a",
+            "--profile-id",
+            "lab-b",
+            "--resolver-port",
+            &resolver.port().to_string(),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(
+        compare.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&compare.stderr)
+    );
+
+    let stdout = String::from_utf8(compare.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+
+    assert_eq!(json["summary"]["resolver_count"], 2);
+    assert_eq!(json["runs"][0]["profile_id"], "lab-a");
+    assert_eq!(json["runs"][1]["profile_id"], "lab-b");
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn compare_command_can_save_history_to_sqlite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-compare-history-{}.sqlite",
@@ -252,7 +321,19 @@ fn compare_command_marks_recommendation_inconclusive_when_all_resolvers_fail() {
 }
 
 fn start_fake_resolver(query_count: usize, delay: Duration) -> SocketAddr {
-    let socket = UdpSocket::bind("127.0.0.1:0").expect("bind fake resolver");
+    start_fake_resolver_on(
+        "127.0.0.1:0".parse().expect("loopback addr"),
+        query_count,
+        delay,
+    )
+}
+
+fn start_fake_resolver_on(
+    bind_addr: SocketAddr,
+    query_count: usize,
+    delay: Duration,
+) -> SocketAddr {
+    let socket = UdpSocket::bind(bind_addr).expect("bind fake resolver");
     let addr = socket.local_addr().expect("local addr");
 
     thread::spawn(move || {

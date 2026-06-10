@@ -56,8 +56,14 @@ enum Command {
         history_id: Option<String>,
     },
     Compare {
-        #[arg(long = "resolver", required = true)]
+        #[arg(long = "resolver")]
         resolver_specs: Vec<String>,
+        #[arg(long)]
+        profile_db: Option<std::path::PathBuf>,
+        #[arg(long = "profile-id")]
+        profile_ids: Vec<String>,
+        #[arg(long, default_value_t = 53)]
+        resolver_port: u16,
         #[arg(long = "domain")]
         domains: Vec<String>,
         #[arg(long)]
@@ -271,6 +277,9 @@ fn main() {
         }
         Command::Compare {
             resolver_specs,
+            profile_db,
+            profile_ids,
+            resolver_port,
             domains,
             suite_db,
             suite_id,
@@ -286,17 +295,31 @@ fn main() {
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();
+            let mut resolver_inputs = Vec::new();
+            for resolver_spec in &resolver_specs {
+                let parsed = parse_resolver_spec(resolver_spec).unwrap_or_else(|message| {
+                    eprintln!("{message}");
+                    std::process::exit(2);
+                });
+                resolver_inputs.push(parsed);
+            }
+            resolver_inputs.extend(resolve_profile_resolvers(
+                profile_db.as_deref(),
+                profile_ids,
+                resolver_port,
+            ));
+            if resolver_inputs.is_empty() {
+                eprintln!("--resolver or --profile-id is required");
+                std::process::exit(2);
+            }
+
+            let resolver_count = resolver_inputs.len();
             let mut metrics = Vec::new();
             let mut runs = Vec::new();
             let mut seen_profile_ids = std::collections::BTreeSet::new();
             let mut resolver_profile_ids = Vec::new();
 
-            for (index, resolver_spec) in resolver_specs.iter().enumerate() {
-                let (profile_id, resolver) =
-                    parse_resolver_spec(resolver_spec).unwrap_or_else(|message| {
-                        eprintln!("{message}");
-                        std::process::exit(2);
-                    });
+            for (index, (profile_id, resolver)) in resolver_inputs.into_iter().enumerate() {
                 if !seen_profile_ids.insert(profile_id.clone()) {
                     eprintln!("duplicate --resolver id '{profile_id}'");
                     std::process::exit(2);
@@ -358,7 +381,7 @@ fn main() {
                     "primary_issue": gate.primary_issue,
                     "can_recommend": gate.can_recommend,
                     "safety_notes": gate.notes,
-                    "resolver_count": resolver_specs.len(),
+                    "resolver_count": resolver_count,
                     "domain_count": domains.len(),
                     "attempts_per_record": attempts,
                     "timeout_ms": timeout_ms,
@@ -873,8 +896,44 @@ fn resolve_benchmark_resolver(
         std::process::exit(2);
     });
     let snapshot = load_snapshot_or_builtin(&storage);
-    let profile = snapshot
-        .profiles
+    resolve_plain_profile_address(&snapshot.profiles, profile_id, resolver_port)
+}
+
+fn resolve_profile_resolvers(
+    profile_db: Option<&std::path::Path>,
+    profile_ids: Vec<String>,
+    resolver_port: u16,
+) -> Vec<(String, SocketAddr)> {
+    if profile_ids.is_empty() {
+        return Vec::new();
+    }
+
+    let profile_db = profile_db.unwrap_or_else(|| {
+        eprintln!("--profile-db is required with --profile-id");
+        std::process::exit(2);
+    });
+    let storage = SqliteStorage::open(profile_db).unwrap_or_else(|error| {
+        eprintln!("{error}");
+        std::process::exit(2);
+    });
+    let snapshot = load_snapshot_or_builtin(&storage);
+
+    profile_ids
+        .into_iter()
+        .map(|profile_id| {
+            let resolver =
+                resolve_plain_profile_address(&snapshot.profiles, &profile_id, resolver_port);
+            (profile_id, resolver)
+        })
+        .collect()
+}
+
+fn resolve_plain_profile_address(
+    profiles: &[DnsProfile],
+    profile_id: &str,
+    resolver_port: u16,
+) -> SocketAddr {
+    let profile = profiles
         .iter()
         .find(|profile| profile.id == profile_id)
         .unwrap_or_else(|| {

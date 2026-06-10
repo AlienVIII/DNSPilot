@@ -45,6 +45,7 @@ DNS handling, and platform capability reporting.
 - [x] [34] v0.1 path-compare saved-suite input — run path comparison from saved suite domains.
 - [x] [35] v0.1 path-estimate saved-suite input — run path estimate from saved suite domains.
 - [x] [36] v0.1 benchmark saved-profile input — run benchmark from saved plain DNS profile.
+- [x] [37] v0.1 compare saved-profile input — run DNS comparison from saved plain DNS profiles.
 
 ---
 
@@ -1857,4 +1858,57 @@ Result: 20 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 56 passed, 0 failed
+```
+
+---
+
+## Chunk 37: v0.1 Compare Saved-Profile Input
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added `compare --profile-db <path> --profile-id <id>`. DNS-only multi-resolver
+comparison can now include saved plain DNS profiles and still mix in explicit
+`--resolver id=host:port` entries.
+
+### Before
+
+```mermaid
+graph LR
+  PROFILE[profile-add/profile-list] --> SQLITE[SQLite snapshot]
+  COMPARE[compare CLI] --> RESOLVER[explicit --resolver entries]
+```
+
+### After
+
+```mermaid
+graph LR
+  PROFILE[profile-add/profile-list] --> SQLITE[SQLite snapshot]
+  SQLITE --> COMPARE[compare CLI CHANGED]
+  RESOLVER[explicit --resolver entries] --> COMPARE
+  COMPARE --> RUNS[manual plus saved profile runs NEW]
+```
+
+### Edge Cases / Caveats
+
+- Only plain DNS profiles are runnable.
+- Saved profile IPs use port 53 unless `--resolver-port` is provided.
+- Duplicate resolver/profile IDs are rejected across manual and saved inputs.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour compare_command_can_use_saved_plain_dns_profiles
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_compare_behaviour
+Result: 6 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 21 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 57 passed, 0 failed
 ```
