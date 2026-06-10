@@ -71,6 +71,11 @@ pub fn build_query(
     Ok(packet)
 }
 
+pub fn validate_domain_name(domain: &str) -> Result<(), DnsWireError> {
+    let mut packet = Vec::new();
+    encode_name(domain, &mut packet)
+}
+
 pub fn parse_response(packet: &[u8]) -> Result<DnsResponse, DnsWireError> {
     if packet.len() < DNS_HEADER_LEN {
         return Err(DnsWireError::TruncatedPacket);

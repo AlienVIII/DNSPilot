@@ -25,6 +25,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom plain DNS profiles.
 - CLI custom domain suite add/list commands backed by SQLite snapshots.
+- Custom domain suite validation for invalid and duplicate domains.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom domain suites.
 - CLI benchmark, compare, and path-compare history save/list commands backed by

@@ -56,6 +56,7 @@ DNS handling, and platform capability reporting.
 - [x] [45] v0.1 benchmark preflight CLI — expose flush guidance as JSON.
 - [x] [46] v0.1 apply prompt safety policy — protect managed/intercepted networks.
 - [x] [47] v0.1 apply prompt policy CLI — expose protected-network policy as JSON.
+- [x] [48] v0.1 custom suite domain validation — reject invalid/duplicate domains.
 
 ---
 
@@ -2454,4 +2455,66 @@ Result: 2 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 69 passed, 0 failed
+```
+
+---
+
+## Chunk 48: v0.1 Custom Suite Domain Validation
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/src/dns_wire.rs`, `crates/dnspilot-core/src/storage.rs`, `crates/dnspilot-core/tests/storage_behaviour.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Added shared `TestSuite::validate()` logic for custom domain suites. Storage and
+CLI persistence now reject invalid DNS names and duplicate domains before a bad
+suite can pollute benchmark runs or fail later inside the DNS wire layer.
+
+### Before
+
+```mermaid
+graph LR
+  SUITE[suite-add] --> SAVE[save snapshot]
+  SAVE --> BAD[bad domains stored]
+  BAD --> BENCH[late benchmark failure]
+```
+
+### After
+
+```mermaid
+graph LR
+  SUITE[suite-add CHANGED] --> VALIDATE[TestSuite validate NEW]
+  VALIDATE --> WIRE[DNS wire domain validator NEW]
+  VALIDATE --> SAVE[save snapshot]
+  VALIDATE --> REJECT[reject invalid or duplicate domains NEW]
+```
+
+### Edge Cases / Caveats
+
+- Duplicate domains can overweight a target domain and distort scoring.
+- Invalid domain names should fail at profile/suite creation time, not during a
+  benchmark run.
+- The validator reuses DNS wire name rules so suite validation matches query
+  construction.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test storage_behaviour storage_snapshot_rejects_invalid_or_duplicate_suite_domains
+RED result: failed because invalid and duplicate suite domains were accepted
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour suite_add_command_rejects_invalid_domain
+RED result: failed because suite-add accepted an invalid domain
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test storage_behaviour storage_snapshot_rejects_invalid_or_duplicate_suite_domains
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour suite_add_command_rejects_invalid_domain
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 40 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 71 passed, 0 failed
 ```

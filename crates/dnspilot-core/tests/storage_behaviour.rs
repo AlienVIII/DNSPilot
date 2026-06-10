@@ -59,6 +59,47 @@ fn storage_snapshot_rejects_duplicate_profile_ids() {
 }
 
 #[test]
+fn storage_snapshot_rejects_invalid_or_duplicate_suite_domains() {
+    let mut invalid_suites = built_in_test_suites();
+    invalid_suites.push(dnspilot_core::TestSuite {
+        id: "invalid-suite".into(),
+        name: "Invalid Suite".into(),
+        description: "Invalid domains should be rejected.".into(),
+        domains: vec!["good.example".into(), "bad domain".into()],
+        tags: vec![],
+    });
+    let invalid_snapshot = StorageSnapshot {
+        schema_version: STORAGE_SCHEMA_VERSION,
+        profiles: built_in_profiles(),
+        test_suites: invalid_suites,
+        benchmark_history: vec![],
+    };
+
+    let invalid_error = validate_storage_snapshot(&invalid_snapshot)
+        .expect_err("invalid suite domain should be rejected");
+    assert!(invalid_error.to_string().contains("invalid test suite domain"));
+
+    let mut duplicate_suites = built_in_test_suites();
+    duplicate_suites.push(dnspilot_core::TestSuite {
+        id: "duplicate-suite".into(),
+        name: "Duplicate Suite".into(),
+        description: "Duplicate domains should be rejected.".into(),
+        domains: vec!["github.com".into(), "github.com".into()],
+        tags: vec![],
+    });
+    let duplicate_snapshot = StorageSnapshot {
+        schema_version: STORAGE_SCHEMA_VERSION,
+        profiles: built_in_profiles(),
+        test_suites: duplicate_suites,
+        benchmark_history: vec![],
+    };
+
+    let duplicate_error = validate_storage_snapshot(&duplicate_snapshot)
+        .expect_err("duplicate suite domain should be rejected");
+    assert!(duplicate_error.to_string().contains("duplicate test suite domain"));
+}
+
+#[test]
 fn sqlite_storage_saves_and_loads_snapshot() {
     let snapshot = StorageSnapshot {
         schema_version: STORAGE_SCHEMA_VERSION,

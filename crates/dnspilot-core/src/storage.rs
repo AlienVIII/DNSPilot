@@ -131,17 +131,7 @@ pub fn validate_storage_snapshot(snapshot: &StorageSnapshot) -> Result<(), DnsPi
         profile.validate()?;
     }
     for suite in &snapshot.test_suites {
-        if suite.id.trim().is_empty() {
-            return Err(DnsPilotError::InvalidStorage(
-                "test suite id cannot be empty".into(),
-            ));
-        }
-        if suite.domains.is_empty() {
-            return Err(DnsPilotError::InvalidStorage(format!(
-                "test suite '{}' needs at least one domain",
-                suite.id
-            )));
-        }
+        suite.validate()?;
     }
     for record in &snapshot.benchmark_history {
         validate_history_record(record)?;

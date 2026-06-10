@@ -366,6 +366,39 @@ fn suite_add_command_persists_custom_domain_suite() {
 }
 
 #[test]
+fn suite_add_command_rejects_invalid_domain() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-suite-invalid-domain-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "invalid-suite",
+            "--name",
+            "Invalid Suite",
+            "--domain",
+            "bad domain",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-add");
+
+    assert!(!add.status.success(), "suite-add should reject invalid domain");
+    let stderr = String::from_utf8_lossy(&add.stderr);
+    assert!(
+        stderr.contains("invalid test suite domain"),
+        "stderr: {stderr}"
+    );
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn benchmark_command_can_use_saved_domain_suite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-benchmark-suite-{}.sqlite",

@@ -4,7 +4,7 @@
 //! editions call platform adapters around this core.
 
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::net::IpAddr;
 
 pub mod connect_probe;
@@ -97,6 +97,46 @@ pub struct TestSuite {
     pub description: String,
     pub domains: Vec<String>,
     pub tags: Vec<String>,
+}
+
+impl TestSuite {
+    pub fn validate(&self) -> Result<(), DnsPilotError> {
+        if self.id.trim().is_empty() {
+            return Err(DnsPilotError::InvalidTestSuite(
+                "test suite id is required".into(),
+            ));
+        }
+        if self.name.trim().is_empty() {
+            return Err(DnsPilotError::InvalidTestSuite(
+                "test suite name is required".into(),
+            ));
+        }
+        if self.domains.is_empty() {
+            return Err(DnsPilotError::InvalidTestSuite(format!(
+                "test suite '{}' needs at least one domain",
+                self.id
+            )));
+        }
+
+        let mut seen = BTreeSet::new();
+        for domain in &self.domains {
+            dns_wire::validate_domain_name(domain).map_err(|error| {
+                DnsPilotError::InvalidTestSuite(format!(
+                    "invalid test suite domain '{}': {error}",
+                    domain
+                ))
+            })?;
+            let normalized = domain.trim_end_matches('.').to_ascii_lowercase();
+            if !seen.insert(normalized) {
+                return Err(DnsPilotError::InvalidTestSuite(format!(
+                    "duplicate test suite domain '{}'",
+                    domain
+                )));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -341,6 +381,8 @@ pub enum DnsPilotError {
     InvalidIp(String),
     #[error("invalid DNS profile: {0}")]
     InvalidProfile(String),
+    #[error("invalid test suite: {0}")]
+    InvalidTestSuite(String),
     #[error("invalid storage snapshot: {0}")]
     InvalidStorage(String),
 }
