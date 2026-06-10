@@ -29,6 +29,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
   SQLite snapshots.
 - Store-safe platform capability matrix.
 - Platform DNS cache flush capability matrix for store-safe versus power builds.
+- CLI full capability matrix command for platform shell contract checks.
 - Filtered DNS outcome classification.
 - DNS wire query builder and compressed A/AAAA response parser.
 - UDP resolver client with timeout and transaction ID validation.
@@ -67,6 +68,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 cargo test -p dnspilot-core
 cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
+cargo run -p dnspilot-cli -- capabilities
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1

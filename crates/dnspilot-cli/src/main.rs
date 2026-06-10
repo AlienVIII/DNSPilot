@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    built_in_profiles, built_in_test_suites, capability_for,
+    all_platforms, built_in_profiles, built_in_test_suites, capability_for,
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{
@@ -31,6 +31,7 @@ enum Command {
         #[arg(value_enum)]
         platform: PlatformArg,
     },
+    Capabilities,
     Benchmark {
         #[arg(long)]
         resolver: Option<SocketAddr>,
@@ -239,6 +240,19 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&capability).expect("serialize capability")
+            );
+        }
+        Command::Capabilities => {
+            let payload = serde_json::json!({
+                "capabilities": all_platforms()
+                    .iter()
+                    .copied()
+                    .map(capability_for)
+                    .collect::<Vec<_>>(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize capabilities")
             );
         }
         Command::Benchmark {

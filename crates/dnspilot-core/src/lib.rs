@@ -237,6 +237,22 @@ pub enum Platform {
     WindowsPower,
 }
 
+pub const ALL_PLATFORMS: [Platform; 9] = [
+    Platform::MacOSStore,
+    Platform::IOS,
+    Platform::AndroidPlay,
+    Platform::WindowsStore,
+    Platform::LinuxFlatpak,
+    Platform::LinuxSnap,
+    Platform::LinuxNativePower,
+    Platform::MacOSPower,
+    Platform::WindowsPower,
+];
+
+pub fn all_platforms() -> &'static [Platform] {
+    &ALL_PLATFORMS
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ApplyCapability {

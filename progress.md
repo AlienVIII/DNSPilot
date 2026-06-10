@@ -51,6 +51,7 @@ DNS handling, and platform capability reporting.
 - [x] [40] v0.1 custom encrypted profile persistence CLI — add/list DoH and DoT profiles.
 - [x] [41] v0.1 custom filtering profile metadata — persist filtering DNS category.
 - [x] [42] v0.1 DNS flush capability matrix — model flush support per platform.
+- [x] [43] v0.1 full capability matrix CLI — emit all platform capabilities at once.
 
 ---
 
@@ -2180,4 +2181,58 @@ Result: 37 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 62 passed, 0 failed
+```
+
+---
+
+## Chunk 43: v0.1 Full Capability Matrix CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_capability_behaviour.rs`, `README.md`
+
+### What changed
+
+Added a core `all_platforms()` contract and a CLI `capabilities` command that
+emits every platform capability in one JSON payload. This gives native shells a
+single matrix read for UI capability tables while preserving per-platform
+`apply` and `flush` distinctions.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[CLI] --> ONE[capability platform]
+  ONE --> SINGLE[single platform JSON]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[core platform list NEW] --> MATRIX[all capability records NEW]
+  CLI[CLI CHANGED] --> ONE[capability platform]
+  CLI --> ALL[capabilities command NEW]
+  ALL --> MATRIX
+```
+
+### Edge Cases / Caveats
+
+- The matrix is descriptive only; store-safe UI must still avoid hidden admin
+  apply or flush actions.
+- Linux remains capability-based, not feature-parity-based. Flatpak/Snap and
+  native deb/rpm read different apply/flush paths from the same matrix.
+- Adding a new platform must update the canonical `ALL_PLATFORMS` list or it
+  will not appear in matrix output.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_capability_behaviour capabilities_command_outputs_full_matrix_with_flush_contract
+RED result: failed because subcommand `capabilities` did not exist
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_capability_behaviour capabilities_command_outputs_full_matrix_with_flush_contract
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 63 passed, 0 failed
 ```
