@@ -516,6 +516,10 @@ fn main() {
             reject_zero_u64("--dns-timeout-ms", dns_timeout_ms);
             reject_zero_u64("--connect-timeout-ms", connect_timeout_ms);
             reject_zero_optional_u64("--tls-handshake-timeout-ms", tls_handshake_timeout_ms);
+            reject_zero_usize(
+                "--max-connect-targets-per-domain",
+                max_connect_targets_per_domain,
+            );
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let resolver = resolve_benchmark_resolver(
@@ -605,6 +609,10 @@ fn main() {
             reject_zero_u64("--dns-timeout-ms", dns_timeout_ms);
             reject_zero_u64("--connect-timeout-ms", connect_timeout_ms);
             reject_zero_optional_u64("--tls-handshake-timeout-ms", tls_handshake_timeout_ms);
+            reject_zero_usize(
+                "--max-connect-targets-per-domain",
+                max_connect_targets_per_domain,
+            );
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
             let domains_for_history = domains.clone();

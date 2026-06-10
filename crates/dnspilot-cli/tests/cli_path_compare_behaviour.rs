@@ -455,6 +455,34 @@ fn path_compare_command_rejects_zero_tls_timeout() {
     );
 }
 
+#[test]
+fn path_compare_command_rejects_zero_max_connect_targets() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "path-compare",
+            "--resolver",
+            "cloudflare=127.0.0.1:9",
+            "--domain",
+            "github.com",
+            "--attempts",
+            "1",
+            "--max-connect-targets-per-domain",
+            "0",
+        ])
+        .output()
+        .expect("run dnspilot-cli path-compare");
+
+    assert!(
+        !output.status.success(),
+        "path-compare should reject zero max connect targets"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--max-connect-targets-per-domain must be greater than 0"),
+        "stderr: {stderr}"
+    );
+}
+
 fn start_fake_resolver_with_a(query_count: usize, delay: Duration, ipv4: Ipv4Addr) -> SocketAddr {
     let socket = UdpSocket::bind("127.0.0.1:0").expect("bind fake resolver");
     let addr = socket.local_addr().expect("local addr");

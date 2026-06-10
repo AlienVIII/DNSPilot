@@ -49,6 +49,7 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - TCP connect probe aggregation for connection-path estimates.
 - Connection-path estimator that combines DNS lookup metrics with TCP connect
   metrics, optional TLS/SNI handshake metrics, and conservative caveats.
+- CLI path commands reject zero connection target limits before network activity.
 - Connection target limiting to avoid excessive TCP probes for large CDN answer
   sets, with balanced IPv4/IPv6 selection when both are available.
 - TLS/SNI probe contract and live Rustls handshaker with handshake latency,

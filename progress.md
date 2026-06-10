@@ -60,6 +60,7 @@ DNS handling, and platform capability reporting.
 - [x] [49] v0.1 custom profile server validation — reject family mismatch/duplicates.
 - [x] [50] v0.1 zero-attempt CLI guards — reject empty benchmark runs consistently.
 - [x] [51] v0.1 zero-timeout CLI guards — reject impossible benchmark timeouts.
+- [x] [52] v0.1 zero connection-target CLI guards — reject empty path probes.
 
 ---
 
@@ -2701,4 +2702,62 @@ Result: 38 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 79 passed, 0 failed
+```
+
+---
+
+## Chunk 52: v0.1 Zero Connection-Target CLI Guards
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_path_estimate_behaviour.rs`, `crates/dnspilot-cli/tests/cli_path_compare_behaviour.rs`, `README.md`
+
+### What changed
+
+Added validation for `--max-connect-targets-per-domain` on `path-estimate` and
+`path-compare`. A zero value is rejected before DNS/TCP work starts because it
+would produce an empty connection-path probe.
+
+### Before
+
+```mermaid
+graph LR
+  PATH[path command] --> LIMIT[max targets 0]
+  LIMIT --> EMPTY[no TCP targets]
+```
+
+### After
+
+```mermaid
+graph LR
+  PATH[path command CHANGED] --> CHECK[target limit guard NEW]
+  CHECK --> REJECT[exit 2 with message NEW]
+  CHECK --> RUN[path probes]
+```
+
+### Edge Cases / Caveats
+
+- A path benchmark with zero connect targets is not a path benchmark.
+- This guard keeps recommendation-gate no-target failures for real resolver/CDN
+  behavior, not user input mistakes.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_rejects_zero_max_connect_targets
+RED result: failed because path-estimate accepted `--max-connect-targets-per-domain 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour path_compare_command_rejects_zero_max_connect_targets
+RED result: failed because path-compare accepted `--max-connect-targets-per-domain 0`
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_estimate_behaviour path_estimate_command_rejects_zero_max_connect_targets
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_path_compare_behaviour path_compare_command_rejects_zero_max_connect_targets
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --tests
+Result: 40 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 81 passed, 0 failed
 ```
