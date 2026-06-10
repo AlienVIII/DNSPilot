@@ -57,6 +57,7 @@ DNS handling, and platform capability reporting.
 - [x] [46] v0.1 apply prompt safety policy — protect managed/intercepted networks.
 - [x] [47] v0.1 apply prompt policy CLI — expose protected-network policy as JSON.
 - [x] [48] v0.1 custom suite domain validation — reject invalid/duplicate domains.
+- [x] [49] v0.1 custom profile server validation — reject family mismatch/duplicates.
 
 ---
 
@@ -2517,4 +2518,65 @@ Result: 40 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 71 passed, 0 failed
+```
+
+---
+
+## Chunk 49: v0.1 Custom Profile Server Validation
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `README.md`
+
+### What changed
+
+Strengthened DNS profile validation so IPv4 server lists only accept IPv4
+addresses, IPv6 server lists only accept IPv6 addresses, and duplicate DNS
+servers are rejected. CLI profile persistence inherits this validation before a
+bad profile can be saved.
+
+### Before
+
+```mermaid
+graph LR
+  PROFILE[profile-add] --> PARSE[parse as any IP]
+  PARSE --> SAVE[save mislabeled server]
+```
+
+### After
+
+```mermaid
+graph LR
+  PROFILE[profile-add CHANGED] --> VALIDATE[profile validate CHANGED]
+  VALIDATE --> IPV4[IPv4 list requires IPv4 NEW]
+  VALIDATE --> IPV6[IPv6 list requires IPv6 NEW]
+  VALIDATE --> DEDUPE[reject duplicate servers NEW]
+```
+
+### Edge Cases / Caveats
+
+- An IPv6 address in `ipv4_servers` can silently break UI assumptions and later
+  resolver selection.
+- Duplicate server entries overweight one resolver and waste probes.
+- Built-in profile validation still runs through the same storage contract.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour dns_profile_validation_rejects_mismatched_or_duplicate_server_families
+RED result: failed because IPv6 addresses in the IPv4 list were accepted
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour profile_add_command_rejects_mismatched_ipv4_server
+RED result: failed because profile-add accepted IPv6 in the IPv4 list
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour dns_profile_validation_rejects_mismatched_or_duplicate_server_families
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour profile_add_command_rejects_mismatched_ipv4_server
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --tests
+Result: 41 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 73 passed, 0 failed
 ```

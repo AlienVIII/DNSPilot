@@ -58,6 +58,35 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
 }
 
 #[test]
+fn dns_profile_validation_rejects_mismatched_or_duplicate_server_families() {
+    let mut mismatched = built_in_profiles()
+        .into_iter()
+        .find(|profile| profile.id == "cloudflare")
+        .expect("cloudflare profile");
+    mismatched.id = "bad-v4".into();
+    mismatched.ipv4_servers = vec!["::1".into()];
+    mismatched.ipv6_servers = vec![];
+
+    let mismatched_error = mismatched
+        .validate()
+        .expect_err("IPv6 address in IPv4 list should be rejected");
+    assert!(mismatched_error.to_string().contains("IPv4 DNS server"));
+
+    let mut duplicate = built_in_profiles()
+        .into_iter()
+        .find(|profile| profile.id == "cloudflare")
+        .expect("cloudflare profile");
+    duplicate.id = "duplicate-v4".into();
+    duplicate.ipv4_servers = vec!["1.1.1.1".into(), "1.1.1.1".into()];
+    duplicate.ipv6_servers = vec![];
+
+    let duplicate_error = duplicate
+        .validate()
+        .expect_err("duplicate DNS server should be rejected");
+    assert!(duplicate_error.to_string().contains("duplicate DNS server"));
+}
+
+#[test]
 fn recommendation_keeps_current_dns_when_improvement_is_not_meaningful() {
     let current = metrics("current", 20.0, 45.0, 0.0, 0.0, 80.0, 1.0, 0.9);
     let candidate = metrics("cloudflare", 18.5, 44.0, 0.0, 0.0, 79.5, 1.0, 0.9);

@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::net::IpAddr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 pub mod connect_probe;
 pub mod connection_path;
@@ -72,10 +72,26 @@ impl DnsProfile {
             ));
         }
 
-        for server in self.ipv4_servers.iter().chain(self.ipv6_servers.iter()) {
-            server
-                .parse::<IpAddr>()
-                .map_err(|_| DnsPilotError::InvalidIp(server.clone()))?;
+        let mut seen_servers = BTreeSet::new();
+        for server in &self.ipv4_servers {
+            let parsed = server.parse::<Ipv4Addr>().map_err(|_| {
+                DnsPilotError::InvalidProfile(format!("invalid IPv4 DNS server '{server}'"))
+            })?;
+            if !seen_servers.insert(parsed.to_string()) {
+                return Err(DnsPilotError::InvalidProfile(format!(
+                    "duplicate DNS server '{server}'"
+                )));
+            }
+        }
+        for server in &self.ipv6_servers {
+            let parsed = server.parse::<Ipv6Addr>().map_err(|_| {
+                DnsPilotError::InvalidProfile(format!("invalid IPv6 DNS server '{server}'"))
+            })?;
+            if !seen_servers.insert(parsed.to_string()) {
+                return Err(DnsPilotError::InvalidProfile(format!(
+                    "duplicate DNS server '{server}'"
+                )));
+            }
         }
 
         if self.protocol == DnsProtocol::Doh && self.doh_url.is_none() {

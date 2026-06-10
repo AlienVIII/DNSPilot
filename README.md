@@ -21,6 +21,8 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 - SQLite storage backend for saving/loading the versioned snapshot.
 - CLI storage smoke command for creating and verifying a local SQLite snapshot.
 - CLI custom plain/DoH/DoT profile add/list commands backed by SQLite snapshots.
+- Custom DNS profile validation for IPv4/IPv6 family mismatch and duplicate
+  servers.
 - CLI custom profile filtering metadata for malware/family/ads/security DNS.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom plain DNS profiles.

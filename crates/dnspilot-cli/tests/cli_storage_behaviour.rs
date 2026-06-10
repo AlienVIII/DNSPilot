@@ -99,6 +99,36 @@ fn profile_add_command_persists_custom_plain_dns_profile() {
 }
 
 #[test]
+fn profile_add_command_rejects_mismatched_ipv4_server() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-mismatched-ipv4-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "bad-v4",
+            "--name",
+            "Bad IPv4",
+            "--ipv4",
+            "::1",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add");
+
+    assert!(!add.status.success(), "profile-add should reject IPv6 in IPv4 list");
+    let stderr = String::from_utf8_lossy(&add.stderr);
+    assert!(stderr.contains("IPv4 DNS server"), "stderr: {stderr}");
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn profile_add_command_persists_custom_encrypted_dns_profiles() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-profile-encrypted-{}.sqlite",
