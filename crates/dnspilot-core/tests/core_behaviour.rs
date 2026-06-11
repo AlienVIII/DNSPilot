@@ -1,6 +1,8 @@
 use dnspilot_core::{
     apply_prompt_policy_for,
+    apply_prompt_policy_payload_for,
     benchmark_preflight_for,
+    benchmark_preflight_payload_for,
     built_in_profiles, built_in_test_suites, capability_for, capability_matrix_payload,
     catalog_payload, classify_resolution_outcome, recommend, recommendation_gate, ApplyCapability,
     ApplyPromptDisposition, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProtocol,
@@ -334,6 +336,25 @@ fn benchmark_preflight_distinguishes_direct_resolver_from_system_validation() {
 }
 
 #[test]
+fn benchmark_preflight_payload_versions_shell_contract() {
+    let payload = benchmark_preflight_payload_for(
+        Platform::MacOSStore,
+        BenchmarkPreflightScope::SystemDnsValidation,
+    );
+    let json = serde_json::to_value(&payload).expect("preflight payload should serialize");
+
+    assert_eq!(payload.schema_version, 1);
+    assert_eq!(payload.preflight.platform, Platform::MacOSStore);
+    assert_eq!(
+        payload.preflight.flush_requirement,
+        FlushRequirement::RecommendedBeforeTest
+    );
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["platform"], "macos-store");
+    assert_eq!(json["scope"], "system-dns-validation");
+}
+
+#[test]
 fn apply_prompt_policy_protects_managed_or_intercepted_networks() {
     let protected = NetworkEnvironment {
         vpn_active: true,
@@ -358,6 +379,25 @@ fn apply_prompt_policy_protects_managed_or_intercepted_networks() {
     assert!(guided.can_prompt_apply);
     assert_eq!(guided.disposition, ApplyPromptDisposition::GuideOnly);
     assert_eq!(guided.apply_capability, ApplyCapability::GuidedSettings);
+}
+
+#[test]
+fn apply_prompt_policy_payload_versions_shell_contract() {
+    let environment = NetworkEnvironment {
+        vpn_active: true,
+        ..NetworkEnvironment::default()
+    };
+    let payload = apply_prompt_policy_payload_for(Platform::MacOSStore, &environment);
+    let json = serde_json::to_value(&payload).expect("apply policy payload should serialize");
+
+    assert_eq!(payload.schema_version, 1);
+    assert_eq!(
+        payload.policy.disposition,
+        ApplyPromptDisposition::ProtectCurrentDns
+    );
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["platform"], "macos-store");
+    assert_eq!(json["disposition"], "protect-current-dns");
 }
 
 #[test]

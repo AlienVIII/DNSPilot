@@ -409,6 +409,13 @@ pub struct BenchmarkPreflight {
     pub notes: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BenchmarkPreflightPayload {
+    pub schema_version: u32,
+    #[serde(flatten)]
+    pub preflight: BenchmarkPreflight,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct NetworkEnvironment {
     pub vpn_active: bool,
@@ -433,6 +440,13 @@ pub struct ApplyPromptPolicy {
     pub disposition: ApplyPromptDisposition,
     pub can_prompt_apply: bool,
     pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApplyPromptPolicyPayload {
+    pub schema_version: u32,
+    #[serde(flatten)]
+    pub policy: ApplyPromptPolicy,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -465,6 +479,26 @@ pub fn capability_matrix_payload() -> CapabilityMatrixPayload {
             .copied()
             .map(capability_for)
             .collect(),
+    }
+}
+
+pub fn benchmark_preflight_payload_for(
+    platform: Platform,
+    scope: BenchmarkPreflightScope,
+) -> BenchmarkPreflightPayload {
+    BenchmarkPreflightPayload {
+        schema_version: SHELL_PAYLOAD_SCHEMA_VERSION,
+        preflight: benchmark_preflight_for(platform, scope),
+    }
+}
+
+pub fn apply_prompt_policy_payload_for(
+    platform: Platform,
+    environment: &NetworkEnvironment,
+) -> ApplyPromptPolicyPayload {
+    ApplyPromptPolicyPayload {
+        schema_version: SHELL_PAYLOAD_SCHEMA_VERSION,
+        policy: apply_prompt_policy_for(platform, environment),
     }
 }
 

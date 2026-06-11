@@ -42,6 +42,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - Platform DNS cache flush capability matrix for store-safe versus power builds.
 - Benchmark preflight policy that distinguishes direct resolver tests from
   system-DNS validation after apply.
+- Versioned preflight/apply-policy shell payload contracts for UI consumers.
 - macOS SwiftUI shell scaffold with centralized design tokens and capability
   matrix view model tests.
 - macOS capability JSON decoder/bridge for the Rust `capabilities` schema and

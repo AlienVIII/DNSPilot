@@ -73,6 +73,7 @@ DNS handling, and platform capability reporting.
 - [x] [62] v0.1 macOS preview catalog summary — add default catalog bridge and summary metrics.
 - [x] [63] v0.1 macOS catalog display summaries — prepare provider/suite labels for UI.
 - [x] [64] v0.1 macOS catalog overview UI — render catalog summaries in the shell.
+- [x] [65] v0.1 versioned policy payloads — version preflight/apply-policy JSON contracts.
 
 ---
 
@@ -3439,4 +3440,59 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 91 passed, 0 failed
+```
+
+---
+
+## Chunk 65: v0.1 Versioned Policy Payloads
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_preflight_behaviour.rs`, `crates/dnspilot-cli/tests/cli_apply_policy_behaviour.rs`, `README.md`
+
+### What changed
+
+Added versioned shell payload wrappers for benchmark preflight and apply-policy
+JSON. CLI commands now emit `schema_version` while keeping existing root fields
+through flattened payloads.
+
+### Before
+
+```mermaid
+graph LR
+  CORE[preflight/apply policy] --> CLI[CLI JSON without version]
+  CLI --> UI[future shell parser]
+```
+
+### After
+
+```mermaid
+graph LR
+  CORE[preflight/apply policy] --> PAYLOAD[versioned payloads NEW]
+  PAYLOAD --> CLI[CLI JSON CHANGED]
+  CLI --> UI[future shell parser]
+```
+
+### Edge Cases / Caveats
+
+- Existing fields stay at the JSON root; only `schema_version` is added.
+- This versions shell/CLI policy payloads, not storage data.
+- macOS Swift decoders for these policy payloads are still a later chunk.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour benchmark_preflight_payload_versions_shell_contract
+RED result: failed because benchmark_preflight_payload_for/apply_prompt_policy_payload_for did not exist
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_preflight_behaviour preflight_command_outputs_flush_policy_for_system_dns_validation
+RED result: failed because preflight JSON emitted null schema_version
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_apply_policy_behaviour apply_policy_command_protects_current_dns_when_vpn_is_active
+RED result: failed because apply-policy JSON emitted null schema_version
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 14 passed, 0 failed
 ```

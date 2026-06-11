@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    apply_prompt_policy_for, benchmark_preflight_for, built_in_profiles, built_in_test_suites,
-    capability_for, capability_matrix_payload, catalog_payload,
+    apply_prompt_policy_payload_for, benchmark_preflight_payload_for, built_in_profiles,
+    built_in_test_suites, capability_for, capability_matrix_payload, catalog_payload,
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{
@@ -271,7 +271,7 @@ fn main() {
             );
         }
         Command::Preflight { platform, scope } => {
-            let preflight = benchmark_preflight_for(platform.into(), scope.into());
+            let preflight = benchmark_preflight_payload_for(platform.into(), scope.into());
             println!(
                 "{}",
                 serde_json::to_string_pretty(&preflight).expect("serialize preflight")
@@ -290,7 +290,7 @@ fn main() {
                 corporate_dns_detected,
                 captive_portal_detected,
             };
-            let policy = apply_prompt_policy_for(platform.into(), &environment);
+            let policy = apply_prompt_policy_payload_for(platform.into(), &environment);
             println!(
                 "{}",
                 serde_json::to_string_pretty(&policy).expect("serialize apply policy")

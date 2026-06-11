@@ -22,6 +22,7 @@ fn preflight_command_outputs_flush_policy_for_system_dns_validation() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
     let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
 
+    assert_eq!(json["schema_version"], 1);
     assert_eq!(json["platform"], "macos-store");
     assert_eq!(json["scope"], "system-dns-validation");
     assert_eq!(json["flush_capability"], "guided-user-action");
@@ -44,6 +45,7 @@ fn preflight_command_defaults_direct_resolver_to_no_flush() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
     let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
 
+    assert_eq!(json["schema_version"], 1);
     assert_eq!(json["platform"], "ios");
     assert_eq!(json["scope"], "direct-resolver-benchmark");
     assert_eq!(json["flush_capability"], "unsupported");
