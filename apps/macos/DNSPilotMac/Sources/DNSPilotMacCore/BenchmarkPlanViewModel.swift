@@ -1,9 +1,9 @@
-public enum BenchmarkPlanMode: Equatable {
+public enum BenchmarkPlanMode: Equatable, Hashable, Sendable {
     case dnsOnlyCompare
     case connectionPathCompare
 }
 
-public struct BenchmarkPlanValidation: Equatable {
+public struct BenchmarkPlanValidation: Equatable, Sendable {
     public let canRun: Bool
     public let issues: [String]
 
@@ -13,7 +13,7 @@ public struct BenchmarkPlanValidation: Equatable {
     }
 }
 
-public struct BenchmarkPlanViewModel: Equatable {
+public struct BenchmarkPlanViewModel: Equatable, Sendable {
     public let catalog: CatalogSnapshot
     public let selectedProfileIDs: [String]
     public let selectedSuiteID: String?
@@ -145,7 +145,7 @@ public struct BenchmarkPlanViewModel: Equatable {
     }
 }
 
-private struct PlainResolver: Equatable {
+private struct PlainResolver: Equatable, Sendable {
     let id: String
     let socketAddress: String
 }

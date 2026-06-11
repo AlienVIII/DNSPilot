@@ -1,10 +1,10 @@
-public enum CatalogDNSProtocol: String, Decodable, Equatable {
+public enum CatalogDNSProtocol: String, Decodable, Equatable, Sendable {
     case plain
     case doh
     case dot
 }
 
-public enum CatalogFilteringType: String, Decodable, Equatable {
+public enum CatalogFilteringType: String, Decodable, Equatable, Sendable {
     case none
     case malware
     case family
@@ -12,7 +12,7 @@ public enum CatalogFilteringType: String, Decodable, Equatable {
     case security
 }
 
-public struct CatalogProfile: Decodable, Equatable, Identifiable {
+public struct CatalogProfile: Decodable, Equatable, Identifiable, Sendable {
     public let id: String
     public let name: String
     public let description: String
@@ -70,7 +70,7 @@ public struct CatalogProfile: Decodable, Equatable, Identifiable {
     }
 }
 
-public struct CatalogTestSuite: Decodable, Equatable, Identifiable {
+public struct CatalogTestSuite: Decodable, Equatable, Identifiable, Sendable {
     public let id: String
     public let name: String
     public let description: String
@@ -86,7 +86,7 @@ public struct CatalogTestSuite: Decodable, Equatable, Identifiable {
     }
 }
 
-public struct CatalogSnapshot: Decodable, Equatable {
+public struct CatalogSnapshot: Decodable, Equatable, Sendable {
     public let schemaVersion: Int
     public let profiles: [CatalogProfile]
     public let testSuites: [CatalogTestSuite]

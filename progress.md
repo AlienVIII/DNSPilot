@@ -85,6 +85,7 @@ DNS handling, and platform capability reporting.
 - [x] [74] v0.1 macOS benchmark executable resolver — validate CLI path availability before launch.
 - [x] [75] v0.1 macOS custom domain plan validation — reject invalid custom benchmark domains before launch.
 - [x] [76] v0.1 macOS benchmark setup ViewModel — prepare screen defaults, options, and readiness.
+- [x] [77] v0.1 macOS benchmark setup UI — render setup, readiness, run action, and result rows.
 
 ---
 
@@ -3431,6 +3432,39 @@ Result: 26 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 77: v0.1 macOS Benchmark Setup UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkPlanViewModel.swift`, `README.md`
+
+### What changed
+
+Added the Benchmark sidebar screen with mode picker, runnable profile toggles,
+suite picker, custom domain editor, attempt stepper, readiness issues, run
+button, and result/error rendering.
+
+### Edge Cases / Caveats
+
+- Run action checks CLI executable availability before launching.
+- Benchmark work runs off the main queue.
+- Catalog/plan models now conform to `Sendable` for background execution.
+- Manual UI inspection is needed for layout, interaction, and dev CLI flow.
+
+### Verification
+
+```text
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete; initial Sendable warnings fixed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 47 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed

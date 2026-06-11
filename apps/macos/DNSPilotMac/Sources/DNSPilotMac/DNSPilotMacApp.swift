@@ -13,6 +13,7 @@ struct DNSPilotMacApp: App {
 
 private enum SidebarSelection: Hashable {
     case capabilities
+    case benchmark
     case catalog
 }
 
@@ -28,6 +29,8 @@ private struct DNSPilotShellView: View {
                 Section("Overview") {
                     Label("Capabilities", systemImage: "checkmark.seal")
                         .tag(SidebarSelection.capabilities)
+                    Label("Benchmark", systemImage: "speedometer")
+                        .tag(SidebarSelection.benchmark)
                     Label("Catalog", systemImage: "server.rack")
                         .tag(SidebarSelection.catalog)
                 }
@@ -43,6 +46,8 @@ private struct DNSPilotShellView: View {
             switch selection ?? .capabilities {
             case .capabilities:
                 CapabilityMatrixDetailView(viewModel: capabilityViewModel)
+            case .benchmark:
+                BenchmarkDetailHostView(catalogViewModel: catalogViewModel)
             case .catalog:
                 CatalogOverviewDetailView(viewModel: catalogViewModel)
             }
@@ -156,6 +161,318 @@ private struct CatalogOverviewDetailView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(DNSPilotDesign.Palette.background)
+    }
+}
+
+private struct BenchmarkDetailHostView: View {
+    let catalogViewModel: CatalogViewModel
+
+    var body: some View {
+        if let loadErrorMessage = catalogViewModel.loadErrorMessage {
+            BenchmarkUnavailableView(message: loadErrorMessage)
+        } else if let catalog = catalogViewModel.catalog {
+            BenchmarkDetailView(
+                catalog: catalog,
+                executableAvailability: BenchmarkExecutableResolver().resolve()
+            )
+        } else {
+            BenchmarkUnavailableView(message: "Catalog unavailable.")
+        }
+    }
+}
+
+private struct BenchmarkUnavailableView: View {
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+            Text("Benchmark")
+                .font(.title2.weight(.semibold))
+            Label(message, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(DNSPilotDesign.Spacing.panel)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(DNSPilotDesign.Palette.background)
+    }
+}
+
+private struct BenchmarkDetailView: View {
+    let catalog: CatalogSnapshot
+    let executableAvailability: BenchmarkExecutableAvailability
+
+    @State private var selectedProfileIDs: [String]
+    @State private var selectedSuiteID: String?
+    @State private var customDomainsText: String
+    @State private var attempts: Int
+    @State private var mode: BenchmarkPlanMode
+    @State private var isRunning = false
+    @State private var outcome: BenchmarkExecutionOutcome?
+
+    private var setupViewModel: BenchmarkSetupViewModel {
+        BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: executableAvailability,
+            selectedProfileIDs: selectedProfileIDs,
+            selectedSuiteID: selectedSuiteID,
+            customDomainsText: customDomainsText,
+            attempts: attempts,
+            mode: mode
+        )
+    }
+
+    init(catalog: CatalogSnapshot, executableAvailability: BenchmarkExecutableAvailability) {
+        self.catalog = catalog
+        self.executableAvailability = executableAvailability
+        let defaults = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: executableAvailability
+        )
+        _selectedProfileIDs = State(initialValue: defaults.selectedProfileIDs)
+        _selectedSuiteID = State(initialValue: defaults.selectedSuiteID)
+        _customDomainsText = State(initialValue: defaults.customDomainsText)
+        _attempts = State(initialValue: defaults.attempts)
+        _mode = State(initialValue: defaults.mode)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                HStack {
+                    Text("Benchmark")
+                        .font(.title2.weight(.semibold))
+                    Spacer()
+                    Button(action: runBenchmark) {
+                        if isRunning {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Run", systemImage: "play.fill")
+                        }
+                    }
+                    .disabled(!setupViewModel.canRun || isRunning)
+                    .help(setupViewModel.canRun ? "Run benchmark" : "Resolve readiness issues")
+                }
+
+                if !setupViewModel.readinessIssues.isEmpty {
+                    BenchmarkIssueList(issues: setupViewModel.readinessIssues)
+                }
+
+                BenchmarkSection(title: "Mode") {
+                    Picker("Mode", selection: $mode) {
+                        Text("DNS only").tag(BenchmarkPlanMode.dnsOnlyCompare)
+                        Text("DNS + TCP").tag(BenchmarkPlanMode.connectionPathCompare)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 280, alignment: .leading)
+                }
+
+                BenchmarkSection(title: "Profiles") {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                        ForEach(setupViewModel.profileOptions) { option in
+                            Toggle(isOn: profileBinding(for: option)) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(option.name)
+                                            .font(.body.weight(.semibold))
+                                        Text(option.detailLabel)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .disabled(!option.isRunnable)
+                        }
+                    }
+                }
+
+                BenchmarkSection(title: "Targets") {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                        Picker("Suite", selection: $selectedSuiteID) {
+                            Text("Custom only").tag(Optional<String>.none)
+                            ForEach(setupViewModel.suiteOptions) { option in
+                                Text("\(option.name) (\(option.domainCountLabel))")
+                                    .tag(Optional(option.id))
+                            }
+                        }
+                        .frame(maxWidth: 360, alignment: .leading)
+
+                        TextEditor(text: $customDomainsText)
+                            .font(.body.monospaced())
+                            .frame(minHeight: 72)
+                            .scrollContentBackground(.hidden)
+                            .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
+                                    .stroke(.separator.opacity(0.5))
+                            }
+                    }
+                }
+
+                BenchmarkSection(title: "Attempts") {
+                    Stepper(value: $attempts, in: 1...5) {
+                        Text("\(attempts)")
+                            .font(.body.monospacedDigit())
+                    }
+                    .frame(maxWidth: 160, alignment: .leading)
+                }
+
+                if let outcome {
+                    switch outcome {
+                    case .completed(let resultViewModel):
+                        BenchmarkResultPanel(viewModel: resultViewModel)
+                    case .failed(let message):
+                        BenchmarkIssueList(issues: [message])
+                    }
+                }
+            }
+            .padding(DNSPilotDesign.Spacing.panel)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(DNSPilotDesign.Palette.background)
+    }
+
+    private func profileBinding(for option: BenchmarkProfileOption) -> Binding<Bool> {
+        Binding(
+            get: { selectedProfileIDs.contains(option.id) },
+            set: { isSelected in
+                if isSelected {
+                    if !selectedProfileIDs.contains(option.id) {
+                        selectedProfileIDs.append(option.id)
+                    }
+                } else {
+                    selectedProfileIDs.removeAll { $0 == option.id }
+                }
+            }
+        )
+    }
+
+    private func runBenchmark() {
+        let setup = setupViewModel
+        guard setup.canRun else {
+            outcome = .failed(setup.readinessIssues.joined(separator: "\n"))
+            return
+        }
+        guard case .ready(let executableURL) = executableAvailability else {
+            outcome = .failed("DNS Pilot CLI executable is unavailable.")
+            return
+        }
+
+        isRunning = true
+        outcome = nil
+        let plan = setup.plan
+        let catalog = catalog
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let coordinator = BenchmarkExecutionCoordinator(
+                runner: BenchmarkRunner(executableURL: executableURL),
+                catalog: catalog
+            )
+            let nextOutcome = coordinator.execute(plan: plan)
+
+            DispatchQueue.main.async {
+                outcome = nextOutcome
+                isRunning = false
+            }
+        }
+    }
+}
+
+private struct BenchmarkSection<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+            Text(title)
+                .font(.headline)
+            content
+        }
+        .padding(DNSPilotDesign.Spacing.row)
+        .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card)
+                .stroke(.separator.opacity(0.5))
+        }
+    }
+}
+
+private struct BenchmarkIssueList: View {
+    let issues: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            ForEach(issues, id: \.self) { issue in
+                Label(issue, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(DNSPilotDesign.Palette.warning)
+            }
+        }
+        .padding(DNSPilotDesign.Spacing.row)
+        .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card)
+                .stroke(DNSPilotDesign.Palette.warning.opacity(0.35))
+        }
+    }
+}
+
+private struct BenchmarkResultPanel: View {
+    let viewModel: BenchmarkResultViewModel
+
+    var body: some View {
+        BenchmarkSection(title: "Result") {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                HStack(spacing: DNSPilotDesign.Spacing.panel) {
+                    Label(viewModel.healthLabel, systemImage: "waveform.path.ecg")
+                    Label(viewModel.scopeLabel, systemImage: "point.3.connected.trianglepath.dotted")
+                    Label(viewModel.confidenceLabel, systemImage: "gauge.with.dots.needle.67percent")
+                }
+                .foregroundStyle(.secondary)
+
+                Text(viewModel.recommendationLabel)
+                    .font(.title3.weight(.semibold))
+
+                Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
+                    GridRow {
+                        Text("Profile").font(.headline)
+                        Text("Resolver").font(.headline)
+                        Text("Median DNS").font(.headline)
+                        Text("P95 DNS").font(.headline)
+                        if viewModel.showsConnectionMetrics {
+                            Text("Median TCP").font(.headline)
+                        }
+                        Text("Failure").font(.headline)
+                    }
+
+                    ForEach(viewModel.rows) { row in
+                        GridRow {
+                            Text(row.name)
+                            Text(row.resolver).font(.body.monospaced())
+                            Text(row.medianDNSLatencyLabel)
+                            Text(row.p95DNSLatencyLabel)
+                            if viewModel.showsConnectionMetrics {
+                                Text(row.medianConnectLatencyLabel)
+                            }
+                            Text(row.failureRateLabel)
+                        }
+                    }
+                }
+
+                if !viewModel.notes.isEmpty {
+                    ForEach(viewModel.notes, id: \.self) { note in
+                        Label(note, systemImage: "info.circle")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Text(viewModel.warning)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 
