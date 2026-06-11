@@ -76,6 +76,7 @@ DNS handling, and platform capability reporting.
 - [x] [65] v0.1 versioned policy payloads — version preflight/apply-policy JSON contracts.
 - [x] [66] v0.1 macOS policy JSON decoders — decode preflight/apply-policy contracts.
 - [x] [67] v0.1 macOS policy guidance ViewModel — summarize flush/apply safety.
+- [x] [68] v0.1 macOS benchmark plan ViewModel — build compare/path-compare CLI args.
 
 ---
 
@@ -3486,6 +3487,54 @@ RED result: failed because PolicyGuidanceViewModel did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 20 passed, 0 failed
+```
+
+---
+
+## Chunk 68: v0.1 macOS Benchmark Plan ViewModel
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkPlanViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkPlanViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added a testable macOS benchmark planning ViewModel. It turns selected plain DNS
+profiles, suite/custom domains, attempts, and DNS-only/path mode into CLI
+arguments for `compare` or `path-compare`.
+
+### Before
+
+```mermaid
+graph LR
+  CATALOG[catalog] --> UI[future benchmark UI]
+  UI --> ARGS[would need ad hoc CLI args]
+```
+
+### After
+
+```mermaid
+graph LR
+  CATALOG[catalog] --> PLAN[benchmark plan ViewModel NEW]
+  PLAN --> VALIDATION[validation NEW]
+  PLAN --> ARGS[compare/path-compare args NEW]
+```
+
+### Edge Cases / Caveats
+
+- Only plain DNS profiles with a usable IPv4/IPv6 server are runnable for this
+  plain resolver benchmark path.
+- DoH/DoT profiles are rejected for this path until encrypted benchmarking is
+  implemented.
+- This builds arguments only; it does not execute benchmark processes yet.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkPlanViewModelTests/testBenchmarkPlanBuildsCompareArgsFromSelectedProfilesAndSuite
+RED result: failed because BenchmarkPlanViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 23 passed, 0 failed
 ```
 
 ---

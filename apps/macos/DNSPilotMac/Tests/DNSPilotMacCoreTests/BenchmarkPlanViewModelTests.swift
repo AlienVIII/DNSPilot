@@ -1,0 +1,118 @@
+import XCTest
+@testable import DNSPilotMacCore
+
+final class BenchmarkPlanViewModelTests: XCTestCase {
+    func testBenchmarkPlanBuildsCompareArgsFromSelectedProfilesAndSuite() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: ["cloudflare", "google-public-dns"],
+            selectedSuiteID: "developer",
+            customDomains: [],
+            attempts: 2,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertTrue(viewModel.validation.canRun)
+        XCTAssertEqual(viewModel.domains, ["github.com", "registry.npmjs.org"])
+        XCTAssertEqual(
+            viewModel.commandArguments,
+            [
+                "compare",
+                "--resolver", "cloudflare=1.1.1.1:53",
+                "--resolver", "google-public-dns=8.8.8.8:53",
+                "--domain", "github.com",
+                "--domain", "registry.npmjs.org",
+                "--attempts", "2",
+            ]
+        )
+    }
+
+    func testBenchmarkPlanBuildsPathCompareArgsWithCustomDomains() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: nil,
+            customDomains: ["portal.azure.com", "login.microsoftonline.com"],
+            attempts: 1,
+            mode: .connectionPathCompare
+        )
+
+        XCTAssertTrue(viewModel.validation.canRun)
+        XCTAssertEqual(viewModel.commandArguments.first, "path-compare")
+        XCTAssertTrue(viewModel.commandArguments.contains("--domain"))
+        XCTAssertTrue(viewModel.commandArguments.contains("portal.azure.com"))
+    }
+
+    func testBenchmarkPlanRejectsEncryptedProfilesAndMissingDomains() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: ["custom-doh"],
+            selectedSuiteID: nil,
+            customDomains: [],
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertFalse(viewModel.validation.canRun)
+        XCTAssertTrue(viewModel.validation.issues.contains("Select at least one plain DNS profile."))
+        XCTAssertTrue(viewModel.validation.issues.contains("Select a test suite or add custom domains."))
+    }
+}
+
+private func makeBenchmarkCatalog() -> CatalogSnapshot {
+    CatalogSnapshot(
+        profiles: [
+            CatalogProfile(
+                id: "cloudflare",
+                name: "Cloudflare",
+                description: "Fast unfiltered public DNS.",
+                ipv4Servers: ["1.1.1.1", "1.0.0.1"],
+                ipv6Servers: ["2606:4700:4700::1111"],
+                protocol: .plain,
+                dohURL: nil,
+                dotHostname: nil,
+                filteringType: .none,
+                tags: ["general"],
+                useCase: "performance",
+                securityNotes: []
+            ),
+            CatalogProfile(
+                id: "google-public-dns",
+                name: "Google Public DNS",
+                description: "Google unfiltered public DNS.",
+                ipv4Servers: ["8.8.8.8"],
+                ipv6Servers: [],
+                protocol: .plain,
+                dohURL: nil,
+                dotHostname: nil,
+                filteringType: .none,
+                tags: ["general"],
+                useCase: "performance",
+                securityNotes: []
+            ),
+            CatalogProfile(
+                id: "custom-doh",
+                name: "Custom DoH",
+                description: "Encrypted DNS endpoint.",
+                ipv4Servers: [],
+                ipv6Servers: [],
+                protocol: .doh,
+                dohURL: "https://dns.example/dns-query",
+                dotHostname: nil,
+                filteringType: .none,
+                tags: ["custom"],
+                useCase: "privacy",
+                securityNotes: []
+            ),
+        ],
+        testSuites: [
+            CatalogTestSuite(
+                id: "developer",
+                name: "Developer",
+                description: "Developer workflow checks.",
+                domains: ["github.com", "registry.npmjs.org"],
+                tags: ["developer"]
+            )
+        ]
+    )
+}
