@@ -78,6 +78,7 @@ DNS handling, and platform capability reporting.
 - [x] [67] v0.1 macOS policy guidance ViewModel — summarize flush/apply safety.
 - [x] [68] v0.1 macOS benchmark plan ViewModel — build compare/path-compare CLI args.
 - [x] [69] v0.1 macOS benchmark runner — execute validated benchmark plans through an injectable process boundary.
+- [x] [70] v0.1 macOS benchmark result decoder — parse compare/path-compare CLI JSON for UI display.
 
 ---
 
@@ -3421,6 +3422,42 @@ RED result: failed because BenchmarkRunner types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 70: v0.1 macOS Benchmark Result Decoder
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultModels.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultDecoderTests.swift`, `README.md`
+
+### What changed
+
+Added Swift models and JSON decoder for compare/path-compare CLI result
+payloads, covering summary status, run metrics, optional recommendation, saved
+history id, and warning text.
+
+### Edge Cases / Caveats
+
+- Per-sample DNS/TCP/TLS arrays are intentionally not decoded yet.
+- `primary_issue` stays a raw string so path-estimate/path-compare issue labels
+  can evolve without blocking UI summary rendering.
+- CLI result payloads are not schema-versioned yet.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkResultJSONDecoder did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 28 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete

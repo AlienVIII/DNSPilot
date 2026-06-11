@@ -60,6 +60,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   and compare/path-compare CLI arguments.
 - macOS benchmark runner abstraction with injectable process execution for
   store-safe UI wiring and deterministic tests.
+- macOS benchmark result decoder for compare/path-compare summary, run metrics,
+  optional recommendation, and warning text.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
