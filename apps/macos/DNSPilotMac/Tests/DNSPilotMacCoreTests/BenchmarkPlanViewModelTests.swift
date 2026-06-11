@@ -57,6 +57,40 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.validation.issues.contains("Select at least one plain DNS profile."))
         XCTAssertTrue(viewModel.validation.issues.contains("Select a test suite or add custom domains."))
     }
+
+    func testBenchmarkPlanRejectsInvalidCustomDomainsBeforeProcessExecution() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: nil,
+            customDomains: ["https://portal.azure.com", "-bad.example", "bad_label.example"],
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertFalse(viewModel.validation.canRun)
+        XCTAssertTrue(
+            viewModel.validation.issues.contains(
+                "Invalid custom domain: https://portal.azure.com"
+            )
+        )
+        XCTAssertTrue(viewModel.validation.issues.contains("Invalid custom domain: -bad.example"))
+        XCTAssertTrue(viewModel.validation.issues.contains("Invalid custom domain: bad_label.example"))
+    }
+
+    func testBenchmarkPlanAllowsTrailingDotCustomDomainLikeRustCore() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: nil,
+            customDomains: ["example.com."],
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertTrue(viewModel.validation.canRun)
+        XCTAssertTrue(viewModel.commandArguments.contains("example.com."))
+    }
 }
 
 private func makeBenchmarkCatalog() -> CatalogSnapshot {

@@ -25,7 +25,7 @@ public struct BenchmarkPlanViewModel: Equatable {
         let suiteDomains = selectedSuiteID.flatMap { id in
             catalog.testSuites.first { $0.id == id }?.domains
         } ?? []
-        return Self.uniquePreservingOrder(suiteDomains + customDomains)
+        return Self.uniquePreservingOrder(suiteDomains + sanitizedCustomDomains)
     }
 
     public var validation: BenchmarkPlanValidation {
@@ -38,6 +38,9 @@ public struct BenchmarkPlanViewModel: Equatable {
         }
         if attempts < 1 {
             issues.append("Attempts must be at least 1.")
+        }
+        for domain in sanitizedCustomDomains where !Self.isValidDomainName(domain) {
+            issues.append("Invalid custom domain: \(domain)")
         }
         return BenchmarkPlanValidation(issues: issues)
     }
@@ -74,6 +77,12 @@ public struct BenchmarkPlanViewModel: Equatable {
         }
     }
 
+    private var sanitizedCustomDomains: [String] {
+        customDomains
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
     public init(
         catalog: CatalogSnapshot,
         selectedProfileIDs: [String],
@@ -101,6 +110,38 @@ public struct BenchmarkPlanViewModel: Equatable {
             result.append(value)
         }
         return result
+    }
+
+    private static func isValidDomainName(_ domain: String) -> Bool {
+        var trimmed = domain
+        while trimmed.hasSuffix(".") {
+            trimmed.removeLast()
+        }
+
+        guard !trimmed.isEmpty else {
+            return false
+        }
+
+        return trimmed.split(separator: ".", omittingEmptySubsequences: false).allSatisfy { label in
+            isValidDomainLabel(label)
+        }
+    }
+
+    private static func isValidDomainLabel(_ label: Substring) -> Bool {
+        guard !label.isEmpty,
+              label.utf8.count <= 63,
+              label.first != "-",
+              label.last != "-"
+        else {
+            return false
+        }
+
+        return label.utf8.allSatisfy { byte in
+            (byte >= 48 && byte <= 57)
+                || (byte >= 65 && byte <= 90)
+                || (byte >= 97 && byte <= 122)
+                || byte == 45
+        }
     }
 }
 

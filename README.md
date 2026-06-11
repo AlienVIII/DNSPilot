@@ -58,6 +58,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   prompt suppression.
 - macOS benchmark plan ViewModel for selected profiles, suites/custom domains,
   and compare/path-compare CLI arguments.
+- macOS benchmark plan validation rejects invalid custom domains before process
+  execution while matching Rust DNS label rules.
 - macOS benchmark runner abstraction with injectable process execution for
   store-safe UI wiring and deterministic tests.
 - macOS benchmark result decoder for compare/path-compare summary, run metrics,

@@ -83,6 +83,7 @@ DNS handling, and platform capability reporting.
 - [x] [72] v0.1 macOS benchmark execution coordinator — connect runner, decoder, and result presentation.
 - [x] [73] v0.1 macOS benchmark executable locator — locate bundled CLI or development override.
 - [x] [74] v0.1 macOS benchmark executable resolver — validate CLI path availability before launch.
+- [x] [75] v0.1 macOS custom domain plan validation — reject invalid custom benchmark domains before launch.
 
 ---
 
@@ -3426,6 +3427,41 @@ RED result: failed because BenchmarkRunner types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 75: v0.1 macOS Custom Domain Plan Validation
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkPlanViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkPlanViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added Swift-side custom domain validation to benchmark plans before process
+execution, matching Rust DNS label rules for alphanumeric/hyphen labels and
+trailing-dot handling.
+
+### Edge Cases / Caveats
+
+- Custom domains are trimmed for UI input ergonomics.
+- Suite domains are trusted from the catalog contract.
+- Invalid custom domains block benchmark execution before CLI launch.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because invalid custom domains were accepted
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 43 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
