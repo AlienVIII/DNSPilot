@@ -75,6 +75,7 @@ DNS handling, and platform capability reporting.
 - [x] [64] v0.1 macOS catalog overview UI — render catalog summaries in the shell.
 - [x] [65] v0.1 versioned policy payloads — version preflight/apply-policy JSON contracts.
 - [x] [66] v0.1 macOS policy JSON decoders — decode preflight/apply-policy contracts.
+- [x] [67] v0.1 macOS policy guidance ViewModel — summarize flush/apply safety.
 
 ---
 
@@ -3438,6 +3439,53 @@ RED result: failed because ApplyPolicyJSONDecoder and policy models did not exis
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 18 passed, 0 failed
+```
+
+---
+
+## Chunk 67: v0.1 macOS Policy Guidance ViewModel
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyGuidanceViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`
+
+### What changed
+
+Added a ViewModel that turns decoded preflight/apply-policy data into UI-ready
+guidance labels. It explicitly distinguishes direct resolver benchmarks that do
+not need flushing from system-DNS validation that should guide a flush first.
+
+### Before
+
+```mermaid
+graph LR
+  POLICY[decoded policies] --> UI[future UI would decide labels]
+```
+
+### After
+
+```mermaid
+graph LR
+  POLICY[decoded policies] --> VM[policy guidance ViewModel NEW]
+  VM --> FLUSH[flush label NEW]
+  VM --> APPLY[apply action label NEW]
+  VM --> NOTES[merged notes NEW]
+```
+
+### Edge Cases / Caveats
+
+- Guidance labels are English-only for now.
+- This is UI guidance, not an OS apply adapter.
+- Protected-network policy suppresses apply prompts even if the platform can
+  normally apply.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter PolicyPayloadDecoderTests/testPolicyGuidanceKeepsDirectBenchmarkFromFlushing
+RED result: failed because PolicyGuidanceViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 20 passed, 0 failed
 ```
 
 ---

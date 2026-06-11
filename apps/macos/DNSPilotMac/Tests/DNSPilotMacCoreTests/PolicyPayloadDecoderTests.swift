@@ -3,6 +3,53 @@ import XCTest
 @testable import DNSPilotMacCore
 
 final class PolicyPayloadDecoderTests: XCTestCase {
+    func testPolicyGuidanceKeepsDirectBenchmarkFromFlushing() {
+        let guidance = PolicyGuidanceViewModel(
+            preflight: PreflightPolicy(
+                platformID: "macos-store",
+                scope: .directResolverBenchmark,
+                flushCapability: .guidedUserAction,
+                flushRequirement: .notNeeded,
+                notes: ["Direct resolver benchmark bypasses the OS DNS cache."]
+            ),
+            applyPolicy: ApplyPolicy(
+                platformID: "macos-store",
+                applyCapability: .appleNetworkExtensionDNSSettings,
+                disposition: .allow,
+                canPromptApply: true,
+                notes: ["Explicit user-approved apply prompt."]
+            )
+        )
+
+        XCTAssertEqual(guidance.flushStatusLabel, "No flush needed")
+        XCTAssertEqual(guidance.applyActionLabel, "Enable profile")
+        XCTAssertTrue(guidance.canPromptApply)
+        XCTAssertEqual(guidance.notes.count, 2)
+    }
+
+    func testPolicyGuidanceProtectsCurrentDNSWhenNetworkIsManaged() {
+        let guidance = PolicyGuidanceViewModel(
+            preflight: PreflightPolicy(
+                platformID: "macos-store",
+                scope: .systemDNSValidation,
+                flushCapability: .guidedUserAction,
+                flushRequirement: .recommendedBeforeTest,
+                notes: ["System DNS validation after apply can be stale."]
+            ),
+            applyPolicy: ApplyPolicy(
+                platformID: "macos-store",
+                applyCapability: .appleNetworkExtensionDNSSettings,
+                disposition: .protectCurrentDNS,
+                canPromptApply: false,
+                notes: ["VPN is active; protect current DNS."]
+            )
+        )
+
+        XCTAssertEqual(guidance.flushStatusLabel, "Flush recommended")
+        XCTAssertEqual(guidance.applyActionLabel, "Keep current DNS")
+        XCTAssertFalse(guidance.canPromptApply)
+    }
+
     func testPreflightDecoderMapsRustCliSchema() throws {
         let json = """
         {
