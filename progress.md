@@ -77,6 +77,7 @@ DNS handling, and platform capability reporting.
 - [x] [66] v0.1 macOS policy JSON decoders — decode preflight/apply-policy contracts.
 - [x] [67] v0.1 macOS policy guidance ViewModel — summarize flush/apply safety.
 - [x] [68] v0.1 macOS benchmark plan ViewModel — build compare/path-compare CLI args.
+- [x] [69] v0.1 macOS benchmark runner — execute validated benchmark plans through an injectable process boundary.
 
 ---
 
@@ -3391,6 +3392,41 @@ RED result: failed because CatalogViewModel had no profileSummaries or testSuite
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 14 passed, 0 failed
+```
+
+---
+
+## Chunk 69: v0.1 macOS Benchmark Runner
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkRunner.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunnerTests.swift`, `README.md`
+
+### What changed
+
+Added a macOS core benchmark runner boundary that validates
+`BenchmarkPlanViewModel`, passes CLI arguments to an injectable process runner,
+and preserves non-zero process output for UI error display.
+
+### Edge Cases / Caveats
+
+- Invalid plans are rejected before process execution.
+- Non-zero CLI exits are result data, not thrown errors, so UI can render stderr.
+- This does not yet wire the SwiftUI benchmark screen or locate the bundled CLI.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkRunner types did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
 ```
 
 ---
