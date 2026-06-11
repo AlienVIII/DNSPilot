@@ -84,6 +84,7 @@ DNS handling, and platform capability reporting.
 - [x] [73] v0.1 macOS benchmark executable locator — locate bundled CLI or development override.
 - [x] [74] v0.1 macOS benchmark executable resolver — validate CLI path availability before launch.
 - [x] [75] v0.1 macOS custom domain plan validation — reject invalid custom benchmark domains before launch.
+- [x] [76] v0.1 macOS benchmark setup ViewModel — prepare screen defaults, options, and readiness.
 
 ---
 
@@ -3427,6 +3428,45 @@ RED result: failed because BenchmarkRunner types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 76: v0.1 macOS Benchmark Setup ViewModel
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkSetupViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkSetupViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added benchmark setup presentation state for default runnable profiles, first
+suite selection, profile/suite options, custom-domain text parsing, and run
+readiness combining executable availability with plan validation.
+
+### Edge Cases / Caveats
+
+- Encrypted DNS profiles are visible but marked not runnable for plain CLI
+  benchmark mode.
+- Explicit `selectedSuiteID: nil` means no suite, not default suite.
+- UI rendering and actual interaction state are still separate work.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkSetupViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+RED result: explicit selectedSuiteID nil incorrectly defaulted to first suite
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 47 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
