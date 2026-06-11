@@ -68,6 +68,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   result presentation with validation/process/parse error handling.
 - macOS benchmark executable locator for bundled CLI paths and development
   `DNSPILOT_CLI_PATH` overrides.
+- macOS benchmark executable resolver for missing, directory, and non-executable
+  CLI path guardrails.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.

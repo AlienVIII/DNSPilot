@@ -82,6 +82,7 @@ DNS handling, and platform capability reporting.
 - [x] [71] v0.1 macOS benchmark result ViewModel — present result summaries, rows, and all-fail guardrails.
 - [x] [72] v0.1 macOS benchmark execution coordinator — connect runner, decoder, and result presentation.
 - [x] [73] v0.1 macOS benchmark executable locator — locate bundled CLI or development override.
+- [x] [74] v0.1 macOS benchmark executable resolver — validate CLI path availability before launch.
 
 ---
 
@@ -3425,6 +3426,41 @@ RED result: failed because BenchmarkRunner types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 74: v0.1 macOS Benchmark Executable Resolver
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkExecutableResolver.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkExecutableResolverTests.swift`, `README.md`
+
+### What changed
+
+Added executable availability checks on top of the path locator, covering ready,
+missing, directory, and non-executable states before launching the benchmark
+process.
+
+### Edge Cases / Caveats
+
+- Filesystem is injected for deterministic tests.
+- Error text is stable for UI display.
+- Packaging still needs to include an executable `dnspilot-cli` resource.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkExecutableResolver did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 41 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
