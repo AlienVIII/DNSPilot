@@ -64,6 +64,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   optional recommendation, and warning text.
 - macOS benchmark result ViewModel for recommendation labels, health/scope
   labels, metric rows, and all-failed display guardrails.
+- macOS benchmark execution coordinator that connects runner, JSON decoder, and
+  result presentation with validation/process/parse error handling.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.

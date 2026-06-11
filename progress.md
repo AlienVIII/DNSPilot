@@ -80,6 +80,7 @@ DNS handling, and platform capability reporting.
 - [x] [69] v0.1 macOS benchmark runner — execute validated benchmark plans through an injectable process boundary.
 - [x] [70] v0.1 macOS benchmark result decoder — parse compare/path-compare CLI JSON for UI display.
 - [x] [71] v0.1 macOS benchmark result ViewModel — present result summaries, rows, and all-fail guardrails.
+- [x] [72] v0.1 macOS benchmark execution coordinator — connect runner, decoder, and result presentation.
 
 ---
 
@@ -3423,6 +3424,41 @@ RED result: failed because BenchmarkRunner types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 72: v0.1 macOS Benchmark Execution Coordinator
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkExecutionCoordinator.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkExecutionCoordinatorTests.swift`, `README.md`
+
+### What changed
+
+Added a sync coordinator that validates and runs a benchmark plan, maps non-zero
+CLI exits to displayable errors, decodes successful JSON output, and returns a
+benchmark result ViewModel.
+
+### Edge Cases / Caveats
+
+- Invalid plans do not start the process.
+- Non-zero exits prefer stderr, then stdout, then exit code text.
+- Invalid JSON becomes a stable user-facing parse error.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkExecutionCoordinator did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 34 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
