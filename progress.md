@@ -79,6 +79,7 @@ DNS handling, and platform capability reporting.
 - [x] [68] v0.1 macOS benchmark plan ViewModel — build compare/path-compare CLI args.
 - [x] [69] v0.1 macOS benchmark runner — execute validated benchmark plans through an injectable process boundary.
 - [x] [70] v0.1 macOS benchmark result decoder — parse compare/path-compare CLI JSON for UI display.
+- [x] [71] v0.1 macOS benchmark result ViewModel — present result summaries, rows, and all-fail guardrails.
 
 ---
 
@@ -3422,6 +3423,41 @@ RED result: failed because BenchmarkRunner types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 71: v0.1 macOS Benchmark Result ViewModel
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added presentation labels and rows for decoded benchmark results, including
+catalog-backed profile names, confidence/health/scope labels, notes, warning,
+and all-failed latency `n/a` guardrails.
+
+### Edge Cases / Caveats
+
+- Result rows use CLI order; sorting/filtering is still UI work.
+- All-failed zero latency is displayed as `n/a` to avoid implying a fast run.
+- This still does not render the benchmark screen.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkResultViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 30 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
