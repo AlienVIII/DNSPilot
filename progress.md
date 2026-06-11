@@ -74,6 +74,7 @@ DNS handling, and platform capability reporting.
 - [x] [63] v0.1 macOS catalog display summaries — prepare provider/suite labels for UI.
 - [x] [64] v0.1 macOS catalog overview UI — render catalog summaries in the shell.
 - [x] [65] v0.1 versioned policy payloads — version preflight/apply-policy JSON contracts.
+- [x] [66] v0.1 macOS policy JSON decoders — decode preflight/apply-policy contracts.
 
 ---
 
@@ -3388,6 +3389,55 @@ RED result: failed because CatalogViewModel had no profileSummaries or testSuite
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 14 passed, 0 failed
+```
+
+---
+
+## Chunk 66: v0.1 macOS Policy JSON Decoders
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyJSONDecoder.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`
+
+### What changed
+
+Added Swift models and strict JSON decoders for versioned `preflight` and
+`apply-policy` payloads. macOS can now parse flush requirement, apply
+capability, protected-network disposition, and schema-version failures.
+
+### Before
+
+```mermaid
+graph LR
+  CLI[versioned preflight/apply JSON] --> GAP[no macOS decoder]
+```
+
+### After
+
+```mermaid
+graph LR
+  CLI[versioned preflight/apply JSON] --> DECODER[macOS policy decoders NEW]
+  DECODER --> PREFLIGHT[PreflightPolicy NEW]
+  DECODER --> APPLY[ApplyPolicy NEW]
+  DECODER --> GATE[schema gate]
+```
+
+### Edge Cases / Caveats
+
+- Unknown enum values fail fast instead of falling back.
+- Only schema version `1` is supported.
+- These decoders are not yet wired into a benchmark/apply UI workflow.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter PolicyPayloadDecoderTests/testPreflightDecoderMapsRustCliSchema
+RED result: failed because PreflightJSONDecoder and policy models did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter PolicyPayloadDecoderTests/testApplyPolicyDecoderMapsRustCliSchema
+RED result: failed because ApplyPolicyJSONDecoder and policy models did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 18 passed, 0 failed
 ```
 
 ---
