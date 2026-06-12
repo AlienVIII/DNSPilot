@@ -87,6 +87,7 @@ DNS handling, and platform capability reporting.
 - [x] [76] v0.1 macOS benchmark setup ViewModel — prepare screen defaults, options, and readiness.
 - [x] [77] v0.1 macOS benchmark setup UI — render setup, readiness, run action, and result rows.
 - [x] [78] v0.1 macOS benchmark run state machine — guard running/cancelled/stale result transitions.
+- [x] [79] v0.1 macOS benchmark run controls — wire running/cancelling UI state and stale result guardrails.
 
 ---
 
@@ -3433,6 +3434,43 @@ Result: 26 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 79: v0.1 macOS Benchmark Run Controls
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkRunControlsViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunControlsViewModelTests.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `README.md`
+
+### What changed
+
+Added run-control presentation state and wired the Benchmark UI to
+`BenchmarkRunStateMachine` for running/cancelling labels, Cancel button
+availability, and stale result suppression.
+
+### Edge Cases / Caveats
+
+- Cancelling currently prevents stale completion UI updates but does not
+  terminate the underlying `Process`.
+- Actual process termination is the next layer.
+- Completion after cancellation is rendered as `Benchmark cancelled.` only after
+  the background run returns.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkRunControlsViewModel did not exist
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 56 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed

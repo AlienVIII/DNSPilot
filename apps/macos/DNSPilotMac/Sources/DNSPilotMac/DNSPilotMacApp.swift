@@ -207,7 +207,7 @@ private struct BenchmarkDetailView: View {
     @State private var customDomainsText: String
     @State private var attempts: Int
     @State private var mode: BenchmarkPlanMode
-    @State private var isRunning = false
+    @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var outcome: BenchmarkExecutionOutcome?
 
     private var setupViewModel: BenchmarkSetupViewModel {
@@ -219,6 +219,13 @@ private struct BenchmarkDetailView: View {
             customDomainsText: customDomainsText,
             attempts: attempts,
             mode: mode
+        )
+    }
+
+    private var runControls: BenchmarkRunControlsViewModel {
+        BenchmarkRunControlsViewModel(
+            state: runStateMachine.state,
+            setupCanRun: setupViewModel.canRun
         )
     }
 
@@ -243,15 +250,24 @@ private struct BenchmarkDetailView: View {
                     Text("Benchmark")
                         .font(.title2.weight(.semibold))
                     Spacer()
+                    if runControls.showsCancel {
+                        Button(action: cancelBenchmark) {
+                            Label("Cancel", systemImage: "xmark")
+                        }
+                        .disabled(!runControls.isCancelEnabled)
+                    }
                     Button(action: runBenchmark) {
-                        if isRunning {
+                        if case .running = runStateMachine.state {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else if case .cancelling = runStateMachine.state {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Label("Run", systemImage: "play.fill")
+                            Label(runControls.primaryLabel, systemImage: "play.fill")
                         }
                     }
-                    .disabled(!setupViewModel.canRun || isRunning)
+                    .disabled(!runControls.isPrimaryEnabled)
                     .help(setupViewModel.canRun ? "Run benchmark" : "Resolve readiness issues")
                 }
 
@@ -361,7 +377,7 @@ private struct BenchmarkDetailView: View {
             return
         }
 
-        isRunning = true
+        let runID = runStateMachine.start()
         outcome = nil
         let plan = setup.plan
         let catalog = catalog
@@ -374,9 +390,32 @@ private struct BenchmarkDetailView: View {
             let nextOutcome = coordinator.execute(plan: plan)
 
             DispatchQueue.main.async {
-                outcome = nextOutcome
-                isRunning = false
+                if case .cancelling = runStateMachine.state {
+                    runStateMachine.finishCancelled(runID: runID)
+                    outcome = .failed("Benchmark cancelled.")
+                    return
+                }
+
+                switch nextOutcome {
+                case .completed:
+                    runStateMachine.finishCompleted(runID: runID)
+                case .failed(let message):
+                    runStateMachine.finishFailed(runID: runID, message: message)
+                }
+
+                switch runStateMachine.state {
+                case .completed, .failed:
+                    outcome = nextOutcome
+                default:
+                    break
+                }
             }
+        }
+    }
+
+    private func cancelBenchmark() {
+        if case .running(let runID) = runStateMachine.state {
+            runStateMachine.requestCancel(runID: runID)
         }
     }
 }
