@@ -84,7 +84,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   execution for best-effort process termination.
 - macOS benchmark history persistence options for appending `--save-db` and
   `--history-id` to validated benchmark runs.
-- macOS benchmark auto-save wiring to an Application Support SQLite history
+- macOS benchmark auto-save wiring to an Application Support `dnspilot.sqlite`
   database when the app can prepare the directory.
 - macOS benchmark history-list decoder and display ViewModel for saved run rows.
 - macOS benchmark history runner for invoking `history-list --db` through the
@@ -99,6 +99,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   and surfacing storage/process failures.
 - macOS custom DNS editor ViewModel for save button state, profile ID preview,
   validation issues, and save status messages.
+- macOS shared app storage path uses `DNSPilot/dnspilot.sqlite` for profiles,
+  suites, and history.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.

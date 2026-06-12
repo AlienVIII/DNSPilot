@@ -22,7 +22,7 @@ public struct BenchmarkHistoryPersistenceFactory: Equatable, Sendable {
     public init(
         applicationSupportDirectory: URL,
         appDirectoryName: String = "DNSPilot",
-        databaseFilename: String = "history.sqlite"
+        databaseFilename: String = "dnspilot.sqlite"
     ) {
         self.applicationSupportDirectory = applicationSupportDirectory
         self.appDirectoryName = appDirectoryName

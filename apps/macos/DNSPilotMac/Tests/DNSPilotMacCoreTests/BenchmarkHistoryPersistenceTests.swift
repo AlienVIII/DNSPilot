@@ -38,7 +38,7 @@ final class BenchmarkHistoryPersistenceTests: XCTestCase {
 
         XCTAssertEqual(
             persistence.databaseURL.path,
-            "/Users/test/Library/Application Support/DNSPilot/history.sqlite"
+            "/Users/test/Library/Application Support/DNSPilot/dnspilot.sqlite"
         )
         XCTAssertEqual(
             factory.directoryURL.path,

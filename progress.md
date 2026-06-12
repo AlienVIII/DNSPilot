@@ -98,6 +98,7 @@ DNS handling, and platform capability reporting.
 - [x] [87] v0.1 macOS custom DNS form ViewModel — validate v4/v6 input and build profile-add args.
 - [x] [88] v0.1 macOS custom DNS save runner — persist custom profiles through the CLI boundary.
 - [x] [89] v0.1 macOS custom DNS editor state — derive save button/status UI state.
+- [x] [90] v0.1 macOS shared storage filename — use dnspilot.sqlite for profiles/suites/history.
 
 ---
 
@@ -3538,6 +3539,36 @@ Result: 4 passed, 0 failed
 
 ---
 
+## Chunk 90: v0.1 macOS Shared Storage Filename
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkHistoryPersistence.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryPersistenceTests.swift`, `README.md`
+
+### What changed
+
+Changed the default Application Support database filename from
+`history.sqlite` to `dnspilot.sqlite` because the same SQLite store now holds
+custom profiles, custom suites, and benchmark history.
+
+### Edge Cases / Caveats
+
+- This is a pre-release path change; released builds would need migration from
+  a legacy filename.
+- The factory type is still named for history; a broader storage factory can be
+  split later if it becomes confusing.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkHistoryPersistenceTests/testPersistenceFactoryBuildsApplicationSupportDatabaseLocation
+RED result: failed because factory still used history.sqlite
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkHistoryPersistenceTests/testPersistenceFactoryBuildsApplicationSupportDatabaseLocation
+Result: 1 passed, 0 failed
+```
+
+---
+
 ## Chunk 86: v0.1 macOS Result Saved-History Label
 
 **Status:** Complete
@@ -3660,7 +3691,7 @@ Result: 70 passed, 0 failed
 ### What changed
 
 Added an Application Support persistence factory and wired the Benchmark screen
-to create `DNSPilot/history.sqlite` before launching the CLI. Successful runs now
+to create the app SQLite database before launching the CLI. Successful runs now
 pass save arguments automatically when the directory can be prepared.
 
 ### Edge Cases / Caveats
