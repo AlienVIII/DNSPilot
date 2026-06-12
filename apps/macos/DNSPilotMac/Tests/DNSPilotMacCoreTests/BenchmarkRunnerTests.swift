@@ -79,6 +79,27 @@ final class BenchmarkRunnerTests: XCTestCase {
         XCTAssertTrue(processRunner.invocations.first?.cancellation === cancellation)
     }
 
+    func testRunnerAppendsHistoryPersistenceArguments() throws {
+        let processRunner = RecordingBenchmarkProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "{}", standardError: "")
+        )
+        let runner = BenchmarkRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+        let persistence = BenchmarkHistoryPersistence(
+            databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
+            historyID: "compare-run-1"
+        )
+
+        _ = try runner.run(plan: makeValidBenchmarkPlan(), persistence: persistence)
+
+        XCTAssertEqual(
+            Array(processRunner.invocations[0].arguments.suffix(4)),
+            ["--save-db", "/tmp/dnspilot.sqlite", "--history-id", "compare-run-1"]
+        )
+    }
+
     func testFoundationRunnerTerminatesProcessWhenCancellationIsRequested() throws {
         let processRunner = FoundationBenchmarkProcessRunner()
         let cancellation = BenchmarkRunCancellation()

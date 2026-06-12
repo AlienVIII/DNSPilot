@@ -61,6 +61,7 @@ public struct BenchmarkRunner {
 
     public func run(
         plan: BenchmarkPlanViewModel,
+        persistence: BenchmarkHistoryPersistence? = nil,
         cancellation: BenchmarkRunCancellation? = nil
     ) throws -> BenchmarkRunResult {
         let validation = plan.validation
@@ -68,7 +69,7 @@ public struct BenchmarkRunner {
             throw BenchmarkRunnerError.invalidPlan(issues: validation.issues)
         }
 
-        let arguments = plan.commandArguments
+        let arguments = plan.commandArguments + (persistence?.commandArguments ?? [])
         let output = try processRunner.run(
             executableURL: executableURL,
             arguments: arguments,

@@ -89,6 +89,7 @@ DNS handling, and platform capability reporting.
 - [x] [78] v0.1 macOS benchmark run state machine — guard running/cancelled/stale result transitions.
 - [x] [79] v0.1 macOS benchmark run controls — wire running/cancelling UI state and stale result guardrails.
 - [x] [80] v0.1 macOS benchmark process cancellation — terminate active benchmark process from Cancel.
+- [x] [81] v0.1 macOS benchmark history persistence args — append save-db/history-id through runner.
 
 ---
 
@@ -3438,6 +3439,35 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 81: v0.1 macOS Benchmark History Persistence Args
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkHistoryPersistence.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkExecutionCoordinator.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryPersistenceTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkExecutionCoordinatorTests.swift`, `README.md`
+
+### What changed
+
+Added `BenchmarkHistoryPersistence` and `BenchmarkHistoryIDFactory`, then passed
+persistence options through the runner/coordinator so benchmark CLI invocations
+can append `--save-db` and `--history-id`.
+
+### Edge Cases / Caveats
+
+- This chunk creates the save-argument contract but does not choose the macOS
+  Application Support database path yet.
+- History IDs use UUIDs, avoiding clock collisions from rapid repeated runs.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkHistoryPersistence and persistence parameters did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 66 passed, 0 failed
 ```
 
 ---

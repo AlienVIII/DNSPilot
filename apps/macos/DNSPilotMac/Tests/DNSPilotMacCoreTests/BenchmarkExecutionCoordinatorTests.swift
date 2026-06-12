@@ -115,12 +115,37 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
 
         XCTAssertTrue(processRunner.receivedCancellation === cancellation)
     }
+
+    func testCoordinatorPassesPersistenceToRunner() {
+        let processRunner = FixedProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: successfulCompareJSON, standardError: "")
+        )
+        let coordinator = BenchmarkExecutionCoordinator(
+            runner: BenchmarkRunner(
+                executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+                processRunner: processRunner
+            ),
+            catalog: makeExecutionCatalog()
+        )
+        let persistence = BenchmarkHistoryPersistence(
+            databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
+            historyID: "compare-run-1"
+        )
+
+        _ = coordinator.execute(plan: makeExecutionPlan(), persistence: persistence)
+
+        XCTAssertEqual(
+            Array(processRunner.receivedArguments.suffix(4)),
+            ["--save-db", "/tmp/dnspilot.sqlite", "--history-id", "compare-run-1"]
+        )
+    }
 }
 
 private final class FixedProcessRunner: BenchmarkProcessRunning {
     private let output: BenchmarkProcessOutput
     private(set) var runCount = 0
     private(set) var receivedCancellation: BenchmarkRunCancellation?
+    private(set) var receivedArguments: [String] = []
 
     init(output: BenchmarkProcessOutput) {
         self.output = output
@@ -133,6 +158,7 @@ private final class FixedProcessRunner: BenchmarkProcessRunning {
     ) throws -> BenchmarkProcessOutput {
         runCount += 1
         receivedCancellation = cancellation
+        receivedArguments = arguments
         return output
     }
 }
