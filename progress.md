@@ -88,6 +88,7 @@ DNS handling, and platform capability reporting.
 - [x] [77] v0.1 macOS benchmark setup UI — render setup, readiness, run action, and result rows.
 - [x] [78] v0.1 macOS benchmark run state machine — guard running/cancelled/stale result transitions.
 - [x] [79] v0.1 macOS benchmark run controls — wire running/cancelling UI state and stale result guardrails.
+- [x] [80] v0.1 macOS benchmark process cancellation — terminate active benchmark process from Cancel.
 
 ---
 
@@ -3437,6 +3438,36 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 80: v0.1 macOS Benchmark Process Cancellation
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkRunCancellation.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkExecutionCoordinator.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunCancellationTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkExecutionCoordinatorTests.swift`, `README.md`
+
+### What changed
+
+Added a thread-safe cancellation token, passed it through coordinator and runner,
+and registered `Process.terminate()` in the Foundation process runner. The
+Benchmark UI now stores the active token and calls `cancel()` when the user
+presses Cancel.
+
+### Edge Cases / Caveats
+
+- Process termination is best-effort `terminate()`, not a force-kill escalation.
+- A child process that ignores termination can still delay completion.
+- The runner handles cancel-before-start by terminating immediately after launch.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkRunCancellation and cancellation parameters did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 62 passed, 0 failed
 ```
 
 ---

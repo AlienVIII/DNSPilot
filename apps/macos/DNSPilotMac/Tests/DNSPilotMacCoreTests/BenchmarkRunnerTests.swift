@@ -63,12 +63,48 @@ final class BenchmarkRunnerTests: XCTestCase {
         XCTAssertEqual(result.exitCode, 2)
         XCTAssertEqual(result.standardError, "resolver timed out")
     }
+
+    func testRunnerPassesCancellationToProcessRunner() throws {
+        let processRunner = RecordingBenchmarkProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "{}", standardError: "")
+        )
+        let runner = BenchmarkRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+        let cancellation = BenchmarkRunCancellation()
+
+        _ = try runner.run(plan: makeValidBenchmarkPlan(), cancellation: cancellation)
+
+        XCTAssertTrue(processRunner.invocations.first?.cancellation === cancellation)
+    }
+
+    func testFoundationRunnerTerminatesProcessWhenCancellationIsRequested() throws {
+        let processRunner = FoundationBenchmarkProcessRunner()
+        let cancellation = BenchmarkRunCancellation()
+
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.05) {
+            cancellation.cancel()
+        }
+
+        let start = Date()
+        let output = try processRunner.run(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"),
+            arguments: ["5"],
+            cancellation: cancellation
+        )
+
+        XCTAssertLessThan(Date().timeIntervalSince(start), 2)
+        XCTAssertNotEqual(output.exitCode, 0)
+        XCTAssertTrue(cancellation.isCancelled)
+    }
 }
 
 private final class RecordingBenchmarkProcessRunner: BenchmarkProcessRunning {
-    struct Invocation: Equatable {
+    struct Invocation {
         let executableURL: URL
         let arguments: [String]
+        let cancellation: BenchmarkRunCancellation?
     }
 
     private let output: BenchmarkProcessOutput
@@ -78,8 +114,18 @@ private final class RecordingBenchmarkProcessRunner: BenchmarkProcessRunning {
         self.output = output
     }
 
-    func run(executableURL: URL, arguments: [String]) throws -> BenchmarkProcessOutput {
-        invocations.append(Invocation(executableURL: executableURL, arguments: arguments))
+    func run(
+        executableURL: URL,
+        arguments: [String],
+        cancellation: BenchmarkRunCancellation?
+    ) throws -> BenchmarkProcessOutput {
+        invocations.append(
+            Invocation(
+                executableURL: executableURL,
+                arguments: arguments,
+                cancellation: cancellation
+            )
+        )
         return output
     }
 }

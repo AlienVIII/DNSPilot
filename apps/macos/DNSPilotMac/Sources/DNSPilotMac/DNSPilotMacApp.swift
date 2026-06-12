@@ -208,6 +208,7 @@ private struct BenchmarkDetailView: View {
     @State private var attempts: Int
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
+    @State private var currentCancellation: BenchmarkRunCancellation?
     @State private var outcome: BenchmarkExecutionOutcome?
 
     private var setupViewModel: BenchmarkSetupViewModel {
@@ -378,6 +379,8 @@ private struct BenchmarkDetailView: View {
         }
 
         let runID = runStateMachine.start()
+        let cancellation = BenchmarkRunCancellation()
+        currentCancellation = cancellation
         outcome = nil
         let plan = setup.plan
         let catalog = catalog
@@ -387,11 +390,14 @@ private struct BenchmarkDetailView: View {
                 runner: BenchmarkRunner(executableURL: executableURL),
                 catalog: catalog
             )
-            let nextOutcome = coordinator.execute(plan: plan)
+            let nextOutcome = coordinator.execute(plan: plan, cancellation: cancellation)
 
             DispatchQueue.main.async {
                 if case .cancelling = runStateMachine.state {
                     runStateMachine.finishCancelled(runID: runID)
+                    if currentCancellation === cancellation {
+                        currentCancellation = nil
+                    }
                     outcome = .failed("Benchmark cancelled.")
                     return
                 }
@@ -405,6 +411,9 @@ private struct BenchmarkDetailView: View {
 
                 switch runStateMachine.state {
                 case .completed, .failed:
+                    if currentCancellation === cancellation {
+                        currentCancellation = nil
+                    }
                     outcome = nextOutcome
                 default:
                     break
@@ -416,6 +425,7 @@ private struct BenchmarkDetailView: View {
     private func cancelBenchmark() {
         if case .running(let runID) = runStateMachine.state {
             runStateMachine.requestCancel(runID: runID)
+            currentCancellation?.cancel()
         }
     }
 }

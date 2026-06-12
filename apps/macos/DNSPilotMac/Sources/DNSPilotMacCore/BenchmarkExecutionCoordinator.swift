@@ -14,9 +14,12 @@ public struct BenchmarkExecutionCoordinator {
         self.catalog = catalog
     }
 
-    public func execute(plan: BenchmarkPlanViewModel) -> BenchmarkExecutionOutcome {
+    public func execute(
+        plan: BenchmarkPlanViewModel,
+        cancellation: BenchmarkRunCancellation? = nil
+    ) -> BenchmarkExecutionOutcome {
         do {
-            let runResult = try runner.run(plan: plan)
+            let runResult = try runner.run(plan: plan, cancellation: cancellation)
             guard runResult.succeeded else {
                 return .failed(Self.processFailureMessage(from: runResult))
             }

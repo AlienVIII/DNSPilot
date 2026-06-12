@@ -1,7 +1,11 @@
 import Foundation
 
 public protocol BenchmarkProcessRunning: AnyObject {
-    func run(executableURL: URL, arguments: [String]) throws -> BenchmarkProcessOutput
+    func run(
+        executableURL: URL,
+        arguments: [String],
+        cancellation: BenchmarkRunCancellation?
+    ) throws -> BenchmarkProcessOutput
 }
 
 public struct BenchmarkProcessOutput: Equatable {
@@ -55,14 +59,21 @@ public struct BenchmarkRunner {
         self.processRunner = processRunner
     }
 
-    public func run(plan: BenchmarkPlanViewModel) throws -> BenchmarkRunResult {
+    public func run(
+        plan: BenchmarkPlanViewModel,
+        cancellation: BenchmarkRunCancellation? = nil
+    ) throws -> BenchmarkRunResult {
         let validation = plan.validation
         guard validation.canRun else {
             throw BenchmarkRunnerError.invalidPlan(issues: validation.issues)
         }
 
         let arguments = plan.commandArguments
-        let output = try processRunner.run(executableURL: executableURL, arguments: arguments)
+        let output = try processRunner.run(
+            executableURL: executableURL,
+            arguments: arguments,
+            cancellation: cancellation
+        )
         return BenchmarkRunResult(
             exitCode: output.exitCode,
             standardOutput: output.standardOutput,
@@ -75,7 +86,11 @@ public struct BenchmarkRunner {
 public final class FoundationBenchmarkProcessRunner: BenchmarkProcessRunning {
     public init() {}
 
-    public func run(executableURL: URL, arguments: [String]) throws -> BenchmarkProcessOutput {
+    public func run(
+        executableURL: URL,
+        arguments: [String],
+        cancellation: BenchmarkRunCancellation?
+    ) throws -> BenchmarkProcessOutput {
         let process = Process()
         process.executableURL = executableURL
         process.arguments = arguments
@@ -85,7 +100,34 @@ public final class FoundationBenchmarkProcessRunner: BenchmarkProcessRunning {
         process.standardOutput = standardOutput
         process.standardError = standardError
 
+        let processLock = NSLock()
+        var hasStarted = false
+        var shouldTerminateAfterStart = false
+        let registration = cancellation?.register {
+            processLock.lock()
+            if hasStarted {
+                if process.isRunning {
+                    process.terminate()
+                }
+            } else {
+                shouldTerminateAfterStart = true
+            }
+            processLock.unlock()
+        }
+        defer {
+            registration?.cancel()
+        }
+
         try process.run()
+        processLock.lock()
+        hasStarted = true
+        let shouldTerminate = shouldTerminateAfterStart || (cancellation?.isCancelled == true)
+        processLock.unlock()
+
+        if shouldTerminate && process.isRunning {
+            process.terminate()
+        }
+
         process.waitUntilExit()
 
         return BenchmarkProcessOutput(

@@ -97,18 +97,42 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(outcome, .failed("Could not parse benchmark result."))
     }
+
+    func testCoordinatorPassesCancellationToRunner() {
+        let processRunner = FixedProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: successfulCompareJSON, standardError: "")
+        )
+        let coordinator = BenchmarkExecutionCoordinator(
+            runner: BenchmarkRunner(
+                executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+                processRunner: processRunner
+            ),
+            catalog: makeExecutionCatalog()
+        )
+        let cancellation = BenchmarkRunCancellation()
+
+        _ = coordinator.execute(plan: makeExecutionPlan(), cancellation: cancellation)
+
+        XCTAssertTrue(processRunner.receivedCancellation === cancellation)
+    }
 }
 
 private final class FixedProcessRunner: BenchmarkProcessRunning {
     private let output: BenchmarkProcessOutput
     private(set) var runCount = 0
+    private(set) var receivedCancellation: BenchmarkRunCancellation?
 
     init(output: BenchmarkProcessOutput) {
         self.output = output
     }
 
-    func run(executableURL: URL, arguments: [String]) throws -> BenchmarkProcessOutput {
+    func run(
+        executableURL: URL,
+        arguments: [String],
+        cancellation: BenchmarkRunCancellation?
+    ) throws -> BenchmarkProcessOutput {
         runCount += 1
+        receivedCancellation = cancellation
         return output
     }
 }

@@ -80,6 +80,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   transitions.
 - macOS benchmark run controls for running/cancelling UI state and stale result
   guardrails.
+- macOS benchmark cancellation token wired through coordinator/runner/process
+  execution for best-effort process termination.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
