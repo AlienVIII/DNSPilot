@@ -86,6 +86,7 @@ DNS handling, and platform capability reporting.
 - [x] [75] v0.1 macOS custom domain plan validation — reject invalid custom benchmark domains before launch.
 - [x] [76] v0.1 macOS benchmark setup ViewModel — prepare screen defaults, options, and readiness.
 - [x] [77] v0.1 macOS benchmark setup UI — render setup, readiness, run action, and result rows.
+- [x] [78] v0.1 macOS benchmark run state machine — guard running/cancelled/stale result transitions.
 
 ---
 
@@ -3429,6 +3430,41 @@ RED result: failed because BenchmarkRunner types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 26 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 78: v0.1 macOS Benchmark Run State Machine
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkRunState.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunStateTests.swift`, `README.md`
+
+### What changed
+
+Added a small race-safe benchmark run state machine with explicit running,
+cancelling, completed, cancelled, and failed states. Each run gets an ID so
+stale completions cannot overwrite newer state.
+
+### Edge Cases / Caveats
+
+- Completion after cancellation request is ignored until cancellation finishes.
+- Stale run IDs are ignored.
+- This does not yet terminate an underlying `Process`; that is the next layer.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkRunStateMachine did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 52 passed, 0 failed
 
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
