@@ -97,6 +97,7 @@ DNS handling, and platform capability reporting.
 - [x] [86] v0.1 macOS result saved-history label — show saved history ID in benchmark results.
 - [x] [87] v0.1 macOS custom DNS form ViewModel — validate v4/v6 input and build profile-add args.
 - [x] [88] v0.1 macOS custom DNS save runner — persist custom profiles through the CLI boundary.
+- [x] [89] v0.1 macOS custom DNS editor state — derive save button/status UI state.
 
 ---
 
@@ -3504,6 +3505,34 @@ swift test --package-path apps/macos/DNSPilotMac --filter CustomDNSProfileSaveRu
 RED result: failed because CustomDNSProfileSaveRunner/Coordinator did not exist
 
 swift test --package-path apps/macos/DNSPilotMac --filter CustomDNSProfileSaveRunnerTests
+Result: 4 passed, 0 failed
+```
+
+---
+
+## Chunk 89: v0.1 macOS Custom DNS Editor State
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CustomDNSProfileEditorViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CustomDNSProfileEditorViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added a tested editor ViewModel for the custom DNS form. It derives save button
+enablement, profile ID preview, validation issue display, and save status
+messages from form input plus save state.
+
+### Edge Cases / Caveats
+
+- This does not inspect storage for duplicate IDs before save.
+- UI wiring is still next; this chunk keeps state behavior testable.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CustomDNSProfileEditorViewModelTests
+RED result: failed because CustomDNSProfileEditorViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter CustomDNSProfileEditorViewModelTests
 Result: 4 passed, 0 failed
 ```
 

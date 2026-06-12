@@ -97,6 +97,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   validation, profile ID generation, and `profile-add` arguments.
 - macOS custom plain DNS save runner/coordinator for executing `profile-add`
   and surfacing storage/process failures.
+- macOS custom DNS editor ViewModel for save button state, profile ID preview,
+  validation issues, and save status messages.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
