@@ -95,6 +95,7 @@ DNS handling, and platform capability reporting.
 - [x] [84] v0.1 macOS benchmark history runner — invoke history-list through process boundary.
 - [x] [85] v0.1 macOS history UI — add sidebar screen for loading and viewing saved runs.
 - [x] [86] v0.1 macOS result saved-history label — show saved history ID in benchmark results.
+- [x] [87] v0.1 macOS custom DNS form ViewModel — validate v4/v6 input and build profile-add args.
 
 ---
 
@@ -3444,6 +3445,35 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 87: v0.1 macOS Custom DNS Form ViewModel
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CustomDNSProfileFormViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CustomDNSProfileFormViewModelTests.swift`, `README.md`
+
+### What changed
+
+Added a custom plain DNS form ViewModel that normalizes profile IDs, parses
+IPv4/IPv6 server lists, validates address family and duplicates, and builds
+`profile-add` CLI arguments.
+
+### Edge Cases / Caveats
+
+- This supports plain DNS profiles only; DoH/DoT custom profiles remain later.
+- Profile ID collision against existing storage is not handled yet.
+- UI and process runner wiring are next.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because CustomDNSProfileFormViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 80 passed, 0 failed
 ```
 
 ---
