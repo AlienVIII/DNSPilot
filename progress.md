@@ -93,6 +93,7 @@ DNS handling, and platform capability reporting.
 - [x] [82] v0.1 macOS benchmark history app path — auto-save runs to Application Support when available.
 - [x] [83] v0.1 macOS benchmark history decoder — parse history-list JSON and build display rows.
 - [x] [84] v0.1 macOS benchmark history runner — invoke history-list through process boundary.
+- [x] [85] v0.1 macOS history UI — add sidebar screen for loading and viewing saved runs.
 
 ---
 
@@ -3442,6 +3443,34 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 85: v0.1 macOS History UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkHistoryLoadCoordinator.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryLoadCoordinatorTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryDecoderTests.swift`, `README.md`
+
+### What changed
+
+Added a load coordinator for saved benchmark history and wired a native History
+sidebar screen with refresh, loading, empty, error, and saved-run display states.
+
+### Edge Cases / Caveats
+
+- History screen still requires the CLI executable to be available.
+- In development without a bundled CLI, use `DNSPILOT_CLI_PATH`.
+- Manual UI inspection is still needed for final layout polish.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkHistoryLoadCoordinator did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 76 passed, 0 failed
 ```
 
 ---

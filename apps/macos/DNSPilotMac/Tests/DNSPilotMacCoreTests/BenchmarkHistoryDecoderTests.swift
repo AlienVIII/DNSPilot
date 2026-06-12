@@ -86,7 +86,7 @@ let historyListJSON = """
 }
 """
 
-private func makeHistoryCatalog() -> CatalogSnapshot {
+func makeHistoryCatalog() -> CatalogSnapshot {
     CatalogSnapshot(
         profiles: [
             CatalogProfile(

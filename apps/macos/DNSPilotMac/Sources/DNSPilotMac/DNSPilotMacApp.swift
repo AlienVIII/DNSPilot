@@ -14,6 +14,7 @@ struct DNSPilotMacApp: App {
 private enum SidebarSelection: Hashable {
     case capabilities
     case benchmark
+    case history
     case catalog
 }
 
@@ -31,6 +32,8 @@ private struct DNSPilotShellView: View {
                         .tag(SidebarSelection.capabilities)
                     Label("Benchmark", systemImage: "speedometer")
                         .tag(SidebarSelection.benchmark)
+                    Label("History", systemImage: "clock.arrow.circlepath")
+                        .tag(SidebarSelection.history)
                     Label("Catalog", systemImage: "server.rack")
                         .tag(SidebarSelection.catalog)
                 }
@@ -48,6 +51,8 @@ private struct DNSPilotShellView: View {
                 CapabilityMatrixDetailView(viewModel: capabilityViewModel)
             case .benchmark:
                 BenchmarkDetailHostView(catalogViewModel: catalogViewModel)
+            case .history:
+                HistoryDetailHostView(catalogViewModel: catalogViewModel)
             case .catalog:
                 CatalogOverviewDetailView(viewModel: catalogViewModel)
             }
@@ -195,6 +200,117 @@ private struct BenchmarkUnavailableView: View {
         .padding(DNSPilotDesign.Spacing.panel)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(DNSPilotDesign.Palette.background)
+    }
+}
+
+private struct HistoryDetailHostView: View {
+    let catalogViewModel: CatalogViewModel
+
+    var body: some View {
+        if let loadErrorMessage = catalogViewModel.loadErrorMessage {
+            HistoryUnavailableView(message: loadErrorMessage)
+        } else if let catalog = catalogViewModel.catalog {
+            switch BenchmarkExecutableResolver().resolve() {
+            case .ready(let executableURL):
+                HistoryDetailView(catalog: catalog, executableURL: executableURL)
+            case .unavailable(let message):
+                HistoryUnavailableView(message: message)
+            }
+        } else {
+            HistoryUnavailableView(message: "Catalog unavailable.")
+        }
+    }
+}
+
+private struct HistoryUnavailableView: View {
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+            Text("History")
+                .font(.title2.weight(.semibold))
+            Label(message, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(DNSPilotDesign.Spacing.panel)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(DNSPilotDesign.Palette.background)
+    }
+}
+
+private struct HistoryDetailView: View {
+    let catalog: CatalogSnapshot
+    let executableURL: URL
+
+    @State private var isLoading = false
+    @State private var outcome: BenchmarkHistoryLoadOutcome?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                HStack {
+                    Text("History")
+                        .font(.title2.weight(.semibold))
+                    Spacer()
+                    Button(action: loadHistory) {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(isLoading)
+                }
+
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                switch outcome {
+                case .loaded(let viewModel):
+                    HistoryResultPanel(viewModel: viewModel)
+                case .failed(let message):
+                    BenchmarkIssueList(issues: [message])
+                case nil:
+                    Text("History has not been loaded.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(DNSPilotDesign.Spacing.panel)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(DNSPilotDesign.Palette.background)
+        .onAppear {
+            if outcome == nil {
+                loadHistory()
+            }
+        }
+    }
+
+    private func loadHistory() {
+        guard !isLoading else {
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            outcome = .failed("Benchmark history storage is unavailable.")
+            return
+        }
+
+        isLoading = true
+        let databaseURL = factory.databaseURL
+        let catalog = catalog
+        let executableURL = executableURL
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let coordinator = BenchmarkHistoryLoadCoordinator(
+                runner: BenchmarkHistoryRunner(executableURL: executableURL),
+                catalog: catalog
+            )
+            let nextOutcome = coordinator.load(databaseURL: databaseURL)
+
+            DispatchQueue.main.async {
+                outcome = nextOutcome
+                isLoading = false
+            }
+        }
     }
 }
 
@@ -435,26 +551,33 @@ private struct BenchmarkDetailView: View {
     }
 
     private func makeHistoryPersistence(for plan: BenchmarkPlanViewModel) -> BenchmarkHistoryPersistence? {
-        guard let applicationSupportDirectory = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first else {
-            return nil
-        }
-
-        let factory = BenchmarkHistoryPersistenceFactory(
-            applicationSupportDirectory: applicationSupportDirectory
-        )
-        do {
-            try FileManager.default.createDirectory(
-                at: factory.directoryURL,
-                withIntermediateDirectories: true
-            )
-        } catch {
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
             return nil
         }
         return factory.makePersistence(mode: plan.mode)
     }
+}
+
+private func makePreparedHistoryPersistenceFactory() -> BenchmarkHistoryPersistenceFactory? {
+    guard let applicationSupportDirectory = FileManager.default.urls(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask
+    ).first else {
+        return nil
+    }
+
+    let factory = BenchmarkHistoryPersistenceFactory(
+        applicationSupportDirectory: applicationSupportDirectory
+    )
+    do {
+        try FileManager.default.createDirectory(
+            at: factory.directoryURL,
+            withIntermediateDirectories: true
+        )
+    } catch {
+        return nil
+    }
+    return factory
 }
 
 private struct BenchmarkSection<Content: View>: View {
@@ -549,6 +672,54 @@ private struct BenchmarkResultPanel: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+private struct HistoryResultPanel: View {
+    let viewModel: BenchmarkHistoryViewModel
+
+    var body: some View {
+        BenchmarkSection(title: "Saved Runs") {
+            if viewModel.rows.isEmpty {
+                Label("No saved runs yet.", systemImage: "tray")
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                    ForEach(viewModel.rows) { row in
+                        HistoryRowView(row: row)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct HistoryRowView: View {
+    let row: BenchmarkHistoryRow
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.controlGap) {
+            Image(systemName: "clock.arrow.circlepath")
+                .frame(width: 22)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(row.title)
+                    .font(.body.weight(.semibold))
+                Text(row.domainSummary)
+                    .foregroundStyle(.secondary)
+                Text(row.recommendationLabel)
+                    .font(.callout.weight(.semibold))
+            }
+            Spacer(minLength: DNSPilotDesign.Spacing.panel)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(row.healthLabel)
+                    .font(.caption.weight(.semibold))
+                Text(row.resolverSummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
