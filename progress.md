@@ -96,6 +96,7 @@ DNS handling, and platform capability reporting.
 - [x] [85] v0.1 macOS history UI — add sidebar screen for loading and viewing saved runs.
 - [x] [86] v0.1 macOS result saved-history label — show saved history ID in benchmark results.
 - [x] [87] v0.1 macOS custom DNS form ViewModel — validate v4/v6 input and build profile-add args.
+- [x] [88] v0.1 macOS custom DNS save runner — persist custom profiles through the CLI boundary.
 
 ---
 
@@ -3474,6 +3475,36 @@ RED result: failed because CustomDNSProfileFormViewModel did not exist
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 80 passed, 0 failed
+```
+
+---
+
+## Chunk 88: v0.1 macOS Custom DNS Save Runner
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CustomDNSProfileSaveRunner.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CustomDNSProfileSaveRunnerTests.swift`, `README.md`
+
+### What changed
+
+Added a custom DNS save runner and coordinator that validate the form, execute
+`profile-add` through the shared process boundary, and map CLI/storage failures
+into UI-ready messages.
+
+### Edge Cases / Caveats
+
+- Duplicate profile IDs are still rejected by storage/CLI, not pre-detected in
+  the macOS form.
+- Save is plain DNS only; encrypted custom profiles remain out of this path.
+- UI wiring is next; this chunk only adds the tested execution boundary.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CustomDNSProfileSaveRunnerTests
+RED result: failed because CustomDNSProfileSaveRunner/Coordinator did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter CustomDNSProfileSaveRunnerTests
+Result: 4 passed, 0 failed
 ```
 
 ---
