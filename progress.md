@@ -94,6 +94,7 @@ DNS handling, and platform capability reporting.
 - [x] [83] v0.1 macOS benchmark history decoder — parse history-list JSON and build display rows.
 - [x] [84] v0.1 macOS benchmark history runner — invoke history-list through process boundary.
 - [x] [85] v0.1 macOS history UI — add sidebar screen for loading and viewing saved runs.
+- [x] [86] v0.1 macOS result saved-history label — show saved history ID in benchmark results.
 
 ---
 
@@ -3443,6 +3444,34 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 86: v0.1 macOS Result Saved-History Label
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `README.md`
+
+### What changed
+
+Benchmark results now expose and render a saved history label when the CLI
+returns `saved_history_id`, making auto-save visible to the user.
+
+### Edge Cases / Caveats
+
+- Results without `saved_history_id` keep the panel unchanged.
+- The label shows the technical history ID for now; richer friendly timestamps
+  belong in the History screen.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkResultViewModel.savedHistoryLabel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 76 passed, 0 failed
 ```
 
 ---

@@ -9,6 +9,7 @@ public struct BenchmarkResultViewModel: Equatable {
     public let rows: [BenchmarkResultRow]
     public let notes: [String]
     public let warning: String
+    public let savedHistoryLabel: String?
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
         let profileNames = Dictionary(
@@ -22,6 +23,7 @@ public struct BenchmarkResultViewModel: Equatable {
             BenchmarkResultRow(run: run, displayName: profileNames[run.profileID])
         }
         warning = result.warning
+        savedHistoryLabel = result.savedHistoryID.map { "Saved: \($0)" }
 
         if result.summary.canRecommend,
            let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID {

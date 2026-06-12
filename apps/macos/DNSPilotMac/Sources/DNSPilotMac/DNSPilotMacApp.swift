@@ -634,6 +634,11 @@ private struct BenchmarkResultPanel: View {
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
 
+                if let savedHistoryLabel = viewModel.savedHistoryLabel {
+                    Label(savedHistoryLabel, systemImage: "clock.arrow.circlepath")
+                        .foregroundStyle(.secondary)
+                }
+
                 Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
                     GridRow {
                         Text("Profile").font(.headline)

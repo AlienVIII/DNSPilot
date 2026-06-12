@@ -91,6 +91,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   shared process boundary.
 - macOS History sidebar screen with refresh, loading, empty, error, and saved
   run display states.
+- macOS benchmark result display includes saved history IDs when a run is
+  persisted.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.

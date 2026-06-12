@@ -36,7 +36,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
                 reasons: ["Lowest median DNS latency."],
                 caveats: ["Connection path not measured."]
             ),
-            savedHistoryID: nil,
+            savedHistoryID: "compare-run-1",
             warning: "DNS-only warning."
         )
 
@@ -50,6 +50,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.map(\.name), ["Cloudflare", "Google Public DNS"])
         XCTAssertEqual(viewModel.rows.first?.medianDNSLatencyLabel, "4 ms")
         XCTAssertEqual(viewModel.notes, ["Lowest median DNS latency.", "Connection path not measured."])
+        XCTAssertEqual(viewModel.savedHistoryLabel, "Saved: compare-run-1")
     }
 
     func testResultViewModelShowsNoRecommendationAndNAForAllFailedRuns() {
@@ -94,6 +95,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.first?.medianDNSLatencyLabel, "n/a")
         XCTAssertEqual(viewModel.rows.first?.failureRateLabel, "100% failed")
         XCTAssertEqual(viewModel.notes, ["No resolver completed enough checks."])
+        XCTAssertNil(viewModel.savedHistoryLabel)
     }
 }
 
