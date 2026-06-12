@@ -14,6 +14,7 @@ struct DNSPilotMacApp: App {
 private enum SidebarSelection: Hashable {
     case capabilities
     case benchmark
+    case customDNS
     case history
     case catalog
 }
@@ -32,6 +33,8 @@ private struct DNSPilotShellView: View {
                         .tag(SidebarSelection.capabilities)
                     Label("Benchmark", systemImage: "speedometer")
                         .tag(SidebarSelection.benchmark)
+                    Label("Custom DNS", systemImage: "plus.circle")
+                        .tag(SidebarSelection.customDNS)
                     Label("History", systemImage: "clock.arrow.circlepath")
                         .tag(SidebarSelection.history)
                     Label("Catalog", systemImage: "server.rack")
@@ -51,11 +54,220 @@ private struct DNSPilotShellView: View {
                 CapabilityMatrixDetailView(viewModel: capabilityViewModel)
             case .benchmark:
                 BenchmarkDetailHostView(catalogViewModel: catalogViewModel)
+            case .customDNS:
+                CustomDNSDetailHostView(
+                    executableAvailability: BenchmarkExecutableResolver().resolve()
+                )
             case .history:
                 HistoryDetailHostView(catalogViewModel: catalogViewModel)
             case .catalog:
                 CatalogOverviewDetailView(viewModel: catalogViewModel)
             }
+        }
+    }
+}
+
+private struct CustomDNSDetailHostView: View {
+    let executableAvailability: BenchmarkExecutableAvailability
+
+    var body: some View {
+        switch executableAvailability {
+        case .ready(let executableURL):
+            CustomDNSProfileDetailView(executableURL: executableURL)
+        case .unavailable(let message):
+            BenchmarkUnavailableView(title: "Custom DNS", message: message)
+        }
+    }
+}
+
+private struct CustomDNSProfileDetailView: View {
+    let executableURL: URL
+
+    @State private var name = ""
+    @State private var ipv4ServersText = ""
+    @State private var ipv6ServersText = ""
+    @State private var saveState: CustomDNSProfileEditorState = .idle
+
+    private var editorViewModel: CustomDNSProfileEditorViewModel {
+        CustomDNSProfileEditorViewModel(
+            name: name,
+            ipv4ServersText: ipv4ServersText,
+            ipv6ServersText: ipv6ServersText,
+            state: saveState
+        )
+    }
+
+    private var isSaving: Bool {
+        if case .saving = saveState {
+            return true
+        }
+        return false
+    }
+
+    private var shouldShowIssues: Bool {
+        !name.isEmpty
+            || !ipv4ServersText.isEmpty
+            || !ipv6ServersText.isEmpty
+            || saveState != .idle
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                HStack {
+                    Text("Custom DNS")
+                        .font(.title2.weight(.semibold))
+                    Spacer()
+                    Button(action: saveProfile) {
+                        if isSaving {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label(editorViewModel.saveButtonLabel, systemImage: "tray.and.arrow.down")
+                        }
+                    }
+                    .disabled(!editorViewModel.canSave)
+                    .help(editorViewModel.canSave ? "Save profile" : "Resolve validation issues")
+                }
+
+                if shouldShowIssues, !editorViewModel.issues.isEmpty {
+                    BenchmarkIssueList(issues: editorViewModel.issues)
+                }
+
+                if let statusMessage = editorViewModel.statusMessage {
+                    CustomDNSSaveStatusView(state: saveState, message: statusMessage)
+                }
+
+                BenchmarkSection(title: "Profile") {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                        TextField("Name", text: $name)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 360, alignment: .leading)
+                            .disabled(isSaving)
+                        Label(editorViewModel.profileIDLabel, systemImage: "tag")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                BenchmarkSection(title: "Servers") {
+                    HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.panel) {
+                        CustomDNSServerEditor(
+                            title: "IPv4",
+                            text: $ipv4ServersText,
+                            isDisabled: isSaving
+                        )
+                        CustomDNSServerEditor(
+                            title: "IPv6",
+                            text: $ipv6ServersText,
+                            isDisabled: isSaving
+                        )
+                    }
+                }
+            }
+            .padding(DNSPilotDesign.Spacing.panel)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(DNSPilotDesign.Palette.background)
+        .onChange(of: name) { _, _ in resetTransientSaveState() }
+        .onChange(of: ipv4ServersText) { _, _ in resetTransientSaveState() }
+        .onChange(of: ipv6ServersText) { _, _ in resetTransientSaveState() }
+    }
+
+    private func saveProfile() {
+        let editor = editorViewModel
+        guard editor.canSave else {
+            saveState = .failed(editor.issues.joined(separator: "\n"))
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            saveState = .failed("Profile storage is unavailable.")
+            return
+        }
+
+        saveState = .saving
+        let form = editor.form
+        let databaseURL = factory.databaseURL
+        let executableURL = executableURL
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let coordinator = CustomDNSProfileSaveCoordinator(
+                runner: CustomDNSProfileSaveRunner(executableURL: executableURL)
+            )
+            let outcome = coordinator.save(form: form, databaseURL: databaseURL)
+
+            DispatchQueue.main.async {
+                switch outcome {
+                case .saved(let profileID, let name):
+                    saveState = .saved(profileID: profileID, name: name)
+                case .failed(let message):
+                    saveState = .failed(message)
+                }
+            }
+        }
+    }
+
+    private func resetTransientSaveState() {
+        switch saveState {
+        case .saved, .failed:
+            saveState = .idle
+        case .idle, .saving:
+            break
+        }
+    }
+}
+
+private struct CustomDNSServerEditor: View {
+    let title: String
+    @Binding var text: String
+    let isDisabled: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+            Text(title)
+                .font(.headline)
+            TextEditor(text: $text)
+                .font(.body.monospaced())
+                .frame(minWidth: 260, minHeight: 110)
+                .scrollContentBackground(.hidden)
+                .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
+                        .stroke(.separator.opacity(0.5))
+                }
+                .disabled(isDisabled)
+        }
+        .frame(maxWidth: 340, alignment: .leading)
+    }
+}
+
+private struct CustomDNSSaveStatusView: View {
+    let state: CustomDNSProfileEditorState
+    let message: String
+
+    var body: some View {
+        Label(message, systemImage: systemImage)
+            .foregroundStyle(foregroundStyle)
+    }
+
+    private var systemImage: String {
+        switch state {
+        case .saved:
+            "checkmark.circle"
+        case .failed:
+            "exclamationmark.triangle"
+        case .saving:
+            "clock"
+        case .idle:
+            "info.circle"
+        }
+    }
+
+    private var foregroundStyle: Color {
+        switch state {
+        case .failed:
+            DNSPilotDesign.Palette.warning
+        case .idle, .saving, .saved:
+            .secondary
         }
     }
 }
@@ -187,11 +399,17 @@ private struct BenchmarkDetailHostView: View {
 }
 
 private struct BenchmarkUnavailableView: View {
+    let title: String
     let message: String
+
+    init(title: String = "Benchmark", message: String) {
+        self.title = title
+        self.message = message
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
-            Text("Benchmark")
+            Text(title)
                 .font(.title2.weight(.semibold))
             Label(message, systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.secondary)

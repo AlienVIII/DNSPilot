@@ -99,6 +99,7 @@ DNS handling, and platform capability reporting.
 - [x] [88] v0.1 macOS custom DNS save runner — persist custom profiles through the CLI boundary.
 - [x] [89] v0.1 macOS custom DNS editor state — derive save button/status UI state.
 - [x] [90] v0.1 macOS shared storage filename — use dnspilot.sqlite for profiles/suites/history.
+- [x] [91] v0.1 macOS custom DNS UI — add sidebar form and save action.
 
 ---
 
@@ -3565,6 +3566,34 @@ RED result: failed because factory still used history.sqlite
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkHistoryPersistenceTests/testPersistenceFactoryBuildsApplicationSupportDatabaseLocation
 Result: 1 passed, 0 failed
+```
+
+---
+
+## Chunk 91: v0.1 macOS Custom DNS UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `README.md`
+
+### What changed
+
+Added a Custom DNS sidebar destination with a native SwiftUI form for profile
+name, IPv4 servers, IPv6 servers, profile ID preview, validation issues, save
+status, and asynchronous `profile-add` execution.
+
+### Edge Cases / Caveats
+
+- Saved custom profiles are persisted, but the Benchmark screen still needs a
+  storage catalog merge before the new profile appears as a selectable option.
+- Duplicate profile IDs are surfaced from CLI/storage errors after Save.
+- Visual/manual interaction testing should wait until custom profiles can be
+  saved and selected in one app flow.
+
+### Verification
+
+```text
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
 ```
 
 ---
