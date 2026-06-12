@@ -100,6 +100,7 @@ DNS handling, and platform capability reporting.
 - [x] [89] v0.1 macOS custom DNS editor state — derive save button/status UI state.
 - [x] [90] v0.1 macOS shared storage filename — use dnspilot.sqlite for profiles/suites/history.
 - [x] [91] v0.1 macOS custom DNS UI — add sidebar form and save action.
+- [x] [92] v0.1 macOS storage-backed catalog bridge — merge persisted profiles/suites into catalog.
 
 ---
 
@@ -3594,6 +3595,39 @@ status, and asynchronous `profile-add` execution.
 ```text
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
+```
+
+---
+
+## Chunk 92: v0.1 macOS Storage-Backed Catalog Bridge
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogStorageBridge.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CatalogStorageBridgeTests.swift`, `README.md`
+
+### What changed
+
+Added profile-list and suite-list payload decoders, a catalog storage runner,
+and a storage-backed catalog bridge. The bridge merges persisted profiles/suites
+with the built-in catalog, deduplicating by ID and falling back to built-ins if
+storage fails.
+
+### Edge Cases / Caveats
+
+- Storage wins on duplicate IDs, so a persisted built-in ID can replace the
+  built-in row.
+- Storage failures are intentionally non-fatal for the catalog; custom options
+  may be hidden until storage is healthy.
+- The macOS shell still needs to refresh this bridge after a custom profile is
+  saved.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogStorageBridgeTests
+RED result: failed because catalog storage bridge types did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogStorageBridgeTests
+Result: 5 passed, 0 failed
 ```
 
 ---
