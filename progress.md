@@ -3763,6 +3763,48 @@ Result: clean
 
 ---
 
+## Chunk 97: v0.1 macOS Benchmark AppKit Domain Input
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MultilineTextInput.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MultilineTextInputTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Replaced the Benchmark custom-domain SwiftUI multiline field with an
+AppKit-backed `NSTextView` wrapper. This keeps native macOS key input and IME
+handling while still updating the SwiftUI binding used by benchmark planning.
+
+### Edge Cases / Caveats
+
+- Manual app testing is still needed because actual keyboard focus/IME behavior
+  cannot be fully proven by unit tests.
+- If this still fails, the likely cause moves from SwiftUI control choice to
+  app/window focus, OS input source, or a parent view stealing first responder.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MultilineTextInputTests
+RED result: failed because DNSPilotMultilineTextInput did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter MultilineTextInputTests
+Result: 2 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 99 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 112 passed, 0 failed
+
+git diff --check
+Result: clean
+```
+
+---
+
 ## Chunk 86: v0.1 macOS Result Saved-History Label
 
 **Status:** Complete

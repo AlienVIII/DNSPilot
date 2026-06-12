@@ -715,12 +715,8 @@ private struct BenchmarkDetailView: View {
                         }
                         .frame(maxWidth: 360, alignment: .leading)
 
-                        TextField("Custom domains", text: $customDomainsText, axis: .vertical)
-                            .font(.body.monospaced())
-                            .lineLimit(3...6)
-                            .textFieldStyle(.plain)
-                            .padding(DNSPilotDesign.Spacing.controlGap)
-                            .frame(minHeight: 72, alignment: .topLeading)
+                        DNSPilotMultilineTextInput(text: $customDomainsText)
+                            .frame(minHeight: 88, alignment: .topLeading)
                             .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
                             .overlay {
                                 RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
