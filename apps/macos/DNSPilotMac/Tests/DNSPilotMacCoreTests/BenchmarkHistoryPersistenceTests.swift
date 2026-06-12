@@ -27,4 +27,26 @@ final class BenchmarkHistoryPersistenceTests: XCTestCase {
             "path-compare-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         )
     }
+
+    func testPersistenceFactoryBuildsApplicationSupportDatabaseLocation() {
+        let uuid = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let factory = BenchmarkHistoryPersistenceFactory(
+            applicationSupportDirectory: URL(fileURLWithPath: "/Users/test/Library/Application Support")
+        )
+
+        let persistence = factory.makePersistence(mode: .dnsOnlyCompare, uuid: uuid)
+
+        XCTAssertEqual(
+            persistence.databaseURL.path,
+            "/Users/test/Library/Application Support/DNSPilot/history.sqlite"
+        )
+        XCTAssertEqual(
+            factory.directoryURL.path,
+            "/Users/test/Library/Application Support/DNSPilot"
+        )
+        XCTAssertEqual(
+            persistence.historyID,
+            "compare-11111111-2222-3333-4444-555555555555"
+        )
+    }
 }

@@ -90,6 +90,7 @@ DNS handling, and platform capability reporting.
 - [x] [79] v0.1 macOS benchmark run controls — wire running/cancelling UI state and stale result guardrails.
 - [x] [80] v0.1 macOS benchmark process cancellation — terminate active benchmark process from Cancel.
 - [x] [81] v0.1 macOS benchmark history persistence args — append save-db/history-id through runner.
+- [x] [82] v0.1 macOS benchmark history app path — auto-save runs to Application Support when available.
 
 ---
 
@@ -3439,6 +3440,36 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 82: v0.1 macOS Benchmark History App Path
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkHistoryPersistence.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryPersistenceTests.swift`, `README.md`
+
+### What changed
+
+Added an Application Support persistence factory and wired the Benchmark screen
+to create `DNSPilot/history.sqlite` before launching the CLI. Successful runs now
+pass save arguments automatically when the directory can be prepared.
+
+### Edge Cases / Caveats
+
+- If Application Support is unavailable or directory creation fails, benchmark
+  still runs without history persistence.
+- The app does not yet expose history-list UI or a save-warning banner.
+- SQLite write errors from the CLI still return as benchmark process failures.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkHistoryPersistenceFactory did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 67 passed, 0 failed
 ```
 
 ---

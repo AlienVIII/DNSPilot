@@ -383,6 +383,7 @@ private struct BenchmarkDetailView: View {
         currentCancellation = cancellation
         outcome = nil
         let plan = setup.plan
+        let persistence = makeHistoryPersistence(for: plan)
         let catalog = catalog
 
         DispatchQueue.global(qos: .userInitiated).async {
@@ -390,7 +391,11 @@ private struct BenchmarkDetailView: View {
                 runner: BenchmarkRunner(executableURL: executableURL),
                 catalog: catalog
             )
-            let nextOutcome = coordinator.execute(plan: plan, cancellation: cancellation)
+            let nextOutcome = coordinator.execute(
+                plan: plan,
+                persistence: persistence,
+                cancellation: cancellation
+            )
 
             DispatchQueue.main.async {
                 if case .cancelling = runStateMachine.state {
@@ -427,6 +432,28 @@ private struct BenchmarkDetailView: View {
             runStateMachine.requestCancel(runID: runID)
             currentCancellation?.cancel()
         }
+    }
+
+    private func makeHistoryPersistence(for plan: BenchmarkPlanViewModel) -> BenchmarkHistoryPersistence? {
+        guard let applicationSupportDirectory = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            return nil
+        }
+
+        let factory = BenchmarkHistoryPersistenceFactory(
+            applicationSupportDirectory: applicationSupportDirectory
+        )
+        do {
+            try FileManager.default.createDirectory(
+                at: factory.directoryURL,
+                withIntermediateDirectories: true
+            )
+        } catch {
+            return nil
+        }
+        return factory.makePersistence(mode: plan.mode)
     }
 }
 
