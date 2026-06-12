@@ -103,7 +103,7 @@ public struct BenchmarkResultMetrics: Decodable, Equatable {
     public let p95DNSLatencyMS: Double
     public let failureRate: Double
     public let timeoutRate: Double
-    public let medianConnectLatencyMS: Double
+    public let medianConnectLatencyMS: Double?
     public let ipv4Health: Double
     public let ipv6Health: Double
     public let priorityFit: Double

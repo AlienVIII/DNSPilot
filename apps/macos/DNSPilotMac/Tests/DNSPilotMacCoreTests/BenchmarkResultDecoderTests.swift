@@ -15,6 +15,7 @@ final class BenchmarkResultDecoderTests: XCTestCase {
         XCTAssertEqual(result.summary.domainCount, 1)
         XCTAssertEqual(result.runs.map(\.profileID), ["slow", "fast"])
         XCTAssertEqual(result.runs[1].metrics.medianDNSLatencyMS, 4.0)
+        XCTAssertNil(result.runs[1].metrics.medianConnectLatencyMS)
         XCTAssertEqual(result.recommendation?.profileID, "fast")
         XCTAssertEqual(result.recommendation?.confidence, .high)
         XCTAssertTrue(result.warning.contains("DNS-only"))
@@ -64,7 +65,7 @@ private let dnsOnlyCompareJSON = """
         "p95_dns_latency_ms": 80.0,
         "failure_rate": 0.0,
         "timeout_rate": 0.0,
-        "median_connect_latency_ms": 0.0,
+        "median_connect_latency_ms": null,
         "ipv4_health": 1.0,
         "ipv6_health": 0.0,
         "priority_fit": 1.0
@@ -79,7 +80,7 @@ private let dnsOnlyCompareJSON = """
         "p95_dns_latency_ms": 4.0,
         "failure_rate": 0.0,
         "timeout_rate": 0.0,
-        "median_connect_latency_ms": 0.0,
+        "median_connect_latency_ms": null,
         "ipv4_health": 1.0,
         "ipv6_health": 0.0,
         "priority_fit": 1.0

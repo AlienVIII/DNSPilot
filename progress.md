@@ -102,6 +102,7 @@ DNS handling, and platform capability reporting.
 - [x] [91] v0.1 macOS custom DNS UI — add sidebar form and save action.
 - [x] [92] v0.1 macOS storage-backed catalog bridge — merge persisted profiles/suites into catalog.
 - [x] [93] v0.1 macOS catalog refresh wiring — refresh storage-backed catalog on launch/save.
+- [x] [94] v0.1 macOS DNS-only null latency decode — accept null connection latency in results.
 
 ---
 
@@ -3656,6 +3657,35 @@ This lets persisted custom profiles flow into Benchmark and Catalog screens.
 ```text
 swift build --package-path apps/macos/DNSPilotMac
 Result: build complete
+```
+
+---
+
+## Chunk 94: v0.1 macOS DNS-Only Null Latency Decode
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultDecoderTests.swift`, `README.md`
+
+### What changed
+
+Changed benchmark result decoding so `median_connect_latency_ms: null` is valid.
+DNS-only compare payloads do not measure TCP latency, so the UI now renders the
+result instead of turning it into a generic parse failure.
+
+### Edge Cases / Caveats
+
+- This fixes a schema mismatch, not network-level DNS timeouts.
+- DNS-only runs can still be degraded or inconclusive; those states need richer
+  failure/process UI next.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsDnsOnlyCompareResult
+RED result: failed because null median_connect_latency_ms could not decode as Double
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsDnsOnlyCompareResult
+Result: 1 passed, 0 failed
 ```
 
 ---

@@ -111,8 +111,8 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
         failureRateLabel = "\(Self.percent(run.metrics.failureRate))% failed"
     }
 
-    private static func latencyLabel(_ value: Double, failureRate: Double) -> String {
-        guard value.isFinite else {
+    private static func latencyLabel(_ value: Double?, failureRate: Double) -> String {
+        guard let value, value.isFinite else {
             return "n/a"
         }
         if failureRate >= 1, value <= 0 {
