@@ -3718,6 +3718,51 @@ Result: build complete
 
 ---
 
+## Chunk 96: v0.1 macOS Benchmark Progress Failure Details
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkProgressViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkExecutionCoordinator.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkProgressViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkExecutionCoordinatorTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added benchmark process status rows and structured failure details for DNS-only
+and DNS+TCP runs. Failures now include failed step, reason, suggestion, elapsed
+time, and debug log with exit code/stdout/stderr/arguments.
+
+### Edge Cases / Caveats
+
+- CLI benchmark execution still does not stream per-stage progress, so running
+  DNS+TCP status is coarse-grained until result/failure returns.
+- Manual app testing is still needed for real focus behavior and live network
+  failure rendering.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkProgressViewModelTests
+RED result: failed because BenchmarkProgressViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkExecutionCoordinatorTests
+Result: 6 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkProgressViewModelTests
+Result: 4 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 97 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 112 passed, 0 failed
+
+git diff --check
+Result: clean
+```
+
+---
+
 ## Chunk 86: v0.1 macOS Result Saved-History Label
 
 **Status:** Complete

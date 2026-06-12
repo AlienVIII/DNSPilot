@@ -585,6 +585,8 @@ private struct BenchmarkDetailView: View {
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
+    @State private var currentBenchmarkStartedAt: Date?
+    @State private var lastBenchmarkElapsedMS: Int?
     @State private var outcome: BenchmarkExecutionOutcome?
 
     private var setupViewModel: BenchmarkSetupViewModel {
@@ -604,6 +606,22 @@ private struct BenchmarkDetailView: View {
             state: runStateMachine.state,
             setupCanRun: setupViewModel.canRun
         )
+    }
+
+    private var progressViewModel: BenchmarkProgressViewModel {
+        BenchmarkProgressViewModel(
+            mode: mode,
+            state: runStateMachine.state,
+            outcome: outcome,
+            historySaved: completedResultSavedHistory
+        )
+    }
+
+    private var completedResultSavedHistory: Bool {
+        guard case .completed(let resultViewModel) = outcome else {
+            return false
+        }
+        return resultViewModel.savedHistoryLabel != nil
     }
 
     init(catalog: CatalogSnapshot, executableAvailability: BenchmarkExecutableAvailability) {
@@ -650,6 +668,10 @@ private struct BenchmarkDetailView: View {
 
                 if !setupViewModel.readinessIssues.isEmpty {
                     BenchmarkIssueList(issues: setupViewModel.readinessIssues)
+                }
+
+                if progressViewModel.shouldDisplay {
+                    BenchmarkProgressPanel(viewModel: progressViewModel)
                 }
 
                 BenchmarkSection(title: "Mode") {
@@ -719,8 +741,12 @@ private struct BenchmarkDetailView: View {
                     switch outcome {
                     case .completed(let resultViewModel):
                         BenchmarkResultPanel(viewModel: resultViewModel)
-                    case .failed(let message):
-                        BenchmarkIssueList(issues: [message])
+                    case .failed(let failure):
+                        BenchmarkFailurePanel(
+                            failure: failure,
+                            mode: mode,
+                            elapsedMS: lastBenchmarkElapsedMS
+                        )
                     }
                 }
             }
@@ -748,11 +774,27 @@ private struct BenchmarkDetailView: View {
     private func runBenchmark() {
         let setup = setupViewModel
         guard setup.canRun else {
-            outcome = .failed(setup.readinessIssues.joined(separator: "\n"))
+            let message = setup.readinessIssues.joined(separator: "\n")
+            outcome = .failed(
+                BenchmarkExecutionFailure(
+                    message: message,
+                    failedStep: .preparingBenchmark,
+                    debugLog: message
+                )
+            )
+            lastBenchmarkElapsedMS = 0
             return
         }
         guard case .ready(let executableURL) = executableAvailability else {
-            outcome = .failed("DNS Pilot CLI executable is unavailable.")
+            let message = "DNS Pilot CLI executable is unavailable."
+            outcome = .failed(
+                BenchmarkExecutionFailure(
+                    message: message,
+                    failedStep: .preparingBenchmark,
+                    debugLog: message
+                )
+            )
+            lastBenchmarkElapsedMS = 0
             return
         }
 
@@ -760,6 +802,9 @@ private struct BenchmarkDetailView: View {
         let cancellation = BenchmarkRunCancellation()
         currentCancellation = cancellation
         outcome = nil
+        lastBenchmarkElapsedMS = nil
+        let startedAt = Date()
+        currentBenchmarkStartedAt = startedAt
         let plan = setup.plan
         let persistence = makeHistoryPersistence(for: plan)
         let catalog = catalog
@@ -781,15 +826,26 @@ private struct BenchmarkDetailView: View {
                     if currentCancellation === cancellation {
                         currentCancellation = nil
                     }
-                    outcome = .failed("Benchmark cancelled.")
+                    currentBenchmarkStartedAt = nil
+                    lastBenchmarkElapsedMS = Self.elapsedMilliseconds(since: startedAt)
+                    outcome = .failed(
+                        BenchmarkExecutionFailure(
+                            message: "Benchmark cancelled.",
+                            failedStep: .preparingBenchmark,
+                            suggestion: "Run the benchmark again when ready.",
+                            debugLog: "User cancelled benchmark."
+                        )
+                    )
                     return
                 }
 
+                currentBenchmarkStartedAt = nil
+                lastBenchmarkElapsedMS = Self.elapsedMilliseconds(since: startedAt)
                 switch nextOutcome {
                 case .completed:
                     runStateMachine.finishCompleted(runID: runID)
-                case .failed(let message):
-                    runStateMachine.finishFailed(runID: runID, message: message)
+                case .failed(let failure):
+                    runStateMachine.finishFailed(runID: runID, message: failure.message)
                 }
 
                 switch runStateMachine.state {
@@ -818,6 +874,10 @@ private struct BenchmarkDetailView: View {
         }
         return factory.makePersistence(mode: plan.mode)
     }
+
+    private static func elapsedMilliseconds(since startDate: Date) -> Int {
+        max(0, Int(Date().timeIntervalSince(startDate) * 1000))
+    }
 }
 
 private func makePreparedHistoryPersistenceFactory() -> BenchmarkHistoryPersistenceFactory? {
@@ -840,6 +900,55 @@ private func makePreparedHistoryPersistenceFactory() -> BenchmarkHistoryPersiste
         return nil
     }
     return factory
+}
+
+private extension BenchmarkProgressViewModel {
+    var shouldDisplay: Bool {
+        steps.contains { $0.status != .idle }
+    }
+}
+
+private extension BenchmarkProgressStatus {
+    var displayLabel: String {
+        rawValue.capitalized
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .idle:
+            "circle"
+        case .running:
+            "arrow.triangle.2.circlepath"
+        case .success:
+            "checkmark.circle.fill"
+        case .failed:
+            "xmark.octagon.fill"
+        }
+    }
+
+    var foregroundStyle: Color {
+        switch self {
+        case .idle:
+            .secondary
+        case .running:
+            DNSPilotDesign.Palette.accent
+        case .success:
+            .green
+        case .failed:
+            .red
+        }
+    }
+}
+
+private extension BenchmarkPlanMode {
+    var displayLabel: String {
+        switch self {
+        case .dnsOnlyCompare:
+            "DNS only"
+        case .connectionPathCompare:
+            "DNS + TCP"
+        }
+    }
 }
 
 private struct BenchmarkSection<Content: View>: View {
@@ -876,6 +985,95 @@ private struct BenchmarkIssueList: View {
         .overlay {
             RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card)
                 .stroke(DNSPilotDesign.Palette.warning.opacity(0.35))
+        }
+    }
+}
+
+private struct BenchmarkProgressPanel: View {
+    let viewModel: BenchmarkProgressViewModel
+
+    var body: some View {
+        BenchmarkSection(title: "Process") {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                ForEach(viewModel.steps) { step in
+                    HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                        BenchmarkProgressStatusIcon(status: step.status)
+                        Text(step.title)
+                            .font(.body.weight(step.status == .running ? .semibold : .regular))
+                        Spacer()
+                        Text(step.status.displayLabel)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(step.status.foregroundStyle)
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+}
+
+private struct BenchmarkProgressStatusIcon: View {
+    let status: BenchmarkProgressStatus
+
+    var body: some View {
+        Group {
+            if status == .running {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: status.systemImageName)
+                    .foregroundStyle(status.foregroundStyle)
+            }
+        }
+        .frame(width: 18, height: 18)
+    }
+}
+
+private struct BenchmarkFailurePanel: View {
+    let failure: BenchmarkExecutionFailure
+    let mode: BenchmarkPlanMode
+    let elapsedMS: Int?
+
+    var body: some View {
+        BenchmarkSection(title: "Benchmark failed") {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                BenchmarkFailureRow(label: "Mode", value: mode.displayLabel)
+                BenchmarkFailureRow(label: "Failed at", value: failure.failedStep.label)
+                BenchmarkFailureRow(label: "Reason", value: failure.message)
+                BenchmarkFailureRow(label: "Suggestion", value: failure.suggestion)
+                if let elapsedMS {
+                    BenchmarkFailureRow(label: "Elapsed", value: "\(elapsedMS) ms")
+                }
+
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Text("Debug log")
+                        .font(.headline)
+                    Text(failure.debugLog)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(DNSPilotDesign.Spacing.row)
+                        .background(DNSPilotDesign.Palette.panel, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
+                }
+            }
+        }
+    }
+}
+
+private struct BenchmarkFailureRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.row, verticalSpacing: DNSPilotDesign.Spacing.controlGap) {
+            GridRow {
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 88, alignment: .leading)
+                Text(value)
+                    .textSelection(.enabled)
+            }
         }
     }
 }

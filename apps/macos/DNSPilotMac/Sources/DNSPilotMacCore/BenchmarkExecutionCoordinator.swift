@@ -2,7 +2,7 @@ import Foundation
 
 public enum BenchmarkExecutionOutcome: Equatable {
     case completed(BenchmarkResultViewModel)
-    case failed(String)
+    case failed(BenchmarkExecutionFailure)
 }
 
 public struct BenchmarkExecutionCoordinator {
@@ -26,17 +26,53 @@ public struct BenchmarkExecutionCoordinator {
                 cancellation: cancellation
             )
             guard runResult.succeeded else {
-                return .failed(Self.processFailureMessage(from: runResult))
+                return .failed(
+                    BenchmarkExecutionFailure(
+                        message: Self.processFailureMessage(from: runResult),
+                        failedStep: Self.processFailureStep(for: plan.mode),
+                        debugLog: Self.debugLog(from: runResult)
+                    )
+                )
             }
 
-            let payload = try BenchmarkResultJSONDecoder.decode(runResult.standardOutput)
-            return .completed(BenchmarkResultViewModel(result: payload, catalog: catalog))
+            do {
+                let payload = try BenchmarkResultJSONDecoder.decode(runResult.standardOutput)
+                return .completed(BenchmarkResultViewModel(result: payload, catalog: catalog))
+            } catch is DecodingError {
+                return .failed(
+                    BenchmarkExecutionFailure(
+                        message: "Could not parse benchmark result.",
+                        failedStep: .parsingResult,
+                        debugLog: Self.debugLog(from: runResult)
+                    )
+                )
+            }
         } catch BenchmarkRunnerError.invalidPlan(let issues) {
-            return .failed(issues.joined(separator: "\n"))
-        } catch is DecodingError {
-            return .failed("Could not parse benchmark result.")
+            let message = issues.joined(separator: "\n")
+            return .failed(
+                BenchmarkExecutionFailure(
+                    message: message,
+                    failedStep: .preparingBenchmark,
+                    debugLog: message
+                )
+            )
         } catch {
-            return .failed(error.localizedDescription)
+            return .failed(
+                BenchmarkExecutionFailure(
+                    message: error.localizedDescription,
+                    failedStep: .preparingBenchmark,
+                    debugLog: error.localizedDescription
+                )
+            )
+        }
+    }
+
+    private static func processFailureStep(for mode: BenchmarkPlanMode) -> BenchmarkFailureStep {
+        switch mode {
+        case .dnsOnlyCompare:
+            .resolvingDNS
+        case .connectionPathCompare:
+            .measuringConnection
         }
     }
 
@@ -52,5 +88,19 @@ public struct BenchmarkExecutionCoordinator {
         }
 
         return "Benchmark command exited with code \(result.exitCode)."
+    }
+
+    private static func debugLog(from result: BenchmarkRunResult) -> String {
+        var sections = ["exit code: \(result.exitCode)"]
+        let standardError = result.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !standardError.isEmpty {
+            sections.append("stderr:\n\(standardError)")
+        }
+        let standardOutput = result.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !standardOutput.isEmpty {
+            sections.append("stdout:\n\(standardOutput)")
+        }
+        sections.append("arguments:\n\(result.commandArguments.joined(separator: " "))")
+        return sections.joined(separator: "\n\n")
     }
 }

@@ -48,7 +48,24 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
 
         let outcome = coordinator.execute(plan: makeExecutionPlan())
 
-        XCTAssertEqual(outcome, .failed("resolver timed out"))
+        XCTAssertEqual(
+            outcome,
+            .failed(
+                    BenchmarkExecutionFailure(
+                        message: "resolver timed out",
+                        failedStep: .resolvingDNS,
+                        debugLog: """
+                        exit code: 2
+
+                        stderr:
+                        resolver timed out
+
+                        arguments:
+                        compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
+                        """
+                    )
+                )
+            )
     }
 
     func testCoordinatorReturnsValidationErrorsWithoutRunningProcess() {
@@ -74,7 +91,16 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(outcome, .failed("Select at least one plain DNS profile."))
+        XCTAssertEqual(
+            outcome,
+            .failed(
+                BenchmarkExecutionFailure(
+                    message: "Select at least one plain DNS profile.",
+                    failedStep: .preparingBenchmark,
+                    debugLog: "Select at least one plain DNS profile."
+                )
+            )
+        )
         XCTAssertEqual(processRunner.runCount, 0)
     }
 
@@ -95,7 +121,24 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
 
         let outcome = coordinator.execute(plan: makeExecutionPlan())
 
-        XCTAssertEqual(outcome, .failed("Could not parse benchmark result."))
+        XCTAssertEqual(
+            outcome,
+            .failed(
+                    BenchmarkExecutionFailure(
+                        message: "Could not parse benchmark result.",
+                        failedStep: .parsingResult,
+                        debugLog: """
+                        exit code: 0
+
+                        stdout:
+                        not json
+
+                        arguments:
+                        compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
+                        """
+                    )
+                )
+            )
     }
 
     func testCoordinatorPassesCancellationToRunner() {
