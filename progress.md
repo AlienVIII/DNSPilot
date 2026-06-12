@@ -3805,6 +3805,52 @@ Result: clean
 
 ---
 
+## Chunk 98: v0.1 macOS Dev Foreground Activation
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ApplicationActivationPlan.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ApplicationActivationPlanTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MultilineTextInputTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added launch activation bootstrap so the SwiftPM-run macOS app sets regular
+activation policy and activates itself. This fixes the dev app being registered
+as `BackgroundOnly`, which can leave keyboard events outside the app even when
+mouse paste works.
+
+### Evidence
+
+```text
+Before: lsappinfo reported ApplicationType="BackgroundOnly"
+After:  lsappinfo reported ApplicationType="Foreground"
+```
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter ApplicationActivationPlanTests
+RED result: failed because DNSPilotApplicationActivationPlan did not exist
+
+swift test --package-path apps/macos/DNSPilotMac --filter ApplicationActivationPlanTests
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter MultilineTextInputTests
+Result: 4 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 102 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 112 passed, 0 failed
+
+git diff --check
+Result: clean
+```
+
+---
+
 ## Chunk 86: v0.1 macOS Result Saved-History Label
 
 **Status:** Complete

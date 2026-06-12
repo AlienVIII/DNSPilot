@@ -1,12 +1,35 @@
+import AppKit
 import SwiftUI
 import DNSPilotMacCore
 
 @main
 struct DNSPilotMacApp: App {
+    @NSApplicationDelegateAdaptor(DNSPilotApplicationDelegate.self) private var applicationDelegate
+
     var body: some Scene {
         WindowGroup {
             DNSPilotShellView()
                 .frame(minWidth: 900, minHeight: 620)
+        }
+    }
+}
+
+@MainActor
+private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        applyActivationPlan(.launch)
+    }
+
+    private func applyActivationPlan(_ plan: DNSPilotApplicationActivationPlan) {
+        for action in plan.actions {
+            switch action {
+            case .setRegularActivationPolicy:
+                NSApp.setActivationPolicy(.regular)
+            case .activateIgnoringOtherApps:
+                DispatchQueue.main.async {
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
         }
     }
 }
