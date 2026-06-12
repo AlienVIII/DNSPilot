@@ -103,6 +103,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   saving them through the shared CLI/storage boundary.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
+- macOS shell refreshes the storage-backed catalog on launch and after Custom
+  DNS saves, so saved profiles can appear in Benchmark/Catalog flows.
 - macOS shared app storage path uses `DNSPilot/dnspilot.sqlite` for profiles,
   suites, and history.
 - CLI full capability matrix command for platform shell contract checks.

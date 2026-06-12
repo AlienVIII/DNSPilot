@@ -21,9 +21,10 @@ private enum SidebarSelection: Hashable {
 
 private struct DNSPilotShellView: View {
     @State private var selection: SidebarSelection? = .capabilities
+    @State private var catalogViewModel = CatalogViewModel()
+    @State private var hasRequestedStorageCatalogRefresh = false
 
     private let capabilityViewModel = CapabilityMatrixViewModel()
-    private let catalogViewModel = CatalogViewModel()
 
     var body: some View {
         NavigationSplitView {
@@ -56,7 +57,8 @@ private struct DNSPilotShellView: View {
                 BenchmarkDetailHostView(catalogViewModel: catalogViewModel)
             case .customDNS:
                 CustomDNSDetailHostView(
-                    executableAvailability: BenchmarkExecutableResolver().resolve()
+                    executableAvailability: BenchmarkExecutableResolver().resolve(),
+                    onProfileSaved: refreshCatalogFromStorage
                 )
             case .history:
                 HistoryDetailHostView(catalogViewModel: catalogViewModel)
@@ -64,16 +66,54 @@ private struct DNSPilotShellView: View {
                 CatalogOverviewDetailView(viewModel: catalogViewModel)
             }
         }
+        .onAppear {
+            guard !hasRequestedStorageCatalogRefresh else {
+                return
+            }
+            hasRequestedStorageCatalogRefresh = true
+            refreshCatalogFromStorage()
+        }
+    }
+
+    private func refreshCatalogFromStorage() {
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            catalogViewModel = CatalogViewModel()
+            return
+        }
+
+        switch BenchmarkExecutableResolver().resolve() {
+        case .ready(let executableURL):
+            let databaseURL = factory.databaseURL
+            DispatchQueue.global(qos: .userInitiated).async {
+                let viewModel = CatalogViewModel(
+                    bridge: StorageBackedCatalogBridge(
+                        baseBridge: PreviewCatalogBridge(),
+                        storageRunner: CatalogStorageRunner(executableURL: executableURL),
+                        databaseURL: databaseURL
+                    )
+                )
+
+                DispatchQueue.main.async {
+                    catalogViewModel = viewModel
+                }
+            }
+        case .unavailable:
+            catalogViewModel = CatalogViewModel()
+        }
     }
 }
 
 private struct CustomDNSDetailHostView: View {
     let executableAvailability: BenchmarkExecutableAvailability
+    let onProfileSaved: () -> Void
 
     var body: some View {
         switch executableAvailability {
         case .ready(let executableURL):
-            CustomDNSProfileDetailView(executableURL: executableURL)
+            CustomDNSProfileDetailView(
+                executableURL: executableURL,
+                onProfileSaved: onProfileSaved
+            )
         case .unavailable(let message):
             BenchmarkUnavailableView(title: "Custom DNS", message: message)
         }
@@ -82,6 +122,7 @@ private struct CustomDNSDetailHostView: View {
 
 private struct CustomDNSProfileDetailView: View {
     let executableURL: URL
+    let onProfileSaved: () -> Void
 
     @State private var name = ""
     @State private var ipv4ServersText = ""
@@ -199,6 +240,7 @@ private struct CustomDNSProfileDetailView: View {
                 switch outcome {
                 case .saved(let profileID, let name):
                     saveState = .saved(profileID: profileID, name: name)
+                    onProfileSaved()
                 case .failed(let message):
                     saveState = .failed(message)
                 }

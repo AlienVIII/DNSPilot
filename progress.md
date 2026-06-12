@@ -101,6 +101,7 @@ DNS handling, and platform capability reporting.
 - [x] [90] v0.1 macOS shared storage filename — use dnspilot.sqlite for profiles/suites/history.
 - [x] [91] v0.1 macOS custom DNS UI — add sidebar form and save action.
 - [x] [92] v0.1 macOS storage-backed catalog bridge — merge persisted profiles/suites into catalog.
+- [x] [93] v0.1 macOS catalog refresh wiring — refresh storage-backed catalog on launch/save.
 
 ---
 
@@ -3628,6 +3629,33 @@ RED result: failed because catalog storage bridge types did not exist
 
 swift test --package-path apps/macos/DNSPilotMac --filter CatalogStorageBridgeTests
 Result: 5 passed, 0 failed
+```
+
+---
+
+## Chunk 93: v0.1 macOS Catalog Refresh Wiring
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `README.md`
+
+### What changed
+
+Changed the macOS shell catalog model into state and refreshes it through the
+storage-backed catalog bridge on launch and after a Custom DNS profile is saved.
+This lets persisted custom profiles flow into Benchmark and Catalog screens.
+
+### Edge Cases / Caveats
+
+- If the CLI is unavailable or storage cannot be prepared, the app falls back to
+  the built-in preview catalog.
+- Refresh is asynchronous; a newly saved profile may appear after the process
+  round trip rather than instantly in the same render pass.
+
+### Verification
+
+```text
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
 ```
 
 ---
