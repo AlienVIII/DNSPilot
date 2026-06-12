@@ -103,6 +103,7 @@ DNS handling, and platform capability reporting.
 - [x] [92] v0.1 macOS storage-backed catalog bridge — merge persisted profiles/suites into catalog.
 - [x] [93] v0.1 macOS catalog refresh wiring — refresh storage-backed catalog on launch/save.
 - [x] [94] v0.1 macOS DNS-only null latency decode — accept null connection latency in results.
+- [x] [95] v0.1 macOS benchmark domain input typing — replace TextEditor with vertical TextField.
 
 ---
 
@@ -3686,6 +3687,33 @@ RED result: failed because null median_connect_latency_ms could not decode as Do
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsDnsOnlyCompareResult
 Result: 1 passed, 0 failed
+```
+
+---
+
+## Chunk 95: v0.1 macOS Benchmark Domain Input Typing
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `README.md`
+
+### What changed
+
+Replaced the Benchmark custom-domain `TextEditor` with a vertical `TextField`.
+This avoids the macOS SwiftUI focus/typing issue seen inside the ScrollView form
+where paste worked but manual keyboard entry did not.
+
+### Edge Cases / Caveats
+
+- This is a UI behavior fix verified by build; final keyboard behavior still
+  needs manual app testing.
+- The parser remains unchanged and still accepts whitespace/comma/newline
+  separated domains.
+
+### Verification
+
+```text
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
 ```
 
 ---

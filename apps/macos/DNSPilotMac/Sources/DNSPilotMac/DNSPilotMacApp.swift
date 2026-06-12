@@ -693,10 +693,12 @@ private struct BenchmarkDetailView: View {
                         }
                         .frame(maxWidth: 360, alignment: .leading)
 
-                        TextEditor(text: $customDomainsText)
+                        TextField("Custom domains", text: $customDomainsText, axis: .vertical)
                             .font(.body.monospaced())
-                            .frame(minHeight: 72)
-                            .scrollContentBackground(.hidden)
+                            .lineLimit(3...6)
+                            .textFieldStyle(.plain)
+                            .padding(DNSPilotDesign.Spacing.controlGap)
+                            .frame(minHeight: 72, alignment: .topLeading)
                             .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
                             .overlay {
                                 RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)

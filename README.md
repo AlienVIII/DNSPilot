@@ -95,6 +95,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   persisted.
 - macOS DNS-only result decoder accepts missing/null connection latency and
   keeps DNS-only result rendering instead of turning it into a parse failure.
+- macOS Benchmark custom-domain input uses a vertical TextField for stable
+  keyboard entry in the ScrollView-based form.
 - macOS custom plain DNS profile form ViewModel for IPv4/IPv6 parsing,
   validation, profile ID generation, and `profile-add` arguments.
 - macOS custom plain DNS save runner/coordinator for executing `profile-add`
