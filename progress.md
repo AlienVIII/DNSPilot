@@ -92,6 +92,7 @@ DNS handling, and platform capability reporting.
 - [x] [81] v0.1 macOS benchmark history persistence args — append save-db/history-id through runner.
 - [x] [82] v0.1 macOS benchmark history app path — auto-save runs to Application Support when available.
 - [x] [83] v0.1 macOS benchmark history decoder — parse history-list JSON and build display rows.
+- [x] [84] v0.1 macOS benchmark history runner — invoke history-list through process boundary.
 
 ---
 
@@ -3441,6 +3442,35 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 84: v0.1 macOS Benchmark History Runner
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkHistoryRunner.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryDecoderTests.swift`, `README.md`
+
+### What changed
+
+Added a dedicated history runner that calls `history-list --db <path>` through
+the shared process boundary and decodes the saved run payload.
+
+### Edge Cases / Caveats
+
+- Non-zero CLI exits surface stderr first, then stdout, then a default exit-code
+  message.
+- History loading is separate from benchmark execution so UI can refresh history
+  without starting a benchmark.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkHistoryRunner did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 73 passed, 0 failed
 ```
 
 ---

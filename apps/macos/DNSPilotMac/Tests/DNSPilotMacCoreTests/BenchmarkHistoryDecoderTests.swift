@@ -47,7 +47,7 @@ final class BenchmarkHistoryViewModelTests: XCTestCase {
     }
 }
 
-private let historyListJSON = """
+let historyListJSON = """
 {
   "db": "/tmp/dnspilot.sqlite",
   "schema_version": 1,
