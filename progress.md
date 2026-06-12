@@ -91,6 +91,7 @@ DNS handling, and platform capability reporting.
 - [x] [80] v0.1 macOS benchmark process cancellation — terminate active benchmark process from Cancel.
 - [x] [81] v0.1 macOS benchmark history persistence args — append save-db/history-id through runner.
 - [x] [82] v0.1 macOS benchmark history app path — auto-save runs to Application Support when available.
+- [x] [83] v0.1 macOS benchmark history decoder — parse history-list JSON and build display rows.
 
 ---
 
@@ -3440,6 +3441,35 @@ Result: build complete
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 93 passed, 0 failed
+```
+
+---
+
+## Chunk 83: v0.1 macOS Benchmark History Decoder
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkHistoryModels.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryDecoderTests.swift`, `README.md`
+
+### What changed
+
+Added Swift models for `history-list` JSON, schema validation, and a display
+ViewModel that summarizes saved benchmark rows with scope, domains, resolver
+count, health, and recommendation labels.
+
+### Edge Cases / Caveats
+
+- Decoder rejects unsupported schema versions.
+- ViewModel handles missing recommendation by showing `No recommendation`.
+- This does not yet call the CLI or render the History screen.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+RED result: failed because BenchmarkHistoryJSONDecoder and BenchmarkHistoryViewModel did not exist
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 70 passed, 0 failed
 ```
 
 ---

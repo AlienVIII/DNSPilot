@@ -86,6 +86,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   `--history-id` to validated benchmark runs.
 - macOS benchmark auto-save wiring to an Application Support SQLite history
   database when the app can prepare the directory.
+- macOS benchmark history-list decoder and display ViewModel for saved run rows.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
