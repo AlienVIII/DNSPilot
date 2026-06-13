@@ -1537,7 +1537,7 @@ private struct BenchmarkDetailView: View {
 
     private func profileBinding(for option: BenchmarkProfileOption) -> Binding<Bool> {
         Binding(
-            get: { selectedProfileIDs.contains(option.id) },
+            get: { option.isRunnable && selectedProfileIDs.contains(option.id) },
             set: { isSelected in
                 if isSelected {
                     if !selectedProfileIDs.contains(option.id) {
