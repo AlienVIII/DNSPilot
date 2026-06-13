@@ -45,6 +45,16 @@ final class BenchmarkHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows[0].healthLabel, "Healthy")
         XCTAssertEqual(viewModel.rows[0].recommendationLabel, "Recommended: Cloudflare")
     }
+
+    func testViewModelShowsNewestSavedRunFirst() throws {
+        let payload = try BenchmarkHistoryJSONDecoder.decode(twoRunHistoryListJSON)
+        let viewModel = BenchmarkHistoryViewModel(
+            payload: payload,
+            catalog: makeHistoryCatalog()
+        )
+
+        XCTAssertEqual(viewModel.rows.map(\.id), ["run-new", "run-old"])
+    }
 }
 
 let historyListJSON = """
@@ -81,6 +91,74 @@ let historyListJSON = """
       },
       "recommendation_profile_id": "cloudflare",
       "notes": ["Saved by compare CLI."]
+    }
+  ]
+}
+"""
+
+let twoRunHistoryListJSON = """
+{
+  "db": "/tmp/dnspilot.sqlite",
+  "schema_version": 1,
+  "benchmark_history_count": 2,
+  "benchmark_history": [
+    {
+      "id": "run-old",
+      "started_at": "started-1",
+      "scope": "dns-only",
+      "mode": "fastest-raw-dns",
+      "domains": ["github.com"],
+      "resolver_profile_ids": ["cloudflare"],
+      "metrics": [
+        {
+          "profile_id": "cloudflare",
+          "median_dns_latency_ms": 12.0,
+          "p95_dns_latency_ms": 20.0,
+          "failure_rate": 0.0,
+          "timeout_rate": 0.0,
+          "median_connect_latency_ms": 0.0,
+          "ipv4_health": 1.0,
+          "ipv6_health": 1.0,
+          "priority_fit": 1.0
+        }
+      ],
+      "gate": {
+        "can_recommend": true,
+        "health": "healthy",
+        "primary_issue": "none",
+        "notes": []
+      },
+      "recommendation_profile_id": "cloudflare",
+      "notes": []
+    },
+    {
+      "id": "run-new",
+      "started_at": "started-2",
+      "scope": "dns-tcp",
+      "mode": "best-overall",
+      "domains": ["github.com"],
+      "resolver_profile_ids": ["google"],
+      "metrics": [
+        {
+          "profile_id": "google",
+          "median_dns_latency_ms": 10.0,
+          "p95_dns_latency_ms": 18.0,
+          "failure_rate": 0.0,
+          "timeout_rate": 0.0,
+          "median_connect_latency_ms": 22.0,
+          "ipv4_health": 1.0,
+          "ipv6_health": 1.0,
+          "priority_fit": 1.0
+        }
+      ],
+      "gate": {
+        "can_recommend": true,
+        "health": "healthy",
+        "primary_issue": "none",
+        "notes": []
+      },
+      "recommendation_profile_id": "google",
+      "notes": []
     }
   ]
 }

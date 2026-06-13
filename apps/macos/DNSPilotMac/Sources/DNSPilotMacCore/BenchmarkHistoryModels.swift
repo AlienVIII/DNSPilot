@@ -70,7 +70,7 @@ public struct BenchmarkHistoryViewModel: Equatable {
         let profileNames = Dictionary(
             uniqueKeysWithValues: (catalog?.profiles ?? []).map { ($0.id, $0.name) }
         )
-        rows = payload.records.map { record in
+        rows = payload.records.reversed().map { record in
             BenchmarkHistoryRow(record: record, profileNames: profileNames)
         }
     }
