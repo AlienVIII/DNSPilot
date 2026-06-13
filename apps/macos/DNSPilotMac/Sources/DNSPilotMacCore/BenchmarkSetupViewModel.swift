@@ -29,6 +29,16 @@ public struct BenchmarkSetupViewModel: Equatable {
         return "\(selectedRunnableCount) of \(runnableIDs.count) runnable selected"
     }
 
+    public var runPlanSummary: String {
+        let plan = plan
+        return [
+            modeLabel,
+            Self.countLabel(plan.resolverCount, singular: "resolver", plural: "resolvers"),
+            Self.countLabel(plan.domains.count, singular: "domain", plural: "domains"),
+            Self.countLabel(attempts, singular: "attempt", plural: "attempts"),
+        ].joined(separator: ", ")
+    }
+
     public var suiteOptions: [BenchmarkSuiteOption] {
         catalog.testSuites.map(BenchmarkSuiteOption.init(testSuite:))
     }
@@ -98,6 +108,19 @@ public struct BenchmarkSetupViewModel: Equatable {
         text.components(separatedBy: CharacterSet(charactersIn: ",;\n\r\t "))
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    private var modeLabel: String {
+        switch mode {
+        case .dnsOnlyCompare:
+            "DNS only"
+        case .connectionPathCompare:
+            "DNS + TCP"
+        }
+    }
+
+    private static func countLabel(_ count: Int, singular: String, plural: String) -> String {
+        "\(count) \(count == 1 ? singular : plural)"
     }
 }
 

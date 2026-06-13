@@ -965,6 +965,10 @@ private struct BenchmarkDetailView: View {
                     .help(setupViewModel.canRun ? "Run benchmark" : "Resolve readiness issues")
                 }
 
+                Label(setupViewModel.runPlanSummary, systemImage: "list.bullet.clipboard")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 if !setupViewModel.readinessIssues.isEmpty {
                     BenchmarkIssueList(issues: setupViewModel.readinessIssues)
                 }

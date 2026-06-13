@@ -79,6 +79,20 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(partialSelection.profileSelectionSummary, "1 of 2 runnable selected")
         XCTAssertEqual(allSelected.profileSelectionSummary, "2 of 2 runnable selected")
     }
+
+    func testSetupSummarizesRunPlanBeforeStarting() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare", "google-public-dns"],
+            selectedSuiteID: "developer",
+            customDomainsText: "github.com",
+            attempts: 2,
+            mode: .connectionPathCompare
+        )
+
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, 2 resolvers, 1 domain, 2 attempts")
+    }
 }
 
 private func makeSetupCatalog() -> CatalogSnapshot {
