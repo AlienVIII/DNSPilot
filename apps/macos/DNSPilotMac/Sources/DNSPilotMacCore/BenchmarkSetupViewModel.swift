@@ -129,6 +129,16 @@ public struct BenchmarkSetupViewModel: Equatable {
         )
     }
 
+    public static func quickRunPreset(
+        catalog: CatalogSnapshot,
+        executableAvailability: BenchmarkExecutableAvailability
+    ) -> BenchmarkSetupViewModel {
+        BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: executableAvailability
+        )
+    }
+
     public init(
         catalog: CatalogSnapshot,
         executableAvailability: BenchmarkExecutableAvailability,

@@ -18,6 +18,20 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.readinessIssues, [])
     }
 
+    func testQuickRunPresetUsesFastSafeDefaults() {
+        let viewModel = BenchmarkSetupViewModel.quickRunPreset(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
+        )
+
+        XCTAssertEqual(viewModel.mode, .dnsOnlyCompare)
+        XCTAssertEqual(viewModel.attempts, 1)
+        XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
+        XCTAssertEqual(viewModel.selectedSuiteID, "developer")
+        XCTAssertEqual(viewModel.customDomainsText, "")
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS only, A + AAAA, 2 resolvers, 1 domain, 1 attempt")
+    }
+
     func testSetupParsesCustomDomainTextIntoPlan() {
         let viewModel = BenchmarkSetupViewModel(
             catalog: makeSetupCatalog(),

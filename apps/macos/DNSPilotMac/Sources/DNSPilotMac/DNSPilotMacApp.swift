@@ -1780,8 +1780,29 @@ private struct BenchmarkDetailView: View {
         guard requestID > handledQuickBenchmarkRequestID else {
             return
         }
+        guard !isBenchmarkActive else {
+            return
+        }
         handledQuickBenchmarkRequestID = requestID
+        applyQuickBenchmarkPreset()
         runBenchmark()
+    }
+
+    private func applyQuickBenchmarkPreset() {
+        let preset = BenchmarkSetupViewModel.quickRunPreset(
+            catalog: catalog,
+            executableAvailability: executableAvailability
+        )
+        selectedProfileIDs = preset.selectedProfileIDs
+        selectedSuiteID = preset.selectedSuiteID
+        customDomainsText = preset.customDomainsText
+        attempts = preset.attempts
+        dnsTimeoutMS = preset.dnsTimeoutMS
+        connectTimeoutMS = preset.connectTimeoutMS
+        maxConnectTargetsPerDomain = preset.maxConnectTargetsPerDomain
+        recordFamily = preset.recordFamily
+        resolverTransport = preset.resolverTransport
+        mode = preset.mode
     }
 
     private func runBenchmark() {
