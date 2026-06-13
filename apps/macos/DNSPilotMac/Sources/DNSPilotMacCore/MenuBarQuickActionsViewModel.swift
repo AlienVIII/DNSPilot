@@ -8,6 +8,7 @@ public enum MenuBarQuickActionKind: Equatable {
 public enum MenuBarQuickDestination: String, Equatable {
     case openApp
     case benchmark
+    case quickBenchmark
     case history
 }
 
@@ -46,6 +47,12 @@ public struct MenuBarQuickActionsViewModel: Equatable {
                 title: "Benchmark",
                 systemImage: "speedometer",
                 kind: .destination(.benchmark)
+            ),
+            MenuBarQuickAction(
+                id: "quick-benchmark",
+                title: "Run Quick Test",
+                systemImage: "play.fill",
+                kind: .destination(.quickBenchmark)
             ),
             MenuBarQuickAction(
                 id: "history",

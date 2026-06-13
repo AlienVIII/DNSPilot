@@ -35,6 +35,12 @@ private enum SidebarSelection: Hashable {
 @MainActor
 private final class DNSPilotNavigationModel: ObservableObject {
     @Published var selection: SidebarSelection? = .capabilities
+    @Published var quickBenchmarkRequestID = 0
+
+    func requestQuickBenchmark() {
+        selection = .benchmark
+        quickBenchmarkRequestID += 1
+    }
 }
 
 private struct DNSPilotMenuBarView: View {
@@ -69,6 +75,8 @@ private struct DNSPilotMenuBarView: View {
             navigation.selection = .capabilities
         case .benchmark:
             navigation.selection = .benchmark
+        case .quickBenchmark:
+            navigation.requestQuickBenchmark()
         case .history:
             navigation.selection = .history
         }
@@ -212,6 +220,7 @@ private struct DNSPilotShellView: View {
             case .benchmark:
                 BenchmarkDetailHostView(
                     catalogViewModel: catalogViewModel,
+                    quickBenchmarkRequestID: navigation.quickBenchmarkRequestID,
                     onCatalogChanged: refreshCatalogFromStorage
                 )
             case .customDNS:
@@ -800,6 +809,7 @@ private struct CatalogOverviewDetailView: View {
 
 private struct BenchmarkDetailHostView: View {
     let catalogViewModel: CatalogViewModel
+    let quickBenchmarkRequestID: Int
     let onCatalogChanged: () -> Void
 
     var body: some View {
@@ -809,6 +819,7 @@ private struct BenchmarkDetailHostView: View {
             BenchmarkDetailView(
                 catalog: catalog,
                 executableAvailability: BenchmarkExecutableResolver().resolve(),
+                quickBenchmarkRequestID: quickBenchmarkRequestID,
                 onCatalogChanged: onCatalogChanged
             )
         } else {
@@ -954,6 +965,7 @@ private struct HistoryDetailView: View {
 private struct BenchmarkDetailView: View {
     let catalog: CatalogSnapshot
     let executableAvailability: BenchmarkExecutableAvailability
+    let quickBenchmarkRequestID: Int
     let onCatalogChanged: () -> Void
 
     @State private var selectedProfileIDs: [String]
@@ -968,6 +980,7 @@ private struct BenchmarkDetailView: View {
     @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
     @State private var currentBenchmarkStartedAt: Date?
     @State private var lastBenchmarkElapsedMS: Int?
+    @State private var handledQuickBenchmarkRequestID = 0
     @State private var outcome: BenchmarkExecutionOutcome?
 
     private var setupViewModel: BenchmarkSetupViewModel {
@@ -1016,10 +1029,12 @@ private struct BenchmarkDetailView: View {
     init(
         catalog: CatalogSnapshot,
         executableAvailability: BenchmarkExecutableAvailability,
+        quickBenchmarkRequestID: Int,
         onCatalogChanged: @escaping () -> Void
     ) {
         self.catalog = catalog
         self.executableAvailability = executableAvailability
+        self.quickBenchmarkRequestID = quickBenchmarkRequestID
         self.onCatalogChanged = onCatalogChanged
         let defaults = BenchmarkSetupViewModel(
             catalog: catalog,
@@ -1209,6 +1224,12 @@ private struct BenchmarkDetailView: View {
         .background(DNSPilotDesign.Palette.background)
         .onChange(of: suiteNameText) { _, _ in resetSuiteSaveState() }
         .onChange(of: customDomainsText) { _, _ in resetSuiteSaveState() }
+        .onChange(of: quickBenchmarkRequestID) { _, requestID in
+            handleQuickBenchmarkRequest(requestID)
+        }
+        .onAppear {
+            handleQuickBenchmarkRequest(quickBenchmarkRequestID)
+        }
     }
 
     private func profileBinding(for option: BenchmarkProfileOption) -> Binding<Bool> {
@@ -1358,7 +1379,18 @@ private struct BenchmarkDetailView: View {
         selectedSuiteID = nil
     }
 
+    private func handleQuickBenchmarkRequest(_ requestID: Int) {
+        guard requestID > handledQuickBenchmarkRequestID else {
+            return
+        }
+        handledQuickBenchmarkRequestID = requestID
+        runBenchmark()
+    }
+
     private func runBenchmark() {
+        guard !isBenchmarkActive else {
+            return
+        }
         let setup = setupViewModel
         guard setup.canRun else {
             let message = setup.readinessIssues.joined(separator: "\n")

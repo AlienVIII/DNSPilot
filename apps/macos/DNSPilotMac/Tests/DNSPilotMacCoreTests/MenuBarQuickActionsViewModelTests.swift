@@ -12,7 +12,7 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
             return nil
         }
 
-        XCTAssertEqual(destinations, [.openApp, .benchmark, .history])
+        XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .history])
     }
 
     func testQuickActionTitlesStayShortForMenuBar() {
