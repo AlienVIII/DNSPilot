@@ -1157,6 +1157,12 @@ private struct BenchmarkDetailView: View {
                                 }
                                 .disabled(!suiteForm.canSave || isBenchmarkActive || isSavingSuite)
                                 .help(suiteForm.canSave ? "Save custom domains as a suite" : suiteForm.issues.joined(separator: "\n"))
+
+                                Button(action: fillAzureSuiteExample) {
+                                    Label("Azure Example", systemImage: "sparkles")
+                                }
+                                .disabled(isBenchmarkActive || isSavingSuite)
+                                .help("Fill Azure domains")
                             }
 
                             if shouldShowSuiteIssues, !suiteForm.issues.isEmpty {
@@ -1339,6 +1345,17 @@ private struct BenchmarkDetailView: View {
         case .idle, .saving:
             break
         }
+    }
+
+    private func fillAzureSuiteExample() {
+        suiteNameText = "Azure Lab"
+        customDomainsText = [
+            "portal.azure.com",
+            "login.microsoftonline.com",
+            "management.azure.com",
+            "blob.core.windows.net",
+        ].joined(separator: "\n")
+        selectedSuiteID = nil
     }
 
     private func runBenchmark() {
