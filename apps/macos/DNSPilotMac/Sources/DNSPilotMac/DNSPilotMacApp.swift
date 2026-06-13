@@ -2080,13 +2080,16 @@ private struct BenchmarkFailurePanel: View {
     }
 
     private func copyIssueLog() {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(
+        copyToPasteboard(
             failure.issueReport(modeLabel: mode.displayLabel, elapsedMS: elapsedMS),
-            forType: .string
         )
     }
+}
+
+private func copyToPasteboard(_ value: String) {
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(value, forType: .string)
 }
 
 private struct BenchmarkFailureRow: View {
@@ -2126,8 +2129,19 @@ private struct BenchmarkResultPanel: View {
                     .font(.title3.weight(.semibold))
 
                 if let savedHistoryLabel = viewModel.savedHistoryLabel {
-                    Label(savedHistoryLabel, systemImage: "clock.arrow.circlepath")
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                        Label(savedHistoryLabel, systemImage: "clock.arrow.circlepath")
+                            .foregroundStyle(.secondary)
+                        if let fullSavedHistoryID = viewModel.fullSavedHistoryID {
+                            Button {
+                                copyToPasteboard(fullSavedHistoryID)
+                            } label: {
+                                Label("Copy Run ID", systemImage: "doc.on.doc")
+                            }
+                            .labelStyle(.iconOnly)
+                            .help("Copy full saved run ID")
+                        }
+                    }
                 }
 
                 ScrollView(.horizontal) {
@@ -2224,6 +2238,7 @@ private struct HistoryRowView: View {
                 Text(row.id)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
             Spacer(minLength: DNSPilotDesign.Spacing.panel)
             VStack(alignment: .trailing, spacing: 4) {
@@ -2233,6 +2248,13 @@ private struct HistoryRowView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Button {
+                copyToPasteboard(row.id)
+            } label: {
+                Label("Copy Run ID", systemImage: "doc.on.doc")
+            }
+            .labelStyle(.iconOnly)
+            .help("Copy saved run ID")
             Button(role: .destructive, action: onDelete) {
                 Label("Delete", systemImage: "trash")
             }

@@ -51,6 +51,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.first?.medianDNSLatencyLabel, "4 ms")
         XCTAssertEqual(viewModel.notes, ["Lowest median DNS latency.", "Connection path not measured."])
         XCTAssertEqual(viewModel.savedHistoryLabel, "Saved run: compare-run-1")
+        XCTAssertEqual(viewModel.fullSavedHistoryID, "compare-run-1")
     }
 
     func testResultViewModelShortensLongSavedHistoryIDForResultPanel() {
@@ -93,6 +94,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
 
         XCTAssertEqual(viewModel.savedHistoryLabel, "Saved run: path-compare-bd1625f7...")
+        XCTAssertEqual(viewModel.fullSavedHistoryID, "path-compare-bd1625f7-0f3f-47c8-b4f6-2ba43eeecf10")
     }
 
     func testResultViewModelSoftensRecommendationForDegradedInconclusiveRuns() {

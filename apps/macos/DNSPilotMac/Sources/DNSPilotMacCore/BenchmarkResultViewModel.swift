@@ -10,6 +10,7 @@ public struct BenchmarkResultViewModel: Equatable {
     public let notes: [String]
     public let warning: String
     public let savedHistoryLabel: String?
+    public let fullSavedHistoryID: String?
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
         let profileNames = Dictionary(
@@ -24,6 +25,7 @@ public struct BenchmarkResultViewModel: Equatable {
         }
         warning = result.warning
         savedHistoryLabel = result.savedHistoryID.map(Self.savedHistoryLabel)
+        fullSavedHistoryID = result.savedHistoryID
 
         if result.summary.canRecommend,
            let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID {
