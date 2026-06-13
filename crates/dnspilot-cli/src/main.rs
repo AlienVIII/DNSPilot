@@ -988,6 +988,10 @@ fn main() {
                 std::process::exit(2);
             });
             let mut snapshot = load_snapshot_or_builtin(&storage);
+            if snapshot.test_suites.iter().any(|suite| suite.id == id) {
+                eprintln!("test suite '{id}' already exists");
+                std::process::exit(2);
+            }
             snapshot.test_suites.push(TestSuite {
                 id: id.clone(),
                 name: name.clone(),

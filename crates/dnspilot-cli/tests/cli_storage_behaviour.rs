@@ -638,6 +638,62 @@ fn suite_add_command_rejects_invalid_domain() {
 }
 
 #[test]
+fn suite_add_command_rejects_duplicate_suite_id() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-suite-duplicate-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "azure-lab",
+            "--name",
+            "Azure Lab",
+            "--domain",
+            "portal.azure.com",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-add");
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let duplicate = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "azure-lab",
+            "--name",
+            "Azure Lab",
+            "--domain",
+            "login.microsoftonline.com",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-add duplicate");
+
+    assert!(
+        !duplicate.status.success(),
+        "duplicate suite-add should fail"
+    );
+    let stderr = String::from_utf8_lossy(&duplicate.stderr);
+    assert!(
+        stderr.contains("test suite 'azure-lab' already exists"),
+        "stderr: {stderr}"
+    );
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn benchmark_command_can_use_saved_domain_suite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-benchmark-suite-{}.sqlite",
