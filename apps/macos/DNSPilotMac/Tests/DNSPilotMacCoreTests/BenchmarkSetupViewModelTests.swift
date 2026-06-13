@@ -93,6 +93,18 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, 2 resolvers, 1 domain, 2 attempts")
     }
+
+    func testSetupExplainsDirectResolverFlushPolicy() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
+        )
+
+        XCTAssertEqual(
+            viewModel.flushPolicySummary,
+            "Direct resolver test; system DNS flush is not required."
+        )
+    }
 }
 
 private func makeSetupCatalog() -> CatalogSnapshot {

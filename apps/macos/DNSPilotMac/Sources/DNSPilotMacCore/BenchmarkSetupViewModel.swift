@@ -39,6 +39,10 @@ public struct BenchmarkSetupViewModel: Equatable {
         ].joined(separator: ", ")
     }
 
+    public var flushPolicySummary: String {
+        "Direct resolver test; system DNS flush is not required."
+    }
+
     public var suiteOptions: [BenchmarkSuiteOption] {
         catalog.testSuites.map(BenchmarkSuiteOption.init(testSuite:))
     }

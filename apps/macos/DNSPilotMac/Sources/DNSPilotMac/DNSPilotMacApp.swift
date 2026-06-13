@@ -968,6 +968,9 @@ private struct BenchmarkDetailView: View {
                 Label(setupViewModel.runPlanSummary, systemImage: "list.bullet.clipboard")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Label(setupViewModel.flushPolicySummary, systemImage: "arrow.triangle.2.circlepath")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if !setupViewModel.readinessIssues.isEmpty {
                     BenchmarkIssueList(issues: setupViewModel.readinessIssues)
