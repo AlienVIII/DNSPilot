@@ -26,6 +26,23 @@ final class CustomDomainSuiteManagementViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.rows.map(\.id), ["azure-lab"])
     }
+
+    func testViewModelMarksLegacyCustomSuiteIDCollisionWithBuiltIn() {
+        let viewModel = CustomDomainSuiteManagementViewModel(
+            testSuites: [
+                makeSuite(id: "developer", description: "Built-in developer suite.", tags: ["developer"]),
+                makeSuite(id: "developer", description: "Custom domain test suite.", tags: ["custom"]),
+            ]
+        )
+
+        XCTAssertEqual(viewModel.rows.map(\.id), ["developer"])
+        XCTAssertTrue(viewModel.rows[0].opensAsNewSuite)
+        XCTAssertEqual(viewModel.rows[0].editHelpLabel, "Copy to new suite")
+        XCTAssertEqual(
+            viewModel.rows[0].warningLabel,
+            "ID conflicts with a built-in suite. Edit opens a new custom-* copy; delete this legacy row after saving."
+        )
+    }
 }
 
 private func makeSuite(id: String, description: String, tags: [String]) -> CatalogTestSuite {

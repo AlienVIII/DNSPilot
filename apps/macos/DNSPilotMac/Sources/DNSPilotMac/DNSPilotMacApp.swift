@@ -693,6 +693,11 @@ private struct CustomDomainSuiteManagementRowView: View {
                 Text(row.id)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
+                if let warningLabel = row.warningLabel {
+                    Label(warningLabel, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(DNSPilotDesign.Palette.warning)
+                }
             }
 
             Spacer()
@@ -701,7 +706,7 @@ private struct CustomDomainSuiteManagementRowView: View {
                 Label("Edit", systemImage: "pencil")
             }
             .labelStyle(.iconOnly)
-            .help("Edit suite")
+            .help(row.editHelpLabel)
             .disabled(isDisabled)
 
             Button(role: .destructive, action: onDelete) {
@@ -1677,8 +1682,8 @@ private struct BenchmarkDetailView: View {
         guard !isBenchmarkActive, !isMutatingSuite else {
             return
         }
-        editingSuiteID = row.id
-        selectedSuiteID = row.id
+        editingSuiteID = row.opensAsNewSuite ? nil : row.id
+        selectedSuiteID = row.opensAsNewSuite ? nil : row.id
         suiteNameText = row.name
         customDomainsText = row.domainsText
         suiteSaveState = .idle

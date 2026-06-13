@@ -1,14 +1,24 @@
 public struct CustomDomainSuiteManagementViewModel: Equatable, Sendable {
     public let rows: [CustomDomainSuiteManagementRow]
 
-    public init(testSuites: [CatalogTestSuite]) {
+    public init(testSuites: [CatalogTestSuite], reservedSuiteIDs: Set<String>? = nil) {
         var seenIDs = Set<String>()
+        let reservedIDs = reservedSuiteIDs ?? Set(
+            testSuites
+                .filter { !Self.isEditableCustomSuite($0) }
+                .map(\.id)
+        )
         rows = testSuites
             .filter(Self.isEditableCustomSuite)
             .filter { suite in
                 seenIDs.insert(suite.id).inserted
             }
-            .map(CustomDomainSuiteManagementRow.init(testSuite:))
+            .map { suite in
+                CustomDomainSuiteManagementRow(
+                    testSuite: suite,
+                    hasReservedIDCollision: reservedIDs.contains(suite.id)
+                )
+            }
     }
 
     private static func isEditableCustomSuite(_ suite: CatalogTestSuite) -> Bool {
@@ -21,13 +31,21 @@ public struct CustomDomainSuiteManagementRow: Equatable, Identifiable, Sendable 
     public let name: String
     public let domainCountLabel: String
     public let domainsText: String
+    public let opensAsNewSuite: Bool
+    public let editHelpLabel: String
+    public let warningLabel: String?
 
-    public init(testSuite: CatalogTestSuite) {
+    public init(testSuite: CatalogTestSuite, hasReservedIDCollision: Bool = false) {
         id = testSuite.id
         name = testSuite.name
         domainCountLabel = testSuite.domains.count == 1
             ? "1 domain"
             : "\(testSuite.domains.count) domains"
         domainsText = testSuite.domains.joined(separator: "\n")
+        opensAsNewSuite = hasReservedIDCollision
+        editHelpLabel = hasReservedIDCollision ? "Copy to new suite" : "Edit suite"
+        warningLabel = hasReservedIDCollision
+            ? "ID conflicts with a built-in suite. Edit opens a new custom-* copy; delete this legacy row after saving."
+            : nil
     }
 }
