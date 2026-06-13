@@ -189,6 +189,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 cargo test -p dnspilot-core
 swift test --package-path apps/macos/DNSPilotMac
 swift build --package-path apps/macos/DNSPilotMac
+./script/build_and_run.sh --verify
 cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- capabilities
