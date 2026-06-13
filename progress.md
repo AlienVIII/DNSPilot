@@ -109,6 +109,7 @@ DNS handling, and platform capability reporting.
 - [x] [98] v0.1 macOS dev foreground activation — launch SwiftPM dev app as foreground.
 - [x] [99] v0.1 macOS benchmark pipe drain and verbose progress — prevent pipe deadlock and show running detail.
 - [x] [100] v0.1 macOS custom DNS management — edit/delete saved custom plain DNS profiles.
+- [x] [101] v0.1 macOS benchmark diagnostics and DNS statuses — decode all-timeout results, add issue logs, select-all, and per-DNS status.
 
 ---
 
@@ -3920,6 +3921,41 @@ Result: 10 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 111 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: pass
+
+git diff --check
+Result: clean
+```
+
+---
+
+## Chunk 101: v0.1 macOS Benchmark Diagnostics and DNS Statuses
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkExecutionCoordinator.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkProgressViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkSetupViewModel.swift`
+
+### What changed
+
+Fixed all-timeout DNS-only parse failures where CLI JSON contains `null`
+latency metrics, added parse diagnostics/OSLog, issue-log copy, select-all
+runnable profiles, and per-DNS status rows.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsAllFailedDnsOnlyNullLatencyMetrics
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkProgressViewModelTests
+Result: 8 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 115 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: pass

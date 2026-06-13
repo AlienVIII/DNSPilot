@@ -32,6 +32,16 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         plainResolvers.count
     }
 
+    public var resolverTargets: [BenchmarkProgressResolverTarget] {
+        plainResolvers.map { resolver in
+            BenchmarkProgressResolverTarget(
+                id: resolver.id,
+                name: resolver.name,
+                resolver: resolver.socketAddress
+            )
+        }
+    }
+
     public var validation: BenchmarkPlanValidation {
         var issues: [String] = []
         if plainResolvers.isEmpty {
@@ -72,10 +82,10 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
                 return nil
             }
             if let ipv4 = profile.ipv4Servers.first {
-                return PlainResolver(id: profile.id, socketAddress: "\(ipv4):53")
+                return PlainResolver(id: profile.id, name: profile.name, socketAddress: "\(ipv4):53")
             }
             if let ipv6 = profile.ipv6Servers.first {
-                return PlainResolver(id: profile.id, socketAddress: "[\(ipv6)]:53")
+                return PlainResolver(id: profile.id, name: profile.name, socketAddress: "[\(ipv6)]:53")
             }
             return nil
         }
@@ -151,5 +161,6 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
 
 private struct PlainResolver: Equatable, Sendable {
     let id: String
+    let name: String
     let socketAddress: String
 }

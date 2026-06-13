@@ -99,8 +99,8 @@ public struct BenchmarkResultRun: Decodable, Equatable {
 
 public struct BenchmarkResultMetrics: Decodable, Equatable {
     public let profileID: String
-    public let medianDNSLatencyMS: Double
-    public let p95DNSLatencyMS: Double
+    public let medianDNSLatencyMS: Double?
+    public let p95DNSLatencyMS: Double?
     public let failureRate: Double
     public let timeoutRate: Double
     public let medianConnectLatencyMS: Double?

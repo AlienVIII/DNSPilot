@@ -824,6 +824,7 @@ private struct BenchmarkDetailView: View {
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
+    @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
     @State private var currentBenchmarkStartedAt: Date?
     @State private var lastBenchmarkElapsedMS: Int?
     @State private var outcome: BenchmarkExecutionOutcome?
@@ -853,7 +854,7 @@ private struct BenchmarkDetailView: View {
             state: runStateMachine.state,
             outcome: outcome,
             historySaved: completedResultSavedHistory,
-            planSummary: BenchmarkProgressPlanSummary(plan: setupViewModel.plan)
+            planSummary: BenchmarkProgressPlanSummary(plan: currentBenchmarkPlan ?? setupViewModel.plan)
         )
     }
 
@@ -926,6 +927,12 @@ private struct BenchmarkDetailView: View {
 
                 BenchmarkSection(title: "Profiles") {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                        Toggle(isOn: selectAllProfilesBinding) {
+                            Text("Select all runnable")
+                                .font(.body.weight(.semibold))
+                        }
+                        .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
+
                         ForEach(setupViewModel.profileOptions) { option in
                             Toggle(isOn: profileBinding(for: option)) {
                                 HStack {
@@ -939,7 +946,7 @@ private struct BenchmarkDetailView: View {
                                     Spacer()
                                 }
                             }
-                            .disabled(!option.isRunnable)
+                            .disabled(!option.isRunnable || isBenchmarkActive)
                         }
                     }
                 }
@@ -1007,6 +1014,32 @@ private struct BenchmarkDetailView: View {
         )
     }
 
+    private var selectAllProfilesBinding: Binding<Bool> {
+        Binding(
+            get: {
+                let runnableIDs = setupViewModel.runnableProfileIDs
+                return !runnableIDs.isEmpty && runnableIDs.allSatisfy { selectedProfileIDs.contains($0) }
+            },
+            set: { shouldSelectAll in
+                let runnableIDs = setupViewModel.runnableProfileIDs
+                if shouldSelectAll {
+                    selectedProfileIDs = runnableIDs
+                } else {
+                    selectedProfileIDs.removeAll { runnableIDs.contains($0) }
+                }
+            }
+        )
+    }
+
+    private var isBenchmarkActive: Bool {
+        switch runStateMachine.state {
+        case .running, .cancelling:
+            true
+        case .idle, .completed, .failed, .cancelled:
+            false
+        }
+    }
+
     private func runBenchmark() {
         let setup = setupViewModel
         guard setup.canRun else {
@@ -1042,6 +1075,7 @@ private struct BenchmarkDetailView: View {
         let startedAt = Date()
         currentBenchmarkStartedAt = startedAt
         let plan = setup.plan
+        currentBenchmarkPlan = plan
         let persistence = makeHistoryPersistence(for: plan)
         let catalog = catalog
 
@@ -1254,6 +1288,30 @@ private struct BenchmarkProgressPanel: View {
                     }
                     .padding(.top, DNSPilotDesign.Spacing.controlGap)
                 }
+
+                if !viewModel.resolverStatuses.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                        Text("DNS status")
+                            .font(.headline)
+                        ForEach(viewModel.resolverStatuses) { resolver in
+                            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                                BenchmarkProgressStatusIcon(status: resolver.status)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(resolver.name)
+                                        .font(.body.weight(.semibold))
+                                    Text(resolver.resolver)
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text(resolver.detail)
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(resolver.status.foregroundStyle)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1293,8 +1351,17 @@ private struct BenchmarkFailurePanel: View {
                 }
 
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                    Text("Debug log")
-                        .font(.headline)
+                    HStack {
+                        Text("Debug log")
+                            .font(.headline)
+                        Spacer()
+                        Button(action: copyIssueLog) {
+                            Label("Copy Issue Log", systemImage: "doc.on.doc")
+                        }
+                    }
+                    Text("Copy this when creating an issue.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Text(failure.debugLog)
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
@@ -1304,6 +1371,12 @@ private struct BenchmarkFailurePanel: View {
                 }
             }
         }
+    }
+
+    private func copyIssueLog() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(failure.debugLog, forType: .string)
     }
 }
 

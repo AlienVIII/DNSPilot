@@ -38,6 +38,17 @@ final class BenchmarkResultDecoderTests: XCTestCase {
         XCTAssertNil(result.recommendation)
         XCTAssertTrue(result.warning.contains("Path comparison"))
     }
+
+    func testDecoderMapsAllFailedDnsOnlyNullLatencyMetrics() throws {
+        let result = try BenchmarkResultJSONDecoder.decode(allFailedDnsOnlyJSON)
+
+        XCTAssertEqual(result.summary.health, .failed)
+        XCTAssertEqual(result.summary.primaryIssue, "all-resolvers-failed")
+        XCTAssertNil(result.runs[0].metrics.medianDNSLatencyMS)
+        XCTAssertNil(result.runs[0].metrics.p95DNSLatencyMS)
+        XCTAssertNil(result.runs[0].metrics.medianConnectLatencyMS)
+        XCTAssertEqual(result.runs[0].metrics.failureRate, 1.0)
+    }
 }
 
 private let dnsOnlyCompareJSON = """
@@ -95,6 +106,44 @@ private let dnsOnlyCompareJSON = """
     "reasons": ["Lowest median DNS latency."],
     "caveats": ["Connection path not measured."]
   },
+  "saved_history_id": null,
+  "warning": "DNS-only comparison estimates resolver lookup latency and reliability."
+}
+"""
+
+private let allFailedDnsOnlyJSON = """
+{
+  "summary": {
+    "measurement_scope": "dns-only",
+    "mode": "fastest-raw-dns",
+    "health": "failed",
+    "primary_issue": "all-resolvers-failed",
+    "can_recommend": false,
+    "safety_notes": ["Every candidate failed the measured scope."],
+    "resolver_count": 1,
+    "domain_count": 1,
+    "attempts_per_record": 1,
+    "timeout_ms": 50,
+    "recommended_profile_id": null
+  },
+  "runs": [
+    {
+      "profile_id": "bad",
+      "resolver": "127.0.0.1:9",
+      "metrics": {
+        "profile_id": "bad",
+        "median_dns_latency_ms": null,
+        "p95_dns_latency_ms": null,
+        "failure_rate": 1.0,
+        "timeout_rate": 1.0,
+        "median_connect_latency_ms": null,
+        "ipv4_health": 0.0,
+        "ipv6_health": 0.0,
+        "priority_fit": 1.0
+      }
+    }
+  ],
+  "recommendation": null,
   "saved_history_id": null,
   "warning": "DNS-only comparison estimates resolver lookup latency and reliability."
 }

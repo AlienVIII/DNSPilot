@@ -96,6 +96,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   persisted.
 - macOS DNS-only result decoder accepts missing/null connection latency and
   keeps DNS-only result rendering instead of turning it into a parse failure.
+- macOS benchmark result decoder accepts all-timeout DNS results with null DNS
+  latency metrics and renders failed resolver rows instead of parse failure.
 - macOS Benchmark custom-domain input uses an AppKit-backed multiline text
   input for stable keyboard entry in the ScrollView-based form.
 - macOS SwiftPM dev launch promotes the app from background-only to foreground
@@ -105,6 +107,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Benchmark process runner drains stdout/stderr while the CLI runs, so
   large result JSON cannot deadlock the app, and shows two verbose current-step
   lines while a benchmark is running.
+- macOS Benchmark shows per-DNS status rows, select-all runnable profiles, a
+  copyable issue log, and developer OSLog diagnostics for process/parse failure.
 - macOS custom plain DNS profile form ViewModel for IPv4/IPv6 parsing,
   validation, profile ID generation, and `profile-add` arguments.
 - macOS custom plain DNS save runner/coordinator for executing `profile-add`

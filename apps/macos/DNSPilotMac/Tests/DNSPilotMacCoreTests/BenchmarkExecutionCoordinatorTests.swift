@@ -125,9 +125,12 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
             outcome,
             .failed(
                     BenchmarkExecutionFailure(
-                        message: "Could not parse benchmark result.",
+                        message: "Could not parse benchmark result: data corrupted at root - The given data was not valid JSON.",
                         failedStep: .parsingResult,
                         debugLog: """
+                        parse_error:
+                        data corrupted at root - The given data was not valid JSON.
+
                         exit code: 0
 
                         stdout:

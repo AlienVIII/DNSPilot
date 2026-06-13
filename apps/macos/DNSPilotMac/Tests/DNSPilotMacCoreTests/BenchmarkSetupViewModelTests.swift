@@ -10,6 +10,7 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         )
 
         XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
+        XCTAssertEqual(viewModel.runnableProfileIDs, ["cloudflare", "google-public-dns"])
         XCTAssertEqual(viewModel.selectedSuiteID, "developer")
         XCTAssertTrue(viewModel.canRun)
         XCTAssertEqual(viewModel.readinessIssues, [])

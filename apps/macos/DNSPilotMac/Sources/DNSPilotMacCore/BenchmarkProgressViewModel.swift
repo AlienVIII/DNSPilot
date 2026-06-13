@@ -78,32 +78,70 @@ public struct BenchmarkProgressStepViewModel: Equatable, Identifiable, Sendable 
     }
 }
 
+public struct BenchmarkProgressResolverTarget: Equatable, Identifiable, Sendable {
+    public let id: String
+    public let name: String
+    public let resolver: String
+
+    public init(id: String, name: String, resolver: String) {
+        self.id = id
+        self.name = name
+        self.resolver = resolver
+    }
+}
+
+public struct BenchmarkResolverStatusViewModel: Equatable, Identifiable, Sendable {
+    public let id: String
+    public let name: String
+    public let resolver: String
+    public let status: BenchmarkProgressStatus
+    public let detail: String
+
+    public init(
+        id: String,
+        name: String,
+        resolver: String,
+        status: BenchmarkProgressStatus,
+        detail: String
+    ) {
+        self.id = id
+        self.name = name
+        self.resolver = resolver
+        self.status = status
+        self.detail = detail
+    }
+}
+
 public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
     public let resolverCount: Int
     public let domainCount: Int
     public let attempts: Int
     public let dnsTimeoutMS: Int
     public let connectTimeoutMS: Int
+    public let resolverTargets: [BenchmarkProgressResolverTarget]
 
     public init(
         resolverCount: Int,
         domainCount: Int,
         attempts: Int,
         dnsTimeoutMS: Int = 800,
-        connectTimeoutMS: Int = 1_000
+        connectTimeoutMS: Int = 1_000,
+        resolverTargets: [BenchmarkProgressResolverTarget] = []
     ) {
         self.resolverCount = resolverCount
         self.domainCount = domainCount
         self.attempts = attempts
         self.dnsTimeoutMS = dnsTimeoutMS
         self.connectTimeoutMS = connectTimeoutMS
+        self.resolverTargets = resolverTargets
     }
 
     public init(plan: BenchmarkPlanViewModel) {
         self.init(
             resolverCount: plan.resolverCount,
             domainCount: plan.domains.count,
-            attempts: plan.attempts
+            attempts: plan.attempts,
+            resolverTargets: plan.resolverTargets
         )
     }
 }
@@ -111,6 +149,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
 public struct BenchmarkProgressViewModel: Equatable, Sendable {
     public let steps: [BenchmarkProgressStepViewModel]
     public let currentStepVerboseLines: [String]
+    public let resolverStatuses: [BenchmarkResolverStatusViewModel]
 
     public init(
         mode: BenchmarkPlanMode,
@@ -155,6 +194,12 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             mode: mode,
             isRunning: isRunning,
             planSummary: planSummary
+        )
+        resolverStatuses = Self.resolverStatuses(
+            isRunning: isRunning,
+            failure: failure,
+            outcome: outcome,
+            targets: planSummary?.resolverTargets ?? []
         )
     }
 
@@ -235,6 +280,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             return [
                 "* Running benchmark command.",
                 "* Waiting for CLI output; cancel is available if the network blocks.",
+                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
             ]
         }
 
@@ -244,13 +290,60 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             return [
                 "* Resolving \(planSummary.domainCount) domain(s) with \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s), A + AAAA.",
                 "* Worst-case DNS wait before output: about \(dnsSeconds); stdout is drained while the CLI runs.",
+                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
             ]
         case .connectionPathCompare:
             return [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds).",
+                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
             ]
         }
+    }
+
+    private static func resolverStatuses(
+        isRunning: Bool,
+        failure: BenchmarkExecutionFailure?,
+        outcome: BenchmarkExecutionOutcome?,
+        targets: [BenchmarkProgressResolverTarget]
+    ) -> [BenchmarkResolverStatusViewModel] {
+        if case .completed(let resultViewModel) = outcome {
+            return resultViewModel.rows.map { row in
+                BenchmarkResolverStatusViewModel(
+                    id: row.profileID,
+                    name: row.name,
+                    resolver: row.resolver,
+                    status: row.status,
+                    detail: row.statusDetail
+                )
+            }
+        }
+
+        if isRunning {
+            return targets.map { target in
+                BenchmarkResolverStatusViewModel(
+                    id: target.id,
+                    name: target.name,
+                    resolver: target.resolver,
+                    status: .running,
+                    detail: "Waiting for CLI result"
+                )
+            }
+        }
+
+        if let failure {
+            return targets.map { target in
+                BenchmarkResolverStatusViewModel(
+                    id: target.id,
+                    name: target.name,
+                    resolver: target.resolver,
+                    status: failure.failedStep == .preparingBenchmark ? .idle : .failed,
+                    detail: failure.failedStep == .parsingResult ? "Result parsing failed" : "Benchmark failed"
+                )
+            }
+        }
+
+        return []
     }
 
     private static func worstCaseDNSSeconds(summary: BenchmarkProgressPlanSummary) -> String {

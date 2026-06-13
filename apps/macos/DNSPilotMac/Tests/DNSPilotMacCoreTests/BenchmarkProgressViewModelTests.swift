@@ -41,6 +41,33 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving 3 domain(s) with 2 resolver(s), 1 attempt(s), A + AAAA.",
                 "* Worst-case DNS wait before output: about 9.6s; stdout is drained while the CLI runs.",
+                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+            ]
+        )
+    }
+
+    func testProgressShowsResolverRowsWhileRunning() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .dnsOnlyCompare,
+            state: .running(runID: BenchmarkRunID(1)),
+            outcome: nil,
+            historySaved: false,
+            planSummary: BenchmarkProgressPlanSummary(
+                resolverCount: 2,
+                domainCount: 1,
+                attempts: 1,
+                resolverTargets: [
+                    BenchmarkProgressResolverTarget(id: "cloudflare", name: "Cloudflare", resolver: "1.1.1.1:53"),
+                    BenchmarkProgressResolverTarget(id: "google", name: "Google", resolver: "8.8.8.8:53"),
+                ]
+            )
+        )
+
+        XCTAssertEqual(
+            viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
+            [
+                "Cloudflare:running:Waiting for CLI result",
+                "Google:running:Waiting for CLI result",
             ]
         )
     }
@@ -85,6 +112,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: 2 domain(s), 2 resolver(s), 1 attempt(s); worst-case DNS phase about 6.4s.",
+                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
             ]
         )
     }
@@ -124,9 +152,37 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.steps.last?.title, "Saving history")
         XCTAssertEqual(viewModel.steps.last?.status, .success)
     }
+
+    func testProgressShowsResolverRowsAfterCompletedResult() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .dnsOnlyCompare,
+            state: .completed,
+            outcome: .completed(
+                makeProgressResultViewModel(
+                    savedHistoryID: nil,
+                    runs: [
+                        makeProgressRun(profileID: "cloudflare", medianDNS: 10, failureRate: 0),
+                        makeProgressRun(profileID: "bad", medianDNS: nil, failureRate: 1),
+                    ]
+                )
+            ),
+            historySaved: false
+        )
+
+        XCTAssertEqual(
+            viewModel.resolverStatuses.map { "\($0.id):\($0.status.rawValue):\($0.detail)" },
+            [
+                "cloudflare:success:0% failed",
+                "bad:failed:100% failed",
+            ]
+        )
+    }
 }
 
-private func makeProgressResultViewModel(savedHistoryID: String?) -> BenchmarkResultViewModel {
+private func makeProgressResultViewModel(
+    savedHistoryID: String?,
+    runs: [BenchmarkResultRun] = []
+) -> BenchmarkResultViewModel {
     BenchmarkResultViewModel(
         result: BenchmarkResultPayload(
             summary: BenchmarkResultSummary(
@@ -150,11 +206,33 @@ private func makeProgressResultViewModel(savedHistoryID: String?) -> BenchmarkRe
                 tlsSampleCount: 0,
                 recommendedProfileID: "cloudflare"
             ),
-            runs: [],
+            runs: runs,
             recommendation: nil,
             savedHistoryID: savedHistoryID,
             warning: "Path warning."
         ),
         catalog: nil
+    )
+}
+
+private func makeProgressRun(
+    profileID: String,
+    medianDNS: Double?,
+    failureRate: Double
+) -> BenchmarkResultRun {
+    BenchmarkResultRun(
+        profileID: profileID,
+        resolver: "\(profileID).resolver:53",
+        metrics: BenchmarkResultMetrics(
+            profileID: profileID,
+            medianDNSLatencyMS: medianDNS,
+            p95DNSLatencyMS: medianDNS,
+            failureRate: failureRate,
+            timeoutRate: failureRate,
+            medianConnectLatencyMS: nil,
+            ipv4Health: 1 - failureRate,
+            ipv6Health: 1 - failureRate,
+            priorityFit: 1
+        )
     )
 }

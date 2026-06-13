@@ -13,6 +13,12 @@ public struct BenchmarkSetupViewModel: Equatable {
         catalog.profiles.map(BenchmarkProfileOption.init(profile:))
     }
 
+    public var runnableProfileIDs: [String] {
+        profileOptions
+            .filter(\.isRunnable)
+            .map(\.id)
+    }
+
     public var suiteOptions: [BenchmarkSuiteOption] {
         catalog.testSuites.map(BenchmarkSuiteOption.init(testSuite:))
     }

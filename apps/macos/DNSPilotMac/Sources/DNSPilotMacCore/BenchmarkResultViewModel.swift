@@ -86,6 +86,8 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
     public let profileID: String
     public let name: String
     public let resolver: String
+    public let status: BenchmarkProgressStatus
+    public let statusDetail: String
     public let medianDNSLatencyLabel: String
     public let p95DNSLatencyLabel: String
     public let medianConnectLatencyLabel: String
@@ -96,6 +98,8 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
         profileID = run.profileID
         name = displayName ?? run.profileID
         resolver = run.resolver
+        status = run.metrics.failureRate >= 1 ? .failed : .success
+        statusDetail = "\(Self.percent(run.metrics.failureRate))% failed"
         medianDNSLatencyLabel = Self.latencyLabel(
             run.metrics.medianDNSLatencyMS,
             failureRate: run.metrics.failureRate

@@ -93,15 +93,55 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.showsConnectionMetrics)
         XCTAssertEqual(viewModel.rows.first?.name, "dead")
         XCTAssertEqual(viewModel.rows.first?.medianDNSLatencyLabel, "n/a")
+        XCTAssertEqual(viewModel.rows.first?.status, .failed)
+        XCTAssertEqual(viewModel.rows.first?.statusDetail, "100% failed")
         XCTAssertEqual(viewModel.rows.first?.failureRateLabel, "100% failed")
         XCTAssertEqual(viewModel.notes, ["No resolver completed enough checks."])
         XCTAssertNil(viewModel.savedHistoryLabel)
+    }
+
+    func testResultViewModelShowsNAForNullDnsLatencyMetrics() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .failed,
+                primaryIssue: "all-resolvers-failed",
+                canRecommend: false,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 50,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: nil
+            ),
+            runs: [
+                makeResultRun(profileID: "bad", medianDNS: nil, failureRate: 1),
+            ],
+            recommendation: nil,
+            savedHistoryID: nil,
+            warning: "DNS warning."
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: nil)
+
+        XCTAssertEqual(viewModel.rows.first?.medianDNSLatencyLabel, "n/a")
+        XCTAssertEqual(viewModel.rows.first?.p95DNSLatencyLabel, "n/a")
+        XCTAssertEqual(viewModel.rows.first?.status, .failed)
     }
 }
 
 private func makeResultRun(
     profileID: String,
-    medianDNS: Double,
+    medianDNS: Double?,
     failureRate: Double
 ) -> BenchmarkResultRun {
     BenchmarkResultRun(
