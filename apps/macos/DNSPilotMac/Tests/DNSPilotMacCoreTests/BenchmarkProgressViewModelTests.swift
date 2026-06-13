@@ -66,8 +66,8 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
             [
-                "Cloudflare:running:Waiting for CLI result",
-                "Google:running:Waiting for CLI result",
+                "Cloudflare:running:Running in batch",
+                "Google:running:Running in batch",
             ]
         )
     }

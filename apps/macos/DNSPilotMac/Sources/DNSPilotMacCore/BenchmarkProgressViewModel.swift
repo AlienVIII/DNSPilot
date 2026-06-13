@@ -327,7 +327,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                     name: target.name,
                     resolver: target.resolver,
                     status: .running,
-                    detail: "Waiting for CLI result"
+                    detail: "Running in batch"
                 )
             }
         }
