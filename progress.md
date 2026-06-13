@@ -116,6 +116,7 @@ DNS handling, and platform capability reporting.
 - [x] [105] v0.1 macOS result run caveats — decode and show per-run benchmark caveats in result notes.
 - [x] [106] v0.1 path family health — reduce IPv4/IPv6 path health when probed TCP/TLS family paths fail.
 - [x] [107] v0.1 macOS result family failure label — show weak IPv4/IPv6 family in failure cells.
+- [x] [108] v0.1 macOS sidebar width — prevent platform names from truncating in default window.
 
 ---
 
@@ -4158,6 +4159,37 @@ Result: 119 passed, 0 failed
 
 cargo test --workspace --tests
 Result: pass
+
+git diff --check
+Result: clean
+```
+
+---
+
+## Chunk 108: v0.1 macOS Sidebar Width
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`
+
+### What changed
+
+Set a wider NavigationSplitView sidebar column so default platform names such as
+`Linux Native Power` and `Windows Store` are readable in the default app window.
+
+### Verification
+
+```text
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+swift test --package-path apps/macos/DNSPilotMac --filter CapabilityMatrixViewModelTests/testDesignTokensStayWithinCompactControlRules
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 119 passed, 0 failed
+
+Runtime screenshot:
+Result: platform names no longer truncate in the default window.
 
 git diff --check
 Result: clean

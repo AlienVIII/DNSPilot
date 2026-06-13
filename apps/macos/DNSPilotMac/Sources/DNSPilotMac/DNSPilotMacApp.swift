@@ -72,6 +72,7 @@ private struct DNSPilotShellView: View {
                 }
             }
             .navigationTitle("DNS Pilot")
+            .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 280)
         } detail: {
             switch selection ?? .capabilities {
             case .capabilities:

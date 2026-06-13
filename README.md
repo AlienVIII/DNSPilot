@@ -53,6 +53,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS preview catalog bridge with summary metrics for native shell UI.
 - macOS catalog display summaries for provider and test-suite UI rows.
 - macOS shell sidebar with capability matrix and catalog overview screens.
+- macOS shell sidebar has a wider default column so platform names fit in the
+  default app window.
 - macOS shell benchmark screen for setup, readiness, run action, and result
   rows.
 - macOS shell payload decoders reject unsupported `schema_version` values.
