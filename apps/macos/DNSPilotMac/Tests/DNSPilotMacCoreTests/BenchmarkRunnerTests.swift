@@ -100,6 +100,54 @@ final class BenchmarkRunnerTests: XCTestCase {
         )
     }
 
+    func testRunnerRequestsProgressJSONLAndForwardsEventsWhenObserverIsProvided() throws {
+        let event = BenchmarkProgressEvent(
+            type: .resolverStarted,
+            measurementScope: .dnsOnly,
+            profileID: "cloudflare",
+            resolver: "1.1.1.1:53",
+            index: 1,
+            total: 1,
+            status: nil,
+            failureRate: nil,
+            timeoutRate: nil
+        )
+        let processRunner = RecordingBenchmarkProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "{}", standardError: ""),
+            progressEvents: [event]
+        )
+        let runner = BenchmarkRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+        let receivedEvents = LockedProgressEvents()
+
+        _ = try runner.run(plan: makeValidBenchmarkPlan()) { event in
+            receivedEvents.append(event)
+        }
+
+        XCTAssertTrue(processRunner.invocations[0].arguments.contains("--progress-jsonl"))
+        XCTAssertEqual(receivedEvents.values, [event])
+    }
+
+    func testProgressEventDecoderMapsResolverFinishedJSONLine() throws {
+        let event = try BenchmarkProgressEventJSONDecoder.decode(
+            """
+            {"type":"resolver_finished","measurement_scope":"dns-tcp","profile_id":"cloudflare","resolver":"1.1.1.1:53","index":1,"total":2,"status":"degraded","failure_rate":0.5,"timeout_rate":0.25}
+            """
+        )
+
+        XCTAssertEqual(event.type, .resolverFinished)
+        XCTAssertEqual(event.measurementScope, .dnsTCP)
+        XCTAssertEqual(event.profileID, "cloudflare")
+        XCTAssertEqual(event.resolver, "1.1.1.1:53")
+        XCTAssertEqual(event.index, 1)
+        XCTAssertEqual(event.total, 2)
+        XCTAssertEqual(event.status, .degraded)
+        XCTAssertEqual(event.failureRate, 0.5)
+        XCTAssertEqual(event.timeoutRate, 0.25)
+    }
+
     func testFoundationRunnerTerminatesProcessWhenCancellationIsRequested() throws {
         let processRunner = FoundationBenchmarkProcessRunner()
         let cancellation = BenchmarkRunCancellation()
@@ -139,6 +187,49 @@ final class BenchmarkRunnerTests: XCTestCase {
         XCTAssertEqual(output.standardOutput.count, expectedByteCount)
         XCTAssertFalse(cancellation.isCancelled)
     }
+
+    func testFoundationRunnerForwardsProgressJSONLFromStderrAndKeepsRawStderr() throws {
+        let processRunner = FoundationBenchmarkProcessRunner()
+        let receivedEvents = LockedProgressEvents()
+        let output = try processRunner.run(
+            executableURL: URL(fileURLWithPath: "/usr/bin/python3"),
+            arguments: [
+                "-c",
+                """
+                import sys
+                sys.stderr.write('{"type":"resolver_started","measurement_scope":"dns-only","profile_id":"cloudflare","resolver":"1.1.1.1:53","index":1,"total":1}\\n')
+                sys.stderr.write('not-json\\n')
+                sys.stdout.write('{"ok": true}')
+                """,
+            ],
+            cancellation: nil
+        ) { event in
+            receivedEvents.append(event)
+        }
+
+        XCTAssertEqual(output.exitCode, 0)
+        XCTAssertEqual(output.standardOutput, "{\"ok\": true}")
+        XCTAssertTrue(output.standardError.contains("\"resolver_started\""))
+        XCTAssertTrue(output.standardError.contains("not-json"))
+        XCTAssertEqual(receivedEvents.values.map(\.profileID), ["cloudflare"])
+    }
+}
+
+private final class LockedProgressEvents: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [BenchmarkProgressEvent] = []
+
+    var values: [BenchmarkProgressEvent] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+
+    func append(_ event: BenchmarkProgressEvent) {
+        lock.lock()
+        storage.append(event)
+        lock.unlock()
+    }
 }
 
 private final class RecordingBenchmarkProcessRunner: BenchmarkProcessRunning {
@@ -149,10 +240,12 @@ private final class RecordingBenchmarkProcessRunner: BenchmarkProcessRunning {
     }
 
     private let output: BenchmarkProcessOutput
+    private let progressEvents: [BenchmarkProgressEvent]
     private(set) var invocations: [Invocation] = []
 
-    init(output: BenchmarkProcessOutput) {
+    init(output: BenchmarkProcessOutput, progressEvents: [BenchmarkProgressEvent] = []) {
         self.output = output
+        self.progressEvents = progressEvents
     }
 
     func run(
@@ -167,6 +260,23 @@ private final class RecordingBenchmarkProcessRunner: BenchmarkProcessRunning {
                 cancellation: cancellation
             )
         )
+        return output
+    }
+
+    func run(
+        executableURL: URL,
+        arguments: [String],
+        cancellation: BenchmarkRunCancellation?,
+        progressHandler: ((BenchmarkProgressEvent) -> Void)?
+    ) throws -> BenchmarkProcessOutput {
+        invocations.append(
+            Invocation(
+                executableURL: executableURL,
+                arguments: arguments,
+                cancellation: cancellation
+            )
+        )
+        progressEvents.forEach { progressHandler?($0) }
         return output
     }
 }
