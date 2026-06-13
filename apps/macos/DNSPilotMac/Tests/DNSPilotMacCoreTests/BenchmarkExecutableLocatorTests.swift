@@ -17,6 +17,7 @@ final class BenchmarkExecutableLocatorTests: XCTestCase {
     func testLocatorUsesBundledExecutableWhenOverrideIsMissing() {
         let locator = BenchmarkExecutableLocator(
             environment: [:],
+            bundledHelperExecutablePath: nil,
             bundledExecutablePath: "/Applications/DNSPilot.app/Contents/Resources/dnspilot-cli"
         )
 
@@ -27,6 +28,24 @@ final class BenchmarkExecutableLocatorTests: XCTestCase {
             .found(
                 URL(fileURLWithPath: "/Applications/DNSPilot.app/Contents/Resources/dnspilot-cli"),
                 source: .bundleResource
+            )
+        )
+    }
+
+    func testLocatorPrefersBundledHelperExecutableOverLegacyResource() {
+        let locator = BenchmarkExecutableLocator(
+            environment: [:],
+            bundledHelperExecutablePath: "/Applications/DNSPilot.app/Contents/Library/Helpers/dnspilot-cli",
+            bundledExecutablePath: "/Applications/DNSPilot.app/Contents/Resources/dnspilot-cli"
+        )
+
+        let result = locator.locate()
+
+        XCTAssertEqual(
+            result,
+            .found(
+                URL(fileURLWithPath: "/Applications/DNSPilot.app/Contents/Library/Helpers/dnspilot-cli"),
+                source: .bundleHelper
             )
         )
     }
