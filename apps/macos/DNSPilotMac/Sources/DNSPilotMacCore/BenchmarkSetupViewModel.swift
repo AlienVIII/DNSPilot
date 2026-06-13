@@ -11,10 +11,13 @@ public struct BenchmarkSetupViewModel: Equatable {
     public let connectTimeoutMS: Int
     public let maxConnectTargetsPerDomain: Int
     public let recordFamily: BenchmarkRecordFamily
+    public let resolverTransport: BenchmarkResolverTransport
     public let mode: BenchmarkPlanMode
 
     public var profileOptions: [BenchmarkProfileOption] {
-        catalog.profiles.map(BenchmarkProfileOption.init(profile:))
+        catalog.profiles.map { profile in
+            BenchmarkProfileOption(profile: profile, resolverTransport: resolverTransport)
+        }
     }
 
     public var runnableProfileIDs: [String] {
@@ -35,8 +38,11 @@ public struct BenchmarkSetupViewModel: Equatable {
 
     public var runPlanSummary: String {
         let plan = plan
-        var parts = [
-            modeLabel,
+        var parts = [modeLabel]
+        if let resolverTransportLabel = resolverTransport.summaryLabel {
+            parts.append(resolverTransportLabel)
+        }
+        parts += [
             recordFamily.displayLabel,
             Self.countLabel(plan.resolverCount, singular: "resolver", plural: "resolvers"),
             Self.countLabel(plan.domains.count, singular: "domain", plural: "domains"),
@@ -88,6 +94,7 @@ public struct BenchmarkSetupViewModel: Equatable {
             connectTimeoutMS: connectTimeoutMS,
             maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
             recordFamily: recordFamily,
+            resolverTransport: resolverTransport,
             mode: mode
         )
     }
@@ -117,6 +124,7 @@ public struct BenchmarkSetupViewModel: Equatable {
             connectTimeoutMS: 1_000,
             maxConnectTargetsPerDomain: 4,
             recordFamily: .both,
+            resolverTransport: .automatic,
             mode: .dnsOnlyCompare
         )
     }
@@ -132,6 +140,7 @@ public struct BenchmarkSetupViewModel: Equatable {
         connectTimeoutMS: Int = 1_000,
         maxConnectTargetsPerDomain: Int = 4,
         recordFamily: BenchmarkRecordFamily = .both,
+        resolverTransport: BenchmarkResolverTransport = .automatic,
         mode: BenchmarkPlanMode
     ) {
         self.catalog = catalog
@@ -144,12 +153,13 @@ public struct BenchmarkSetupViewModel: Equatable {
         self.connectTimeoutMS = connectTimeoutMS
         self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
         self.recordFamily = recordFamily
+        self.resolverTransport = resolverTransport
         self.mode = mode
     }
 
     private static func defaultProfileIDs(from catalog: CatalogSnapshot) -> [String] {
         catalog.profiles
-            .filter { BenchmarkProfileOption(profile: $0).isRunnable }
+            .filter { BenchmarkProfileOption(profile: $0, resolverTransport: .automatic).isRunnable }
             .prefix(2)
             .map(\.id)
     }
@@ -208,11 +218,11 @@ public struct BenchmarkProfileOption: Equatable, Identifiable {
     public let detailLabel: String
     public let isRunnable: Bool
 
-    public init(profile: CatalogProfile) {
+    public init(profile: CatalogProfile, resolverTransport: BenchmarkResolverTransport = .automatic) {
         id = profile.id
         name = profile.name
         isRunnable = profile.protocol == .plain
-            && (!profile.ipv4Servers.isEmpty || !profile.ipv6Servers.isEmpty)
+            && resolverTransport.socketAddress(for: profile) != nil
         if isRunnable {
             detailLabel = "\(profile.ipv4Servers.count) IPv4 / \(profile.ipv6Servers.count) IPv6"
         } else {

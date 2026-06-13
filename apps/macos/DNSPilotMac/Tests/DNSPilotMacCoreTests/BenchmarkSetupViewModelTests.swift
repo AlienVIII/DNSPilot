@@ -13,6 +13,7 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.runnableProfileIDs, ["cloudflare", "google-public-dns"])
         XCTAssertEqual(viewModel.selectedSuiteID, "developer")
         XCTAssertEqual(viewModel.recordFamily, .both)
+        XCTAssertEqual(viewModel.resolverTransport, .automatic)
         XCTAssertTrue(viewModel.canRun)
         XCTAssertEqual(viewModel.readinessIssues, [])
     }
@@ -111,6 +112,34 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.estimatedDurationWarning)
     }
 
+    func testSetupFiltersRunnableProfilesByResolverTransport() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare", "google-public-dns"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            resolverTransport: .ipv6Only,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertEqual(viewModel.runnableProfileIDs, ["cloudflare"])
+        XCTAssertEqual(viewModel.profileSelectionSummary, "1 of 1 runnable selected")
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS only, IPv6 resolver, A + AAAA, 1 resolver, 1 domain, 1 attempt")
+        XCTAssertEqual(
+            viewModel.plan.commandArguments,
+            [
+                "compare",
+                "--resolver", "cloudflare=[2606:4700:4700::1111]:53",
+                "--domain", "github.com",
+                "--attempts", "1",
+                "--ip-family", "both",
+                "--timeout-ms", "800",
+            ]
+        )
+    }
+
     func testSetupWarnsWhenWorstCaseBenchmarkDurationIsLong() {
         let viewModel = BenchmarkSetupViewModel(
             catalog: makeSetupCatalog(),
@@ -163,7 +192,7 @@ private func makeSetupCatalog() -> CatalogSnapshot {
                 name: "Cloudflare",
                 description: "Fast public DNS.",
                 ipv4Servers: ["1.1.1.1"],
-                ipv6Servers: [],
+                ipv6Servers: ["2606:4700:4700::1111"],
                 protocol: .plain,
                 dohURL: nil,
                 dotHostname: nil,

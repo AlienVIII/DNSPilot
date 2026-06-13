@@ -135,6 +135,33 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
             ]
         )
     }
+
+    func testBenchmarkPlanCanUseIPv6ResolverTransport() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: ["cloudflare", "google-public-dns"],
+            selectedSuiteID: "developer",
+            customDomains: [],
+            attempts: 1,
+            resolverTransport: .ipv6Only,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertTrue(viewModel.validation.canRun)
+        XCTAssertEqual(viewModel.resolverCount, 1)
+        XCTAssertEqual(
+            viewModel.commandArguments,
+            [
+                "compare",
+                "--resolver", "cloudflare=[2606:4700:4700::1111]:53",
+                "--domain", "github.com",
+                "--domain", "registry.npmjs.org",
+                "--attempts", "1",
+                "--ip-family", "both",
+                "--timeout-ms", "800",
+            ]
+        )
+    }
 }
 
 private func makeBenchmarkCatalog() -> CatalogSnapshot {

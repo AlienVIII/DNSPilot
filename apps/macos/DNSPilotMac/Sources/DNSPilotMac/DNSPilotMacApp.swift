@@ -1162,6 +1162,7 @@ private struct BenchmarkDetailView: View {
     @State private var connectTimeoutMS: Int
     @State private var maxConnectTargetsPerDomain: Int
     @State private var recordFamily: BenchmarkRecordFamily
+    @State private var resolverTransport: BenchmarkResolverTransport
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
@@ -1183,6 +1184,7 @@ private struct BenchmarkDetailView: View {
             connectTimeoutMS: connectTimeoutMS,
             maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
             recordFamily: recordFamily,
+            resolverTransport: resolverTransport,
             mode: mode
         )
     }
@@ -1247,6 +1249,7 @@ private struct BenchmarkDetailView: View {
         _connectTimeoutMS = State(initialValue: defaults.connectTimeoutMS)
         _maxConnectTargetsPerDomain = State(initialValue: defaults.maxConnectTargetsPerDomain)
         _recordFamily = State(initialValue: defaults.recordFamily)
+        _resolverTransport = State(initialValue: defaults.resolverTransport)
         _mode = State(initialValue: defaults.mode)
     }
 
@@ -1310,6 +1313,16 @@ private struct BenchmarkDetailView: View {
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .frame(maxWidth: 280, alignment: .leading)
+
+                    Picker("Resolver", selection: $resolverTransport) {
+                        ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
+                            Text(transport.displayLabel).tag(transport)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 280, alignment: .leading)
+                    .help("Choose which DNS server address family to use from each profile.")
 
                     Picker("DNS records", selection: $recordFamily) {
                         ForEach(BenchmarkRecordFamily.allCases, id: \.self) { family in

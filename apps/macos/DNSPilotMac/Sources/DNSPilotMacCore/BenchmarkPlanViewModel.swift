@@ -40,6 +40,57 @@ public enum BenchmarkRecordFamily: Equatable, Hashable, CaseIterable, Sendable {
     }
 }
 
+public enum BenchmarkResolverTransport: Equatable, Hashable, CaseIterable, Sendable {
+    case automatic
+    case ipv4Only
+    case ipv6Only
+
+    public var displayLabel: String {
+        switch self {
+        case .automatic:
+            "Auto"
+        case .ipv4Only:
+            "IPv4"
+        case .ipv6Only:
+            "IPv6"
+        }
+    }
+
+    public var summaryLabel: String? {
+        switch self {
+        case .automatic:
+            nil
+        case .ipv4Only:
+            "IPv4 resolver"
+        case .ipv6Only:
+            "IPv6 resolver"
+        }
+    }
+
+    func socketAddress(for profile: CatalogProfile) -> String? {
+        switch self {
+        case .automatic:
+            if let ipv4 = profile.ipv4Servers.first {
+                return "\(ipv4):53"
+            }
+            if let ipv6 = profile.ipv6Servers.first {
+                return "[\(ipv6)]:53"
+            }
+            return nil
+        case .ipv4Only:
+            guard let ipv4 = profile.ipv4Servers.first else {
+                return nil
+            }
+            return "\(ipv4):53"
+        case .ipv6Only:
+            guard let ipv6 = profile.ipv6Servers.first else {
+                return nil
+            }
+            return "[\(ipv6)]:53"
+        }
+    }
+}
+
 public struct BenchmarkPlanValidation: Equatable, Sendable {
     public let canRun: Bool
     public let issues: [String]
@@ -60,6 +111,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     public let connectTimeoutMS: Int
     public let maxConnectTargetsPerDomain: Int
     public let recordFamily: BenchmarkRecordFamily
+    public let resolverTransport: BenchmarkResolverTransport
     public let mode: BenchmarkPlanMode
 
     public var domains: [String] {
@@ -86,7 +138,11 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     public var validation: BenchmarkPlanValidation {
         var issues: [String] = []
         if plainResolvers.isEmpty {
-            issues.append("Select at least one plain DNS profile.")
+            if let summaryLabel = resolverTransport.summaryLabel {
+                issues.append("Select at least one plain DNS profile with \(summaryLabel).")
+            } else {
+                issues.append("Select at least one plain DNS profile.")
+            }
         }
         if domains.isEmpty {
             issues.append("Select a test suite or add custom domains.")
@@ -144,11 +200,8 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
             else {
                 return nil
             }
-            if let ipv4 = profile.ipv4Servers.first {
-                return PlainResolver(id: profile.id, name: profile.name, socketAddress: "\(ipv4):53")
-            }
-            if let ipv6 = profile.ipv6Servers.first {
-                return PlainResolver(id: profile.id, name: profile.name, socketAddress: "[\(ipv6)]:53")
+            if let socketAddress = resolverTransport.socketAddress(for: profile) {
+                return PlainResolver(id: profile.id, name: profile.name, socketAddress: socketAddress)
             }
             return nil
         }
@@ -170,6 +223,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         connectTimeoutMS: Int = 1_000,
         maxConnectTargetsPerDomain: Int = 4,
         recordFamily: BenchmarkRecordFamily = .both,
+        resolverTransport: BenchmarkResolverTransport = .automatic,
         mode: BenchmarkPlanMode
     ) {
         self.catalog = catalog
@@ -181,6 +235,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         self.connectTimeoutMS = connectTimeoutMS
         self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
         self.recordFamily = recordFamily
+        self.resolverTransport = resolverTransport
         self.mode = mode
     }
 
