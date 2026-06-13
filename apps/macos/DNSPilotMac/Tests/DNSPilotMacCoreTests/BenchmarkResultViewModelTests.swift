@@ -390,6 +390,53 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.first?.diagnosisLabel, "IPv6 weak")
     }
 
+    func testResultViewModelSuggestsAOnlyWhenMostCandidatesHaveWeakIPv6() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .degraded,
+                primaryIssue: "partial-failure",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 2,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 800,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 50, failureRate: 0.5, ipv4Health: 1, ipv6Health: 0),
+                makeResultRun(profileID: "quad9", medianDNS: 55, failureRate: 0.5, ipv4Health: 1, ipv6Health: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.6,
+                confidence: .inconclusive,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertTrue(
+            viewModel.notes.contains(
+                "IPv6 looks weak across candidates; try DNS records: A only and retest before changing DNS."
+            )
+        )
+    }
+
     func testResultViewModelDiagnosesTcpAndTimeoutFailures() {
         let tcpCaveat = "Some resolved endpoints failed TCP connect; DNS may be mapping to a poor, blocked, or unreachable path."
         let result = BenchmarkResultPayload(

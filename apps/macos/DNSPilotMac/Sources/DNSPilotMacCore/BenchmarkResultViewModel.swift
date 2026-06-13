@@ -43,6 +43,7 @@ public struct BenchmarkResultViewModel: Equatable {
             bestMeasuredNote = nil
         }
         let commonFailureNote = Self.commonPartialFailureNote(for: result.runs)
+        let ipFamilyActionNote = Self.ipFamilyActionNote(for: result.runs)
 
         if shouldProtectCurrentDNS {
             recommendationLabel = "Keep current DNS"
@@ -69,6 +70,7 @@ public struct BenchmarkResultViewModel: Equatable {
             safetyNotes: result.summary.safetyNotes,
             bestMeasuredNote: bestMeasuredNote,
             commonFailureNote: commonFailureNote,
+            ipFamilyActionNote: ipFamilyActionNote,
             reasons: result.recommendation?.reasons ?? [],
             caveats: (result.recommendation?.caveats ?? []) + result.runs.flatMap(\.caveats)
         )
@@ -162,13 +164,15 @@ public struct BenchmarkResultViewModel: Equatable {
         safetyNotes: [String],
         bestMeasuredNote: String?,
         commonFailureNote: String?,
+        ipFamilyActionNote: String?,
         reasons: [String],
         caveats: [String]
     ) -> [String] {
         var seen = Set<String>()
         let measuredNotes = bestMeasuredNote.map { [$0] } ?? []
         let commonNotes = commonFailureNote.map { [$0] } ?? []
-        let notes = safetyNotes + measuredNotes + commonNotes + reasons + caveats
+        let familyNotes = ipFamilyActionNote.map { [$0] } ?? []
+        let notes = safetyNotes + measuredNotes + commonNotes + familyNotes + reasons + caveats
         return notes.filter { note in
             guard !note.lowercased().hasPrefix("recommended profile:") else {
                 return false
@@ -196,6 +200,21 @@ public struct BenchmarkResultViewModel: Equatable {
         }
 
         return "Many candidates failed at a similar partial rate; this can indicate current network, VPN, firewall, captive portal, or IPv6 reachability limits rather than one bad DNS provider."
+    }
+
+    private static func ipFamilyActionNote(for runs: [BenchmarkResultRun]) -> String? {
+        guard runs.count >= 2 else {
+            return nil
+        }
+
+        let weakIPv6Count = runs.filter { run in
+            run.metrics.failureRate > 0 && run.metrics.ipv6Health < 0.75 && run.metrics.ipv4Health >= 0.75
+        }.count
+        guard Double(weakIPv6Count) / Double(runs.count) >= 0.6 else {
+            return nil
+        }
+
+        return "IPv6 looks weak across candidates; try DNS records: A only and retest before changing DNS."
     }
 
     private static func savedHistoryLabel(for id: String) -> String {
