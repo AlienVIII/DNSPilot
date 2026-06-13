@@ -52,7 +52,10 @@ fn benchmark_command_rejects_zero_attempts() {
         .output()
         .expect("run dnspilot-cli benchmark");
 
-    assert!(!output.status.success(), "benchmark should reject zero attempts");
+    assert!(
+        !output.status.success(),
+        "benchmark should reject zero attempts"
+    );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         stderr.contains("--attempts must be greater than 0"),
@@ -77,7 +80,10 @@ fn benchmark_command_rejects_zero_timeout() {
         .output()
         .expect("run dnspilot-cli benchmark");
 
-    assert!(!output.status.success(), "benchmark should reject zero timeout");
+    assert!(
+        !output.status.success(),
+        "benchmark should reject zero timeout"
+    );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         stderr.contains("--timeout-ms must be greater than 0"),
@@ -144,8 +150,7 @@ fn start_fake_resolver(query_count: usize) -> SocketAddr {
             let (length, peer) = socket.recv_from(&mut buffer).expect("receive DNS query");
             let request = &buffer[..length];
             let mut response = vec![
-                request[0], request[1], 0x81, 0x80, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00,
+                request[0], request[1], 0x81, 0x80, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             ];
             response.extend(&request[12..]);
             socket
@@ -156,4 +161,3 @@ fn start_fake_resolver(query_count: usize) -> SocketAddr {
 
     addr
 }
-

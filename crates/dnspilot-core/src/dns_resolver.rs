@@ -73,4 +73,3 @@ pub fn query_udp_once(
 
     Ok(UdpLookupResult { response, elapsed })
 }
-

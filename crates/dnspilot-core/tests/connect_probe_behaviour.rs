@@ -72,6 +72,8 @@ fn aggregates_tcp_connect_samples() {
     assert_eq!(run.p95_connect_latency_ms, 80.0);
     assert_eq!(run.failure_rate, 0.25);
     assert_eq!(run.timeout_rate, 0.25);
-    assert!(matches!(run.samples[2].outcome, ConnectProbeOutcome::Timeout));
+    assert!(matches!(
+        run.samples[2].outcome,
+        ConnectProbeOutcome::Timeout
+    ));
 }
-

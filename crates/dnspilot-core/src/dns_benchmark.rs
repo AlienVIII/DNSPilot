@@ -188,4 +188,3 @@ fn rate(numerator: f64, denominator: f64) -> f64 {
         numerator / denominator
     }
 }
-

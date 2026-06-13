@@ -77,7 +77,9 @@ fn storage_snapshot_rejects_invalid_or_duplicate_suite_domains() {
 
     let invalid_error = validate_storage_snapshot(&invalid_snapshot)
         .expect_err("invalid suite domain should be rejected");
-    assert!(invalid_error.to_string().contains("invalid test suite domain"));
+    assert!(invalid_error
+        .to_string()
+        .contains("invalid test suite domain"));
 
     let mut duplicate_suites = built_in_test_suites();
     duplicate_suites.push(dnspilot_core::TestSuite {
@@ -96,7 +98,9 @@ fn storage_snapshot_rejects_invalid_or_duplicate_suite_domains() {
 
     let duplicate_error = validate_storage_snapshot(&duplicate_snapshot)
         .expect_err("duplicate suite domain should be rejected");
-    assert!(duplicate_error.to_string().contains("duplicate test suite domain"));
+    assert!(duplicate_error
+        .to_string()
+        .contains("duplicate test suite domain"));
 }
 
 #[test]

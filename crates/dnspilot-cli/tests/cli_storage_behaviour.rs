@@ -1078,7 +1078,11 @@ fn history_clear_command_removes_all_saved_history_records() {
     save_history_run(&db_path, "run-2");
 
     let clear = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
-        .args(["history-clear", "--db", db_path.to_str().expect("utf8 path")])
+        .args([
+            "history-clear",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+        ])
         .output()
         .expect("run dnspilot-cli history-clear");
 

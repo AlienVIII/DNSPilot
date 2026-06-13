@@ -299,7 +299,10 @@ fn compare_command_rejects_zero_timeout() {
         .output()
         .expect("run dnspilot-cli compare");
 
-    assert!(!output.status.success(), "compare should reject zero timeout");
+    assert!(
+        !output.status.success(),
+        "compare should reject zero timeout"
+    );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         stderr.contains("--timeout-ms must be greater than 0"),

@@ -244,4 +244,3 @@ fn read_u32(packet: &[u8], offset: usize) -> Result<u32, DnsWireError> {
         packet[offset + 3],
     ]))
 }
-

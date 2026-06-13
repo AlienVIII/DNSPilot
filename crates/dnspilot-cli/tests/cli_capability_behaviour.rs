@@ -23,7 +23,9 @@ fn capabilities_command_outputs_full_matrix_with_flush_contract() {
         .expect("capabilities should be an array");
 
     assert_eq!(capabilities.len(), 9);
-    assert!(capabilities.iter().all(|capability| capability["flush"].is_string()));
+    assert!(capabilities
+        .iter()
+        .all(|capability| capability["flush"].is_string()));
     assert!(capabilities.iter().any(|capability| {
         capability["platform"] == "macos-store"
             && capability["apply"] == "apple-network-extension-dns-settings"

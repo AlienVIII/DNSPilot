@@ -1,9 +1,9 @@
 use rustls::pki_types::ServerName;
 use rustls::{ClientConfig, ClientConnection, RootCertStore};
 use std::io;
+use std::net::SocketAddr;
 use std::net::TcpStream;
 use std::sync::Arc;
-use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,9 +89,7 @@ pub fn probe_tls_handshake_once_with_config(
         .map_err(|error| map_rustls_error(&error))?;
 
     while connection.is_handshaking() {
-        connection
-            .complete_io(&mut tcp)
-            .map_err(map_tls_io_error)?;
+        connection.complete_io(&mut tcp).map_err(map_tls_io_error)?;
     }
 
     Ok(started.elapsed())

@@ -6,8 +6,8 @@ use rcgen::{generate_simple_self_signed, CertifiedKey};
 use rustls::pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::{ClientConfig, RootCertStore, ServerConfig, ServerConnection};
 use std::io::Write;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::net::TcpListener;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -46,9 +46,7 @@ fn aggregates_tls_handshake_samples() {
     let run = run_tls_handshake_probes_with_handshaker(&config, |target| {
         assert_eq!(target.server_name, "github.com");
         match target.endpoint.ip() {
-            IpAddr::V4(ip) if ip == Ipv4Addr::new(140, 82, 112, 4) => {
-                Ok(Duration::from_millis(80))
-            }
+            IpAddr::V4(ip) if ip == Ipv4Addr::new(140, 82, 112, 4) => Ok(Duration::from_millis(80)),
             _ => Ok(Duration::from_millis(120)),
         }
     });
@@ -104,9 +102,7 @@ fn local_tls_configs() -> (ClientConfig, ServerConfig) {
     let CertifiedKey { cert, signing_key } =
         generate_simple_self_signed(vec!["localhost".into()]).unwrap();
     let cert_der = cert.der().clone();
-    let private_key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
-        signing_key.serialize_der(),
-    ));
+    let private_key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(signing_key.serialize_der()));
 
     let server_config = ServerConfig::builder()
         .with_no_client_auth()

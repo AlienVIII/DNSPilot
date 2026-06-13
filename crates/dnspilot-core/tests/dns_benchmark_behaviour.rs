@@ -69,4 +69,3 @@ fn records_timeout_and_failure_outcomes_without_latency() {
     assert!(matches!(run.samples[0].outcome, DnsSampleOutcome::Timeout));
     assert!(matches!(run.samples[1].outcome, DnsSampleOutcome::Failure));
 }
-
