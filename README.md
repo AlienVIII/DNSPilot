@@ -31,14 +31,14 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - CLI custom profile filtering metadata for malware/family/ads/security DNS.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom plain DNS profiles.
-- CLI custom domain suite add/list commands backed by SQLite snapshots.
+- CLI custom domain suite add/list/update/delete commands backed by SQLite snapshots.
 - Custom domain suite validation for invalid and duplicate domains.
 - CLI benchmark, compare, path-estimate, and path-compare commands can use saved
   custom domain suites.
 - CLI benchmark commands reject invalid or duplicate resolved domains before
   network activity.
-- CLI benchmark, compare, and path-compare history save/list commands backed by
-  SQLite snapshots.
+- CLI benchmark, compare, and path-compare history save/list/delete/clear
+  commands backed by SQLite snapshots.
 - Store-safe platform capability matrix.
 - Platform DNS cache flush capability matrix for store-safe versus power builds.
 - Benchmark preflight policy that distinguishes direct resolver tests from
@@ -89,11 +89,12 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   `--history-id` to validated benchmark runs.
 - macOS benchmark auto-save wiring to an Application Support `dnspilot.sqlite`
   database when the app can prepare the directory.
-- macOS benchmark history-list decoder and display ViewModel for saved run rows.
-- macOS benchmark history runner for invoking `history-list --db` through the
-  shared process boundary.
-- macOS History sidebar screen with refresh, loading, empty, error, and saved
-  run display states.
+- macOS benchmark history-list decoder and display ViewModel for newest-first
+  saved run rows.
+- macOS benchmark history runner for invoking `history-list`, `history-delete`,
+  and `history-clear` through the shared process boundary.
+- macOS History sidebar screen with refresh, loading, empty, error, delete, clear
+  all, and saved run display states.
 - macOS benchmark result display includes saved history IDs when a run is
   persisted.
 - macOS DNS-only result decoder accepts missing/null connection latency and
@@ -133,6 +134,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   saving them through the shared CLI/storage boundary.
 - macOS Custom DNS saved-profile management for editing/deleting custom plain
   DNS profiles.
+- macOS Benchmark saved-suite management for editing/deleting custom domain
+  suites.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom
