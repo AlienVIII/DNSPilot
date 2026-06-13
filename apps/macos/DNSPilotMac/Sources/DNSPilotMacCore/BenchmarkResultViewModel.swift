@@ -23,7 +23,7 @@ public struct BenchmarkResultViewModel: Equatable {
             BenchmarkResultRow(run: run, displayName: profileNames[run.profileID])
         }
         warning = result.warning
-        savedHistoryLabel = result.savedHistoryID.map { "Saved: \($0)" }
+        savedHistoryLabel = result.savedHistoryID.map(Self.savedHistoryLabel)
 
         if result.summary.canRecommend,
            let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID {
@@ -97,6 +97,31 @@ public struct BenchmarkResultViewModel: Equatable {
         }
 
         return "Many candidates failed at a similar partial rate; this can indicate current network, VPN, firewall, captive portal, or IPv6 reachability limits rather than one bad DNS provider."
+    }
+
+    private static func savedHistoryLabel(for id: String) -> String {
+        "Saved run: \(shortHistoryID(id))"
+    }
+
+    private static func shortHistoryID(_ id: String) -> String {
+        let parts = id.split(separator: "-")
+        let uuidGroupLengths = [8, 4, 4, 4, 12]
+        if parts.count >= uuidGroupLengths.count + 1 {
+            let tail = Array(parts.suffix(uuidGroupLengths.count))
+            let hasUUIDTail = zip(tail, uuidGroupLengths).allSatisfy { part, length in
+                part.count == length && part.allSatisfy(\.isHexDigit)
+            }
+
+            if hasUUIDTail {
+                let readableParts = Array(parts.dropLast(uuidGroupLengths.count)) + [tail[0]]
+                return "\(readableParts.joined(separator: "-"))..."
+            }
+        }
+
+        guard id.count > 28 else {
+            return id
+        }
+        return "\(id.prefix(25))..."
     }
 
     private static func scopeLabel(for scope: BenchmarkMeasurementScope) -> String {

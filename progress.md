@@ -112,6 +112,7 @@ DNS handling, and platform capability reporting.
 - [x] [101] v0.1 macOS benchmark diagnostics and DNS statuses — decode all-timeout results, add issue logs, select-all, and per-DNS status.
 - [x] [102] v0.1 macOS benchmark result trust states — soften degraded recommendations and show degraded row status.
 - [x] [103] v0.1 macOS benchmark common-failure note — explain similar partial failures as possible network conditions.
+- [x] [104] v0.1 macOS result saved-run label polish — shorten long saved-run IDs in the result panel.
 
 ---
 
@@ -4021,6 +4022,35 @@ Result: 1 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 116 passed, 0 failed
+
+cargo test --workspace --tests
+Result: pass
+
+git diff --check
+Result: clean
+```
+
+---
+
+## Chunk 104: v0.1 macOS Result Saved-Run Label Polish
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`
+
+### What changed
+
+Changed the Result panel saved-run label from a raw full history ID to a
+shorter "Saved run" label. UUID-style history IDs keep the mode prefix plus the
+first UUID group, while full IDs remain unchanged in storage/history.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests/testResultViewModelShortensLongSavedHistoryIDForResultPanel
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 117 passed, 0 failed
 
 cargo test --workspace --tests
 Result: pass

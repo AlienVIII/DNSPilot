@@ -50,7 +50,49 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.map(\.name), ["Cloudflare", "Google Public DNS"])
         XCTAssertEqual(viewModel.rows.first?.medianDNSLatencyLabel, "4 ms")
         XCTAssertEqual(viewModel.notes, ["Lowest median DNS latency.", "Connection path not measured."])
-        XCTAssertEqual(viewModel.savedHistoryLabel, "Saved: compare-run-1")
+        XCTAssertEqual(viewModel.savedHistoryLabel, "Saved run: compare-run-1")
+    }
+
+    func testResultViewModelShortensLongSavedHistoryIDForResultPanel() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsTCP,
+                mode: .bestOverall,
+                health: .healthy,
+                primaryIssue: "none",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: nil,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: 443,
+                maxConnectTargetsPerDomain: 4,
+                tlsEnabled: false,
+                trustStore: nil,
+                tlsSampleCount: 0,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 20, failureRate: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.9,
+                confidence: .high,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: "path-compare-bd1625f7-0f3f-47c8-b4f6-2ba43eeecf10",
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.savedHistoryLabel, "Saved run: path-compare-bd1625f7...")
     }
 
     func testResultViewModelSoftensRecommendationForDegradedInconclusiveRuns() {

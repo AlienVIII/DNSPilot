@@ -115,6 +115,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Benchmark result notes call out similar partial-failure patterns across
   many DNS candidates as possible current-network/VPN/firewall/captive
   portal/IPv6 issues.
+- macOS Benchmark result panel shortens long saved-run IDs while preserving the
+  full ID in history/storage.
 - macOS custom plain DNS profile form ViewModel for IPv4/IPv6 parsing,
   validation, profile ID generation, and `profile-add` arguments.
 - macOS custom plain DNS save runner/coordinator for executing `profile-add`
