@@ -117,6 +117,10 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   process/parse failure.
 - macOS Benchmark warns on long worst-case benchmark plans and exposes DNS
   timeout, TCP timeout, and TCP target cap controls.
+- macOS Benchmark exposes DNS record-family controls (`A + AAAA`, `A only`,
+  `AAAA only`) so IPv6-broken networks do not force misleading partial failures.
+- macOS Benchmark exposes resolver address-family controls (`Auto`, `IPv4`,
+  `IPv6`) so profiles with IPv6 DNS servers can be tested explicitly.
 - macOS Benchmark result panel protects current DNS for degraded/inconclusive
   all-weak runs while preserving best measured candidate context in notes.
 - macOS Benchmark result notes call out similar partial-failure patterns across
@@ -126,6 +130,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   caveats, such as TCP endpoint failures, in result notes.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
   when partial failures line up with a specific IP family.
+- macOS Benchmark result rows and copied result reports include per-resolver
+  diagnosis labels for DNS lookup failures, TCP path failures, weak IP family,
+  timeouts, and all-failed cases.
 - macOS Benchmark result panel shortens long saved-run IDs while preserving and
   copying the full ID in result/history/storage.
 - macOS custom plain DNS profile form ViewModel for IPv4/IPv6 parsing,
@@ -154,6 +161,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - UDP resolver client with timeout and transaction ID validation.
 - Multi-sample DNS benchmark aggregation for median, P95, failure rate,
   timeout rate, and IPv4/IPv6 health.
+- DNS benchmark configs can limit measured DNS records to both A/AAAA, A only,
+  or AAAA only; unmeasured families stay neutral instead of counting as failed.
 - CLI benchmark commands reject zero-attempt runs before network activity.
 - CLI benchmark commands reject zero timeout settings before network activity.
 - CLI benchmark commands reject zero resolver/connect ports before network
@@ -178,6 +187,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   suppression.
 - DNS+TCP multi-resolver path-compare command with optional TLS/SNI probing,
   so raw-DNS-fast but connect/TLS-bad candidates can be rejected.
+- CLI benchmark, compare, path-estimate, and path-compare accept `--ip-family`
+  (`both`, `ipv4-only`, `ipv6-only`) and emit `summary.ip_family`.
 
 ## Not Implemented Yet
 
@@ -205,8 +216,10 @@ cargo run -p dnspilot-cli -- apply-policy macos-store --vpn-active
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1
+cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1 --ip-family ipv4-only
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1
+cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1 --ip-family ipv4-only
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1 --tls-handshake-timeout-ms 1000
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --tls-handshake-timeout-ms 1000
 cargo run -p dnspilot-cli -- storage-smoke --db /tmp/dnspilot.sqlite
