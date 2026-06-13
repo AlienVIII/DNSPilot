@@ -129,17 +129,48 @@ public final class FoundationBenchmarkProcessRunner: BenchmarkProcessRunning {
             process.terminate()
         }
 
+        let readGroup = DispatchGroup()
+        let standardOutputBuffer = ProcessPipeBuffer()
+        let standardErrorBuffer = ProcessPipeBuffer()
+        readGroup.enter()
+        DispatchQueue.global(qos: .utility).async {
+            standardOutputBuffer.set(standardOutput.fileHandleForReading.readDataToEndOfFile())
+            readGroup.leave()
+        }
+        readGroup.enter()
+        DispatchQueue.global(qos: .utility).async {
+            standardErrorBuffer.set(standardError.fileHandleForReading.readDataToEndOfFile())
+            readGroup.leave()
+        }
+
         process.waitUntilExit()
+        readGroup.wait()
 
         return BenchmarkProcessOutput(
             exitCode: process.terminationStatus,
-            standardOutput: Self.readString(from: standardOutput),
-            standardError: Self.readString(from: standardError)
+            standardOutput: Self.string(from: standardOutputBuffer.data),
+            standardError: Self.string(from: standardErrorBuffer.data)
         )
     }
 
-    private static func readString(from pipe: Pipe) -> String {
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    private static func string(from data: Data) -> String {
         return String(data: data, encoding: .utf8) ?? ""
+    }
+}
+
+private final class ProcessPipeBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = Data()
+
+    var data: Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+
+    func set(_ data: Data) {
+        lock.lock()
+        value = data
+        lock.unlock()
     }
 }

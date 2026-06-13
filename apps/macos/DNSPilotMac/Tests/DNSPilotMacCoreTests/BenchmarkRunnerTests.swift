@@ -119,6 +119,26 @@ final class BenchmarkRunnerTests: XCTestCase {
         XCTAssertNotEqual(output.exitCode, 0)
         XCTAssertTrue(cancellation.isCancelled)
     }
+
+    func testFoundationRunnerDrainsLargeStdoutWhileProcessRuns() throws {
+        let processRunner = FoundationBenchmarkProcessRunner()
+        let cancellation = BenchmarkRunCancellation()
+        let expectedByteCount = 2_000_000
+
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2.0) {
+            cancellation.cancel()
+        }
+
+        let output = try processRunner.run(
+            executableURL: URL(fileURLWithPath: "/usr/bin/python3"),
+            arguments: ["-c", "import sys; sys.stdout.write('x' * \(expectedByteCount))"],
+            cancellation: cancellation
+        )
+
+        XCTAssertEqual(output.exitCode, 0)
+        XCTAssertEqual(output.standardOutput.count, expectedByteCount)
+        XCTAssertFalse(cancellation.isCancelled)
+    }
 }
 
 private final class RecordingBenchmarkProcessRunner: BenchmarkProcessRunning {

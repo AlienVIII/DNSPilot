@@ -78,14 +78,46 @@ public struct BenchmarkProgressStepViewModel: Equatable, Identifiable, Sendable 
     }
 }
 
+public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
+    public let resolverCount: Int
+    public let domainCount: Int
+    public let attempts: Int
+    public let dnsTimeoutMS: Int
+    public let connectTimeoutMS: Int
+
+    public init(
+        resolverCount: Int,
+        domainCount: Int,
+        attempts: Int,
+        dnsTimeoutMS: Int = 800,
+        connectTimeoutMS: Int = 1_000
+    ) {
+        self.resolverCount = resolverCount
+        self.domainCount = domainCount
+        self.attempts = attempts
+        self.dnsTimeoutMS = dnsTimeoutMS
+        self.connectTimeoutMS = connectTimeoutMS
+    }
+
+    public init(plan: BenchmarkPlanViewModel) {
+        self.init(
+            resolverCount: plan.resolverCount,
+            domainCount: plan.domains.count,
+            attempts: plan.attempts
+        )
+    }
+}
+
 public struct BenchmarkProgressViewModel: Equatable, Sendable {
     public let steps: [BenchmarkProgressStepViewModel]
+    public let currentStepVerboseLines: [String]
 
     public init(
         mode: BenchmarkPlanMode,
         state: BenchmarkRunState,
         outcome: BenchmarkExecutionOutcome?,
-        historySaved: Bool
+        historySaved: Bool,
+        planSummary: BenchmarkProgressPlanSummary? = nil
     ) {
         let failure: BenchmarkExecutionFailure? = {
             if case .failed(let failure) = outcome {
@@ -119,6 +151,11 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             Self.step(.savingHistory, status: Self.historyStatus(failure: failure, isCompleted: isCompleted, historySaved: historySaved))
         )
         steps = nextSteps
+        currentStepVerboseLines = Self.verboseLines(
+            mode: mode,
+            isRunning: isRunning,
+            planSummary: planSummary
+        )
     }
 
     private static func step(
@@ -184,5 +221,45 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         case .savingHistory:
             4
         }
+    }
+
+    private static func verboseLines(
+        mode: BenchmarkPlanMode,
+        isRunning: Bool,
+        planSummary: BenchmarkProgressPlanSummary?
+    ) -> [String] {
+        guard isRunning else {
+            return []
+        }
+        guard let planSummary else {
+            return [
+                "* Running benchmark command.",
+                "* Waiting for CLI output; cancel is available if the network blocks.",
+            ]
+        }
+
+        let dnsSeconds = worstCaseDNSSeconds(summary: planSummary)
+        switch mode {
+        case .dnsOnlyCompare:
+            return [
+                "* Resolving \(planSummary.domainCount) domain(s) with \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s), A + AAAA.",
+                "* Worst-case DNS wait before output: about \(dnsSeconds); stdout is drained while the CLI runs.",
+            ]
+        case .connectionPathCompare:
+            return [
+                "* Resolving DNS, then probing TCP :443 for returned endpoints.",
+                "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds).",
+            ]
+        }
+    }
+
+    private static func worstCaseDNSSeconds(summary: BenchmarkProgressPlanSummary) -> String {
+        let totalMilliseconds = summary.resolverCount
+            * summary.domainCount
+            * 2
+            * summary.attempts
+            * summary.dnsTimeoutMS
+        let seconds = Double(totalMilliseconds) / 1_000
+        return String(format: "%.1fs", seconds)
     }
 }

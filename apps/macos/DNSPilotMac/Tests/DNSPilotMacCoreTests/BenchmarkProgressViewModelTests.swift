@@ -21,6 +21,30 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         )
     }
 
+    func testProgressShowsDnsOnlyVerboseLinesWhileRunning() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .dnsOnlyCompare,
+            state: .running(runID: BenchmarkRunID(1)),
+            outcome: nil,
+            historySaved: false,
+            planSummary: BenchmarkProgressPlanSummary(
+                resolverCount: 2,
+                domainCount: 3,
+                attempts: 1,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000
+            )
+        )
+
+        XCTAssertEqual(
+            viewModel.currentStepVerboseLines,
+            [
+                "* Resolving 3 domain(s) with 2 resolver(s), 1 attempt(s), A + AAAA.",
+                "* Worst-case DNS wait before output: about 9.6s; stdout is drained while the CLI runs.",
+            ]
+        )
+    }
+
     func testProgressShowsDnsTcpProbeWhileRunning() {
         let viewModel = BenchmarkProgressViewModel(
             mode: .connectionPathCompare,
@@ -37,6 +61,30 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
                 "Measuring TCP:running",
                 "Parsing result:idle",
                 "Saving history:idle",
+            ]
+        )
+    }
+
+    func testProgressShowsDnsTcpVerboseLinesWhileRunning() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .connectionPathCompare,
+            state: .running(runID: BenchmarkRunID(1)),
+            outcome: nil,
+            historySaved: false,
+            planSummary: BenchmarkProgressPlanSummary(
+                resolverCount: 2,
+                domainCount: 2,
+                attempts: 1,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000
+            )
+        )
+
+        XCTAssertEqual(
+            viewModel.currentStepVerboseLines,
+            [
+                "* Resolving DNS, then probing TCP :443 for returned endpoints.",
+                "* Planned input: 2 domain(s), 2 resolver(s), 1 attempt(s); worst-case DNS phase about 6.4s.",
             ]
         )
     }

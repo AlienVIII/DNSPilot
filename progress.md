@@ -3851,6 +3851,49 @@ Result: clean
 
 ---
 
+## Chunk 99: v0.1 macOS Benchmark Pipe Drain and Verbose Progress
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkProgressViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkPlanViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkProgressViewModelTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Fixed benchmark hangs by draining stdout/stderr while the CLI process runs
+instead of waiting for process exit before reading pipes. Added two verbose
+current-step lines to the Benchmark process panel with resolver/domain/attempt
+counts and worst-case DNS wait estimates.
+
+### Evidence
+
+```text
+RED: large stdout process blocked, then cancellation killed it with exit 15 and 0 bytes stdout.
+GREEN: same process completed with exit 0 and 2,000,000 bytes stdout.
+```
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkRunnerTests/testFoundationRunnerDrainsLargeStdoutWhileProcessRuns
+RED result: failed with exit 15 and 0 stdout bytes
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkRunnerTests --filter BenchmarkProgressViewModelTests
+Result: 13 passed, 0 failed
+
+swift build --package-path apps/macos/DNSPilotMac
+Result: build complete
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 105 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 112 passed, 0 failed
+
+git diff --check
+Result: clean
+```
+
+---
+
 ## Chunk 86: v0.1 macOS Result Saved-History Label
 
 **Status:** Complete

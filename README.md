@@ -101,6 +101,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   activation so keyboard input routes into app windows.
 - macOS Benchmark displays process stage statuses and structured failure
   details with failed step, reason, suggestion, elapsed time, and debug log.
+- macOS Benchmark process runner drains stdout/stderr while the CLI runs, so
+  large result JSON cannot deadlock the app, and shows two verbose current-step
+  lines while a benchmark is running.
 - macOS custom plain DNS profile form ViewModel for IPv4/IPv6 parsing,
   validation, profile ID generation, and `profile-add` arguments.
 - macOS custom plain DNS save runner/coordinator for executing `profile-add`

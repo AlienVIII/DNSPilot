@@ -28,6 +28,10 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         return Self.uniquePreservingOrder(suiteDomains + sanitizedCustomDomains)
     }
 
+    public var resolverCount: Int {
+        plainResolvers.count
+    }
+
     public var validation: BenchmarkPlanValidation {
         var issues: [String] = []
         if plainResolvers.isEmpty {

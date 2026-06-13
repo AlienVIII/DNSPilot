@@ -636,7 +636,8 @@ private struct BenchmarkDetailView: View {
             mode: mode,
             state: runStateMachine.state,
             outcome: outcome,
-            historySaved: completedResultSavedHistory
+            historySaved: completedResultSavedHistory,
+            planSummary: BenchmarkProgressPlanSummary(plan: setupViewModel.plan)
         )
     }
 
@@ -1025,6 +1026,17 @@ private struct BenchmarkProgressPanel: View {
                             .foregroundStyle(step.status.foregroundStyle)
                     }
                     .accessibilityElement(children: .combine)
+                }
+                if !viewModel.currentStepVerboseLines.isEmpty {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                        ForEach(viewModel.currentStepVerboseLines, id: \.self) { line in
+                            Text(line)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .padding(.top, DNSPilotDesign.Spacing.controlGap)
                 }
             }
         }
