@@ -7,6 +7,8 @@ final class CapabilityMatrixViewModelTests: XCTestCase {
         let viewModel = CapabilityMatrixViewModel()
 
         XCTAssertEqual(viewModel.rows.first?.platformName, "macOS Store")
+        XCTAssertEqual(viewModel.rows.first?.applyLabel, "User-approved")
+        XCTAssertEqual(viewModel.rows.first?.flushLabel, "Guided")
         XCTAssertTrue(viewModel.rows.contains { row in
             row.platformID == "macos-store"
                 && row.flush == .guidedUserAction

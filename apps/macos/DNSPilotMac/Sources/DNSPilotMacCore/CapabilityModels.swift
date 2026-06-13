@@ -40,4 +40,30 @@ public struct CapabilityRow: Equatable, Identifiable {
         self.storeSafe = storeSafe
         self.notes = notes
     }
+
+    public var applyLabel: String {
+        switch applyDisposition {
+        case .allow:
+            "User-approved"
+        case .guideOnly:
+            "Guided"
+        case .protectCurrentDNS:
+            "Protect"
+        case .unsupported:
+            "Unsupported"
+        }
+    }
+
+    public var flushLabel: String {
+        switch flush {
+        case .guidedUserAction:
+            "Guided"
+        case .desktopAdminService:
+            "Admin"
+        case .linuxSystemResolverPolkit:
+            "Polkit"
+        case .unsupported:
+            "Unsupported"
+        }
+    }
 }

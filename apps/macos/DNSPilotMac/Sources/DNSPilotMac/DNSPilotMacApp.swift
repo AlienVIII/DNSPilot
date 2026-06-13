@@ -772,8 +772,8 @@ private struct CapabilityMatrixDetailView: View {
                             Text(row.platformName)
                             Image(systemName: row.canBenchmark ? "speedometer" : "minus.circle")
                                 .help(row.canBenchmark ? "Can benchmark" : "Cannot benchmark")
-                            Text(label(for: row.applyDisposition))
-                            Text(label(for: row.flush))
+                            Text(row.applyLabel)
+                            Text(row.flushLabel)
                         }
                     }
                 }
@@ -784,24 +784,6 @@ private struct CapabilityMatrixDetailView: View {
         .padding(DNSPilotDesign.Spacing.panel)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(DNSPilotDesign.Palette.background)
-    }
-
-    private func label(for disposition: DNSPilotApplyDisposition) -> String {
-        switch disposition {
-        case .allow: "Allowed"
-        case .guideOnly: "Guide"
-        case .protectCurrentDNS: "Protect"
-        case .unsupported: "Unsupported"
-        }
-    }
-
-    private func label(for flush: DNSPilotFlushCapability) -> String {
-        switch flush {
-        case .guidedUserAction: "Guided"
-        case .desktopAdminService: "Admin"
-        case .linuxSystemResolverPolkit: "Polkit"
-        case .unsupported: "Unsupported"
-        }
     }
 }
 
