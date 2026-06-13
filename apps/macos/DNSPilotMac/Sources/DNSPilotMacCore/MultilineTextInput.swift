@@ -3,9 +3,11 @@ import SwiftUI
 
 public struct DNSPilotMultilineTextInput: NSViewRepresentable {
     @Binding private var text: String
+    private let isEditable: Bool
 
-    public init(text: Binding<String>) {
+    public init(text: Binding<String>, isEditable: Bool = true) {
         _text = text
+        self.isEditable = isEditable
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -19,7 +21,7 @@ public struct DNSPilotMultilineTextInput: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
         scrollView.borderType = .noBorder
 
-        let textView = Self.makeConfiguredTextView(initialText: text)
+        let textView = Self.makeConfiguredTextView(initialText: text, isEditable: isEditable)
         textView.delegate = context.coordinator
         scrollView.documentView = textView
 
@@ -31,16 +33,19 @@ public struct DNSPilotMultilineTextInput: NSViewRepresentable {
             return
         }
         textView.delegate = context.coordinator
+        textView.isEditable = isEditable
+        textView.textColor = isEditable ? .labelColor : .disabledControlTextColor
         if textView.string != text {
             textView.string = text
         }
     }
 
-    static func makeConfiguredTextView(initialText: String) -> NSTextView {
+    static func makeConfiguredTextView(initialText: String, isEditable: Bool = true) -> NSTextView {
         let textView = NSTextView()
         textView.string = initialText
-        textView.isEditable = true
+        textView.isEditable = isEditable
         textView.isSelectable = true
+        textView.textColor = isEditable ? .labelColor : .disabledControlTextColor
         textView.isRichText = false
         textView.allowsUndo = true
         textView.drawsBackground = false

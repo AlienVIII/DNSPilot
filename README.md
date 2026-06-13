@@ -23,7 +23,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.
 - CLI storage smoke command for creating and verifying a local SQLite snapshot.
-- CLI custom plain/DoH/DoT profile add/list commands backed by SQLite snapshots.
+- CLI custom plain/DoH/DoT profile add/list/update/delete commands backed by
+  SQLite snapshots.
 - Custom DNS profile validation for IPv4/IPv6 family mismatch and duplicate
   servers.
 - Custom encrypted DNS profile validation for HTTPS DoH URLs and DoT hostnames.
@@ -112,6 +113,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   validation issues, and save status messages.
 - macOS Custom DNS sidebar screen for entering IPv4/IPv6 plain DNS profiles and
   saving them through the shared CLI/storage boundary.
+- macOS Custom DNS saved-profile management for editing/deleting custom plain
+  DNS profiles.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom
@@ -154,7 +157,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - HTTP/3, browser cache, and application-layer timing.
 - HTTPS probe runner.
 - Incremental normalized SQLite tables beyond the current snapshot backend.
-- Runtime Rust FFI/CLI wiring for the macOS SwiftUI shell.
+- Direct Rust FFI bindings for the macOS SwiftUI shell.
 - Kotlin/Compose, WinUI, GTK/libadwaita shells.
 - Platform apply adapters.
 - Desktop power edition admin/helper paths.
@@ -183,6 +186,8 @@ cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id family-f
 cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id custom-doh --name "Custom DoH" --protocol doh --doh-url https://dns.example/dns-query
 cargo run -p dnspilot-cli -- profile-add --db /tmp/dnspilot.sqlite --id custom-dot --name "Custom DoT" --protocol dot --dot-hostname dns.example
 cargo run -p dnspilot-cli -- profile-list --db /tmp/dnspilot.sqlite
+cargo run -p dnspilot-cli -- profile-update --db /tmp/dnspilot.sqlite --id custom-lab --name "Custom Lab Updated" --ipv4 9.9.9.9 --tag custom
+cargo run -p dnspilot-cli -- profile-delete --db /tmp/dnspilot.sqlite --id custom-dot
 cargo run -p dnspilot-cli -- benchmark --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- path-estimate --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --domain github.com --attempts 1

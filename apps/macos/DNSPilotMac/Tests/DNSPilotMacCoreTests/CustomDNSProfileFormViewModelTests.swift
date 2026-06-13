@@ -29,6 +29,28 @@ final class CustomDNSProfileFormViewModelTests: XCTestCase {
         )
     }
 
+    func testFormBuildsProfileUpdateArgumentsWithStableProfileID() {
+        let viewModel = CustomDNSProfileFormViewModel(
+            name: "Renamed DNS",
+            ipv4ServersText: "8.8.8.8",
+            ipv6ServersText: "",
+            profileID: "my-lab-dns"
+        )
+
+        XCTAssertEqual(viewModel.profileID, "my-lab-dns")
+        XCTAssertEqual(
+            viewModel.profileUpdateArguments(databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite")),
+            [
+                "profile-update",
+                "--db", "/tmp/dnspilot.sqlite",
+                "--id", "my-lab-dns",
+                "--name", "Renamed DNS",
+                "--ipv4", "8.8.8.8",
+                "--tag", "custom",
+            ]
+        )
+    }
+
     func testFormRejectsMissingServers() {
         let viewModel = CustomDNSProfileFormViewModel(
             name: "Empty DNS",

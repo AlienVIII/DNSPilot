@@ -99,6 +99,183 @@ fn profile_add_command_persists_custom_plain_dns_profile() {
 }
 
 #[test]
+fn profile_add_command_rejects_duplicate_profile_id() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-add-duplicate-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    add_plain_profile(&db_path, "custom-lab", "Custom Lab", "4.4.4.4");
+
+    let duplicate = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "custom-lab",
+            "--name",
+            "Duplicate Custom Lab",
+            "--ipv4",
+            "8.8.8.8",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add duplicate");
+
+    assert!(
+        !duplicate.status.success(),
+        "profile-add should reject duplicate IDs"
+    );
+    let stderr = String::from_utf8_lossy(&duplicate.stderr);
+    assert!(stderr.contains("already exists"), "stderr: {stderr}");
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn profile_update_command_replaces_custom_plain_dns_profile() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-update-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    add_plain_profile(&db_path, "custom-lab", "Custom Lab", "4.4.4.4");
+
+    let update = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-update",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "custom-lab",
+            "--name",
+            "Custom Lab Updated",
+            "--ipv4",
+            "8.8.8.8",
+            "--tag",
+            "custom",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-update");
+
+    assert!(
+        update.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&update.stderr)
+    );
+
+    let profiles = list_profiles(&db_path);
+    let profile = profiles
+        .iter()
+        .find(|profile| profile["id"] == "custom-lab")
+        .expect("updated custom profile");
+
+    assert_eq!(profile["name"], "Custom Lab Updated");
+    assert_eq!(profile["ipv4_servers"][0], "8.8.8.8");
+    assert!(!profile["ipv4_servers"]
+        .as_array()
+        .expect("ipv4")
+        .iter()
+        .any(|ip| ip == "4.4.4.4"));
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn profile_update_command_rejects_builtin_profile() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-update-builtin-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let update = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-update",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "cloudflare",
+            "--name",
+            "Cloudflare Edited",
+            "--ipv4",
+            "8.8.8.8",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-update");
+
+    assert!(
+        !update.status.success(),
+        "profile-update should reject built-in profiles"
+    );
+    let stderr = String::from_utf8_lossy(&update.stderr);
+    assert!(stderr.contains("cannot update built-in profile"), "stderr: {stderr}");
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn profile_delete_command_removes_custom_plain_dns_profile() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-delete-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    add_plain_profile(&db_path, "custom-lab", "Custom Lab", "4.4.4.4");
+
+    let delete = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-delete",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "custom-lab",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-delete");
+
+    assert!(
+        delete.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&delete.stderr)
+    );
+
+    let profiles = list_profiles(&db_path);
+    assert!(!profiles.iter().any(|profile| profile["id"] == "custom-lab"));
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn profile_delete_command_rejects_builtin_profile() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-profile-delete-builtin-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let delete = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-delete",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "cloudflare",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-delete");
+
+    assert!(!delete.status.success(), "profile-delete should reject built-in profiles");
+    let stderr = String::from_utf8_lossy(&delete.stderr);
+    assert!(stderr.contains("cannot delete built-in profile"), "stderr: {stderr}");
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn profile_add_command_rejects_mismatched_ipv4_server() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-profile-mismatched-ipv4-{}.sqlite",
@@ -591,6 +768,48 @@ fn benchmark_command_can_save_history_to_sqlite() {
     assert_eq!(history[0]["resolver_profile_ids"][0], "custom-lab");
 
     let _ = fs::remove_file(db_path);
+}
+
+fn add_plain_profile(db_path: &std::path::Path, id: &str, name: &str, ipv4: &str) {
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "profile-add",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            id,
+            "--name",
+            name,
+            "--ipv4",
+            ipv4,
+            "--tag",
+            "custom",
+        ])
+        .output()
+        .expect("run dnspilot-cli profile-add");
+
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+}
+
+fn list_profiles(db_path: &std::path::Path) -> Vec<Value> {
+    let list = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["profile-list", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli profile-list");
+
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+
+    let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    json["profiles"].as_array().expect("profiles array").clone()
 }
 
 fn start_fake_resolver(query_count: usize) -> SocketAddr {

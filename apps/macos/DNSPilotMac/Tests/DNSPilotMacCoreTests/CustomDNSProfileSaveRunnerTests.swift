@@ -41,6 +41,62 @@ final class CustomDNSProfileSaveRunnerTests: XCTestCase {
         XCTAssertEqual(result.name, "Office DNS")
     }
 
+    func testRunnerPassesProfileUpdateArgumentsToProcessRunner() throws {
+        let processRunner = RecordingCustomDNSProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = CustomDNSProfileSaveRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+        let form = CustomDNSProfileFormViewModel(
+            name: "Office DNS Updated",
+            ipv4ServersText: "8.8.8.8",
+            ipv6ServersText: "",
+            profileID: "office-dns"
+        )
+
+        let result = try runner.save(
+            form: form,
+            databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
+            mode: .update
+        )
+
+        XCTAssertEqual(
+            processRunner.invocations[0].arguments,
+            [
+                "profile-update",
+                "--db", "/tmp/dnspilot.sqlite",
+                "--id", "office-dns",
+                "--name", "Office DNS Updated",
+                "--ipv4", "8.8.8.8",
+                "--tag", "custom",
+            ]
+        )
+        XCTAssertEqual(result.profileID, "office-dns")
+    }
+
+    func testDeleteRunnerPassesProfileDeleteArgumentsToProcessRunner() throws {
+        let processRunner = RecordingCustomDNSProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = CustomDNSProfileDeleteRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+
+        try runner.delete(profileID: "office-dns", databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"))
+
+        XCTAssertEqual(
+            processRunner.invocations[0].arguments,
+            [
+                "profile-delete",
+                "--db", "/tmp/dnspilot.sqlite",
+                "--id", "office-dns",
+            ]
+        )
+    }
+
     func testRunnerRejectsInvalidFormWithoutStartingProcess() throws {
         let processRunner = RecordingCustomDNSProcessRunner(
             output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
@@ -115,6 +171,33 @@ final class CustomDNSProfileSaveRunnerTests: XCTestCase {
         )
 
         XCTAssertEqual(outcome, .failed("profile already exists"))
+    }
+
+    func testCoordinatorPassesUpdateModeToRunner() throws {
+        let processRunner = RecordingCustomDNSProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let coordinator = CustomDNSProfileSaveCoordinator(
+            runner: CustomDNSProfileSaveRunner(
+                executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+                processRunner: processRunner
+            )
+        )
+        let form = CustomDNSProfileFormViewModel(
+            name: "Renamed DNS",
+            ipv4ServersText: "8.8.8.8",
+            ipv6ServersText: "",
+            profileID: "office-dns"
+        )
+
+        let outcome = coordinator.save(
+            form: form,
+            databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
+            mode: .update
+        )
+
+        XCTAssertEqual(outcome, .saved(profileID: "office-dns", name: "Renamed DNS"))
+        XCTAssertEqual(processRunner.invocations[0].arguments[0], "profile-update")
     }
 }
 

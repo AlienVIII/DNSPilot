@@ -17,12 +17,13 @@ public struct CustomDNSProfileFormViewModel: Equatable, Sendable {
     public init(
         name: String,
         ipv4ServersText: String,
-        ipv6ServersText: String
+        ipv6ServersText: String,
+        profileID: String? = nil
     ) {
         self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         self.ipv4ServersText = ipv4ServersText
         self.ipv6ServersText = ipv6ServersText
-        profileID = Self.makeProfileID(from: name)
+        self.profileID = profileID ?? Self.makeProfileID(from: name)
 
         let ipv4Tokens = Self.tokens(from: ipv4ServersText)
         let ipv6Tokens = Self.tokens(from: ipv6ServersText)
@@ -44,8 +45,16 @@ public struct CustomDNSProfileFormViewModel: Equatable, Sendable {
     }
 
     public func profileAddArguments(databaseURL: URL) -> [String] {
+        profileWriteArguments(command: "profile-add", databaseURL: databaseURL)
+    }
+
+    public func profileUpdateArguments(databaseURL: URL) -> [String] {
+        profileWriteArguments(command: "profile-update", databaseURL: databaseURL)
+    }
+
+    private func profileWriteArguments(command: String, databaseURL: URL) -> [String] {
         var args = [
-            "profile-add",
+            command,
             "--db", databaseURL.path,
             "--id", profileID,
             "--name", name,

@@ -150,6 +150,13 @@ private struct CustomDNSProfileDetailView: View {
     @State private var name = ""
     @State private var ipv4ServersText = ""
     @State private var ipv6ServersText = ""
+    @State private var editingProfileID: String?
+    @State private var customProfiles: [CatalogProfile] = []
+    @State private var isLoadingProfiles = false
+    @State private var isDeletingProfile = false
+    @State private var profileListError: String?
+    @State private var profilePendingDelete: CustomDNSProfileManagementRow?
+    @State private var isDeleteConfirmationPresented = false
     @State private var saveState: CustomDNSProfileEditorState = .idle
 
     private var editorViewModel: CustomDNSProfileEditorViewModel {
@@ -157,8 +164,13 @@ private struct CustomDNSProfileDetailView: View {
             name: name,
             ipv4ServersText: ipv4ServersText,
             ipv6ServersText: ipv6ServersText,
+            profileID: editingProfileID,
             state: saveState
         )
+    }
+
+    private var managementViewModel: CustomDNSProfileManagementViewModel {
+        CustomDNSProfileManagementViewModel(profiles: customProfiles)
     }
 
     private var isSaving: Bool {
@@ -166,6 +178,10 @@ private struct CustomDNSProfileDetailView: View {
             return true
         }
         return false
+    }
+
+    private var isMutatingProfile: Bool {
+        isSaving || isDeletingProfile
     }
 
     private var shouldShowIssues: Bool {
@@ -187,10 +203,10 @@ private struct CustomDNSProfileDetailView: View {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Label(editorViewModel.saveButtonLabel, systemImage: "tray.and.arrow.down")
+                            Label(saveButtonLabel, systemImage: "tray.and.arrow.down")
                         }
                     }
-                    .disabled(!editorViewModel.canSave)
+                    .disabled(!editorViewModel.canSave || isMutatingProfile)
                     .help(editorViewModel.canSave ? "Save profile" : "Resolve validation issues")
                 }
 
@@ -202,14 +218,46 @@ private struct CustomDNSProfileDetailView: View {
                     CustomDNSSaveStatusView(state: saveState, message: statusMessage)
                 }
 
+                if let profileListError {
+                    BenchmarkIssueList(issues: [profileListError])
+                }
+
+                BenchmarkSection(title: "Saved Profiles") {
+                    if isLoadingProfiles {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if managementViewModel.rows.isEmpty {
+                        Label("No custom plain DNS profiles.", systemImage: "tray")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                            ForEach(managementViewModel.rows) { row in
+                                CustomDNSProfileManagementRowView(
+                                    row: row,
+                                    isSelected: row.id == editingProfileID,
+                                    isDisabled: isMutatingProfile,
+                                    onEdit: { editProfile(row) },
+                                    onDelete: { requestDeleteProfile(row) }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 BenchmarkSection(title: "Profile") {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                         TextField("Name", text: $name)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 360, alignment: .leading)
-                            .disabled(isSaving)
+                            .disabled(isMutatingProfile)
                         Label(editorViewModel.profileIDLabel, systemImage: "tag")
                             .foregroundStyle(.secondary)
+                        if editingProfileID != nil {
+                            Button(action: clearEditor) {
+                                Label("New Profile", systemImage: "plus")
+                            }
+                            .disabled(isMutatingProfile)
+                        }
                     }
                 }
 
@@ -218,12 +266,12 @@ private struct CustomDNSProfileDetailView: View {
                         CustomDNSServerEditor(
                             title: "IPv4",
                             text: $ipv4ServersText,
-                            isDisabled: isSaving
+                            isDisabled: isMutatingProfile
                         )
                         CustomDNSServerEditor(
                             title: "IPv6",
                             text: $ipv6ServersText,
-                            isDisabled: isSaving
+                            isDisabled: isMutatingProfile
                         )
                     }
                 }
@@ -232,12 +280,37 @@ private struct CustomDNSProfileDetailView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(DNSPilotDesign.Palette.background)
+        .onAppear(perform: loadCustomProfiles)
         .onChange(of: name) { _, _ in resetTransientSaveState() }
         .onChange(of: ipv4ServersText) { _, _ in resetTransientSaveState() }
         .onChange(of: ipv6ServersText) { _, _ in resetTransientSaveState() }
+        .alert(
+            "Delete Custom DNS Profile?",
+            isPresented: $isDeleteConfirmationPresented,
+            presenting: profilePendingDelete
+        ) { row in
+            Button("Delete", role: .destructive) {
+                deleteProfile(row)
+            }
+            Button("Cancel", role: .cancel) {
+                profilePendingDelete = nil
+            }
+        } message: { row in
+            Text("Delete \(row.name)? This removes it from saved profiles and Benchmark options.")
+        }
+    }
+
+    private var saveButtonLabel: String {
+        if isSaving {
+            return editorViewModel.saveButtonLabel
+        }
+        return editingProfileID == nil ? "Save Profile" : "Update Profile"
     }
 
     private func saveProfile() {
+        guard !isMutatingProfile else {
+            return
+        }
         let editor = editorViewModel
         guard editor.canSave else {
             saveState = .failed(editor.issues.joined(separator: "\n"))
@@ -252,18 +325,21 @@ private struct CustomDNSProfileDetailView: View {
         let form = editor.form
         let databaseURL = factory.databaseURL
         let executableURL = executableURL
+        let mode: CustomDNSProfileWriteMode = editingProfileID == nil ? .add : .update
 
         DispatchQueue.global(qos: .userInitiated).async {
             let coordinator = CustomDNSProfileSaveCoordinator(
                 runner: CustomDNSProfileSaveRunner(executableURL: executableURL)
             )
-            let outcome = coordinator.save(form: form, databaseURL: databaseURL)
+            let outcome = coordinator.save(form: form, databaseURL: databaseURL, mode: mode)
 
             DispatchQueue.main.async {
                 switch outcome {
                 case .saved(let profileID, let name):
+                    editingProfileID = profileID
                     saveState = .saved(profileID: profileID, name: name)
                     onProfileSaved()
+                    loadCustomProfiles()
                 case .failed(let message):
                     saveState = .failed(message)
                 }
@@ -279,6 +355,100 @@ private struct CustomDNSProfileDetailView: View {
             break
         }
     }
+
+    private func loadCustomProfiles() {
+        guard !isLoadingProfiles else {
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            profileListError = "Profile storage is unavailable."
+            return
+        }
+        isLoadingProfiles = true
+        profileListError = nil
+        let databaseURL = factory.databaseURL
+        let executableURL = executableURL
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let runner = CatalogStorageRunner(executableURL: executableURL)
+            let result = Result {
+                try runner.loadProfiles(databaseURL: databaseURL)
+            }
+
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let profiles):
+                    customProfiles = profiles
+                case .failure(let error):
+                    profileListError = error.localizedDescription
+                }
+                isLoadingProfiles = false
+            }
+        }
+    }
+
+    private func editProfile(_ row: CustomDNSProfileManagementRow) {
+        guard !isMutatingProfile else {
+            return
+        }
+        editingProfileID = row.id
+        name = row.name
+        ipv4ServersText = row.ipv4ServersText
+        ipv6ServersText = row.ipv6ServersText
+        saveState = .idle
+    }
+
+    private func requestDeleteProfile(_ row: CustomDNSProfileManagementRow) {
+        guard !isMutatingProfile else {
+            return
+        }
+        profilePendingDelete = row
+        isDeleteConfirmationPresented = true
+    }
+
+    private func deleteProfile(_ row: CustomDNSProfileManagementRow) {
+        guard !isMutatingProfile else {
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            saveState = .failed("Profile storage is unavailable.")
+            return
+        }
+        isDeletingProfile = true
+        saveState = .idle
+        let databaseURL = factory.databaseURL
+        let executableURL = executableURL
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let runner = CustomDNSProfileDeleteRunner(executableURL: executableURL)
+            let result = Result {
+                try runner.delete(profileID: row.id, databaseURL: databaseURL)
+            }
+
+            DispatchQueue.main.async {
+                isDeletingProfile = false
+                profilePendingDelete = nil
+                switch result {
+                case .success:
+                    if editingProfileID == row.id {
+                        clearEditor()
+                    }
+                    onProfileSaved()
+                    loadCustomProfiles()
+                case .failure(let error):
+                    saveState = .failed(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func clearEditor() {
+        editingProfileID = nil
+        name = ""
+        ipv4ServersText = ""
+        ipv6ServersText = ""
+        saveState = .idle
+    }
 }
 
 private struct CustomDNSServerEditor: View {
@@ -290,18 +460,64 @@ private struct CustomDNSServerEditor: View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
             Text(title)
                 .font(.headline)
-            TextEditor(text: $text)
-                .font(.body.monospaced())
+            DNSPilotMultilineTextInput(text: $text, isEditable: !isDisabled)
                 .frame(minWidth: 260, minHeight: 110)
-                .scrollContentBackground(.hidden)
                 .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
                 .overlay {
                     RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
                         .stroke(.separator.opacity(0.5))
                 }
-                .disabled(isDisabled)
         }
         .frame(maxWidth: 340, alignment: .leading)
+    }
+}
+
+private struct CustomDNSProfileManagementRowView: View {
+    let row: CustomDNSProfileManagementRow
+    let isSelected: Bool
+    let isDisabled: Bool
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: DNSPilotDesign.Spacing.row) {
+            Image(systemName: isSelected ? "pencil.circle.fill" : "server.rack")
+                .foregroundStyle(isSelected ? DNSPilotDesign.Palette.accent : .secondary)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.name)
+                    .font(.body.weight(.semibold))
+                Text(row.detailLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(row.id)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: onEdit) {
+                Label("Edit", systemImage: "pencil")
+            }
+            .labelStyle(.iconOnly)
+            .help("Edit profile")
+            .disabled(isDisabled)
+
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .help("Delete profile")
+            .disabled(isDisabled)
+        }
+        .padding(DNSPilotDesign.Spacing.row)
+        .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
+        .overlay {
+            RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
+                .stroke(isSelected ? DNSPilotDesign.Palette.accent.opacity(0.8) : Color(nsColor: .separatorColor).opacity(0.45))
+        }
     }
 }
 

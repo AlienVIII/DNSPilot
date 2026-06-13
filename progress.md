@@ -104,6 +104,11 @@ DNS handling, and platform capability reporting.
 - [x] [93] v0.1 macOS catalog refresh wiring — refresh storage-backed catalog on launch/save.
 - [x] [94] v0.1 macOS DNS-only null latency decode — accept null connection latency in results.
 - [x] [95] v0.1 macOS benchmark domain input typing — replace TextEditor with vertical TextField.
+- [x] [96] v0.1 macOS benchmark progress failure details — show stage statuses and debug failure detail.
+- [x] [97] v0.1 macOS benchmark AppKit domain input — use AppKit-backed multiline input.
+- [x] [98] v0.1 macOS dev foreground activation — launch SwiftPM dev app as foreground.
+- [x] [99] v0.1 macOS benchmark pipe drain and verbose progress — prevent pipe deadlock and show running detail.
+- [x] [100] v0.1 macOS custom DNS management — edit/delete saved custom plain DNS profiles.
 
 ---
 
@@ -3887,6 +3892,37 @@ Result: 105 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
 Result: 112 passed, 0 failed
+
+git diff --check
+Result: clean
+```
+
+---
+
+## Chunk 100: v0.1 macOS Custom DNS Management
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CustomDNSProfileFormViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CustomDNSProfileSaveRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CustomDNSProfileManagementViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MultilineTextInput.swift`
+
+### What changed
+
+Added `profile-update`/`profile-delete`, stable edit IDs, saved-profile rows,
+Edit/Delete actions, and AppKit-backed Custom DNS server inputs.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CustomDNSProfile
+Result: 18 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_storage_behaviour profile_
+Result: 10 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 111 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: pass
 
 git diff --check
 Result: clean

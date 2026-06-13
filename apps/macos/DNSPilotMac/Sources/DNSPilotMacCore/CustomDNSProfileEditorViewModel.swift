@@ -49,12 +49,14 @@ public struct CustomDNSProfileEditorViewModel: Equatable, Sendable {
         name: String,
         ipv4ServersText: String,
         ipv6ServersText: String,
+        profileID: String? = nil,
         state: CustomDNSProfileEditorState
     ) {
         self.form = CustomDNSProfileFormViewModel(
             name: name,
             ipv4ServersText: ipv4ServersText,
-            ipv6ServersText: ipv6ServersText
+            ipv6ServersText: ipv6ServersText,
+            profileID: profileID
         )
         self.state = state
     }

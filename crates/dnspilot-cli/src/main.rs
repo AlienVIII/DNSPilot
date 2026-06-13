@@ -185,6 +185,34 @@ enum Command {
         #[arg(long = "tag")]
         tags: Vec<String>,
     },
+    ProfileUpdate {
+        #[arg(long)]
+        db: std::path::PathBuf,
+        #[arg(long)]
+        id: String,
+        #[arg(long)]
+        name: String,
+        #[arg(long, value_enum, default_value_t = ProfileProtocolArg::Plain)]
+        protocol: ProfileProtocolArg,
+        #[arg(long = "ipv4")]
+        ipv4_servers: Vec<String>,
+        #[arg(long = "ipv6")]
+        ipv6_servers: Vec<String>,
+        #[arg(long)]
+        doh_url: Option<String>,
+        #[arg(long)]
+        dot_hostname: Option<String>,
+        #[arg(long, value_enum, default_value_t = FilteringTypeArg::None)]
+        filtering: FilteringTypeArg,
+        #[arg(long = "tag")]
+        tags: Vec<String>,
+    },
+    ProfileDelete {
+        #[arg(long)]
+        db: std::path::PathBuf,
+        #[arg(long)]
+        id: String,
+    },
     ProfileList {
         #[arg(long)]
         db: std::path::PathBuf,
@@ -804,27 +832,21 @@ fn main() {
                 std::process::exit(2);
             });
             let mut snapshot = load_snapshot_or_builtin(&storage);
-            let profile = DnsProfile {
-                id: id.clone(),
-                name: name.clone(),
-                description: "Custom DNS profile.".into(),
+            if snapshot.profiles.iter().any(|profile| profile.id == id) {
+                eprintln!("DNS profile '{id}' already exists");
+                std::process::exit(2);
+            }
+            let profile = make_custom_profile(
+                id.clone(),
+                name.clone(),
+                protocol,
                 ipv4_servers,
                 ipv6_servers,
-                protocol: protocol.into(),
                 doh_url,
                 dot_hostname,
+                filtering,
                 tags,
-                use_case: "custom".into(),
-                filtering_type: filtering.into(),
-                security_notes: if filtering == FilteringTypeArg::None {
-                    Vec::new()
-                } else {
-                    vec!["Filtered DNS may intentionally block some domains.".into()]
-                },
-                provider_metadata: std::collections::BTreeMap::new(),
-                created_at: None,
-                updated_at: None,
-            };
+            );
             profile.validate().unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
@@ -842,6 +864,99 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize profile add")
+            );
+        }
+        Command::ProfileUpdate {
+            db,
+            id,
+            name,
+            protocol,
+            ipv4_servers,
+            ipv6_servers,
+            doh_url,
+            dot_hostname,
+            filtering,
+            tags,
+        } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            let index = snapshot
+                .profiles
+                .iter()
+                .position(|profile| profile.id == id)
+                .unwrap_or_else(|| {
+                    eprintln!("DNS profile '{id}' not found");
+                    std::process::exit(2);
+                });
+            if !is_custom_profile(&snapshot.profiles[index]) {
+                eprintln!("cannot update built-in profile '{id}'");
+                std::process::exit(2);
+            }
+
+            let profile = make_custom_profile(
+                id.clone(),
+                name.clone(),
+                protocol,
+                ipv4_servers,
+                ipv6_servers,
+                doh_url,
+                dot_hostname,
+                filtering,
+                tags,
+            );
+            profile.validate().unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            snapshot.profiles[index] = profile;
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "profile_id": id,
+                "profile_count": snapshot.profiles.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize profile update")
+            );
+        }
+        Command::ProfileDelete { db, id } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            let index = snapshot
+                .profiles
+                .iter()
+                .position(|profile| profile.id == id)
+                .unwrap_or_else(|| {
+                    eprintln!("DNS profile '{id}' not found");
+                    std::process::exit(2);
+                });
+            if !is_custom_profile(&snapshot.profiles[index]) {
+                eprintln!("cannot delete built-in profile '{id}'");
+                std::process::exit(2);
+            }
+            snapshot.profiles.remove(index);
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "profile_id": id,
+                "profile_count": snapshot.profiles.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize profile delete")
             );
         }
         Command::ProfileList { db } => {
@@ -985,6 +1100,44 @@ fn load_snapshot_or_builtin(storage: &SqliteStorage) -> StorageSnapshot {
             std::process::exit(2);
         }
     }
+}
+
+fn make_custom_profile(
+    id: String,
+    name: String,
+    protocol: ProfileProtocolArg,
+    ipv4_servers: Vec<String>,
+    ipv6_servers: Vec<String>,
+    doh_url: Option<String>,
+    dot_hostname: Option<String>,
+    filtering: FilteringTypeArg,
+    tags: Vec<String>,
+) -> DnsProfile {
+    DnsProfile {
+        id,
+        name,
+        description: "Custom DNS profile.".into(),
+        ipv4_servers,
+        ipv6_servers,
+        protocol: protocol.into(),
+        doh_url,
+        dot_hostname,
+        tags,
+        use_case: "custom".into(),
+        filtering_type: filtering.into(),
+        security_notes: if filtering == FilteringTypeArg::None {
+            Vec::new()
+        } else {
+            vec!["Filtered DNS may intentionally block some domains.".into()]
+        },
+        provider_metadata: std::collections::BTreeMap::new(),
+        created_at: None,
+        updated_at: None,
+    }
+}
+
+fn is_custom_profile(profile: &DnsProfile) -> bool {
+    profile.use_case == "custom" || profile.tags.iter().any(|tag| tag == "custom")
 }
 
 fn resolve_domains(
