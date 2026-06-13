@@ -56,7 +56,7 @@ final class CatalogStorageBridgeTests: XCTestCase {
         let catalog = try bridge.loadCatalog()
 
         XCTAssertEqual(catalog.profiles.map(\.id), ["cloudflare", "custom-lab"])
-        XCTAssertEqual(catalog.profiles.first?.name, "Cloudflare Stored")
+        XCTAssertEqual(catalog.profiles.first?.name, "Cloudflare")
         XCTAssertEqual(catalog.testSuites.map(\.id), ["developer", "azure-lab"])
     }
 

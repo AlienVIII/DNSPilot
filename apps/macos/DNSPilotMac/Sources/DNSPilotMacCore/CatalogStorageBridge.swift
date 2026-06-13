@@ -146,9 +146,7 @@ public extension CatalogSnapshot {
     private static func merge<Item: Identifiable>(base: [Item], stored: [Item]) -> [Item] where Item.ID == String {
         var merged = base
         for item in stored {
-            if let index = merged.firstIndex(where: { $0.id == item.id }) {
-                merged[index] = item
-            } else {
+            if !merged.contains(where: { $0.id == item.id }) {
                 merged.append(item)
             }
         }
