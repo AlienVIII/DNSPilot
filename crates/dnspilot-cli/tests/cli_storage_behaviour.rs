@@ -1067,6 +1067,33 @@ fn history_delete_command_rejects_missing_history_id() {
     let _ = fs::remove_file(db_path);
 }
 
+#[test]
+fn history_clear_command_removes_all_saved_history_records() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-history-clear-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    save_history_run(&db_path, "run-1");
+    save_history_run(&db_path, "run-2");
+
+    let clear = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["history-clear", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli history-clear");
+
+    assert!(
+        clear.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&clear.stderr)
+    );
+
+    let history = list_history(&db_path);
+    assert!(history.is_empty());
+
+    let _ = fs::remove_file(db_path);
+}
+
 fn add_plain_profile(db_path: &std::path::Path, id: &str, name: &str, ipv4: &str) {
     let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
         .args([

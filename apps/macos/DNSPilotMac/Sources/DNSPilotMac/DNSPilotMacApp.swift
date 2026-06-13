@@ -945,9 +945,17 @@ private struct HistoryDetailView: View {
     @State private var outcome: BenchmarkHistoryLoadOutcome?
     @State private var historyPendingDelete: BenchmarkHistoryRow?
     @State private var isDeleteHistoryConfirmationPresented = false
+    @State private var isClearHistoryConfirmationPresented = false
 
     private var isMutatingHistory: Bool {
         isLoading || isDeleting
+    }
+
+    private var hasLoadedHistoryRows: Bool {
+        guard case .loaded(let viewModel) = outcome else {
+            return false
+        }
+        return !viewModel.rows.isEmpty
     }
 
     var body: some View {
@@ -965,6 +973,11 @@ private struct HistoryDetailView: View {
                         Label("Refresh", systemImage: "arrow.clockwise")
                     }
                     .disabled(isMutatingHistory)
+                    Button(role: .destructive, action: requestClearHistory) {
+                        Label("Clear All", systemImage: "trash")
+                    }
+                    .disabled(isMutatingHistory || !hasLoadedHistoryRows)
+                    .help("Delete all saved benchmark runs")
                 }
 
                 if isLoading {
@@ -1008,6 +1021,14 @@ private struct HistoryDetailView: View {
             }
         } message: { row in
             Text("Delete \(row.id)? This removes it from local benchmark history.")
+        }
+        .alert("Clear History?", isPresented: $isClearHistoryConfirmationPresented) {
+            Button("Clear All", role: .destructive) {
+                clearHistory()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Delete all saved benchmark runs? This cannot be undone.")
         }
     }
 
@@ -1069,6 +1090,45 @@ private struct HistoryDetailView: View {
 
             DispatchQueue.main.async {
                 historyPendingDelete = nil
+                switch result {
+                case .success:
+                    isDeleting = false
+                    loadHistory()
+                case .failure(let error):
+                    outcome = .failed(error.localizedDescription)
+                    isDeleting = false
+                }
+            }
+        }
+    }
+
+    private func requestClearHistory() {
+        guard !isMutatingHistory, hasLoadedHistoryRows else {
+            return
+        }
+        isClearHistoryConfirmationPresented = true
+    }
+
+    private func clearHistory() {
+        guard !isMutatingHistory else {
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            outcome = .failed("Benchmark history storage is unavailable.")
+            return
+        }
+
+        isDeleting = true
+        let databaseURL = factory.databaseURL
+        let executableURL = executableURL
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let runner = BenchmarkHistoryRunner(executableURL: executableURL)
+            let result = Result {
+                try runner.clear(databaseURL: databaseURL)
+            }
+
+            DispatchQueue.main.async {
                 switch result {
                 case .success:
                     isDeleting = false

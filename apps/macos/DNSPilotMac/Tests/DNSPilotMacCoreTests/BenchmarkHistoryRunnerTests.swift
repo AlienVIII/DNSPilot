@@ -73,6 +73,26 @@ final class BenchmarkHistoryRunnerTests: XCTestCase {
             ]
         )
     }
+
+    func testRunnerPassesHistoryClearArgumentsToProcessRunner() throws {
+        let processRunner = RecordingHistoryProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = BenchmarkHistoryRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+
+        try runner.clear(databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"))
+
+        XCTAssertEqual(
+            processRunner.invocations[0].arguments,
+            [
+                "history-clear",
+                "--db", "/tmp/dnspilot.sqlite",
+            ]
+        )
+    }
 }
 
 private final class RecordingHistoryProcessRunner: BenchmarkProcessRunning {

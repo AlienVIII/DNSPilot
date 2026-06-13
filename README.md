@@ -227,4 +227,5 @@ cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --save-db /tmp/dnspilot.sqlite --history-id manual-path-run
 cargo run -p dnspilot-cli -- history-list --db /tmp/dnspilot.sqlite
 cargo run -p dnspilot-cli -- history-delete --db /tmp/dnspilot.sqlite --id manual-run
+cargo run -p dnspilot-cli -- history-clear --db /tmp/dnspilot.sqlite
 ```

@@ -43,6 +43,17 @@ public struct BenchmarkHistoryRunner {
         }
     }
 
+    public func clear(databaseURL: URL) throws {
+        let output = try processRunner.run(
+            executableURL: executableURL,
+            arguments: ["history-clear", "--db", databaseURL.path],
+            cancellation: nil
+        )
+        guard output.exitCode == 0 else {
+            throw BenchmarkHistoryRunnerError.processFailed(Self.failureMessage(from: output))
+        }
+    }
+
     private static func failureMessage(from output: BenchmarkProcessOutput) -> String {
         let standardError = output.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
         if !standardError.isEmpty {

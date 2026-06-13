@@ -261,6 +261,10 @@ enum Command {
         #[arg(long)]
         id: String,
     },
+    HistoryClear {
+        #[arg(long)]
+        db: std::path::PathBuf,
+    },
     RecommendSample,
 }
 
@@ -1175,6 +1179,26 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize history delete")
+            );
+        }
+        Command::HistoryClear { db } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            snapshot.benchmark_history.clear();
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "benchmark_history_count": snapshot.benchmark_history.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize history clear")
             );
         }
         Command::RecommendSample => {
