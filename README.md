@@ -15,6 +15,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - Versioned core-owned shell payload contracts for catalog and capability
   matrix JSON.
 - Recommendation scoring for connection-path estimates.
+- Recommendation wording distinguishes DNS-only lookup estimates from DNS + TCP
+  connection-path estimates.
 - Shared recommendation safety gate for `can_recommend`, health, and primary
   issue decisions before UI/apply prompts.
 - Apply-prompt safety policy that protects VPN, MDM, corporate DNS, and captive
@@ -111,10 +113,12 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   large result JSON cannot deadlock the app, and shows two verbose current-step
   lines while a benchmark is running.
 - macOS Benchmark shows per-DNS status rows, select-all runnable profiles, a
-  copyable issue log, and developer OSLog diagnostics for process/parse failure.
-- macOS Benchmark result panel softens degraded/inconclusive winners into
-  "Best measured candidate", shows degraded resolver status, and removes
-  redundant recommendation notes.
+  copyable full issue report, and developer OSLog diagnostics for
+  process/parse failure.
+- macOS Benchmark warns on long worst-case benchmark plans and exposes DNS
+  timeout, TCP timeout, and TCP target cap controls.
+- macOS Benchmark result panel protects current DNS for degraded/inconclusive
+  all-weak runs while preserving best measured candidate context in notes.
 - macOS Benchmark result notes call out similar partial-failure patterns across
   many DNS candidates as possible current-network/VPN/firewall/captive
   portal/IPv6 issues.
@@ -122,8 +126,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   caveats, such as TCP endpoint failures, in result notes.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
   when partial failures line up with a specific IP family.
-- macOS Benchmark result panel shortens long saved-run IDs while preserving the
-  full ID in history/storage.
+- macOS Benchmark result panel shortens long saved-run IDs while preserving and
+  copying the full ID in result/history/storage.
 - macOS custom plain DNS profile form ViewModel for IPv4/IPv6 parsing,
   validation, profile ID generation, and `profile-add` arguments.
 - macOS custom plain DNS save runner/coordinator for executing `profile-add`
