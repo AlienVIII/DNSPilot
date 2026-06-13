@@ -10,14 +10,14 @@ final class CustomDomainSuiteFormViewModelTests: XCTestCase {
         )
 
         XCTAssertTrue(viewModel.canSave)
-        XCTAssertEqual(viewModel.suiteID, "azure-lab")
+        XCTAssertEqual(viewModel.suiteID, "custom-azure-lab")
         XCTAssertEqual(viewModel.issues, [])
         XCTAssertEqual(
             viewModel.suiteAddArguments(databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite")),
             [
                 "suite-add",
                 "--db", "/tmp/dnspilot.sqlite",
-                "--id", "azure-lab",
+                "--id", "custom-azure-lab",
                 "--name", "Azure Lab",
                 "--domain", "portal.azure.com",
                 "--domain", "login.microsoftonline.com",
@@ -25,6 +25,15 @@ final class CustomDomainSuiteFormViewModelTests: XCTestCase {
                 "--tag", "custom",
             ]
         )
+    }
+
+    func testFormNamespacesGeneratedSuiteIDAwayFromBuiltIns() {
+        let viewModel = CustomDomainSuiteFormViewModel(
+            name: "Developer",
+            domainsText: "github.com"
+        )
+
+        XCTAssertEqual(viewModel.suiteID, "custom-developer")
     }
 
     func testFormBuildsSuiteUpdateArgumentsWithStableSuiteID() {

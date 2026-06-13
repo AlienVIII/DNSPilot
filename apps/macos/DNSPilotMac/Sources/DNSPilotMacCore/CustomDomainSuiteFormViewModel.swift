@@ -141,6 +141,9 @@ public struct CustomDomainSuiteFormViewModel: Equatable, Sendable {
         while result.last == "-" {
             result.removeLast()
         }
-        return result.isEmpty ? "custom-suite" : result
+        if result.isEmpty {
+            return "custom-suite"
+        }
+        return result.hasPrefix("custom-") ? result : "custom-\(result)"
     }
 }

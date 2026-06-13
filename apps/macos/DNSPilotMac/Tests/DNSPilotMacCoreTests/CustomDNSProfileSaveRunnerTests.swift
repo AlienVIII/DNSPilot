@@ -29,7 +29,7 @@ final class CustomDNSProfileSaveRunnerTests: XCTestCase {
             [
                 "profile-add",
                 "--db", "/tmp/dnspilot.sqlite",
-                "--id", "office-dns",
+                "--id", "custom-office-dns",
                 "--name", "Office DNS",
                 "--ipv4", "1.1.1.1",
                 "--ipv4", "8.8.8.8",
@@ -37,7 +37,7 @@ final class CustomDNSProfileSaveRunnerTests: XCTestCase {
                 "--tag", "custom",
             ]
         )
-        XCTAssertEqual(result.profileID, "office-dns")
+        XCTAssertEqual(result.profileID, "custom-office-dns")
         XCTAssertEqual(result.name, "Office DNS")
     }
 

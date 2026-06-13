@@ -28,14 +28,14 @@ final class CustomDomainSuiteSaveRunnerTests: XCTestCase {
             [
                 "suite-add",
                 "--db", "/tmp/dnspilot.sqlite",
-                "--id", "azure-lab",
+                "--id", "custom-azure-lab",
                 "--name", "Azure Lab",
                 "--domain", "portal.azure.com",
                 "--domain", "login.microsoftonline.com",
                 "--tag", "custom",
             ]
         )
-        XCTAssertEqual(result.suiteID, "azure-lab")
+        XCTAssertEqual(result.suiteID, "custom-azure-lab")
         XCTAssertEqual(result.name, "Azure Lab")
     }
 

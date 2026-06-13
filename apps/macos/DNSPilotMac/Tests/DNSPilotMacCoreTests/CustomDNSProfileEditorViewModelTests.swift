@@ -12,7 +12,7 @@ final class CustomDNSProfileEditorViewModelTests: XCTestCase {
 
         XCTAssertTrue(viewModel.canSave)
         XCTAssertEqual(viewModel.saveButtonLabel, "Save Profile")
-        XCTAssertEqual(viewModel.profileIDLabel, "Profile ID: office-dns")
+        XCTAssertEqual(viewModel.profileIDLabel, "Profile ID: custom-office-dns")
         XCTAssertTrue(viewModel.issues.isEmpty)
         XCTAssertNil(viewModel.statusMessage)
     }

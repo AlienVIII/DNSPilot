@@ -148,6 +148,9 @@ public struct CustomDNSProfileFormViewModel: Equatable, Sendable {
         while result.last == "-" {
             result.removeLast()
         }
-        return result.isEmpty ? "custom-dns" : result
+        if result.isEmpty {
+            return "custom-dns"
+        }
+        return result.hasPrefix("custom-") ? result : "custom-\(result)"
     }
 }

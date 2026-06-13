@@ -11,14 +11,14 @@ final class CustomDNSProfileFormViewModelTests: XCTestCase {
         )
 
         XCTAssertTrue(viewModel.canSave)
-        XCTAssertEqual(viewModel.profileID, "my-lab-dns")
+        XCTAssertEqual(viewModel.profileID, "custom-my-lab-dns")
         XCTAssertEqual(viewModel.issues, [])
         XCTAssertEqual(
             viewModel.profileAddArguments(databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite")),
             [
                 "profile-add",
                 "--db", "/tmp/dnspilot.sqlite",
-                "--id", "my-lab-dns",
+                "--id", "custom-my-lab-dns",
                 "--name", "My Lab DNS",
                 "--ipv4", "1.1.1.1",
                 "--ipv4", "8.8.8.8",
@@ -27,6 +27,16 @@ final class CustomDNSProfileFormViewModelTests: XCTestCase {
                 "--tag", "custom",
             ]
         )
+    }
+
+    func testFormNamespacesGeneratedProfileIDAwayFromBuiltIns() {
+        let viewModel = CustomDNSProfileFormViewModel(
+            name: "Cloudflare",
+            ipv4ServersText: "4.4.4.4",
+            ipv6ServersText: ""
+        )
+
+        XCTAssertEqual(viewModel.profileID, "custom-cloudflare")
     }
 
     func testFormBuildsProfileUpdateArgumentsWithStableProfileID() {
