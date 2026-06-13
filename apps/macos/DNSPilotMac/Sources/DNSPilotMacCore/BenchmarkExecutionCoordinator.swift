@@ -131,17 +131,34 @@ public struct BenchmarkExecutionCoordinator {
     }
 
     private static func processFailureMessage(from result: BenchmarkRunResult) -> String {
-        let standardError = result.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
+        let standardError = userFacingProcessText(result.standardError)
         if !standardError.isEmpty {
             return standardError
         }
 
-        let standardOutput = result.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let standardOutput = userFacingProcessText(result.standardOutput)
         if !standardOutput.isEmpty {
             return standardOutput
         }
 
         return "Benchmark command exited with code \(result.exitCode)."
+    }
+
+    private static func userFacingProcessText(_ text: String) -> String {
+        text
+            .split(whereSeparator: \.isNewline)
+            .map(String.init)
+            .filter { !isProgressEventJSONLine($0) }
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func isProgressEventJSONLine(_ line: String) -> Bool {
+        let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedLine.hasPrefix("{"), trimmedLine.contains("\"type\"") else {
+            return false
+        }
+        return (try? BenchmarkProgressEventJSONDecoder.decode(trimmedLine)) != nil
     }
 
     private static func debugLog(from result: BenchmarkRunResult, parseError: String? = nil) -> String {

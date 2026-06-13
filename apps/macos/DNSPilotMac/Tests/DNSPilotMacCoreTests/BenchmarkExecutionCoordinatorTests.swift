@@ -64,8 +64,39 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
                         compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1 --ip-family both --timeout-ms 800
                         """
                     )
-                )
             )
+        )
+    }
+
+    func testCoordinatorKeepsProgressJSONLOutOfUserFacingProcessError() {
+        let progressJSONL = """
+        {"type":"resolver_started","measurement_scope":"dns-only","profile_id":"cloudflare","resolver":"1.1.1.1:53","index":1,"total":1}
+        resolver timed out
+        {"type":"resolver_finished","measurement_scope":"dns-only","profile_id":"cloudflare","resolver":"1.1.1.1:53","index":1,"total":1,"status":"failed","failure_rate":1,"timeout_rate":1}
+        """
+        let coordinator = BenchmarkExecutionCoordinator(
+            runner: BenchmarkRunner(
+                executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+                processRunner: FixedProcessRunner(
+                    output: BenchmarkProcessOutput(
+                        exitCode: 2,
+                        standardOutput: "",
+                        standardError: progressJSONL
+                    )
+                )
+            ),
+            catalog: makeExecutionCatalog()
+        )
+
+        let outcome = coordinator.execute(plan: makeExecutionPlan())
+
+        guard case .failed(let failure) = outcome else {
+            return XCTFail("Expected failed outcome, got \(outcome)")
+        }
+        XCTAssertEqual(failure.message, "resolver timed out")
+        XCTAssertEqual(failure.failedStep, .resolvingDNS)
+        XCTAssertTrue(failure.debugLog.contains("\"type\":\"resolver_started\""))
+        XCTAssertTrue(failure.debugLog.contains("resolver timed out"))
     }
 
     func testCoordinatorReturnsValidationErrorsWithoutRunningProcess() {
