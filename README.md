@@ -150,6 +150,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - TCP connect probe aggregation for connection-path estimates.
 - Connection-path estimator that combines DNS lookup metrics with TCP connect
   metrics, optional TLS/SNI handshake metrics, and conservative caveats.
+- Connection-path IPv4/IPv6 health combines DNS family health with probed
+  TCP/TLS family health, so unreachable IPv6 paths are not misreported as
+  healthy just because AAAA lookup succeeded.
 - CLI path commands reject zero connection target limits before network activity.
 - Connection target limiting to avoid excessive TCP probes for large CDN answer
   sets, with balanced IPv4/IPv6 selection when both are available.

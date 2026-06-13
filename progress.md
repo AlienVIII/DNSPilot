@@ -114,6 +114,7 @@ DNS handling, and platform capability reporting.
 - [x] [103] v0.1 macOS benchmark common-failure note — explain similar partial failures as possible network conditions.
 - [x] [104] v0.1 macOS result saved-run label polish — shorten long saved-run IDs in the result panel.
 - [x] [105] v0.1 macOS result run caveats — decode and show per-run benchmark caveats in result notes.
+- [x] [106] v0.1 path family health — reduce IPv4/IPv6 path health when probed TCP/TLS family paths fail.
 
 ---
 
@@ -4091,6 +4092,42 @@ Result: pass
 
 git diff --check
 Result: clean
+```
+
+---
+
+## Chunk 106: v0.1 Path Family Health
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/connection_path.rs`, `crates/dnspilot-core/tests/connection_path_behaviour.rs`
+
+### What changed
+
+Connection-path metrics now combine DNS family health with actual probed TCP/TLS
+family health. If DNS returns AAAA successfully but the IPv6 TCP path fails,
+`ipv6_health` drops instead of staying at 1.0. This fixes the real 50%
+DNS+TCP failure pattern observed on the current network.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test connection_path_behaviour tcp_family_failures_reduce_path_ip_family_health
+Result: 1 passed, 0 failed
+
+rustfmt --check crates/dnspilot-core/src/connection_path.rs crates/dnspilot-core/tests/connection_path_behaviour.rs
+Result: clean
+
+cargo test -p dnspilot-core --test connection_path_behaviour
+Result: 8 passed, 0 failed
+
+cargo test --workspace --tests
+Result: pass
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 118 passed, 0 failed
+
+Runtime path-compare smoke:
+Result: completed in about 2.23s; IPv6 TCP failures now report ipv6_health 0.0.
 ```
 
 ---

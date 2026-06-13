@@ -51,7 +51,42 @@ fn combines_dns_latency_with_tcp_connect_latency_for_answer_ips() {
     assert_eq!(run.metrics.failure_rate, 0.0);
     assert_eq!(run.metrics.timeout_rate, 0.0);
     assert_eq!(run.connect_targets.len(), 2);
-    assert!(connect_targets.iter().all(|target| target.endpoint.port() == 443));
+    assert!(connect_targets
+        .iter()
+        .all(|target| target.endpoint.port() == 443));
+}
+
+#[test]
+fn tcp_family_failures_reduce_path_ip_family_health() {
+    let config = ConnectionPathConfig {
+        profile_id: "dual-stack-partial".into(),
+        domains: vec!["example.com".into()],
+        attempts_per_record: 1,
+        dns_timeout: Duration::from_millis(250),
+        connect_timeout: Duration::from_millis(500),
+        first_transaction_id: 0x7700,
+        connect_port: 443,
+        max_connect_targets_per_domain: 4,
+        tls_handshake_timeout: None,
+    };
+
+    let run = run_connection_path_with_clients(
+        &config,
+        |_domain, record_type, transaction_id| {
+            Ok(DnsLookupMeasurement {
+                elapsed: Duration::from_millis(10),
+                response: dns_response(transaction_id, record_type),
+            })
+        },
+        |target| match target.endpoint.ip() {
+            IpAddr::V4(_) => Ok(Duration::from_millis(80)),
+            IpAddr::V6(_) => Err(ConnectProbeError::Timeout),
+        },
+    );
+
+    assert_eq!(run.metrics.failure_rate, 0.5);
+    assert_eq!(run.metrics.ipv4_health, 1.0);
+    assert_eq!(run.metrics.ipv6_health, 0.0);
 }
 
 #[test]

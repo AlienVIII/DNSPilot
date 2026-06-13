@@ -1,13 +1,13 @@
 use crate::connect_probe::{
     probe_tcp_connect_once, run_tcp_connect_probes_with_connector, ConnectProbeConfig,
-    ConnectProbeError, ConnectProbeRun, TcpConnectTarget,
+    ConnectProbeError, ConnectProbeOutcome, ConnectProbeRun, TcpConnectTarget,
 };
 use crate::dns_benchmark::{run_dns_benchmark_with_lookup, DnsBenchmarkConfig, DnsBenchmarkRun};
 use crate::dns_resolver::{query_udp_once, DnsResolverError};
 use crate::dns_wire::{DnsRecordData, DnsResponse, RecordType};
 use crate::tls_probe::{
     probe_tls_handshake_once, run_tls_handshake_probes_with_handshaker, TlsHandshakeTarget,
-    TlsProbeConfig, TlsProbeError, TlsProbeRun,
+    TlsProbeConfig, TlsProbeError, TlsProbeOutcome, TlsProbeRun,
 };
 use crate::BenchmarkMetrics;
 use std::net::{IpAddr, SocketAddr};
@@ -237,8 +237,7 @@ fn balanced_targets_for_domain<'a>(
     let mut ipv4_index = 0;
     let mut ipv6_index = 0;
 
-    while selected.len() < max_per_domain && (ipv4_index < ipv4.len() || ipv6_index < ipv6.len())
-    {
+    while selected.len() < max_per_domain && (ipv4_index < ipv4.len() || ipv6_index < ipv6.len()) {
         if ipv4_index < ipv4.len() {
             selected.push(ipv4[ipv4_index]);
             ipv4_index += 1;
@@ -276,9 +275,63 @@ fn combine_metrics(
             .max(connect.timeout_rate)
             .max(tls_timeout_rate),
         median_connect_latency_ms: connect.median_connect_latency_ms,
-        ipv4_health: dns.ipv4_health,
-        ipv6_health: dns.ipv6_health,
+        ipv4_health: path_family_health(dns.ipv4_health, connect, tls, true),
+        ipv6_health: path_family_health(dns.ipv6_health, connect, tls, false),
         priority_fit: dns.priority_fit,
+    }
+}
+
+fn path_family_health(
+    dns_health: f64,
+    connect: &ConnectProbeRun,
+    tls: Option<&TlsProbeRun>,
+    ipv4: bool,
+) -> f64 {
+    let mut health = dns_health.clamp(0.0, 1.0);
+    if let Some(connect_health) = connect_family_health(connect, ipv4) {
+        health = health.min(connect_health);
+    }
+    if let Some(tls_health) = tls.and_then(|run| tls_family_health(run, ipv4)) {
+        health = health.min(tls_health);
+    }
+    health
+}
+
+fn connect_family_health(connect: &ConnectProbeRun, ipv4: bool) -> Option<f64> {
+    let samples: Vec<_> = connect
+        .samples
+        .iter()
+        .filter(|sample| sample.endpoint.ip().is_ipv4() == ipv4)
+        .collect();
+    family_success_rate(
+        samples.len(),
+        samples
+            .iter()
+            .filter(|sample| sample.outcome == ConnectProbeOutcome::Success)
+            .count(),
+    )
+}
+
+fn tls_family_health(tls: &TlsProbeRun, ipv4: bool) -> Option<f64> {
+    let samples: Vec<_> = tls
+        .samples
+        .iter()
+        .filter(|sample| sample.endpoint.ip().is_ipv4() == ipv4)
+        .collect();
+    family_success_rate(
+        samples.len(),
+        samples
+            .iter()
+            .filter(|sample| sample.outcome == TlsProbeOutcome::Success)
+            .count(),
+    )
+}
+
+fn family_success_rate(total: usize, successes: usize) -> Option<f64> {
+    if total == 0 {
+        None
+    } else {
+        Some(successes as f64 / total as f64)
     }
 }
 
@@ -301,7 +354,9 @@ fn caveats_for(
     };
 
     if targets.is_empty() {
-        caveats.push("No usable A/AAAA answers were returned, so TCP connect probes were skipped.".into());
+        caveats.push(
+            "No usable A/AAAA answers were returned, so TCP connect probes were skipped.".into(),
+        );
     }
     if dns.metrics.failure_rate > 0.0 {
         caveats.push("Some DNS lookups failed or timed out.".into());
@@ -313,7 +368,10 @@ fn caveats_for(
         if tls.certificate_failure_rate > 0.0 {
             caveats.push("TLS certificate failures were observed; this can indicate captive portal, corporate interception, wrong endpoint mapping, or SNI mismatch.".into());
         } else if tls.failure_rate > 0.0 {
-            caveats.push("Some resolved endpoints failed TLS/SNI handshake after TCP connect succeeded.".into());
+            caveats.push(
+                "Some resolved endpoints failed TLS/SNI handshake after TCP connect succeeded."
+                    .into(),
+            );
         }
     }
     if max_connect_targets_per_domain > 0 && skipped_connect_targets > 0 {
