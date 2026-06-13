@@ -1,14 +1,24 @@
 public struct CustomDNSProfileManagementViewModel: Equatable, Sendable {
     public let rows: [CustomDNSProfileManagementRow]
 
-    public init(profiles: [CatalogProfile]) {
+    public init(profiles: [CatalogProfile], reservedProfileIDs: Set<String>? = nil) {
         var seenIDs = Set<String>()
+        let reservedIDs = reservedProfileIDs ?? Set(
+            profiles
+                .filter { !Self.isEditableCustomPlainProfile($0) }
+                .map(\.id)
+        )
         rows = profiles
             .filter(Self.isEditableCustomPlainProfile)
             .filter { profile in
                 seenIDs.insert(profile.id).inserted
             }
-            .map(CustomDNSProfileManagementRow.init(profile:))
+            .map { profile in
+                CustomDNSProfileManagementRow(
+                    profile: profile,
+                    hasReservedIDCollision: reservedIDs.contains(profile.id)
+                )
+            }
     }
 
     private static func isEditableCustomPlainProfile(_ profile: CatalogProfile) -> Bool {
@@ -23,12 +33,20 @@ public struct CustomDNSProfileManagementRow: Equatable, Identifiable, Sendable {
     public let detailLabel: String
     public let ipv4ServersText: String
     public let ipv6ServersText: String
+    public let opensAsNewProfile: Bool
+    public let editHelpLabel: String
+    public let warningLabel: String?
 
-    public init(profile: CatalogProfile) {
+    public init(profile: CatalogProfile, hasReservedIDCollision: Bool = false) {
         id = profile.id
         name = profile.name
         detailLabel = "\(profile.ipv4Servers.count) IPv4 / \(profile.ipv6Servers.count) IPv6"
         ipv4ServersText = profile.ipv4Servers.joined(separator: "\n")
         ipv6ServersText = profile.ipv6Servers.joined(separator: "\n")
+        opensAsNewProfile = hasReservedIDCollision
+        editHelpLabel = hasReservedIDCollision ? "Copy to new profile" : "Edit profile"
+        warningLabel = hasReservedIDCollision
+            ? "ID conflicts with a built-in profile. Edit opens a new custom-* copy; delete this legacy row after saving."
+            : nil
     }
 }

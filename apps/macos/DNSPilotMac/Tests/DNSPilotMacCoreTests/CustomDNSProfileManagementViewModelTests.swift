@@ -26,6 +26,23 @@ final class CustomDNSProfileManagementViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.rows.map(\.id), ["custom-plain"])
     }
+
+    func testViewModelMarksLegacyCustomProfileIDCollisionWithBuiltIn() {
+        let viewModel = CustomDNSProfileManagementViewModel(
+            profiles: [
+                makeManagementProfile(id: "cloudflare", useCase: "performance", tags: [], protocol: .plain),
+                makeManagementProfile(id: "cloudflare", useCase: "custom", tags: ["custom"], protocol: .plain),
+            ]
+        )
+
+        XCTAssertEqual(viewModel.rows.map(\.id), ["cloudflare"])
+        XCTAssertTrue(viewModel.rows[0].opensAsNewProfile)
+        XCTAssertEqual(viewModel.rows[0].editHelpLabel, "Copy to new profile")
+        XCTAssertEqual(
+            viewModel.rows[0].warningLabel,
+            "ID conflicts with a built-in profile. Edit opens a new custom-* copy; delete this legacy row after saving."
+        )
+    }
 }
 
 private func makeManagementProfile(

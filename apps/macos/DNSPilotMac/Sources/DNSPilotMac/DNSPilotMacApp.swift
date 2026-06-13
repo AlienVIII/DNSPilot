@@ -536,7 +536,7 @@ private struct CustomDNSProfileDetailView: View {
         guard !isMutatingProfile else {
             return
         }
-        editingProfileID = row.id
+        editingProfileID = row.opensAsNewProfile ? nil : row.id
         name = row.name
         ipv4ServersText = row.ipv4ServersText
         ipv6ServersText = row.ipv6ServersText
@@ -639,6 +639,11 @@ private struct CustomDNSProfileManagementRowView: View {
                 Text(row.id)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
+                if let warningLabel = row.warningLabel {
+                    Label(warningLabel, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(DNSPilotDesign.Palette.warning)
+                }
             }
 
             Spacer()
@@ -647,7 +652,7 @@ private struct CustomDNSProfileManagementRowView: View {
                 Label("Edit", systemImage: "pencil")
             }
             .labelStyle(.iconOnly)
-            .help("Edit profile")
+            .help(row.editHelpLabel)
             .disabled(isDisabled)
 
             Button(role: .destructive, action: onDelete) {
