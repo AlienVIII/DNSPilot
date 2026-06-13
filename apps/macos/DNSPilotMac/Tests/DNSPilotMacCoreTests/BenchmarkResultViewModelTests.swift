@@ -52,6 +52,28 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.notes, ["Lowest median DNS latency.", "Connection path not measured."])
         XCTAssertEqual(viewModel.savedHistoryLabel, "Saved run: compare-run-1")
         XCTAssertEqual(viewModel.fullSavedHistoryID, "compare-run-1")
+        XCTAssertEqual(
+            viewModel.resultReport,
+            """
+            Benchmark result
+            Health: Healthy
+            Scope: DNS only
+            Confidence: High confidence
+            Recommendation: Recommended: Cloudflare
+            Saved run: compare-run-1
+
+            Candidates:
+            Cloudflare | 127.0.0.1:53 | DNS median 4 ms | DNS P95 4 ms | Failure 0% failed
+            Google Public DNS | 127.0.0.1:53 | DNS median 8 ms | DNS P95 8 ms | Failure 0% failed
+
+            Notes:
+            Lowest median DNS latency.
+            Connection path not measured.
+
+            Warning:
+            DNS-only warning.
+            """
+        )
     }
 
     func testResultViewModelShortensLongSavedHistoryIDForResultPanel() {

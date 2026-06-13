@@ -2167,6 +2167,12 @@ private struct BenchmarkResultPanel: View {
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
 
+                Button {
+                    copyToPasteboard(viewModel.resultReport)
+                } label: {
+                    Label("Copy Result Report", systemImage: "doc.on.doc")
+                }
+
                 if let savedHistoryLabel = viewModel.savedHistoryLabel {
                     HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                         Label(savedHistoryLabel, systemImage: "clock.arrow.circlepath")

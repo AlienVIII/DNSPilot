@@ -72,6 +72,49 @@ public struct BenchmarkResultViewModel: Equatable {
         )
     }
 
+    public var resultReport: String {
+        var lines = [
+            "Benchmark result",
+            "Health: \(healthLabel)",
+            "Scope: \(scopeLabel)",
+            "Confidence: \(confidenceLabel)",
+            "Recommendation: \(recommendationLabel)",
+        ]
+        if let fullSavedHistoryID {
+            lines.append("Saved run: \(fullSavedHistoryID)")
+        }
+
+        lines.append("")
+        lines.append("Candidates:")
+        for row in rows {
+            var parts = [
+                row.name,
+                row.resolver,
+                "DNS median \(row.medianDNSLatencyLabel)",
+                "DNS P95 \(row.p95DNSLatencyLabel)",
+            ]
+            if showsConnectionMetrics {
+                parts.append("TCP median \(row.medianConnectLatencyLabel)")
+            }
+            parts.append("Failure \(row.failureRateLabel)")
+            lines.append(parts.joined(separator: " | "))
+        }
+
+        if !notes.isEmpty {
+            lines.append("")
+            lines.append("Notes:")
+            lines.append(contentsOf: notes)
+        }
+
+        if !warning.isEmpty {
+            lines.append("")
+            lines.append("Warning:")
+            lines.append(warning)
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
     private static func shouldUseStrongRecommendation(
         health: BenchmarkHealth,
         confidence: BenchmarkConfidence?
