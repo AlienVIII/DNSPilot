@@ -65,7 +65,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving 3 domain(s) with 2 resolver(s), 1 attempt(s), A + AAAA.",
                 "* Worst-case DNS wait before output: about 9.6s; stdout is drained while the CLI runs.",
-                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
             ]
         )
     }
@@ -91,7 +91,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving 3 domain(s) with 2 resolver(s), 1 attempt(s), A only.",
                 "* Worst-case DNS wait before output: about 4.8s; stdout is drained while the CLI runs.",
-                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
             ]
         )
     }
@@ -116,8 +116,8 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
             [
-                "Cloudflare:running:Queued in batch",
-                "Google:running:Queued in batch",
+                "Cloudflare:running:Waiting for final JSON",
+                "Google:running:Waiting for final JSON",
             ]
         )
     }
@@ -162,7 +162,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: 2 domain(s), 2 resolver(s), 1 attempt(s); worst-case DNS phase about 6.4s, TCP phase about 16.0s.",
-                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
             ]
         )
     }

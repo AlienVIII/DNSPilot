@@ -308,7 +308,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             return [
                 "* Running benchmark command.",
                 "* Waiting for CLI output; cancel is available if the network blocks.",
-                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
             ]
         }
 
@@ -319,13 +319,13 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             return [
                 "* Resolving \(planSummary.domainCount) domain(s) with \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s), \(planSummary.recordFamily.displayLabel).",
                 "* Worst-case DNS wait before output: about \(dnsSeconds); stdout is drained while the CLI runs.",
-                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
             ]
         case .connectionPathCompare:
             return [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds), TCP phase about \(tcpSeconds).",
-                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
             ]
         }
     }
@@ -355,7 +355,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                     name: target.name,
                     resolver: target.resolver,
                     status: .running,
-                    detail: "Queued in batch"
+                    detail: "Waiting for final JSON"
                 )
             }
         }
