@@ -1191,6 +1191,8 @@ private extension BenchmarkProgressStatus {
             "arrow.triangle.2.circlepath"
         case .success:
             "checkmark.circle.fill"
+        case .degraded:
+            "exclamationmark.triangle.fill"
         case .failed:
             "xmark.octagon.fill"
         }
@@ -1204,6 +1206,8 @@ private extension BenchmarkProgressStatus {
             DNSPilotDesign.Palette.accent
         case .success:
             .green
+        case .degraded:
+            .orange
         case .failed:
             .red
         }
@@ -1421,6 +1425,7 @@ private struct BenchmarkResultPanel: View {
 
                 Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
                     GridRow {
+                        Text("Status").font(.headline)
                         Text("Profile").font(.headline)
                         Text("Resolver").font(.headline)
                         Text("Median DNS").font(.headline)
@@ -1433,6 +1438,10 @@ private struct BenchmarkResultPanel: View {
 
                     ForEach(viewModel.rows) { row in
                         GridRow {
+                            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                                BenchmarkProgressStatusIcon(status: row.status)
+                                Text(row.status.displayLabel)
+                            }
                             Text(row.name)
                             Text(row.resolver).font(.body.monospaced())
                             Text(row.medianDNSLatencyLabel)

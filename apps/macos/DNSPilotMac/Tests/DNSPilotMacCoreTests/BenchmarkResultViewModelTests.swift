@@ -53,6 +53,56 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.savedHistoryLabel, "Saved: compare-run-1")
     }
 
+    func testResultViewModelSoftensRecommendationForDegradedInconclusiveRuns() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsTCP,
+                mode: .bestOverall,
+                health: .degraded,
+                primaryIssue: "reduced-reliability",
+                canRecommend: true,
+                safetyNotes: ["All candidates have reduced reliability; apply prompts should be conservative."],
+                resolverCount: 2,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: nil,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: 443,
+                maxConnectTargetsPerDomain: 4,
+                tlsEnabled: false,
+                trustStore: nil,
+                tlsSampleCount: 0,
+                recommendedProfileID: "adguard-dns"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 55, failureRate: 0.5),
+                makeResultRun(profileID: "adguard-dns", medianDNS: 31, failureRate: 0.5),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "adguard-dns",
+                score: 0.62,
+                confidence: .inconclusive,
+                reasons: [
+                    "Best connection-path estimate for BestOverall mode.",
+                    "Recommended profile: adguard-dns.",
+                ],
+                caveats: ["Timeout or failure rate reduces confidence."]
+            ),
+            savedHistoryID: nil,
+            warning: "Path comparison warning."
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.recommendationLabel, "Best measured candidate: AdGuard DNS")
+        XCTAssertEqual(viewModel.confidenceLabel, "Inconclusive confidence")
+        XCTAssertEqual(viewModel.rows.map(\.status), [.degraded, .degraded])
+        XCTAssertEqual(viewModel.rows.map(\.statusDetail), ["50% failed", "50% failed"])
+        XCTAssertFalse(viewModel.notes.contains("Recommended profile: adguard-dns."))
+    }
+
     func testResultViewModelShowsNoRecommendationAndNAForAllFailedRuns() {
         let result = BenchmarkResultPayload(
             summary: BenchmarkResultSummary(
@@ -176,6 +226,20 @@ private func makeResultCatalog() -> CatalogSnapshot {
                 filteringType: .none,
                 tags: [],
                 useCase: "performance",
+                securityNotes: []
+            ),
+            CatalogProfile(
+                id: "adguard-dns",
+                name: "AdGuard DNS",
+                description: "AdGuard public DNS.",
+                ipv4Servers: ["94.140.14.14"],
+                ipv6Servers: [],
+                protocol: .plain,
+                dohURL: nil,
+                dotHostname: nil,
+                filteringType: .none,
+                tags: [],
+                useCase: "filtering",
                 securityNotes: []
             ),
             CatalogProfile(

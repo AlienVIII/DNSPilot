@@ -27,7 +27,12 @@ public struct BenchmarkResultViewModel: Equatable {
 
         if result.summary.canRecommend,
            let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID {
-            recommendationLabel = "Recommended: \(profileNames[recommendedProfileID] ?? recommendedProfileID)"
+            let candidateName = profileNames[recommendedProfileID] ?? recommendedProfileID
+            if Self.shouldUseStrongRecommendation(health: result.summary.health, confidence: result.recommendation?.confidence) {
+                recommendationLabel = "Recommended: \(candidateName)"
+            } else {
+                recommendationLabel = "Best measured candidate: \(candidateName)"
+            }
         } else {
             recommendationLabel = "No recommendation"
         }
@@ -38,9 +43,35 @@ public struct BenchmarkResultViewModel: Equatable {
             confidenceLabel = "Inconclusive"
         }
 
-        notes = result.summary.safetyNotes
-            + (result.recommendation?.reasons ?? [])
-            + (result.recommendation?.caveats ?? [])
+        notes = Self.userFacingNotes(
+            safetyNotes: result.summary.safetyNotes,
+            reasons: result.recommendation?.reasons ?? [],
+            caveats: result.recommendation?.caveats ?? []
+        )
+    }
+
+    private static func shouldUseStrongRecommendation(
+        health: BenchmarkHealth,
+        confidence: BenchmarkConfidence?
+    ) -> Bool {
+        guard health == .healthy else {
+            return false
+        }
+        return confidence == .high || confidence == .medium
+    }
+
+    private static func userFacingNotes(
+        safetyNotes: [String],
+        reasons: [String],
+        caveats: [String]
+    ) -> [String] {
+        var seen = Set<String>()
+        return (safetyNotes + reasons + caveats).filter { note in
+            guard !note.lowercased().hasPrefix("recommended profile:") else {
+                return false
+            }
+            return seen.insert(note).inserted
+        }
     }
 
     private static func scopeLabel(for scope: BenchmarkMeasurementScope) -> String {
@@ -98,7 +129,13 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
         profileID = run.profileID
         name = displayName ?? run.profileID
         resolver = run.resolver
-        status = run.metrics.failureRate >= 1 ? .failed : .success
+        if run.metrics.failureRate >= 1 {
+            status = .failed
+        } else if run.metrics.failureRate > 0 {
+            status = .degraded
+        } else {
+            status = .success
+        }
         statusDetail = "\(Self.percent(run.metrics.failureRate))% failed"
         medianDNSLatencyLabel = Self.latencyLabel(
             run.metrics.medianDNSLatencyMS,

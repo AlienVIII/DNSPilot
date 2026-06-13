@@ -63,6 +63,7 @@ public enum BenchmarkProgressStatus: String, Equatable, Sendable {
     case idle
     case running
     case success
+    case degraded
     case failed
 }
 

@@ -110,6 +110,7 @@ DNS handling, and platform capability reporting.
 - [x] [99] v0.1 macOS benchmark pipe drain and verbose progress — prevent pipe deadlock and show running detail.
 - [x] [100] v0.1 macOS custom DNS management — edit/delete saved custom plain DNS profiles.
 - [x] [101] v0.1 macOS benchmark diagnostics and DNS statuses — decode all-timeout results, add issue logs, select-all, and per-DNS status.
+- [x] [102] v0.1 macOS benchmark result trust states — soften degraded recommendations and show degraded row status.
 
 ---
 
@@ -3958,6 +3959,39 @@ swift test --package-path apps/macos/DNSPilotMac
 Result: 115 passed, 0 failed
 
 CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: pass
+
+git diff --check
+Result: clean
+```
+
+---
+
+## Chunk 102: v0.1 macOS Benchmark Result Trust States
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkProgressViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`
+
+### What changed
+
+Degraded or inconclusive benchmark winners now render as "Best measured
+candidate" instead of "Recommended", result rows can show degraded status for
+partial failures, and redundant "Recommended profile" notes are filtered from
+the user-facing result notes.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests/testResultViewModelSoftensRecommendationForDegradedInconclusiveRuns
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkProgressViewModelTests
+Result: 8 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 116 passed, 0 failed
+
+cargo test --workspace --tests
 Result: pass
 
 git diff --check
