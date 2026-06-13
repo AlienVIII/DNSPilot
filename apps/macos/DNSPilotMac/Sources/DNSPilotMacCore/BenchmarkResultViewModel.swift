@@ -11,6 +11,7 @@ public struct BenchmarkResultViewModel: Equatable {
     public let warning: String
     public let savedHistoryLabel: String?
     public let fullSavedHistoryID: String?
+    public let recordFamilyLabel: String?
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
         let profileNames = Dictionary(
@@ -26,6 +27,7 @@ public struct BenchmarkResultViewModel: Equatable {
         warning = result.warning
         savedHistoryLabel = result.savedHistoryID.map(Self.savedHistoryLabel)
         fullSavedHistoryID = result.savedHistoryID
+        recordFamilyLabel = result.summary.recordFamily?.displayLabel
 
         let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID
         let recommendedCandidateName = recommendedProfileID.map { profileNames[$0] ?? $0 }
@@ -82,6 +84,9 @@ public struct BenchmarkResultViewModel: Equatable {
         ]
         if let fullSavedHistoryID {
             lines.append("Saved run: \(fullSavedHistoryID)")
+        }
+        if let recordFamilyLabel {
+            lines.append("DNS records: \(recordFamilyLabel)")
         }
 
         lines.append("")

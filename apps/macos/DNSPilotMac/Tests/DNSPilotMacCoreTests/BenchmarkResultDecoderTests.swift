@@ -11,6 +11,7 @@ final class BenchmarkResultDecoderTests: XCTestCase {
         XCTAssertEqual(result.summary.primaryIssue, "none")
         XCTAssertTrue(result.summary.canRecommend)
         XCTAssertEqual(result.summary.recommendedProfileID, "fast")
+        XCTAssertEqual(result.summary.recordFamily, .ipv4Only)
         XCTAssertEqual(result.summary.resolverCount, 2)
         XCTAssertEqual(result.summary.domainCount, 1)
         XCTAssertEqual(result.runs.map(\.profileID), ["slow", "fast"])
@@ -65,6 +66,7 @@ private let dnsOnlyCompareJSON = """
     "resolver_count": 2,
     "domain_count": 1,
     "attempts_per_record": 1,
+    "ip_family": "ipv4-only",
     "timeout_ms": 500,
     "recommended_profile_id": "fast"
   },

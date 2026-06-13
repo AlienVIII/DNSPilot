@@ -3,20 +3,13 @@ public enum BenchmarkPlanMode: Equatable, Hashable, Sendable {
     case connectionPathCompare
 }
 
-public enum BenchmarkRecordFamily: Equatable, Hashable, CaseIterable, Sendable {
+public enum BenchmarkRecordFamily: String, Equatable, Hashable, CaseIterable, Decodable, Sendable {
     case both
-    case ipv4Only
-    case ipv6Only
+    case ipv4Only = "ipv4-only"
+    case ipv6Only = "ipv6-only"
 
     public var cliValue: String {
-        switch self {
-        case .both:
-            "both"
-        case .ipv4Only:
-            "ipv4-only"
-        case .ipv6Only:
-            "ipv6-only"
-        }
+        rawValue
     }
 
     public var displayLabel: String {

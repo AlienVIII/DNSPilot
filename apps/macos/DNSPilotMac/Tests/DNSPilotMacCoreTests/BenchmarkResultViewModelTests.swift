@@ -119,6 +119,50 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.fullSavedHistoryID, "path-compare-bd1625f7-0f3f-47c8-b4f6-2ba43eeecf10")
     }
 
+    func testResultViewModelIncludesRecordFamilyInCopiedReportWhenAvailable() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .healthy,
+                primaryIssue: "none",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 500,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: "cloudflare",
+                recordFamily: .ipv6Only
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 4, failureRate: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.97,
+                confidence: .high,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.recordFamilyLabel, "AAAA only")
+        XCTAssertTrue(viewModel.resultReport.contains("DNS records: AAAA only"))
+    }
+
     func testResultViewModelKeepsCurrentDNSForDegradedInconclusiveRuns() {
         let result = BenchmarkResultPayload(
             summary: BenchmarkResultSummary(

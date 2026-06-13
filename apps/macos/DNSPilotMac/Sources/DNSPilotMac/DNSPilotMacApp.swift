@@ -2187,6 +2187,9 @@ private struct BenchmarkResultPanel: View {
                     Label(viewModel.healthLabel, systemImage: "waveform.path.ecg")
                     Label(viewModel.scopeLabel, systemImage: "point.3.connected.trianglepath.dotted")
                     Label(viewModel.confidenceLabel, systemImage: "gauge.with.dots.needle.67percent")
+                    if let recordFamilyLabel = viewModel.recordFamilyLabel {
+                        Label(recordFamilyLabel, systemImage: "list.bullet.rectangle")
+                    }
                 }
                 .foregroundStyle(.secondary)
 

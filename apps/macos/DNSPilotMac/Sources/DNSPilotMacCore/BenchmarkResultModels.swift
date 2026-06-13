@@ -61,6 +61,7 @@ public struct BenchmarkResultSummary: Decodable, Equatable {
     public let trustStore: String?
     public let tlsSampleCount: Int?
     public let recommendedProfileID: String?
+    public let recordFamily: BenchmarkRecordFamily?
 
     private enum CodingKeys: String, CodingKey {
         case measurementScope = "measurement_scope"
@@ -82,6 +83,51 @@ public struct BenchmarkResultSummary: Decodable, Equatable {
         case trustStore = "trust_store"
         case tlsSampleCount = "tls_sample_count"
         case recommendedProfileID = "recommended_profile_id"
+        case recordFamily = "ip_family"
+    }
+
+    public init(
+        measurementScope: BenchmarkMeasurementScope,
+        mode: BenchmarkRecommendationMode,
+        health: BenchmarkHealth,
+        primaryIssue: String,
+        canRecommend: Bool,
+        safetyNotes: [String],
+        resolverCount: Int,
+        domainCount: Int,
+        attemptsPerRecord: Int,
+        timeoutMS: Int?,
+        dnsTimeoutMS: Int?,
+        connectTimeoutMS: Int?,
+        tlsHandshakeTimeoutMS: Int?,
+        connectPort: Int?,
+        maxConnectTargetsPerDomain: Int?,
+        tlsEnabled: Bool?,
+        trustStore: String?,
+        tlsSampleCount: Int?,
+        recommendedProfileID: String?,
+        recordFamily: BenchmarkRecordFamily? = nil
+    ) {
+        self.measurementScope = measurementScope
+        self.mode = mode
+        self.health = health
+        self.primaryIssue = primaryIssue
+        self.canRecommend = canRecommend
+        self.safetyNotes = safetyNotes
+        self.resolverCount = resolverCount
+        self.domainCount = domainCount
+        self.attemptsPerRecord = attemptsPerRecord
+        self.timeoutMS = timeoutMS
+        self.dnsTimeoutMS = dnsTimeoutMS
+        self.connectTimeoutMS = connectTimeoutMS
+        self.tlsHandshakeTimeoutMS = tlsHandshakeTimeoutMS
+        self.connectPort = connectPort
+        self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
+        self.tlsEnabled = tlsEnabled
+        self.trustStore = trustStore
+        self.tlsSampleCount = tlsSampleCount
+        self.recommendedProfileID = recommendedProfileID
+        self.recordFamily = recordFamily
     }
 }
 
