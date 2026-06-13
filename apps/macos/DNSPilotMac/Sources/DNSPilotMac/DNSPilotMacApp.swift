@@ -970,7 +970,11 @@ private struct BenchmarkDetailView: View {
                 }
 
                 if progressViewModel.shouldDisplay {
-                    BenchmarkProgressPanel(viewModel: progressViewModel)
+                    BenchmarkProgressPanel(
+                        viewModel: progressViewModel,
+                        startedAt: currentBenchmarkStartedAt,
+                        completedElapsedMS: lastBenchmarkElapsedMS
+                    )
                 }
 
                 BenchmarkSection(title: "Mode") {
@@ -1327,10 +1331,17 @@ private struct BenchmarkIssueList: View {
 
 private struct BenchmarkProgressPanel: View {
     let viewModel: BenchmarkProgressViewModel
+    let startedAt: Date?
+    let completedElapsedMS: Int?
 
     var body: some View {
         BenchmarkSection(title: "Process") {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                BenchmarkElapsedTimeView(
+                    startedAt: startedAt,
+                    completedElapsedMS: completedElapsedMS
+                )
+
                 ForEach(viewModel.steps) { step in
                     HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                         BenchmarkProgressStatusIcon(status: step.status)
@@ -1380,6 +1391,36 @@ private struct BenchmarkProgressPanel: View {
                 }
             }
         }
+    }
+}
+
+private struct BenchmarkElapsedTimeView: View {
+    let startedAt: Date?
+    let completedElapsedMS: Int?
+
+    var body: some View {
+        if let startedAt {
+            TimelineView(.periodic(from: startedAt, by: 1)) { context in
+                Label(
+                    "Elapsed \(Self.elapsedLabel(from: startedAt, to: context.date))",
+                    systemImage: "timer"
+                )
+                .font(.caption.monospaced())
+                .foregroundStyle(.secondary)
+            }
+        } else if let completedElapsedMS {
+            Label(
+                "Completed in \(BenchmarkElapsedTimeFormatter.label(milliseconds: completedElapsedMS))",
+                systemImage: "timer"
+            )
+            .font(.caption.monospaced())
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private static func elapsedLabel(from startDate: Date, to currentDate: Date) -> String {
+        let milliseconds = Int(currentDate.timeIntervalSince(startDate) * 1_000)
+        return BenchmarkElapsedTimeFormatter.label(milliseconds: milliseconds)
     }
 }
 
