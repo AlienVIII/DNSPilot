@@ -215,6 +215,58 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         )
     }
 
+    func testProgressShowsCurrentResolverVerboseLinesFromProgressEvents() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .dnsOnlyCompare,
+            state: .running(runID: BenchmarkRunID(1)),
+            outcome: nil,
+            historySaved: false,
+            planSummary: BenchmarkProgressPlanSummary(
+                resolverCount: 3,
+                domainCount: 1,
+                attempts: 1,
+                resolverTargets: [
+                    BenchmarkProgressResolverTarget(id: "cloudflare", name: "Cloudflare", resolver: "1.1.1.1:53"),
+                    BenchmarkProgressResolverTarget(id: "quad9", name: "Quad9", resolver: "9.9.9.9:53"),
+                    BenchmarkProgressResolverTarget(id: "google", name: "Google", resolver: "8.8.8.8:53"),
+                ]
+            ),
+            progressEvents: [
+                BenchmarkProgressEvent(
+                    type: .resolverFinished,
+                    measurementScope: .dnsOnly,
+                    profileID: "cloudflare",
+                    resolver: "1.1.1.1:53",
+                    index: 1,
+                    total: 3,
+                    status: .success,
+                    failureRate: 0,
+                    timeoutRate: 0,
+                    elapsedMS: 123.4
+                ),
+                BenchmarkProgressEvent(
+                    type: .resolverStarted,
+                    measurementScope: .dnsOnly,
+                    profileID: "quad9",
+                    resolver: "9.9.9.9:53",
+                    index: 2,
+                    total: 3,
+                    status: nil,
+                    failureRate: nil,
+                    timeoutRate: nil
+                ),
+            ]
+        )
+
+        XCTAssertEqual(
+            viewModel.currentStepVerboseLines,
+            [
+                "* Current resolver: Quad9 (9.9.9.9:53), 2/3.",
+                "* Waiting for this resolver to finish; elapsed time is shown on completion.",
+            ]
+        )
+    }
+
     func testProgressShowsDnsTcpProbeWhileRunning() {
         let viewModel = BenchmarkProgressViewModel(
             mode: .connectionPathCompare,

@@ -229,7 +229,8 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             mode: mode,
             isRunning: isActive,
             isCancelling: isCancelling,
-            planSummary: planSummary
+            planSummary: planSummary,
+            progressEvents: progressEvents
         )
         resolverStatuses = Self.resolverStatuses(
             isRunning: isActive,
@@ -310,7 +311,8 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         mode: BenchmarkPlanMode,
         isRunning: Bool,
         isCancelling: Bool,
-        planSummary: BenchmarkProgressPlanSummary?
+        planSummary: BenchmarkProgressPlanSummary?,
+        progressEvents: [BenchmarkProgressEvent]
     ) -> [String] {
         guard isRunning else {
             return []
@@ -328,6 +330,12 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                 "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
             ]
         }
+        if let progressLines = progressEventVerboseLines(
+            progressEvents,
+            planSummary: planSummary
+        ) {
+            return progressLines
+        }
 
         let dnsSeconds = worstCaseDNSSeconds(summary: planSummary)
         let tcpSeconds = worstCaseTCPSeconds(summary: planSummary)
@@ -343,6 +351,28 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds), TCP phase about \(tcpSeconds).",
                 "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
+            ]
+        }
+    }
+
+    private static func progressEventVerboseLines(
+        _ progressEvents: [BenchmarkProgressEvent],
+        planSummary: BenchmarkProgressPlanSummary
+    ) -> [String]? {
+        guard let event = progressEvents.last else {
+            return nil
+        }
+        let resolverName = planSummary.resolverTargets.first { $0.id == event.profileID }?.name ?? event.profileID
+        switch event.type {
+        case .resolverStarted:
+            return [
+                "* Current resolver: \(resolverName) (\(event.resolver)), \(event.index)/\(event.total).",
+                "* Waiting for this resolver to finish; elapsed time is shown on completion.",
+            ]
+        case .resolverFinished:
+            return [
+                "* Last finished: \(resolverName) (\(event.resolver)), \(detail(for: event)).",
+                "* Waiting for the next resolver event or final JSON output.",
             ]
         }
     }
