@@ -19,6 +19,8 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     public let selectedSuiteID: String?
     public let customDomains: [String]
     public let attempts: Int
+    public let dnsTimeoutMS: Int
+    public let connectTimeoutMS: Int
     public let maxConnectTargetsPerDomain: Int
     public let mode: BenchmarkPlanMode
 
@@ -54,6 +56,12 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         if attempts < 1 {
             issues.append("Attempts must be at least 1.")
         }
+        if dnsTimeoutMS < 1 {
+            issues.append("DNS timeout must be at least 1 ms.")
+        }
+        if mode == .connectionPathCompare, connectTimeoutMS < 1 {
+            issues.append("TCP timeout must be at least 1 ms.")
+        }
         if mode == .connectionPathCompare, maxConnectTargetsPerDomain < 1 {
             issues.append("Max TCP targets per domain must be at least 1.")
         }
@@ -76,8 +84,15 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         args.append("--attempts")
         args.append(String(attempts))
         if mode == .connectionPathCompare {
+            args.append("--dns-timeout-ms")
+            args.append(String(dnsTimeoutMS))
+            args.append("--connect-timeout-ms")
+            args.append(String(connectTimeoutMS))
             args.append("--max-connect-targets-per-domain")
             args.append(String(maxConnectTargetsPerDomain))
+        } else {
+            args.append("--timeout-ms")
+            args.append(String(dnsTimeoutMS))
         }
         return args
     }
@@ -111,6 +126,8 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         selectedSuiteID: String?,
         customDomains: [String],
         attempts: Int,
+        dnsTimeoutMS: Int = 800,
+        connectTimeoutMS: Int = 1_000,
         maxConnectTargetsPerDomain: Int = 4,
         mode: BenchmarkPlanMode
     ) {
@@ -119,6 +136,8 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         self.selectedSuiteID = selectedSuiteID
         self.customDomains = customDomains
         self.attempts = attempts
+        self.dnsTimeoutMS = dnsTimeoutMS
+        self.connectTimeoutMS = connectTimeoutMS
         self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
         self.mode = mode
     }

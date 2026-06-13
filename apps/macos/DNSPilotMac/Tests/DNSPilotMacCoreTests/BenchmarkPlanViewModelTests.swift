@@ -9,6 +9,7 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
             selectedSuiteID: "developer",
             customDomains: [],
             attempts: 2,
+            dnsTimeoutMS: 1_200,
             mode: .dnsOnlyCompare
         )
 
@@ -23,6 +24,7 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
                 "--domain", "github.com",
                 "--domain", "registry.npmjs.org",
                 "--attempts", "2",
+                "--timeout-ms", "1200",
             ]
         )
     }
@@ -34,16 +36,26 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
             selectedSuiteID: nil,
             customDomains: ["portal.azure.com", "login.microsoftonline.com"],
             attempts: 1,
+            dnsTimeoutMS: 900,
+            connectTimeoutMS: 700,
             maxConnectTargetsPerDomain: 2,
             mode: .connectionPathCompare
         )
 
         XCTAssertTrue(viewModel.validation.canRun)
-        XCTAssertEqual(viewModel.commandArguments.first, "path-compare")
-        XCTAssertTrue(viewModel.commandArguments.contains("--domain"))
-        XCTAssertTrue(viewModel.commandArguments.contains("portal.azure.com"))
-        XCTAssertTrue(viewModel.commandArguments.contains("--max-connect-targets-per-domain"))
-        XCTAssertTrue(viewModel.commandArguments.contains("2"))
+        XCTAssertEqual(
+            viewModel.commandArguments,
+            [
+                "path-compare",
+                "--resolver", "cloudflare=1.1.1.1:53",
+                "--domain", "portal.azure.com",
+                "--domain", "login.microsoftonline.com",
+                "--attempts", "1",
+                "--dns-timeout-ms", "900",
+                "--connect-timeout-ms", "700",
+                "--max-connect-targets-per-domain", "2",
+            ]
+        )
     }
 
     func testBenchmarkPlanRejectsEncryptedProfilesAndMissingDomains() {

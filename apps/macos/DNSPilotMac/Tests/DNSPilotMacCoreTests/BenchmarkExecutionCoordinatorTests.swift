@@ -61,7 +61,7 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
                         resolver timed out
 
                         arguments:
-                        compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
+                        compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1 --timeout-ms 800
                         """
                     )
                 )
@@ -137,7 +137,7 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
                         not json
 
                         arguments:
-                        compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
+                        compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1 --timeout-ms 800
                         """
                     )
             )

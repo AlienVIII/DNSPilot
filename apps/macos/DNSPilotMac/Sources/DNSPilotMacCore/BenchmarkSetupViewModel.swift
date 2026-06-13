@@ -7,6 +7,8 @@ public struct BenchmarkSetupViewModel: Equatable {
     public let selectedSuiteID: String?
     public let customDomainsText: String
     public let attempts: Int
+    public let dnsTimeoutMS: Int
+    public let connectTimeoutMS: Int
     public let maxConnectTargetsPerDomain: Int
     public let mode: BenchmarkPlanMode
 
@@ -57,6 +59,8 @@ public struct BenchmarkSetupViewModel: Equatable {
             resolverCount: plan.resolverCount,
             domainCount: plan.domains.count,
             attempts: attempts,
+            dnsTimeoutMS: dnsTimeoutMS,
+            connectTimeoutMS: connectTimeoutMS,
             maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
             mode: mode
         )
@@ -77,6 +81,8 @@ public struct BenchmarkSetupViewModel: Equatable {
             selectedSuiteID: selectedSuiteID,
             customDomains: Self.parseCustomDomains(customDomainsText),
             attempts: attempts,
+            dnsTimeoutMS: dnsTimeoutMS,
+            connectTimeoutMS: connectTimeoutMS,
             maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
             mode: mode
         )
@@ -103,6 +109,8 @@ public struct BenchmarkSetupViewModel: Equatable {
             selectedSuiteID: catalog.testSuites.first?.id,
             customDomainsText: "",
             attempts: 1,
+            dnsTimeoutMS: 800,
+            connectTimeoutMS: 1_000,
             maxConnectTargetsPerDomain: 4,
             mode: .dnsOnlyCompare
         )
@@ -115,6 +123,8 @@ public struct BenchmarkSetupViewModel: Equatable {
         selectedSuiteID: String?,
         customDomainsText: String,
         attempts: Int,
+        dnsTimeoutMS: Int = 800,
+        connectTimeoutMS: Int = 1_000,
         maxConnectTargetsPerDomain: Int = 4,
         mode: BenchmarkPlanMode
     ) {
@@ -124,6 +134,8 @@ public struct BenchmarkSetupViewModel: Equatable {
         self.selectedSuiteID = selectedSuiteID
         self.customDomainsText = customDomainsText
         self.attempts = attempts
+        self.dnsTimeoutMS = dnsTimeoutMS
+        self.connectTimeoutMS = connectTimeoutMS
         self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
         self.mode = mode
     }
@@ -155,14 +167,14 @@ public struct BenchmarkSetupViewModel: Equatable {
     }
 
     private static let dnsRecordFamiliesPerDomain = 2
-    private static let dnsTimeoutMS = 800
-    private static let connectTimeoutMS = 1_000
     private static let longBenchmarkWarningThresholdMS = 30_000
 
     private static func worstCaseMilliseconds(
         resolverCount: Int,
         domainCount: Int,
         attempts: Int,
+        dnsTimeoutMS: Int,
+        connectTimeoutMS: Int,
         maxConnectTargetsPerDomain: Int,
         mode: BenchmarkPlanMode
     ) -> Int {

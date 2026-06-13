@@ -162,6 +162,8 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
             resolverCount: plan.resolverCount,
             domainCount: plan.domains.count,
             attempts: plan.attempts,
+            dnsTimeoutMS: plan.dnsTimeoutMS,
+            connectTimeoutMS: plan.connectTimeoutMS,
             maxConnectTargetsPerDomain: plan.maxConnectTargetsPerDomain,
             resolverTargets: plan.resolverTargets
         )

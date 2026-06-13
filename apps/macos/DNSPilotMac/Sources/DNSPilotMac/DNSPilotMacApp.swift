@@ -1158,6 +1158,8 @@ private struct BenchmarkDetailView: View {
     @State private var isDeleteSuiteConfirmationPresented = false
     @State private var isDeletingSuite = false
     @State private var attempts: Int
+    @State private var dnsTimeoutMS: Int
+    @State private var connectTimeoutMS: Int
     @State private var maxConnectTargetsPerDomain: Int
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
@@ -1176,6 +1178,8 @@ private struct BenchmarkDetailView: View {
             selectedSuiteID: selectedSuiteID,
             customDomainsText: customDomainsText,
             attempts: attempts,
+            dnsTimeoutMS: dnsTimeoutMS,
+            connectTimeoutMS: connectTimeoutMS,
             maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
             mode: mode
         )
@@ -1237,6 +1241,8 @@ private struct BenchmarkDetailView: View {
         _suiteNameText = State(initialValue: "")
         _suiteSaveState = State(initialValue: .idle)
         _attempts = State(initialValue: defaults.attempts)
+        _dnsTimeoutMS = State(initialValue: defaults.dnsTimeoutMS)
+        _connectTimeoutMS = State(initialValue: defaults.connectTimeoutMS)
         _maxConnectTargetsPerDomain = State(initialValue: defaults.maxConnectTargetsPerDomain)
         _mode = State(initialValue: defaults.mode)
     }
@@ -1427,7 +1433,21 @@ private struct BenchmarkDetailView: View {
                         }
                         .frame(maxWidth: 220, alignment: .leading)
 
+                        Stepper(value: $dnsTimeoutMS, in: 200...5_000, step: 100) {
+                            Text("DNS timeout: \(dnsTimeoutMS) ms")
+                                .font(.body.monospacedDigit())
+                        }
+                        .frame(maxWidth: 260, alignment: .leading)
+                        .help("Increase this on slow networks; lower it for quick smoke tests.")
+
                         if mode == .connectionPathCompare {
+                            Stepper(value: $connectTimeoutMS, in: 200...5_000, step: 100) {
+                                Text("TCP timeout: \(connectTimeoutMS) ms")
+                                    .font(.body.monospacedDigit())
+                            }
+                            .frame(maxWidth: 260, alignment: .leading)
+                            .help("Per-endpoint TCP connect timeout for DNS + TCP mode.")
+
                             Stepper(value: $maxConnectTargetsPerDomain, in: 1...8) {
                                 Text("TCP targets/domain: \(maxConnectTargetsPerDomain)")
                                     .font(.body.monospacedDigit())
