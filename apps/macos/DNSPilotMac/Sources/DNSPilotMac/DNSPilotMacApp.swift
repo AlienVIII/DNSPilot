@@ -1158,6 +1158,7 @@ private struct BenchmarkDetailView: View {
     @State private var isDeleteSuiteConfirmationPresented = false
     @State private var isDeletingSuite = false
     @State private var attempts: Int
+    @State private var maxConnectTargetsPerDomain: Int
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
@@ -1175,6 +1176,7 @@ private struct BenchmarkDetailView: View {
             selectedSuiteID: selectedSuiteID,
             customDomainsText: customDomainsText,
             attempts: attempts,
+            maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
             mode: mode
         )
     }
@@ -1235,6 +1237,7 @@ private struct BenchmarkDetailView: View {
         _suiteNameText = State(initialValue: "")
         _suiteSaveState = State(initialValue: .idle)
         _attempts = State(initialValue: defaults.attempts)
+        _maxConnectTargetsPerDomain = State(initialValue: defaults.maxConnectTargetsPerDomain)
         _mode = State(initialValue: defaults.mode)
     }
 
@@ -1417,11 +1420,22 @@ private struct BenchmarkDetailView: View {
                 }
 
                 BenchmarkSection(title: "Attempts") {
-                    Stepper(value: $attempts, in: 1...5) {
-                        Text("\(attempts)")
-                            .font(.body.monospacedDigit())
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                        Stepper(value: $attempts, in: 1...5) {
+                            Text("Attempts: \(attempts)")
+                                .font(.body.monospacedDigit())
+                        }
+                        .frame(maxWidth: 220, alignment: .leading)
+
+                        if mode == .connectionPathCompare {
+                            Stepper(value: $maxConnectTargetsPerDomain, in: 1...8) {
+                                Text("TCP targets/domain: \(maxConnectTargetsPerDomain)")
+                                    .font(.body.monospacedDigit())
+                            }
+                            .frame(maxWidth: 260, alignment: .leading)
+                            .help("Lower this to reduce DNS + TCP benchmark duration on large CDN domains.")
+                        }
                     }
-                    .frame(maxWidth: 160, alignment: .leading)
                 }
 
                 if let outcome {

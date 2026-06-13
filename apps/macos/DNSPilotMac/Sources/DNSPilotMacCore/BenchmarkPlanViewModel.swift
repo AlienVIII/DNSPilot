@@ -19,6 +19,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     public let selectedSuiteID: String?
     public let customDomains: [String]
     public let attempts: Int
+    public let maxConnectTargetsPerDomain: Int
     public let mode: BenchmarkPlanMode
 
     public var domains: [String] {
@@ -53,6 +54,9 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         if attempts < 1 {
             issues.append("Attempts must be at least 1.")
         }
+        if mode == .connectionPathCompare, maxConnectTargetsPerDomain < 1 {
+            issues.append("Max TCP targets per domain must be at least 1.")
+        }
         for domain in sanitizedCustomDomains where !Self.isValidDomainName(domain) {
             issues.append("Invalid custom domain: \(domain)")
         }
@@ -71,6 +75,10 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         }
         args.append("--attempts")
         args.append(String(attempts))
+        if mode == .connectionPathCompare {
+            args.append("--max-connect-targets-per-domain")
+            args.append(String(maxConnectTargetsPerDomain))
+        }
         return args
     }
 
@@ -103,6 +111,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         selectedSuiteID: String?,
         customDomains: [String],
         attempts: Int,
+        maxConnectTargetsPerDomain: Int = 4,
         mode: BenchmarkPlanMode
     ) {
         self.catalog = catalog
@@ -110,6 +119,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         self.selectedSuiteID = selectedSuiteID
         self.customDomains = customDomains
         self.attempts = attempts
+        self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
         self.mode = mode
     }
 

@@ -91,7 +91,7 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             mode: .connectionPathCompare
         )
 
-        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, 2 resolvers, 1 domain, 2 attempts")
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, 2 resolvers, 1 domain, 2 attempts, 4 TCP targets/domain")
     }
 
     func testSetupWarnsWhenWorstCaseBenchmarkDurationIsLong() {

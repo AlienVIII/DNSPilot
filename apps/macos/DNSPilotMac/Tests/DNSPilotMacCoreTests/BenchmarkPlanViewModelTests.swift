@@ -34,6 +34,7 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
             selectedSuiteID: nil,
             customDomains: ["portal.azure.com", "login.microsoftonline.com"],
             attempts: 1,
+            maxConnectTargetsPerDomain: 2,
             mode: .connectionPathCompare
         )
 
@@ -41,6 +42,8 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.commandArguments.first, "path-compare")
         XCTAssertTrue(viewModel.commandArguments.contains("--domain"))
         XCTAssertTrue(viewModel.commandArguments.contains("portal.azure.com"))
+        XCTAssertTrue(viewModel.commandArguments.contains("--max-connect-targets-per-domain"))
+        XCTAssertTrue(viewModel.commandArguments.contains("2"))
     }
 
     func testBenchmarkPlanRejectsEncryptedProfilesAndMissingDomains() {
