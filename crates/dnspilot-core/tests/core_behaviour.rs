@@ -1,14 +1,11 @@
 use dnspilot_core::{
-    apply_prompt_policy_for,
-    apply_prompt_policy_payload_for,
-    benchmark_preflight_for,
-    benchmark_preflight_payload_for,
-    built_in_profiles, built_in_test_suites, capability_for, capability_matrix_payload,
-    catalog_payload, classify_resolution_outcome, recommend, recommendation_gate, ApplyCapability,
-    ApplyPromptDisposition, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProtocol,
-    FilteringType, FlushCapability, FlushRequirement, MeasurementScope, NetworkEnvironment,
-    Platform, RecommendationDecision, RecommendationHealth, RecommendationIssue, RecommendationMode,
-    ResolutionOutcome,
+    apply_prompt_policy_for, apply_prompt_policy_payload_for, benchmark_preflight_for,
+    benchmark_preflight_payload_for, built_in_profiles, built_in_test_suites, capability_for,
+    capability_matrix_payload, catalog_payload, classify_resolution_outcome, recommend,
+    recommendation_gate, ApplyCapability, ApplyPromptDisposition, BenchmarkMetrics,
+    BenchmarkPreflightScope, Confidence, DnsProtocol, FilteringType, FlushCapability,
+    FlushRequirement, MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision,
+    RecommendationHealth, RecommendationIssue, RecommendationMode, ResolutionOutcome,
 };
 
 fn metrics(
@@ -40,7 +37,9 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
     let suites = built_in_test_suites();
 
     assert!(profiles.iter().any(|profile| profile.id == "cloudflare"));
-    assert!(profiles.iter().any(|profile| profile.id == "google-public-dns"));
+    assert!(profiles
+        .iter()
+        .any(|profile| profile.id == "google-public-dns"));
     assert!(profiles.iter().any(|profile| profile.id == "quad9"));
     assert!(profiles
         .iter()
@@ -56,7 +55,9 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
         .iter()
         .find(|suite| suite.id == "azure-microsoft")
         .expect("Azure suite should exist");
-    assert!(azure.domains.contains(&"login.microsoftonline.com".to_string()));
+    assert!(azure
+        .domains
+        .contains(&"login.microsoftonline.com".to_string()));
     assert!(azure.domains.contains(&"blob.core.windows.net".to_string()));
 }
 
@@ -86,7 +87,10 @@ fn capability_matrix_payload_matches_platform_capability_contract() {
 
     assert_eq!(payload.schema_version, 1);
     assert_eq!(payload.capabilities, expected);
-    assert_eq!(payload.capabilities.len(), dnspilot_core::all_platforms().len());
+    assert_eq!(
+        payload.capabilities.len(),
+        dnspilot_core::all_platforms().len()
+    );
     assert_eq!(json["schema_version"], 1);
     assert!(json.get("capabilities").is_some());
 }
@@ -174,9 +178,12 @@ fn recommendation_selects_better_candidate_with_confidence() {
     let current = metrics("current", 50.0, 140.0, 0.02, 0.01, 170.0, 1.0, 0.7);
     let candidate = metrics("quad9", 18.0, 42.0, 0.0, 0.0, 75.0, 1.0, 0.95);
 
-    let recommendation =
-        recommend(&[current.clone(), candidate], Some(&current), RecommendationMode::BestOverall)
-            .expect("recommendation should be produced");
+    let recommendation = recommend(
+        &[current.clone(), candidate],
+        Some(&current),
+        RecommendationMode::BestOverall,
+    )
+    .expect("recommendation should be produced");
 
     assert_eq!(
         recommendation.decision,
@@ -184,6 +191,22 @@ fn recommendation_selects_better_candidate_with_confidence() {
     );
     assert_eq!(recommendation.confidence, Confidence::High);
     assert!(recommendation.score > 0.0);
+}
+
+#[test]
+fn recommendation_reason_uses_dns_lookup_text_for_raw_dns_mode() {
+    let candidate = metrics("cloudflare", 18.0, 42.0, 0.0, 0.0, 75.0, 1.0, 0.95);
+
+    let recommendation = recommend(&[candidate], None, RecommendationMode::FastestRawDns)
+        .expect("recommendation should be produced");
+
+    assert!(recommendation
+        .reasons
+        .contains(&"Best DNS lookup estimate for FastestRawDns mode.".to_string()));
+    assert!(!recommendation
+        .reasons
+        .iter()
+        .any(|reason| reason.contains("connection-path")));
 }
 
 #[test]
@@ -351,7 +374,10 @@ fn benchmark_preflight_distinguishes_direct_resolver_from_system_validation() {
         ios_validation.flush_requirement,
         FlushRequirement::RecommendedButUnsupported
     );
-    assert_eq!(ios_validation.flush_capability, FlushCapability::Unsupported);
+    assert_eq!(
+        ios_validation.flush_capability,
+        FlushCapability::Unsupported
+    );
 }
 
 #[test]
@@ -385,14 +411,20 @@ fn apply_prompt_policy_protects_managed_or_intercepted_networks() {
     let policy = apply_prompt_policy_for(Platform::MacOSStore, &protected);
 
     assert!(!policy.can_prompt_apply);
-    assert_eq!(policy.disposition, ApplyPromptDisposition::ProtectCurrentDns);
+    assert_eq!(
+        policy.disposition,
+        ApplyPromptDisposition::ProtectCurrentDns
+    );
     assert_eq!(
         policy.apply_capability,
         ApplyCapability::AppleNetworkExtensionDnsSettings
     );
     assert!(policy.notes.iter().any(|note| note.contains("VPN")));
     assert!(policy.notes.iter().any(|note| note.contains("MDM")));
-    assert!(policy.notes.iter().any(|note| note.contains("corporate DNS")));
+    assert!(policy
+        .notes
+        .iter()
+        .any(|note| note.contains("corporate DNS")));
 
     let guided = apply_prompt_policy_for(Platform::WindowsStore, &NetworkEnvironment::default());
     assert!(guided.can_prompt_apply);

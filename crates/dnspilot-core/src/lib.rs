@@ -61,7 +61,9 @@ pub struct DnsProfile {
 impl DnsProfile {
     pub fn validate(&self) -> Result<(), DnsPilotError> {
         if self.name.trim().is_empty() {
-            return Err(DnsPilotError::InvalidProfile("profile name is required".into()));
+            return Err(DnsPilotError::InvalidProfile(
+                "profile name is required".into(),
+            ));
         }
 
         if self.protocol == DnsProtocol::Plain
@@ -594,7 +596,13 @@ pub fn built_in_test_suites() -> Vec<TestSuite> {
             "general",
             "General Browsing",
             "Common browsing, video, Apple, and CDN checks.",
-            &["google.com", "youtube.com", "facebook.com", "apple.com", "cloudflare.com"],
+            &[
+                "google.com",
+                "youtube.com",
+                "facebook.com",
+                "apple.com",
+                "cloudflare.com",
+            ],
             &["general"],
         ),
         suite(
@@ -644,7 +652,14 @@ pub fn built_in_test_suites() -> Vec<TestSuite> {
             "vietnam-daily",
             "Vietnam / Daily",
             "Vietnamese commerce, media, messaging, and general browsing checks.",
-            &["vnexpress.net", "shopee.vn", "tiki.vn", "zalo.me", "google.com", "youtube.com"],
+            &[
+                "vnexpress.net",
+                "shopee.vn",
+                "tiki.vn",
+                "zalo.me",
+                "google.com",
+                "youtube.com",
+            ],
             &["vietnam", "daily"],
         ),
     ]
@@ -670,13 +685,9 @@ pub fn recommend(
         .map(|(metric, score)| (*metric, *score))
         .expect("metrics is not empty");
 
-    let mut reasons = vec![format!(
-        "Best connection-path estimate for {:?} mode.",
-        mode
-    )];
-    let mut caveats = vec![
-        "This estimates DNS and HTTPS connection behavior, not full browser or app speed.".into(),
-    ];
+    let (primary_reason, scope_caveat) = recommendation_scope_text(mode);
+    let mut reasons = vec![primary_reason];
+    let mut caveats = vec![scope_caveat];
 
     if best.reliability() < 0.95 {
         caveats.push("Timeout or failure rate reduces confidence.".into());
@@ -716,6 +727,19 @@ pub fn recommend(
         reasons,
         caveats,
     })
+}
+
+fn recommendation_scope_text(mode: RecommendationMode) -> (String, String) {
+    match mode {
+        RecommendationMode::FastestRawDns => (
+            format!("Best DNS lookup estimate for {:?} mode.", mode),
+            "This estimates DNS lookup behavior, not TCP, TLS, HTTP, QUIC, browser cache, VPN, MDM, captive portal, or app-specific behavior.".into(),
+        ),
+        _ => (
+            format!("Best connection-path estimate for {:?} mode.", mode),
+            "This estimates DNS and HTTPS connection behavior, not full browser or app speed.".into(),
+        ),
+    }
 }
 
 pub fn recommendation_gate(
@@ -791,7 +815,13 @@ pub fn classify_resolution_outcome(
     mode: RecommendationMode,
 ) -> ClassifiedOutcome {
     let expected_filtering_block = outcome == ResolutionOutcome::Blocked
-        && matches!(filtering_type, FilteringType::Family | FilteringType::Malware | FilteringType::Ads | FilteringType::Security)
+        && matches!(
+            filtering_type,
+            FilteringType::Family
+                | FilteringType::Malware
+                | FilteringType::Ads
+                | FilteringType::Security
+        )
         && matches!(
             mode,
             RecommendationMode::BestForFamilyFiltering | RecommendationMode::BestForSecurity
@@ -1027,8 +1057,9 @@ fn score_metric(metric: &BenchmarkMetrics, mode: RecommendationMode) -> f64 {
         RecommendationMode::MostStable => (0.10, 0.30, 0.10, 0.35, 0.10, 0.05),
         RecommendationMode::BestForAzureMicrosoft
         | RecommendationMode::BestForDeveloperWorkflow => (0.20, 0.15, 0.30, 0.20, 0.05, 0.10),
-        RecommendationMode::BestForSecurity
-        | RecommendationMode::BestForFamilyFiltering => (0.15, 0.15, 0.15, 0.25, 0.05, 0.25),
+        RecommendationMode::BestForSecurity | RecommendationMode::BestForFamilyFiltering => {
+            (0.15, 0.15, 0.15, 0.25, 0.05, 0.25)
+        }
     };
 
     median_dns * weights.0
@@ -1101,13 +1132,7 @@ fn profile(
     }
 }
 
-fn suite(
-    id: &str,
-    name: &str,
-    description: &str,
-    domains: &[&str],
-    tags: &[&str],
-) -> TestSuite {
+fn suite(id: &str, name: &str, description: &str, domains: &[&str], tags: &[&str]) -> TestSuite {
     TestSuite {
         id: id.into(),
         name: name.into(),
