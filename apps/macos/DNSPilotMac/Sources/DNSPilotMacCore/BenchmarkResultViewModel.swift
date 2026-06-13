@@ -27,9 +27,25 @@ public struct BenchmarkResultViewModel: Equatable {
         savedHistoryLabel = result.savedHistoryID.map(Self.savedHistoryLabel)
         fullSavedHistoryID = result.savedHistoryID
 
-        if result.summary.canRecommend,
-           let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID {
-            let candidateName = profileNames[recommendedProfileID] ?? recommendedProfileID
+        let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID
+        let recommendedCandidateName = recommendedProfileID.map { profileNames[$0] ?? $0 }
+        let shouldProtectCurrentDNS = Self.shouldProtectCurrentDNS(
+            summary: result.summary,
+            runs: result.runs,
+            hasMeasuredCandidate: recommendedCandidateName != nil
+        )
+        let bestMeasuredNote: String?
+        if shouldProtectCurrentDNS, let recommendedCandidateName {
+            bestMeasuredNote = "Best measured candidate during this run: \(recommendedCandidateName)."
+        } else {
+            bestMeasuredNote = nil
+        }
+        let commonFailureNote = Self.commonPartialFailureNote(for: result.runs)
+
+        if shouldProtectCurrentDNS {
+            recommendationLabel = "Keep current DNS"
+        } else if result.summary.canRecommend,
+                  let candidateName = recommendedCandidateName {
             if Self.shouldUseStrongRecommendation(health: result.summary.health, confidence: result.recommendation?.confidence) {
                 recommendationLabel = "Recommended: \(candidateName)"
             } else {
@@ -49,7 +65,8 @@ public struct BenchmarkResultViewModel: Equatable {
 
         notes = Self.userFacingNotes(
             safetyNotes: result.summary.safetyNotes,
-            commonFailureNote: Self.commonPartialFailureNote(for: result.runs),
+            bestMeasuredNote: bestMeasuredNote,
+            commonFailureNote: commonFailureNote,
             reasons: result.recommendation?.reasons ?? [],
             caveats: (result.recommendation?.caveats ?? []) + result.runs.flatMap(\.caveats)
         )
@@ -65,6 +82,17 @@ public struct BenchmarkResultViewModel: Equatable {
         return confidence == .high || confidence == .medium
     }
 
+    private static func shouldProtectCurrentDNS(
+        summary: BenchmarkResultSummary,
+        runs: [BenchmarkResultRun],
+        hasMeasuredCandidate: Bool
+    ) -> Bool {
+        guard summary.canRecommend, hasMeasuredCandidate, summary.health != .healthy, !runs.isEmpty else {
+            return false
+        }
+        return runs.allSatisfy { $0.metrics.failureRate >= 0.5 }
+    }
+
     private static func blockedRecommendationLabel(for primaryIssue: String) -> String? {
         switch primaryIssue {
         case "all-resolvers-low-reliability":
@@ -76,13 +104,15 @@ public struct BenchmarkResultViewModel: Equatable {
 
     private static func userFacingNotes(
         safetyNotes: [String],
+        bestMeasuredNote: String?,
         commonFailureNote: String?,
         reasons: [String],
         caveats: [String]
     ) -> [String] {
         var seen = Set<String>()
+        let measuredNotes = bestMeasuredNote.map { [$0] } ?? []
         let commonNotes = commonFailureNote.map { [$0] } ?? []
-        let notes = safetyNotes + commonNotes + reasons + caveats
+        let notes = safetyNotes + measuredNotes + commonNotes + reasons + caveats
         return notes.filter { note in
             guard !note.lowercased().hasPrefix("recommended profile:") else {
                 return false

@@ -97,7 +97,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.fullSavedHistoryID, "path-compare-bd1625f7-0f3f-47c8-b4f6-2ba43eeecf10")
     }
 
-    func testResultViewModelSoftensRecommendationForDegradedInconclusiveRuns() {
+    func testResultViewModelKeepsCurrentDNSForDegradedInconclusiveRuns() {
         let result = BenchmarkResultPayload(
             summary: BenchmarkResultSummary(
                 measurementScope: .dnsTCP,
@@ -140,10 +140,11 @@ final class BenchmarkResultViewModelTests: XCTestCase {
 
         let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
 
-        XCTAssertEqual(viewModel.recommendationLabel, "Best measured candidate: AdGuard DNS")
+        XCTAssertEqual(viewModel.recommendationLabel, "Keep current DNS")
         XCTAssertEqual(viewModel.confidenceLabel, "Inconclusive confidence")
         XCTAssertEqual(viewModel.rows.map(\.status), [.degraded, .degraded])
         XCTAssertEqual(viewModel.rows.map(\.statusDetail), ["50% failed", "50% failed"])
+        XCTAssertTrue(viewModel.notes.contains("Best measured candidate during this run: AdGuard DNS."))
         XCTAssertTrue(viewModel.notes.contains("Many candidates failed at a similar partial rate; this can indicate current network, VPN, firewall, captive portal, or IPv6 reachability limits rather than one bad DNS provider."))
         XCTAssertFalse(viewModel.notes.contains("Recommended profile: adguard-dns."))
     }
