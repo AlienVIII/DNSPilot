@@ -1311,7 +1311,7 @@ private struct BenchmarkDetailView: View {
                     )
                 }
 
-                if let outcome {
+                if shouldShowBenchmarkOutcome, let outcome {
                     switch outcome {
                     case .completed(let resultViewModel):
                         BenchmarkResultPanel(
@@ -1628,6 +1628,16 @@ private struct BenchmarkDetailView: View {
         case .idle, .completed, .failed, .cancelled:
             false
         }
+    }
+
+    private var shouldShowBenchmarkOutcome: Bool {
+        guard outcome != nil else {
+            return false
+        }
+        guard let currentBenchmarkPlan else {
+            return true
+        }
+        return currentBenchmarkPlan == setupViewModel.plan
     }
 
     private func saveCustomSuite() {
