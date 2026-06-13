@@ -421,13 +421,15 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                 }
             }
 
-            return targets.map { target in
+            return targets.enumerated().map { index, target in
                 BenchmarkResolverStatusViewModel(
                     id: target.id,
                     name: target.name,
                     resolver: target.resolver,
-                    status: .running,
-                    detail: isCancelling ? "Cancelling" : "Waiting for final JSON"
+                    status: index == 0 ? .running : .idle,
+                    detail: isCancelling
+                        ? (index == 0 ? "Cancelling" : "Pending")
+                        : (index == 0 ? "Running 1/\(targets.count)" : "Pending")
                 )
             }
         }

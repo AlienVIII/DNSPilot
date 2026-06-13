@@ -156,8 +156,8 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
             [
-                "Cloudflare:running:Waiting for final JSON",
-                "Google:running:Waiting for final JSON",
+                "Cloudflare:running:Running 1/2",
+                "Google:idle:Pending",
             ]
         )
     }
