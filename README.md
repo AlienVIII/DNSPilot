@@ -117,6 +117,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   portal/IPv6 issues.
 - macOS Benchmark result decoder/ViewModel surfaces deduplicated per-run CLI
   caveats, such as TCP endpoint failures, in result notes.
+- macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
+  when partial failures line up with a specific IP family.
 - macOS Benchmark result panel shortens long saved-run IDs while preserving the
   full ID in history/storage.
 - macOS custom plain DNS profile form ViewModel for IPv4/IPv6 parsing,

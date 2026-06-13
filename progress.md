@@ -115,6 +115,7 @@ DNS handling, and platform capability reporting.
 - [x] [104] v0.1 macOS result saved-run label polish — shorten long saved-run IDs in the result panel.
 - [x] [105] v0.1 macOS result run caveats — decode and show per-run benchmark caveats in result notes.
 - [x] [106] v0.1 path family health — reduce IPv4/IPv6 path health when probed TCP/TLS family paths fail.
+- [x] [107] v0.1 macOS result family failure label — show weak IPv4/IPv6 family in failure cells.
 
 ---
 
@@ -4128,6 +4129,38 @@ Result: 118 passed, 0 failed
 
 Runtime path-compare smoke:
 Result: completed in about 2.23s; IPv6 TCP failures now report ipv6_health 0.0.
+```
+
+---
+
+## Chunk 107: v0.1 macOS Result Family Failure Label
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`
+
+### What changed
+
+Result table failure cells now include weak IP-family context when metrics show
+partial failure tied to IPv4 or IPv6 health, for example `50% failed (IPv6
+weak)`.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests/testResultViewModelLabelsWeakIPFamilyInFailureCell
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests
+Result: 7 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 119 passed, 0 failed
+
+cargo test --workspace --tests
+Result: pass
+
+git diff --check
+Result: clean
 ```
 
 ---

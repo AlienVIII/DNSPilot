@@ -190,6 +190,54 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.notes.filter { $0 == tcpCaveat }.count, 1)
     }
 
+    func testResultViewModelLabelsWeakIPFamilyInFailureCell() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsTCP,
+                mode: .bestOverall,
+                health: .degraded,
+                primaryIssue: "partial-failure",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: nil,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: 443,
+                maxConnectTargetsPerDomain: 2,
+                tlsEnabled: false,
+                trustStore: nil,
+                tlsSampleCount: 0,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(
+                    profileID: "cloudflare",
+                    medianDNS: 50,
+                    failureRate: 0.5,
+                    ipv4Health: 1,
+                    ipv6Health: 0
+                ),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.6,
+                confidence: .inconclusive,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.rows.first?.failureRateLabel, "50% failed (IPv6 weak)")
+    }
+
     func testResultViewModelShowsNoRecommendationAndNAForAllFailedRuns() {
         let result = BenchmarkResultPayload(
             summary: BenchmarkResultSummary(
@@ -280,7 +328,9 @@ private func makeResultRun(
     profileID: String,
     medianDNS: Double?,
     failureRate: Double,
-    caveats: [String] = []
+    caveats: [String] = [],
+    ipv4Health: Double = 1,
+    ipv6Health: Double = 1
 ) -> BenchmarkResultRun {
     BenchmarkResultRun(
         profileID: profileID,
@@ -292,8 +342,8 @@ private func makeResultRun(
             failureRate: failureRate,
             timeoutRate: failureRate,
             medianConnectLatencyMS: medianDNS,
-            ipv4Health: 1 - failureRate,
-            ipv6Health: 0,
+            ipv4Health: ipv4Health,
+            ipv6Health: ipv6Health,
             priorityFit: 1 - failureRate
         ),
         caveats: caveats

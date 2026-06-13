@@ -199,7 +199,7 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
             run.metrics.medianConnectLatencyMS,
             failureRate: run.metrics.failureRate
         )
-        failureRateLabel = "\(Self.percent(run.metrics.failureRate))% failed"
+        failureRateLabel = Self.failureRateLabel(for: run.metrics)
     }
 
     private static func latencyLabel(_ value: Double?, failureRate: Double) -> String {
@@ -214,6 +214,25 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
 
     private static func percent(_ value: Double) -> Int {
         Int((value.clamped(to: 0...1) * 100).rounded())
+    }
+
+    private static func failureRateLabel(for metrics: BenchmarkResultMetrics) -> String {
+        let base = "\(percent(metrics.failureRate))% failed"
+        guard metrics.failureRate > 0 else {
+            return base
+        }
+
+        var weakFamilies = [String]()
+        if metrics.ipv4Health < 0.75 {
+            weakFamilies.append("IPv4")
+        }
+        if metrics.ipv6Health < 0.75 {
+            weakFamilies.append("IPv6")
+        }
+        guard !weakFamilies.isEmpty else {
+            return base
+        }
+        return "\(base) (\(weakFamilies.joined(separator: "/")) weak)"
     }
 }
 
