@@ -32,8 +32,16 @@ public struct CustomDomainSuiteFormViewModel: Equatable, Sendable {
     }
 
     public func suiteAddArguments(databaseURL: URL) -> [String] {
+        suiteWriteArguments(command: "suite-add", databaseURL: databaseURL)
+    }
+
+    public func suiteUpdateArguments(databaseURL: URL) -> [String] {
+        suiteWriteArguments(command: "suite-update", databaseURL: databaseURL)
+    }
+
+    private func suiteWriteArguments(command: String, databaseURL: URL) -> [String] {
         var args = [
-            "suite-add",
+            command,
             "--db", databaseURL.path,
             "--id", suiteID,
             "--name", name,

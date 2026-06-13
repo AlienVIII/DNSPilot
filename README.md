@@ -216,10 +216,12 @@ cargo run -p dnspilot-cli -- path-estimate --profile-db /tmp/dnspilot.sqlite --p
 cargo run -p dnspilot-cli -- path-compare --profile-db /tmp/dnspilot.sqlite --profile-id custom-lab --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- suite-add --db /tmp/dnspilot.sqlite --id azure-lab --name "Azure Lab" --domain portal.azure.com --domain login.microsoftonline.com --tag azure
 cargo run -p dnspilot-cli -- suite-list --db /tmp/dnspilot.sqlite
+cargo run -p dnspilot-cli -- suite-update --db /tmp/dnspilot.sqlite --id azure-lab --name "Azure Lab Updated" --domain management.azure.com --domain blob.core.windows.net --tag custom
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --suite-db /tmp/dnspilot.sqlite --suite-id azure-lab --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --suite-db /tmp/dnspilot.sqlite --suite-id azure-lab --attempts 1
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --suite-db /tmp/dnspilot.sqlite --suite-id azure-lab --attempts 1
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --suite-db /tmp/dnspilot.sqlite --suite-id azure-lab --attempts 1
+cargo run -p dnspilot-cli -- suite-delete --db /tmp/dnspilot.sqlite --id azure-lab
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1 --save-db /tmp/dnspilot.sqlite --history-id manual-run
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --save-db /tmp/dnspilot.sqlite --history-id manual-dns-run
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --save-db /tmp/dnspilot.sqlite --history-id manual-path-run

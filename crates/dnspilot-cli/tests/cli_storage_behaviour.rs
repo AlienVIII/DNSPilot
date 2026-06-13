@@ -211,7 +211,10 @@ fn profile_update_command_rejects_builtin_profile() {
         "profile-update should reject built-in profiles"
     );
     let stderr = String::from_utf8_lossy(&update.stderr);
-    assert!(stderr.contains("cannot update built-in profile"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("cannot update built-in profile"),
+        "stderr: {stderr}"
+    );
 
     let _ = fs::remove_file(db_path);
 }
@@ -268,9 +271,15 @@ fn profile_delete_command_rejects_builtin_profile() {
         .output()
         .expect("run dnspilot-cli profile-delete");
 
-    assert!(!delete.status.success(), "profile-delete should reject built-in profiles");
+    assert!(
+        !delete.status.success(),
+        "profile-delete should reject built-in profiles"
+    );
     let stderr = String::from_utf8_lossy(&delete.stderr);
-    assert!(stderr.contains("cannot delete built-in profile"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("cannot delete built-in profile"),
+        "stderr: {stderr}"
+    );
 
     let _ = fs::remove_file(db_path);
 }
@@ -298,7 +307,10 @@ fn profile_add_command_rejects_mismatched_ipv4_server() {
         .output()
         .expect("run dnspilot-cli profile-add");
 
-    assert!(!add.status.success(), "profile-add should reject IPv6 in IPv4 list");
+    assert!(
+        !add.status.success(),
+        "profile-add should reject IPv6 in IPv4 list"
+    );
     let stderr = String::from_utf8_lossy(&add.stderr);
     assert!(stderr.contains("IPv4 DNS server"), "stderr: {stderr}");
 
@@ -413,9 +425,15 @@ fn profile_add_command_rejects_insecure_doh_url() {
         .output()
         .expect("run dnspilot-cli profile-add");
 
-    assert!(!add.status.success(), "profile-add should reject insecure DoH URL");
+    assert!(
+        !add.status.success(),
+        "profile-add should reject insecure DoH URL"
+    );
     let stderr = String::from_utf8_lossy(&add.stderr);
-    assert!(stderr.contains("DoH URL must use https"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("DoH URL must use https"),
+        "stderr: {stderr}"
+    );
 
     let _ = fs::remove_file(db_path);
 }
@@ -627,7 +645,10 @@ fn suite_add_command_rejects_invalid_domain() {
         .output()
         .expect("run dnspilot-cli suite-add");
 
-    assert!(!add.status.success(), "suite-add should reject invalid domain");
+    assert!(
+        !add.status.success(),
+        "suite-add should reject invalid domain"
+    );
     let stderr = String::from_utf8_lossy(&add.stderr);
     assert!(
         stderr.contains("invalid test suite domain"),
@@ -687,6 +708,162 @@ fn suite_add_command_rejects_duplicate_suite_id() {
     let stderr = String::from_utf8_lossy(&duplicate.stderr);
     assert!(
         stderr.contains("test suite 'azure-lab' already exists"),
+        "stderr: {stderr}"
+    );
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn suite_update_command_replaces_custom_domain_suite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-suite-update-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    add_suite(
+        &db_path,
+        "azure-lab",
+        "Azure Lab",
+        &["portal.azure.com", "login.microsoftonline.com"],
+    );
+
+    let update = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-update",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "azure-lab",
+            "--name",
+            "Azure Lab Updated",
+            "--domain",
+            "management.azure.com",
+            "--domain",
+            "blob.core.windows.net",
+            "--tag",
+            "custom",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-update");
+
+    assert!(
+        update.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&update.stderr)
+    );
+
+    let suites = list_suites(&db_path);
+    let suite = suites
+        .iter()
+        .find(|suite| suite["id"] == "azure-lab")
+        .expect("updated custom suite");
+
+    assert_eq!(suite["name"], "Azure Lab Updated");
+    assert_eq!(suite["domains"][0], "management.azure.com");
+    assert!(suite["domains"]
+        .as_array()
+        .expect("domains")
+        .iter()
+        .all(|domain| domain != "portal.azure.com"));
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn suite_update_command_rejects_builtin_suite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-suite-update-builtin-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let update = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-update",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "general",
+            "--name",
+            "General Edited",
+            "--domain",
+            "example.com",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-update");
+
+    assert!(
+        !update.status.success(),
+        "suite-update should reject built-in suites"
+    );
+    let stderr = String::from_utf8_lossy(&update.stderr);
+    assert!(
+        stderr.contains("cannot update built-in test suite"),
+        "stderr: {stderr}"
+    );
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn suite_delete_command_removes_custom_domain_suite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-suite-delete-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    add_suite(&db_path, "azure-lab", "Azure Lab", &["portal.azure.com"]);
+
+    let delete = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-delete",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "azure-lab",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-delete");
+
+    assert!(
+        delete.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&delete.stderr)
+    );
+
+    let suites = list_suites(&db_path);
+    assert!(!suites.iter().any(|suite| suite["id"] == "azure-lab"));
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn suite_delete_command_rejects_builtin_suite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-suite-delete-builtin-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let delete = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "suite-delete",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "general",
+        ])
+        .output()
+        .expect("run dnspilot-cli suite-delete");
+
+    assert!(
+        !delete.status.success(),
+        "suite-delete should reject built-in suites"
+    );
+    let stderr = String::from_utf8_lossy(&delete.stderr);
+    assert!(
+        stderr.contains("cannot delete built-in test suite"),
         "stderr: {stderr}"
     );
 
@@ -866,6 +1043,55 @@ fn list_profiles(db_path: &std::path::Path) -> Vec<Value> {
     let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
     let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
     json["profiles"].as_array().expect("profiles array").clone()
+}
+
+fn add_suite(db_path: &std::path::Path, id: &str, name: &str, domains: &[&str]) {
+    let mut args = vec![
+        "suite-add".to_string(),
+        "--db".to_string(),
+        db_path.to_str().expect("utf8 path").to_string(),
+        "--id".to_string(),
+        id.to_string(),
+        "--name".to_string(),
+        name.to_string(),
+    ];
+    for domain in domains {
+        args.push("--domain".to_string());
+        args.push((*domain).to_string());
+    }
+    args.push("--tag".to_string());
+    args.push("custom".to_string());
+
+    let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(args)
+        .output()
+        .expect("run dnspilot-cli suite-add");
+
+    assert!(
+        add.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+}
+
+fn list_suites(db_path: &std::path::Path) -> Vec<Value> {
+    let list = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["suite-list", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli suite-list");
+
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+
+    let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    json["test_suites"]
+        .as_array()
+        .expect("test suites array")
+        .clone()
 }
 
 fn start_fake_resolver(query_count: usize) -> SocketAddr {

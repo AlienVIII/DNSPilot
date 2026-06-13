@@ -27,6 +27,27 @@ final class CustomDomainSuiteFormViewModelTests: XCTestCase {
         )
     }
 
+    func testFormBuildsSuiteUpdateArgumentsWithStableSuiteID() {
+        let viewModel = CustomDomainSuiteFormViewModel(
+            name: "Azure Lab Updated",
+            domainsText: "management.azure.com\nblob.core.windows.net",
+            suiteID: "azure-lab"
+        )
+
+        XCTAssertEqual(
+            viewModel.suiteUpdateArguments(databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite")),
+            [
+                "suite-update",
+                "--db", "/tmp/dnspilot.sqlite",
+                "--id", "azure-lab",
+                "--name", "Azure Lab Updated",
+                "--domain", "management.azure.com",
+                "--domain", "blob.core.windows.net",
+                "--tag", "custom",
+            ]
+        )
+    }
+
     func testFormRejectsInvalidAndDuplicateDomains() {
         let viewModel = CustomDomainSuiteFormViewModel(
             name: "",

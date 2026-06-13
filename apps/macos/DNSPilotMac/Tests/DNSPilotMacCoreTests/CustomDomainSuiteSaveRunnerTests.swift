@@ -39,6 +39,61 @@ final class CustomDomainSuiteSaveRunnerTests: XCTestCase {
         XCTAssertEqual(result.name, "Azure Lab")
     }
 
+    func testRunnerPassesSuiteUpdateArgumentsToProcessRunner() throws {
+        let processRunner = RecordingSuiteProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = CustomDomainSuiteSaveRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+        let form = CustomDomainSuiteFormViewModel(
+            name: "Azure Lab Updated",
+            domainsText: "management.azure.com",
+            suiteID: "azure-lab"
+        )
+
+        let result = try runner.save(
+            form: form,
+            databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
+            mode: .update
+        )
+
+        XCTAssertEqual(
+            processRunner.invocations[0].arguments,
+            [
+                "suite-update",
+                "--db", "/tmp/dnspilot.sqlite",
+                "--id", "azure-lab",
+                "--name", "Azure Lab Updated",
+                "--domain", "management.azure.com",
+                "--tag", "custom",
+            ]
+        )
+        XCTAssertEqual(result.suiteID, "azure-lab")
+    }
+
+    func testDeleteRunnerPassesSuiteDeleteArgumentsToProcessRunner() throws {
+        let processRunner = RecordingSuiteProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = CustomDomainSuiteDeleteRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+
+        try runner.delete(suiteID: "azure-lab", databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"))
+
+        XCTAssertEqual(
+            processRunner.invocations[0].arguments,
+            [
+                "suite-delete",
+                "--db", "/tmp/dnspilot.sqlite",
+                "--id", "azure-lab",
+            ]
+        )
+    }
+
     func testRunnerRejectsInvalidFormWithoutStartingProcess() throws {
         let processRunner = RecordingSuiteProcessRunner(
             output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
@@ -81,6 +136,32 @@ final class CustomDomainSuiteSaveRunnerTests: XCTestCase {
         )
 
         XCTAssertEqual(outcome, .failed("suite already exists"))
+    }
+
+    func testCoordinatorPassesUpdateModeToRunner() throws {
+        let processRunner = RecordingSuiteProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let coordinator = CustomDomainSuiteSaveCoordinator(
+            runner: CustomDomainSuiteSaveRunner(
+                executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+                processRunner: processRunner
+            )
+        )
+        let form = CustomDomainSuiteFormViewModel(
+            name: "Azure Lab Updated",
+            domainsText: "management.azure.com",
+            suiteID: "azure-lab"
+        )
+
+        let outcome = coordinator.save(
+            form: form,
+            databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
+            mode: .update
+        )
+
+        XCTAssertEqual(outcome, .saved(suiteID: "azure-lab", name: "Azure Lab Updated"))
+        XCTAssertEqual(processRunner.invocations[0].arguments[0], "suite-update")
     }
 }
 

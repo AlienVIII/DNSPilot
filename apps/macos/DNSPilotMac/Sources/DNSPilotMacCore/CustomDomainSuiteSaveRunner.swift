@@ -28,6 +28,11 @@ public struct CustomDomainSuiteSaveResult: Equatable {
     }
 }
 
+public enum CustomDomainSuiteWriteMode: Equatable, Sendable {
+    case add
+    case update
+}
+
 public struct CustomDomainSuiteSaveRunner {
     private let executableURL: URL
     private let processRunner: any BenchmarkProcessRunning
@@ -42,13 +47,20 @@ public struct CustomDomainSuiteSaveRunner {
 
     public func save(
         form: CustomDomainSuiteFormViewModel,
-        databaseURL: URL
+        databaseURL: URL,
+        mode: CustomDomainSuiteWriteMode = .add
     ) throws -> CustomDomainSuiteSaveResult {
         guard form.canSave else {
             throw CustomDomainSuiteSaveRunnerError.invalidForm(issues: form.issues)
         }
 
-        let arguments = form.suiteAddArguments(databaseURL: databaseURL)
+        let arguments: [String]
+        switch mode {
+        case .add:
+            arguments = form.suiteAddArguments(databaseURL: databaseURL)
+        case .update:
+            arguments = form.suiteUpdateArguments(databaseURL: databaseURL)
+        }
         let output = try processRunner.run(
             executableURL: executableURL,
             arguments: arguments,
@@ -65,7 +77,7 @@ public struct CustomDomainSuiteSaveRunner {
         )
     }
 
-    private static func failureMessage(from output: BenchmarkProcessOutput) -> String {
+    fileprivate static func failureMessage(from output: BenchmarkProcessOutput) -> String {
         let standardError = output.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
         if !standardError.isEmpty {
             return standardError
@@ -77,6 +89,36 @@ public struct CustomDomainSuiteSaveRunner {
         }
 
         return "Suite save command exited with code \(output.exitCode)."
+    }
+}
+
+public struct CustomDomainSuiteDeleteRunner {
+    private let executableURL: URL
+    private let processRunner: any BenchmarkProcessRunning
+
+    public init(
+        executableURL: URL,
+        processRunner: any BenchmarkProcessRunning = FoundationBenchmarkProcessRunner()
+    ) {
+        self.executableURL = executableURL
+        self.processRunner = processRunner
+    }
+
+    public func delete(suiteID: String, databaseURL: URL) throws {
+        let output = try processRunner.run(
+            executableURL: executableURL,
+            arguments: [
+                "suite-delete",
+                "--db", databaseURL.path,
+                "--id", suiteID,
+            ],
+            cancellation: nil
+        )
+        guard output.exitCode == 0 else {
+            throw CustomDomainSuiteSaveRunnerError.processFailed(
+                CustomDomainSuiteSaveRunner.failureMessage(from: output)
+            )
+        }
     }
 }
 
@@ -94,10 +136,11 @@ public struct CustomDomainSuiteSaveCoordinator {
 
     public func save(
         form: CustomDomainSuiteFormViewModel,
-        databaseURL: URL
+        databaseURL: URL,
+        mode: CustomDomainSuiteWriteMode = .add
     ) -> CustomDomainSuiteSaveOutcome {
         do {
-            let result = try runner.save(form: form, databaseURL: databaseURL)
+            let result = try runner.save(form: form, databaseURL: databaseURL, mode: mode)
             return .saved(suiteID: result.suiteID, name: result.name)
         } catch CustomDomainSuiteSaveRunnerError.invalidForm(let issues) {
             return .failed(issues.joined(separator: "\n"))

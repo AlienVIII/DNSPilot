@@ -666,6 +666,55 @@ private struct CustomDNSProfileManagementRowView: View {
     }
 }
 
+private struct CustomDomainSuiteManagementRowView: View {
+    let row: CustomDomainSuiteManagementRow
+    let isSelected: Bool
+    let isDisabled: Bool
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: DNSPilotDesign.Spacing.row) {
+            Image(systemName: isSelected ? "pencil.circle.fill" : "list.bullet.rectangle")
+                .foregroundStyle(isSelected ? DNSPilotDesign.Palette.accent : .secondary)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.name)
+                    .font(.body.weight(.semibold))
+                Text(row.domainCountLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(row.id)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: onEdit) {
+                Label("Edit", systemImage: "pencil")
+            }
+            .labelStyle(.iconOnly)
+            .help("Edit suite")
+            .disabled(isDisabled)
+
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .help("Delete suite")
+            .disabled(isDisabled)
+        }
+        .padding(DNSPilotDesign.Spacing.row)
+        .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
+        .overlay {
+            RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
+                .stroke(isSelected ? DNSPilotDesign.Palette.accent.opacity(0.8) : Color(nsColor: .separatorColor).opacity(0.45))
+        }
+    }
+}
+
 private struct CustomDNSSaveStatusView: View {
     let state: CustomDNSProfileEditorState
     let message: String
@@ -973,6 +1022,10 @@ private struct BenchmarkDetailView: View {
     @State private var customDomainsText: String
     @State private var suiteNameText: String
     @State private var suiteSaveState: CustomSuiteSaveState
+    @State private var editingSuiteID: String?
+    @State private var suitePendingDelete: CustomDomainSuiteManagementRow?
+    @State private var isDeleteSuiteConfirmationPresented = false
+    @State private var isDeletingSuite = false
     @State private var attempts: Int
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
@@ -1015,8 +1068,13 @@ private struct BenchmarkDetailView: View {
     private var suiteForm: CustomDomainSuiteFormViewModel {
         CustomDomainSuiteFormViewModel(
             name: suiteNameText,
-            domainsText: customDomainsText
+            domainsText: customDomainsText,
+            suiteID: editingSuiteID
         )
+    }
+
+    private var suiteManagementViewModel: CustomDomainSuiteManagementViewModel {
+        CustomDomainSuiteManagementViewModel(testSuites: catalog.testSuites)
     }
 
     private var completedResultSavedHistory: Bool {
@@ -1160,23 +1218,31 @@ private struct BenchmarkDetailView: View {
                                 TextField("Suite name", text: $suiteNameText)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(maxWidth: 260, alignment: .leading)
-                                    .disabled(isBenchmarkActive || isSavingSuite)
+                                    .disabled(isBenchmarkActive || isMutatingSuite)
 
                                 Button(action: saveCustomSuite) {
                                     if isSavingSuite {
                                         ProgressView()
                                             .controlSize(.small)
                                     } else {
-                                        Label("Save Suite", systemImage: "tray.and.arrow.down")
+                                        Label(suiteSaveButtonLabel, systemImage: "tray.and.arrow.down")
                                     }
                                 }
-                                .disabled(!suiteForm.canSave || isBenchmarkActive || isSavingSuite)
+                                .disabled(!suiteForm.canSave || isBenchmarkActive || isMutatingSuite)
                                 .help(suiteForm.canSave ? "Save custom domains as a suite" : suiteForm.issues.joined(separator: "\n"))
+
+                                if editingSuiteID != nil {
+                                    Button(action: clearSuiteEditor) {
+                                        Label("New Suite", systemImage: "plus")
+                                    }
+                                    .disabled(isBenchmarkActive || isMutatingSuite)
+                                    .help("Create a new suite instead of updating the selected suite")
+                                }
 
                                 Button(action: fillAzureSuiteExample) {
                                     Label("Azure Example", systemImage: "sparkles")
                                 }
-                                .disabled(isBenchmarkActive || isSavingSuite)
+                                .disabled(isBenchmarkActive || isMutatingSuite)
                                 .help("Fill Azure domains")
                             }
 
@@ -1192,6 +1258,23 @@ private struct BenchmarkDetailView: View {
                                 Label(suiteSaveMessage, systemImage: suiteSaveSystemImage)
                                     .font(.caption)
                                     .foregroundStyle(suiteSaveForegroundStyle)
+                            }
+
+                            if !suiteManagementViewModel.rows.isEmpty {
+                                Divider()
+                                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                                    Text("Saved suites")
+                                        .font(.headline)
+                                    ForEach(suiteManagementViewModel.rows) { row in
+                                        CustomDomainSuiteManagementRowView(
+                                            row: row,
+                                            isSelected: row.id == editingSuiteID,
+                                            isDisabled: isBenchmarkActive || isMutatingSuite,
+                                            onEdit: { editCustomSuite(row) },
+                                            onDelete: { requestDeleteCustomSuite(row) }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -1229,6 +1312,20 @@ private struct BenchmarkDetailView: View {
         }
         .onAppear {
             handleQuickBenchmarkRequest(quickBenchmarkRequestID)
+        }
+        .alert(
+            "Delete Custom Suite?",
+            isPresented: $isDeleteSuiteConfirmationPresented,
+            presenting: suitePendingDelete
+        ) { row in
+            Button("Delete", role: .destructive) {
+                deleteCustomSuite(row)
+            }
+            Button("Cancel", role: .cancel) {
+                suitePendingDelete = nil
+            }
+        } message: { row in
+            Text("Delete \(row.name)? This removes it from saved benchmark targets.")
         }
     }
 
@@ -1269,6 +1366,14 @@ private struct BenchmarkDetailView: View {
             return true
         }
         return false
+    }
+
+    private var isMutatingSuite: Bool {
+        isSavingSuite || isDeletingSuite
+    }
+
+    private var suiteSaveButtonLabel: String {
+        editingSuiteID == nil ? "Save Suite" : "Update Suite"
     }
 
     private var shouldShowSuiteIssues: Bool {
@@ -1320,7 +1425,7 @@ private struct BenchmarkDetailView: View {
     }
 
     private func saveCustomSuite() {
-        guard !isBenchmarkActive, !isSavingSuite else {
+        guard !isBenchmarkActive, !isMutatingSuite else {
             return
         }
         let form = suiteForm
@@ -1339,16 +1444,18 @@ private struct BenchmarkDetailView: View {
 
         suiteSaveState = .saving
         let databaseURL = factory.databaseURL
+        let mode: CustomDomainSuiteWriteMode = editingSuiteID == nil ? .add : .update
 
         DispatchQueue.global(qos: .userInitiated).async {
             let coordinator = CustomDomainSuiteSaveCoordinator(
                 runner: CustomDomainSuiteSaveRunner(executableURL: executableURL)
             )
-            let outcome = coordinator.save(form: form, databaseURL: databaseURL)
+            let outcome = coordinator.save(form: form, databaseURL: databaseURL, mode: mode)
 
             DispatchQueue.main.async {
                 switch outcome {
                 case .saved(let suiteID, let name):
+                    editingSuiteID = suiteID
                     selectedSuiteID = suiteID
                     suiteSaveState = .saved(suiteID: suiteID, name: name)
                     onCatalogChanged()
@@ -1357,6 +1464,75 @@ private struct BenchmarkDetailView: View {
                 }
             }
         }
+    }
+
+    private func editCustomSuite(_ row: CustomDomainSuiteManagementRow) {
+        guard !isBenchmarkActive, !isMutatingSuite else {
+            return
+        }
+        editingSuiteID = row.id
+        selectedSuiteID = row.id
+        suiteNameText = row.name
+        customDomainsText = row.domainsText
+        suiteSaveState = .idle
+    }
+
+    private func requestDeleteCustomSuite(_ row: CustomDomainSuiteManagementRow) {
+        guard !isBenchmarkActive, !isMutatingSuite else {
+            return
+        }
+        suitePendingDelete = row
+        isDeleteSuiteConfirmationPresented = true
+    }
+
+    private func deleteCustomSuite(_ row: CustomDomainSuiteManagementRow) {
+        guard !isBenchmarkActive, !isMutatingSuite else {
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            suiteSaveState = .failed("Suite storage is unavailable.")
+            return
+        }
+        guard case .ready(let executableURL) = executableAvailability else {
+            suiteSaveState = .failed("DNS Pilot CLI executable is unavailable.")
+            return
+        }
+
+        isDeletingSuite = true
+        suiteSaveState = .idle
+        let databaseURL = factory.databaseURL
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let runner = CustomDomainSuiteDeleteRunner(executableURL: executableURL)
+            let result = Result {
+                try runner.delete(suiteID: row.id, databaseURL: databaseURL)
+            }
+
+            DispatchQueue.main.async {
+                isDeletingSuite = false
+                suitePendingDelete = nil
+                switch result {
+                case .success:
+                    if selectedSuiteID == row.id {
+                        selectedSuiteID = nil
+                    }
+                    if editingSuiteID == row.id {
+                        clearSuiteEditor()
+                    }
+                    onCatalogChanged()
+                case .failure(let error):
+                    suiteSaveState = .failed(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func clearSuiteEditor() {
+        editingSuiteID = nil
+        suiteNameText = ""
+        customDomainsText = ""
+        selectedSuiteID = nil
+        suiteSaveState = .idle
     }
 
     private func resetSuiteSaveState() {
@@ -1369,6 +1545,7 @@ private struct BenchmarkDetailView: View {
     }
 
     private func fillAzureSuiteExample() {
+        editingSuiteID = nil
         suiteNameText = "Azure Lab"
         customDomainsText = [
             "portal.azure.com",

@@ -11,8 +11,8 @@ use dnspilot_core::{
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, DnsProfile, DnsProtocol,
-    FilteringType, MeasurementScope, NetworkEnvironment, Platform, RecommendationMode, SqliteStorage,
-    StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
+    FilteringType, MeasurementScope, NetworkEnvironment, Platform, RecommendationMode,
+    SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
@@ -228,6 +228,24 @@ enum Command {
         domains: Vec<String>,
         #[arg(long = "tag")]
         tags: Vec<String>,
+    },
+    SuiteUpdate {
+        #[arg(long)]
+        db: std::path::PathBuf,
+        #[arg(long)]
+        id: String,
+        #[arg(long)]
+        name: String,
+        #[arg(long = "domain", required = true)]
+        domains: Vec<String>,
+        #[arg(long = "tag")]
+        tags: Vec<String>,
+    },
+    SuiteDelete {
+        #[arg(long)]
+        db: std::path::PathBuf,
+        #[arg(long)]
+        id: String,
     },
     SuiteList {
         #[arg(long)]
@@ -992,13 +1010,12 @@ fn main() {
                 eprintln!("test suite '{id}' already exists");
                 std::process::exit(2);
             }
-            snapshot.test_suites.push(TestSuite {
-                id: id.clone(),
-                name: name.clone(),
-                description: "Custom domain test suite.".into(),
-                domains,
-                tags,
+            let suite = make_custom_suite(id.clone(), name.clone(), domains, tags);
+            suite.validate().unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
             });
+            snapshot.test_suites.push(suite);
             storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
@@ -1011,6 +1028,84 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize suite add")
+            );
+        }
+        Command::SuiteUpdate {
+            db,
+            id,
+            name,
+            domains,
+            tags,
+        } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            let index = snapshot
+                .test_suites
+                .iter()
+                .position(|suite| suite.id == id)
+                .unwrap_or_else(|| {
+                    eprintln!("test suite '{id}' not found");
+                    std::process::exit(2);
+                });
+            if !is_custom_suite(&snapshot.test_suites[index]) {
+                eprintln!("cannot update built-in test suite '{id}'");
+                std::process::exit(2);
+            }
+
+            let suite = make_custom_suite(id.clone(), name.clone(), domains, tags);
+            suite.validate().unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            snapshot.test_suites[index] = suite;
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "test_suite_id": id,
+                "test_suite_count": snapshot.test_suites.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize suite update")
+            );
+        }
+        Command::SuiteDelete { db, id } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            let index = snapshot
+                .test_suites
+                .iter()
+                .position(|suite| suite.id == id)
+                .unwrap_or_else(|| {
+                    eprintln!("test suite '{id}' not found");
+                    std::process::exit(2);
+                });
+            if !is_custom_suite(&snapshot.test_suites[index]) {
+                eprintln!("cannot delete built-in test suite '{id}'");
+                std::process::exit(2);
+            }
+            snapshot.test_suites.remove(index);
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "test_suite_id": id,
+                "test_suite_count": snapshot.test_suites.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize suite delete")
             );
         }
         Command::SuiteList { db } => {
@@ -1142,6 +1237,25 @@ fn make_custom_profile(
 
 fn is_custom_profile(profile: &DnsProfile) -> bool {
     profile.use_case == "custom" || profile.tags.iter().any(|tag| tag == "custom")
+}
+
+fn make_custom_suite(
+    id: String,
+    name: String,
+    domains: Vec<String>,
+    tags: Vec<String>,
+) -> TestSuite {
+    TestSuite {
+        id,
+        name,
+        description: "Custom domain test suite.".into(),
+        domains,
+        tags,
+    }
+}
+
+fn is_custom_suite(suite: &TestSuite) -> bool {
+    suite.description == "Custom domain test suite." || suite.tags.iter().any(|tag| tag == "custom")
 }
 
 fn resolve_domains(
