@@ -140,8 +140,34 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
                         compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1
                         """
                     )
-                )
             )
+        )
+    }
+
+    func testCoordinatorReturnsFailureForFailedBenchmarkPayload() {
+        let coordinator = BenchmarkExecutionCoordinator(
+            runner: BenchmarkRunner(
+                executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+                processRunner: FixedProcessRunner(
+                    output: BenchmarkProcessOutput(
+                        exitCode: 0,
+                        standardOutput: failedCompareJSON,
+                        standardError: ""
+                    )
+                )
+            ),
+            catalog: makeExecutionCatalog()
+        )
+
+        let outcome = coordinator.execute(plan: makeExecutionPlan())
+
+        guard case .failed(let failure) = outcome else {
+            return XCTFail("Expected failed outcome, got \(outcome)")
+        }
+        XCTAssertEqual(failure.message, "DNS lookup failed for all selected resolvers.")
+        XCTAssertEqual(failure.failedStep, .resolvingDNS)
+        XCTAssertTrue(failure.debugLog.contains("\"health\": \"failed\""))
+        XCTAssertTrue(failure.debugLog.contains("arguments:"))
     }
 
     func testCoordinatorPassesCancellationToRunner() {
@@ -290,6 +316,44 @@ private let successfulCompareJSON = """
     "reasons": ["Lowest median DNS latency."],
     "caveats": []
   },
+  "saved_history_id": null,
+  "warning": "DNS-only warning."
+}
+"""
+
+private let failedCompareJSON = """
+{
+  "summary": {
+    "measurement_scope": "dns-only",
+    "mode": "fastest-raw-dns",
+    "health": "failed",
+    "primary_issue": "all-resolvers-failed",
+    "can_recommend": false,
+    "safety_notes": ["Every candidate failed the measured scope."],
+    "resolver_count": 1,
+    "domain_count": 1,
+    "attempts_per_record": 1,
+    "timeout_ms": 200,
+    "recommended_profile_id": null
+  },
+  "runs": [
+    {
+      "profile_id": "cloudflare",
+      "resolver": "1.1.1.1:53",
+      "metrics": {
+        "profile_id": "cloudflare",
+        "median_dns_latency_ms": null,
+        "p95_dns_latency_ms": null,
+        "failure_rate": 1.0,
+        "timeout_rate": 1.0,
+        "median_connect_latency_ms": null,
+        "ipv4_health": 0.0,
+        "ipv6_health": 0.0,
+        "priority_fit": 1.0
+      }
+    }
+  ],
+  "recommendation": null,
   "saved_history_id": null,
   "warning": "DNS-only warning."
 }

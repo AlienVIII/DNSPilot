@@ -43,6 +43,12 @@ public struct BenchmarkExecutionCoordinator {
 
             do {
                 let payload = try BenchmarkResultJSONDecoder.decode(runResult.standardOutput)
+                if let failure = Self.benchmarkPayloadFailure(from: payload, result: runResult) {
+                    Self.logger.error(
+                        "Benchmark payload reported failed health primary_issue=\(payload.summary.primaryIssue, privacy: .public)"
+                    )
+                    return .failed(failure)
+                }
                 return .completed(BenchmarkResultViewModel(result: payload, catalog: catalog))
             } catch {
                 let parseError = Self.parseErrorDescription(error)
@@ -72,6 +78,44 @@ public struct BenchmarkExecutionCoordinator {
                     debugLog: error.localizedDescription
                 )
             )
+        }
+    }
+
+    private static func benchmarkPayloadFailure(
+        from payload: BenchmarkResultPayload,
+        result: BenchmarkRunResult
+    ) -> BenchmarkExecutionFailure? {
+        guard payload.summary.health == .failed else {
+            return nil
+        }
+
+        return BenchmarkExecutionFailure(
+            message: failedPayloadMessage(for: payload.summary),
+            failedStep: failedPayloadStep(for: payload.summary),
+            debugLog: debugLog(from: result)
+        )
+    }
+
+    private static func failedPayloadMessage(for summary: BenchmarkResultSummary) -> String {
+        switch (summary.measurementScope, summary.primaryIssue) {
+        case (.dnsOnly, "all-resolvers-failed"):
+            "DNS lookup failed for all selected resolvers."
+        case (_, "all-resolvers-failed"):
+            "Benchmark failed for all selected resolvers."
+        default:
+            summary.safetyNotes.first ?? "Benchmark failed: \(summary.primaryIssue)."
+        }
+    }
+
+    private static func failedPayloadStep(for summary: BenchmarkResultSummary) -> BenchmarkFailureStep {
+        switch summary.measurementScope {
+        case .dnsOnly:
+            return .resolvingDNS
+        case .dnsTCP, .dnsTCPTLS:
+            if summary.primaryIssue.contains("dns") {
+                return .resolvingDNS
+            }
+            return .measuringConnection
         }
     }
 
