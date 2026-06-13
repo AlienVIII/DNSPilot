@@ -14,6 +14,7 @@ final class BenchmarkResultDecoderTests: XCTestCase {
         XCTAssertEqual(result.summary.resolverCount, 2)
         XCTAssertEqual(result.summary.domainCount, 1)
         XCTAssertEqual(result.runs.map(\.profileID), ["slow", "fast"])
+        XCTAssertEqual(result.runs[0].caveats, [])
         XCTAssertEqual(result.runs[1].metrics.medianDNSLatencyMS, 4.0)
         XCTAssertNil(result.runs[1].metrics.medianConnectLatencyMS)
         XCTAssertEqual(result.recommendation?.profileID, "fast")
@@ -35,6 +36,7 @@ final class BenchmarkResultDecoderTests: XCTestCase {
         XCTAssertEqual(result.summary.connectPort, 443)
         XCTAssertEqual(result.summary.maxConnectTargetsPerDomain, 2)
         XCTAssertEqual(result.runs.count, 1)
+        XCTAssertEqual(result.runs[0].caveats, ["No usable A/AAAA answers were returned, so TCP connect probes were skipped."])
         XCTAssertNil(result.recommendation)
         XCTAssertTrue(result.warning.contains("Path comparison"))
     }
@@ -186,6 +188,7 @@ private let pathCompareNoRecommendationJSON = """
         "ipv6_health": 0.0,
         "priority_fit": 0.0
       },
+      "caveats": ["No usable A/AAAA answers were returned, so TCP connect probes were skipped."],
       "summary": {
         "measurement_scope": "dns-tcp",
         "health": "failed",

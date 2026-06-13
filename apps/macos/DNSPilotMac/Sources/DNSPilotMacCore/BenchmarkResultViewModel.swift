@@ -47,7 +47,7 @@ public struct BenchmarkResultViewModel: Equatable {
             safetyNotes: result.summary.safetyNotes,
             commonFailureNote: Self.commonPartialFailureNote(for: result.runs),
             reasons: result.recommendation?.reasons ?? [],
-            caveats: result.recommendation?.caveats ?? []
+            caveats: (result.recommendation?.caveats ?? []) + result.runs.flatMap(\.caveats)
         )
     }
 

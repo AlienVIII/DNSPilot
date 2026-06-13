@@ -146,6 +146,50 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.notes.contains("Recommended profile: adguard-dns."))
     }
 
+    func testResultViewModelIncludesDedupedRunCaveats() {
+        let tcpCaveat = "Some resolved endpoints failed TCP connect; DNS may be mapping to a poor, blocked, or unreachable path."
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsTCP,
+                mode: .bestOverall,
+                health: .degraded,
+                primaryIssue: "partial-failure",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 2,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: nil,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: 443,
+                maxConnectTargetsPerDomain: 2,
+                tlsEnabled: false,
+                trustStore: nil,
+                tlsSampleCount: 0,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 50, failureRate: 0.5, caveats: [tcpCaveat]),
+                makeResultRun(profileID: "google-public-dns", medianDNS: 55, failureRate: 0.5, caveats: [tcpCaveat]),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.6,
+                confidence: .inconclusive,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.notes.filter { $0 == tcpCaveat }.count, 1)
+    }
+
     func testResultViewModelShowsNoRecommendationAndNAForAllFailedRuns() {
         let result = BenchmarkResultPayload(
             summary: BenchmarkResultSummary(
@@ -235,7 +279,8 @@ final class BenchmarkResultViewModelTests: XCTestCase {
 private func makeResultRun(
     profileID: String,
     medianDNS: Double?,
-    failureRate: Double
+    failureRate: Double,
+    caveats: [String] = []
 ) -> BenchmarkResultRun {
     BenchmarkResultRun(
         profileID: profileID,
@@ -250,7 +295,8 @@ private func makeResultRun(
             ipv4Health: 1 - failureRate,
             ipv6Health: 0,
             priorityFit: 1 - failureRate
-        )
+        ),
+        caveats: caveats
     )
 }
 

@@ -89,11 +89,33 @@ public struct BenchmarkResultRun: Decodable, Equatable {
     public let profileID: String
     public let resolver: String
     public let metrics: BenchmarkResultMetrics
+    public let caveats: [String]
 
     private enum CodingKeys: String, CodingKey {
         case profileID = "profile_id"
         case resolver
         case metrics
+        case caveats
+    }
+
+    public init(
+        profileID: String,
+        resolver: String,
+        metrics: BenchmarkResultMetrics,
+        caveats: [String] = []
+    ) {
+        self.profileID = profileID
+        self.resolver = resolver
+        self.metrics = metrics
+        self.caveats = caveats
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        profileID = try container.decode(String.self, forKey: .profileID)
+        resolver = try container.decode(String.self, forKey: .resolver)
+        metrics = try container.decode(BenchmarkResultMetrics.self, forKey: .metrics)
+        caveats = try container.decodeIfPresent([String].self, forKey: .caveats) ?? []
     }
 }
 

@@ -113,6 +113,7 @@ DNS handling, and platform capability reporting.
 - [x] [102] v0.1 macOS benchmark result trust states — soften degraded recommendations and show degraded row status.
 - [x] [103] v0.1 macOS benchmark common-failure note — explain similar partial failures as possible network conditions.
 - [x] [104] v0.1 macOS result saved-run label polish — shorten long saved-run IDs in the result panel.
+- [x] [105] v0.1 macOS result run caveats — decode and show per-run benchmark caveats in result notes.
 
 ---
 
@@ -4051,6 +4052,39 @@ Result: 1 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 117 passed, 0 failed
+
+cargo test --workspace --tests
+Result: pass
+
+git diff --check
+Result: clean
+```
+
+---
+
+## Chunk 105: v0.1 macOS Result Run Caveats
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultDecoderTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`
+
+### What changed
+
+Decoded optional per-run `caveats` from benchmark JSON and surfaced deduplicated
+run caveats in Result notes. This makes real DNS+TCP edge cases visible in the
+macOS app, including TCP endpoint failures that often explain uniform 50%
+failure rates when IPv6 endpoints are unreachable.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests/testResultViewModelIncludesDedupedRunCaveats
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 118 passed, 0 failed
 
 cargo test --workspace --tests
 Result: pass
