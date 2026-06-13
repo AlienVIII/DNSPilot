@@ -216,9 +216,10 @@ fn recommendation_caveat_uses_tcp_text_for_connection_path_mode() {
     let recommendation = recommend(&[candidate], None, RecommendationMode::BestOverall)
         .expect("recommendation should be produced");
 
-    assert!(recommendation
-        .caveats
-        .contains(&"This estimates DNS and TCP connection behavior, not full HTTPS, browser, or app speed.".to_string()));
+    assert!(recommendation.caveats.contains(
+        &"This estimates DNS and TCP connection behavior, not full HTTPS, browser, or app speed."
+            .to_string()
+    ));
     assert!(!recommendation
         .caveats
         .iter()

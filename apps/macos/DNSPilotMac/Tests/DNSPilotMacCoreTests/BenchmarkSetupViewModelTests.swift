@@ -12,6 +12,7 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
         XCTAssertEqual(viewModel.runnableProfileIDs, ["cloudflare", "google-public-dns"])
         XCTAssertEqual(viewModel.selectedSuiteID, "developer")
+        XCTAssertEqual(viewModel.recordFamily, .both)
         XCTAssertTrue(viewModel.canRun)
         XCTAssertEqual(viewModel.readinessIssues, [])
     }
@@ -91,7 +92,23 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             mode: .connectionPathCompare
         )
 
-        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, 2 resolvers, 1 domain, 2 attempts, 4 TCP targets/domain")
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, A + AAAA, 2 resolvers, 1 domain, 2 attempts, 4 TCP targets/domain")
+    }
+
+    func testSetupSummarizesIPv4OnlyRecordFamily() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            recordFamily: .ipv4Only,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS only, A only, 1 resolver, 1 domain, 1 attempt")
+        XCTAssertNil(viewModel.estimatedDurationWarning)
     }
 
     func testSetupWarnsWhenWorstCaseBenchmarkDurationIsLong() {

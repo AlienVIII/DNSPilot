@@ -49,6 +49,43 @@ fn compare_command_recommends_fastest_dns_resolver() {
 }
 
 #[test]
+fn compare_command_can_limit_to_ipv4_records() {
+    let resolver = start_fake_resolver(1, Duration::from_millis(1));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--resolver",
+            &format!("ipv4-only={resolver}"),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+            "--ip-family",
+            "ipv4-only",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    let samples = json["runs"][0]["samples"].as_array().expect("samples");
+
+    assert_eq!(json["summary"]["ip_family"], "ipv4-only");
+    assert_eq!(samples.len(), 1);
+    assert!(samples.iter().all(|sample| sample["record_type"] == "A"));
+    assert_eq!(json["runs"][0]["metrics"]["ipv6_health"], 1.0);
+}
+
+#[test]
 fn compare_command_can_use_saved_domain_suite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-compare-suite-{}.sqlite",

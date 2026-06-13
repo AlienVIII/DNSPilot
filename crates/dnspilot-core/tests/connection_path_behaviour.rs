@@ -3,6 +3,7 @@ use dnspilot_core::connection_path::{
     run_connection_path_with_clients, run_connection_path_with_clients_and_tls,
     ConnectionPathConfig, DnsLookupMeasurement,
 };
+use dnspilot_core::dns_benchmark::DnsRecordFamily;
 use dnspilot_core::dns_resolver::DnsResolverError;
 use dnspilot_core::dns_wire::{DnsAnswer, DnsRecordData, DnsResponse, RecordType};
 use dnspilot_core::tls_probe::TlsProbeError;
@@ -21,6 +22,7 @@ fn combines_dns_latency_with_tcp_connect_latency_for_answer_ips() {
         connect_port: 443,
         max_connect_targets_per_domain: 4,
         tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Both,
     };
     let mut connect_targets = Vec::new();
 
@@ -68,6 +70,7 @@ fn tcp_family_failures_reduce_path_ip_family_health() {
         connect_port: 443,
         max_connect_targets_per_domain: 4,
         tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Both,
     };
 
     let run = run_connection_path_with_clients(
@@ -101,6 +104,7 @@ fn tls_certificate_failures_reduce_combined_reliability_when_enabled() {
         connect_port: 443,
         max_connect_targets_per_domain: 4,
         tls_handshake_timeout: Some(Duration::from_millis(600)),
+        record_family: DnsRecordFamily::Both,
     };
     let mut tls_server_names = Vec::new();
 
@@ -143,6 +147,7 @@ fn reports_caveat_when_dns_response_has_no_usable_ip_answers() {
         connect_port: 443,
         max_connect_targets_per_domain: 4,
         tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Both,
     };
 
     let run = run_connection_path_with_clients(
@@ -180,6 +185,7 @@ fn connect_failures_reduce_combined_reliability() {
         connect_port: 443,
         max_connect_targets_per_domain: 4,
         tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Both,
     };
 
     let run = run_connection_path_with_clients(
@@ -215,6 +221,7 @@ fn limits_connect_targets_per_domain_and_records_caveat() {
         connect_port: 443,
         max_connect_targets_per_domain: 2,
         tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Both,
     };
     let mut probed = Vec::new();
 
@@ -252,6 +259,7 @@ fn limit_keeps_both_ipv4_and_ipv6_when_available() {
         connect_port: 443,
         max_connect_targets_per_domain: 2,
         tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Both,
     };
 
     let run = run_connection_path_with_clients(
@@ -292,6 +300,7 @@ fn does_not_record_limit_caveat_when_no_endpoint_was_skipped() {
         connect_port: 443,
         max_connect_targets_per_domain: 2,
         tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Both,
     };
 
     let run = run_connection_path_with_clients(
@@ -310,6 +319,49 @@ fn does_not_record_limit_caveat_when_no_endpoint_was_skipped() {
         .caveats
         .iter()
         .any(|caveat| caveat.contains("Limited TCP connect probes")));
+}
+
+#[test]
+fn connection_path_can_limit_dns_records_to_ipv4() {
+    let config = ConnectionPathConfig {
+        profile_id: "ipv4-path".into(),
+        domains: vec!["example.com".into()],
+        attempts_per_record: 1,
+        dns_timeout: Duration::from_millis(250),
+        connect_timeout: Duration::from_millis(500),
+        first_transaction_id: 0x7800,
+        connect_port: 443,
+        max_connect_targets_per_domain: 4,
+        tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Ipv4Only,
+    };
+
+    let run = run_connection_path_with_clients(
+        &config,
+        |_domain, record_type, transaction_id| {
+            assert_eq!(record_type, RecordType::A);
+            Ok(DnsLookupMeasurement {
+                elapsed: Duration::from_millis(10),
+                response: dns_response(transaction_id, record_type),
+            })
+        },
+        |_target| Ok(Duration::from_millis(60)),
+    );
+
+    assert_eq!(run.dns.samples.len(), 1);
+    assert!(run
+        .dns
+        .samples
+        .iter()
+        .all(|sample| sample.record_type == RecordType::A));
+    assert_eq!(run.connect_targets.len(), 1);
+    assert!(run
+        .connect_targets
+        .iter()
+        .all(|target| target.endpoint.ip().is_ipv4()));
+    assert_eq!(run.metrics.failure_rate, 0.0);
+    assert_eq!(run.metrics.ipv4_health, 1.0);
+    assert_eq!(run.metrics.ipv6_health, 1.0);
 }
 
 fn dns_response(transaction_id: u16, record_type: RecordType) -> DnsResponse {

@@ -1161,6 +1161,7 @@ private struct BenchmarkDetailView: View {
     @State private var dnsTimeoutMS: Int
     @State private var connectTimeoutMS: Int
     @State private var maxConnectTargetsPerDomain: Int
+    @State private var recordFamily: BenchmarkRecordFamily
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
@@ -1181,6 +1182,7 @@ private struct BenchmarkDetailView: View {
             dnsTimeoutMS: dnsTimeoutMS,
             connectTimeoutMS: connectTimeoutMS,
             maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
+            recordFamily: recordFamily,
             mode: mode
         )
     }
@@ -1244,6 +1246,7 @@ private struct BenchmarkDetailView: View {
         _dnsTimeoutMS = State(initialValue: defaults.dnsTimeoutMS)
         _connectTimeoutMS = State(initialValue: defaults.connectTimeoutMS)
         _maxConnectTargetsPerDomain = State(initialValue: defaults.maxConnectTargetsPerDomain)
+        _recordFamily = State(initialValue: defaults.recordFamily)
         _mode = State(initialValue: defaults.mode)
     }
 
@@ -1307,6 +1310,16 @@ private struct BenchmarkDetailView: View {
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .frame(maxWidth: 280, alignment: .leading)
+
+                    Picker("DNS records", selection: $recordFamily) {
+                        ForEach(BenchmarkRecordFamily.allCases, id: \.self) { family in
+                            Text(family.displayLabel).tag(family)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 340, alignment: .leading)
+                    .help("Choose which DNS record family to benchmark. Use A only on networks with broken IPv6.")
                 }
 
                 BenchmarkSection(title: "Profiles") {

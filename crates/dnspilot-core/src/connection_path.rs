@@ -2,7 +2,9 @@ use crate::connect_probe::{
     probe_tcp_connect_once, run_tcp_connect_probes_with_connector, ConnectProbeConfig,
     ConnectProbeError, ConnectProbeOutcome, ConnectProbeRun, TcpConnectTarget,
 };
-use crate::dns_benchmark::{run_dns_benchmark_with_lookup, DnsBenchmarkConfig, DnsBenchmarkRun};
+use crate::dns_benchmark::{
+    run_dns_benchmark_with_lookup, DnsBenchmarkConfig, DnsBenchmarkRun, DnsRecordFamily,
+};
 use crate::dns_resolver::{query_udp_once, DnsResolverError};
 use crate::dns_wire::{DnsRecordData, DnsResponse, RecordType};
 use crate::tls_probe::{
@@ -24,6 +26,7 @@ pub struct ConnectionPathConfig {
     pub connect_port: u16,
     pub max_connect_targets_per_domain: usize,
     pub tls_handshake_timeout: Option<Duration>,
+    pub record_family: DnsRecordFamily,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -105,6 +108,7 @@ where
         attempts_per_record: config.attempts_per_record,
         timeout: config.dns_timeout,
         first_transaction_id: config.first_transaction_id,
+        record_family: config.record_family,
     };
 
     let dns = run_dns_benchmark_with_lookup(&dns_config, |domain, record_type, transaction_id| {

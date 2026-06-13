@@ -4,6 +4,27 @@ use crate::BenchmarkMetrics;
 use std::net::SocketAddr;
 use std::time::Duration;
 
+const BOTH_RECORD_TYPES: [RecordType; 2] = [RecordType::A, RecordType::Aaaa];
+const IPV4_RECORD_TYPES: [RecordType; 1] = [RecordType::A];
+const IPV6_RECORD_TYPES: [RecordType; 1] = [RecordType::Aaaa];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DnsRecordFamily {
+    Both,
+    Ipv4Only,
+    Ipv6Only,
+}
+
+impl DnsRecordFamily {
+    fn record_types(self) -> &'static [RecordType] {
+        match self {
+            DnsRecordFamily::Both => &BOTH_RECORD_TYPES,
+            DnsRecordFamily::Ipv4Only => &IPV4_RECORD_TYPES,
+            DnsRecordFamily::Ipv6Only => &IPV6_RECORD_TYPES,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DnsBenchmarkConfig {
     pub profile_id: String,
@@ -11,6 +32,7 @@ pub struct DnsBenchmarkConfig {
     pub attempts_per_record: usize,
     pub timeout: Duration,
     pub first_transaction_id: u16,
+    pub record_family: DnsRecordFamily,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,7 +81,7 @@ where
     let mut query_index = 0_u16;
 
     for domain in &config.domains {
-        for record_type in [RecordType::A, RecordType::Aaaa] {
+        for &record_type in config.record_family.record_types() {
             for _ in 0..config.attempts_per_record {
                 let transaction_id = config.first_transaction_id.wrapping_add(query_index);
                 query_index = query_index.wrapping_add(1);
@@ -139,7 +161,11 @@ fn record_health(samples: &[DnsBenchmarkSample], record_type: RecordType) -> f64
         })
         .count() as f64;
 
-    rate(successes, total)
+    if total == 0.0 {
+        1.0
+    } else {
+        rate(successes, total)
+    }
 }
 
 fn median(values: &[f64]) -> f64 {

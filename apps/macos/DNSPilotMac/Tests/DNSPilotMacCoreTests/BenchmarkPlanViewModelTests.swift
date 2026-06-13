@@ -24,6 +24,7 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
                 "--domain", "github.com",
                 "--domain", "registry.npmjs.org",
                 "--attempts", "2",
+                "--ip-family", "both",
                 "--timeout-ms", "1200",
             ]
         )
@@ -51,6 +52,7 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
                 "--domain", "portal.azure.com",
                 "--domain", "login.microsoftonline.com",
                 "--attempts", "1",
+                "--ip-family", "both",
                 "--dns-timeout-ms", "900",
                 "--connect-timeout-ms", "700",
                 "--max-connect-targets-per-domain", "2",
@@ -105,6 +107,33 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
 
         XCTAssertTrue(viewModel.validation.canRun)
         XCTAssertTrue(viewModel.commandArguments.contains("example.com."))
+    }
+
+    func testBenchmarkPlanPassesIPv4OnlyRecordFamily() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: "developer",
+            customDomains: [],
+            attempts: 1,
+            recordFamily: .ipv4Only,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertTrue(viewModel.validation.canRun)
+        XCTAssertEqual(viewModel.recordFamily.displayLabel, "A only")
+        XCTAssertEqual(
+            viewModel.commandArguments,
+            [
+                "compare",
+                "--resolver", "cloudflare=1.1.1.1:53",
+                "--domain", "github.com",
+                "--domain", "registry.npmjs.org",
+                "--attempts", "1",
+                "--ip-family", "ipv4-only",
+                "--timeout-ms", "800",
+            ]
+        )
     }
 }
 

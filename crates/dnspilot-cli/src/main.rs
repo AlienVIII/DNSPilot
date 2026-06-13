@@ -5,7 +5,8 @@ use dnspilot_core::{
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{
-        run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsSampleOutcome,
+        run_udp_dns_benchmark, DnsBenchmarkConfig, DnsBenchmarkSample, DnsRecordFamily,
+        DnsSampleOutcome,
     },
     dns_wire::{validate_domain_name, RecordType},
     recommend, recommendation_gate,
@@ -64,6 +65,8 @@ enum Command {
         suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
+        #[arg(long, value_enum, default_value_t = IpFamilyArg::Both)]
+        ip_family: IpFamilyArg,
         #[arg(long, default_value_t = 800)]
         timeout_ms: u64,
         #[arg(long, default_value = "manual")]
@@ -92,6 +95,8 @@ enum Command {
         suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
+        #[arg(long, value_enum, default_value_t = IpFamilyArg::Both)]
+        ip_family: IpFamilyArg,
         #[arg(long, default_value_t = 800)]
         timeout_ms: u64,
         #[arg(long)]
@@ -112,6 +117,8 @@ enum Command {
         suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
+        #[arg(long, value_enum, default_value_t = IpFamilyArg::Both)]
+        ip_family: IpFamilyArg,
         #[arg(long, default_value_t = 800)]
         dns_timeout_ms: u64,
         #[arg(long, default_value_t = 1000)]
@@ -144,6 +151,8 @@ enum Command {
         suite_id: Option<String>,
         #[arg(long, default_value_t = 3)]
         attempts: usize,
+        #[arg(long, value_enum, default_value_t = IpFamilyArg::Both)]
+        ip_family: IpFamilyArg,
         #[arg(long, default_value_t = 800)]
         dns_timeout_ms: u64,
         #[arg(long, default_value_t = 1000)]
@@ -303,6 +312,13 @@ enum FilteringTypeArg {
     Security,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum IpFamilyArg {
+    Both,
+    Ipv4Only,
+    Ipv6Only,
+}
+
 fn main() {
     let cli = Cli::parse();
     match cli.command {
@@ -359,6 +375,7 @@ fn main() {
             suite_db,
             suite_id,
             attempts,
+            ip_family,
             timeout_ms,
             profile_id,
             resolver_port,
@@ -384,6 +401,7 @@ fn main() {
                 attempts_per_record: attempts,
                 timeout: Duration::from_millis(timeout_ms),
                 first_transaction_id: 0x5000,
+                record_family: ip_family.into(),
             };
             let run = run_udp_dns_benchmark(&config, resolver);
             let saved_history_id = save_db.as_ref().map(|db| {
@@ -417,6 +435,7 @@ fn main() {
             let payload = serde_json::json!({
                 "metrics": run.metrics,
                 "samples": run.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
+                "ip_family": ip_family_name(ip_family),
                 "saved_history_id": saved_history_id,
                 "warning": "Live DNS results estimate resolver behavior on this network; they do not prove full browser or app speed.",
             });
@@ -434,6 +453,7 @@ fn main() {
             suite_db,
             suite_id,
             attempts,
+            ip_family,
             timeout_ms,
             save_db,
             history_id,
@@ -481,6 +501,7 @@ fn main() {
                     timeout: Duration::from_millis(timeout_ms),
                     first_transaction_id: 0x9000_u16
                         .wrapping_add((index as u16).wrapping_mul(0x0100)),
+                    record_family: ip_family.into(),
                 };
                 let run = run_udp_dns_benchmark(&config, resolver);
                 metrics.push(run.metrics.clone());
@@ -533,6 +554,7 @@ fn main() {
                     "resolver_count": resolver_count,
                     "domain_count": domains.len(),
                     "attempts_per_record": attempts,
+                    "ip_family": ip_family_name(ip_family),
                     "timeout_ms": timeout_ms,
                     "recommended_profile_id": recommendation.as_ref().map(|item| item.profile_id.clone()),
                 },
@@ -553,6 +575,7 @@ fn main() {
             suite_db,
             suite_id,
             attempts,
+            ip_family,
             dns_timeout_ms,
             connect_timeout_ms,
             connect_port,
@@ -590,6 +613,7 @@ fn main() {
                 connect_port,
                 max_connect_targets_per_domain,
                 tls_handshake_timeout: tls_handshake_timeout_ms.map(Duration::from_millis),
+                record_family: ip_family.into(),
             };
             let run = run_udp_connection_path_estimate(&config, resolver);
             let tls_samples = run
@@ -624,6 +648,7 @@ fn main() {
                 "connect_sample_count": run.connect.samples.len(),
                 "tls_sample_count": tls_samples.len(),
                 "caveat_count": run.caveats.len(),
+                "ip_family": ip_family_name(ip_family),
             });
             let payload = serde_json::json!({
                 "summary": summary,
@@ -649,6 +674,7 @@ fn main() {
             suite_db,
             suite_id,
             attempts,
+            ip_family,
             dns_timeout_ms,
             connect_timeout_ms,
             connect_port,
@@ -714,6 +740,7 @@ fn main() {
                     connect_port,
                     max_connect_targets_per_domain,
                     tls_handshake_timeout: tls_handshake_timeout_ms.map(Duration::from_millis),
+                    record_family: ip_family.into(),
                 };
                 let run = run_udp_connection_path_estimate(&config, resolver);
                 let tls_samples = run
@@ -799,6 +826,7 @@ fn main() {
                     "resolver_count": resolver_count,
                     "domain_count": domains.len(),
                     "attempts_per_record": attempts,
+                    "ip_family": ip_family_name(ip_family),
                     "dns_timeout_ms": dns_timeout_ms,
                     "connect_timeout_ms": connect_timeout_ms,
                     "tls_handshake_timeout_ms": tls_handshake_timeout_ms,
@@ -1705,5 +1733,23 @@ impl From<FilteringTypeArg> for FilteringType {
             FilteringTypeArg::Ads => FilteringType::Ads,
             FilteringTypeArg::Security => FilteringType::Security,
         }
+    }
+}
+
+impl From<IpFamilyArg> for DnsRecordFamily {
+    fn from(value: IpFamilyArg) -> Self {
+        match value {
+            IpFamilyArg::Both => DnsRecordFamily::Both,
+            IpFamilyArg::Ipv4Only => DnsRecordFamily::Ipv4Only,
+            IpFamilyArg::Ipv6Only => DnsRecordFamily::Ipv6Only,
+        }
+    }
+}
+
+fn ip_family_name(value: IpFamilyArg) -> &'static str {
+    match value {
+        IpFamilyArg::Both => "both",
+        IpFamilyArg::Ipv4Only => "ipv4-only",
+        IpFamilyArg::Ipv6Only => "ipv6-only",
     }
 }

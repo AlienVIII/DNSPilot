@@ -3,6 +3,43 @@ public enum BenchmarkPlanMode: Equatable, Hashable, Sendable {
     case connectionPathCompare
 }
 
+public enum BenchmarkRecordFamily: Equatable, Hashable, CaseIterable, Sendable {
+    case both
+    case ipv4Only
+    case ipv6Only
+
+    public var cliValue: String {
+        switch self {
+        case .both:
+            "both"
+        case .ipv4Only:
+            "ipv4-only"
+        case .ipv6Only:
+            "ipv6-only"
+        }
+    }
+
+    public var displayLabel: String {
+        switch self {
+        case .both:
+            "A + AAAA"
+        case .ipv4Only:
+            "A only"
+        case .ipv6Only:
+            "AAAA only"
+        }
+    }
+
+    public var recordTypeCount: Int {
+        switch self {
+        case .both:
+            2
+        case .ipv4Only, .ipv6Only:
+            1
+        }
+    }
+}
+
 public struct BenchmarkPlanValidation: Equatable, Sendable {
     public let canRun: Bool
     public let issues: [String]
@@ -22,6 +59,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     public let dnsTimeoutMS: Int
     public let connectTimeoutMS: Int
     public let maxConnectTargetsPerDomain: Int
+    public let recordFamily: BenchmarkRecordFamily
     public let mode: BenchmarkPlanMode
 
     public var domains: [String] {
@@ -83,6 +121,8 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         }
         args.append("--attempts")
         args.append(String(attempts))
+        args.append("--ip-family")
+        args.append(recordFamily.cliValue)
         if mode == .connectionPathCompare {
             args.append("--dns-timeout-ms")
             args.append(String(dnsTimeoutMS))
@@ -129,6 +169,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         dnsTimeoutMS: Int = 800,
         connectTimeoutMS: Int = 1_000,
         maxConnectTargetsPerDomain: Int = 4,
+        recordFamily: BenchmarkRecordFamily = .both,
         mode: BenchmarkPlanMode
     ) {
         self.catalog = catalog
@@ -139,6 +180,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         self.dnsTimeoutMS = dnsTimeoutMS
         self.connectTimeoutMS = connectTimeoutMS
         self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
+        self.recordFamily = recordFamily
         self.mode = mode
     }
 
