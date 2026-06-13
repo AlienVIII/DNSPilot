@@ -941,7 +941,14 @@ private struct HistoryDetailView: View {
     let executableURL: URL
 
     @State private var isLoading = false
+    @State private var isDeleting = false
     @State private var outcome: BenchmarkHistoryLoadOutcome?
+    @State private var historyPendingDelete: BenchmarkHistoryRow?
+    @State private var isDeleteHistoryConfirmationPresented = false
+
+    private var isMutatingHistory: Bool {
+        isLoading || isDeleting
+    }
 
     var body: some View {
         ScrollView {
@@ -950,10 +957,14 @@ private struct HistoryDetailView: View {
                     Text("History")
                         .font(.title2.weight(.semibold))
                     Spacer()
+                    if isDeleting {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
                     Button(action: loadHistory) {
                         Label("Refresh", systemImage: "arrow.clockwise")
                     }
-                    .disabled(isLoading)
+                    .disabled(isMutatingHistory)
                 }
 
                 if isLoading {
@@ -963,7 +974,11 @@ private struct HistoryDetailView: View {
 
                 switch outcome {
                 case .loaded(let viewModel):
-                    HistoryResultPanel(viewModel: viewModel)
+                    HistoryResultPanel(
+                        viewModel: viewModel,
+                        isDisabled: isMutatingHistory,
+                        onDelete: requestDeleteHistory
+                    )
                 case .failed(let message):
                     BenchmarkIssueList(issues: [message])
                 case nil:
@@ -980,10 +995,24 @@ private struct HistoryDetailView: View {
                 loadHistory()
             }
         }
+        .alert(
+            "Delete Saved Run?",
+            isPresented: $isDeleteHistoryConfirmationPresented,
+            presenting: historyPendingDelete
+        ) { row in
+            Button("Delete", role: .destructive) {
+                deleteHistory(row)
+            }
+            Button("Cancel", role: .cancel) {
+                historyPendingDelete = nil
+            }
+        } message: { row in
+            Text("Delete \(row.id)? This removes it from local benchmark history.")
+        }
     }
 
     private func loadHistory() {
-        guard !isLoading else {
+        guard !isMutatingHistory else {
             return
         }
         guard let factory = makePreparedHistoryPersistenceFactory() else {
@@ -1006,6 +1035,48 @@ private struct HistoryDetailView: View {
             DispatchQueue.main.async {
                 outcome = nextOutcome
                 isLoading = false
+            }
+        }
+    }
+
+    private func requestDeleteHistory(_ row: BenchmarkHistoryRow) {
+        guard !isMutatingHistory else {
+            return
+        }
+        historyPendingDelete = row
+        isDeleteHistoryConfirmationPresented = true
+    }
+
+    private func deleteHistory(_ row: BenchmarkHistoryRow) {
+        guard !isMutatingHistory else {
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            outcome = .failed("Benchmark history storage is unavailable.")
+            return
+        }
+
+        isDeleting = true
+        let databaseURL = factory.databaseURL
+        let executableURL = executableURL
+        let historyID = row.id
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let runner = BenchmarkHistoryRunner(executableURL: executableURL)
+            let result = Result {
+                try runner.delete(historyID: historyID, databaseURL: databaseURL)
+            }
+
+            DispatchQueue.main.async {
+                historyPendingDelete = nil
+                switch result {
+                case .success:
+                    isDeleting = false
+                    loadHistory()
+                case .failure(let error):
+                    outcome = .failed(error.localizedDescription)
+                    isDeleting = false
+                }
             }
         }
     }
@@ -2045,6 +2116,8 @@ private struct BenchmarkResultPanel: View {
 
 private struct HistoryResultPanel: View {
     let viewModel: BenchmarkHistoryViewModel
+    let isDisabled: Bool
+    let onDelete: (BenchmarkHistoryRow) -> Void
 
     var body: some View {
         BenchmarkSection(title: "Saved Runs") {
@@ -2054,7 +2127,11 @@ private struct HistoryResultPanel: View {
             } else {
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                     ForEach(viewModel.rows) { row in
-                        HistoryRowView(row: row)
+                        HistoryRowView(
+                            row: row,
+                            isDisabled: isDisabled,
+                            onDelete: { onDelete(row) }
+                        )
                     }
                 }
             }
@@ -2064,6 +2141,8 @@ private struct HistoryResultPanel: View {
 
 private struct HistoryRowView: View {
     let row: BenchmarkHistoryRow
+    let isDisabled: Bool
+    let onDelete: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -2077,6 +2156,9 @@ private struct HistoryRowView: View {
                     .foregroundStyle(.secondary)
                 Text(row.recommendationLabel)
                     .font(.callout.weight(.semibold))
+                Text(row.id)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
             }
             Spacer(minLength: DNSPilotDesign.Spacing.panel)
             VStack(alignment: .trailing, spacing: 4) {
@@ -2086,6 +2168,12 @@ private struct HistoryRowView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .help("Delete saved run")
+            .disabled(isDisabled)
         }
         .padding(.vertical, 4)
     }

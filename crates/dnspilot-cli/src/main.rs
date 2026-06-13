@@ -255,6 +255,12 @@ enum Command {
         #[arg(long)]
         db: std::path::PathBuf,
     },
+    HistoryDelete {
+        #[arg(long)]
+        db: std::path::PathBuf,
+        #[arg(long)]
+        id: String,
+    },
     RecommendSample,
 }
 
@@ -1140,6 +1146,35 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize history list")
+            );
+        }
+        Command::HistoryDelete { db, id } => {
+            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let mut snapshot = load_snapshot_or_builtin(&storage);
+            let index = snapshot
+                .benchmark_history
+                .iter()
+                .position(|record| record.id == id)
+                .unwrap_or_else(|| {
+                    eprintln!("benchmark history '{id}' not found");
+                    std::process::exit(2);
+                });
+            snapshot.benchmark_history.remove(index);
+            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
+            let payload = serde_json::json!({
+                "db": db.to_string_lossy(),
+                "history_id": id,
+                "benchmark_history_count": snapshot.benchmark_history.len(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize history delete")
             );
         }
         Command::RecommendSample => {

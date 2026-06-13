@@ -52,6 +52,27 @@ final class BenchmarkHistoryRunnerTests: XCTestCase {
             )
         }
     }
+
+    func testRunnerPassesHistoryDeleteArgumentsToProcessRunner() throws {
+        let processRunner = RecordingHistoryProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = BenchmarkHistoryRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+
+        try runner.delete(historyID: "run-1", databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"))
+
+        XCTAssertEqual(
+            processRunner.invocations[0].arguments,
+            [
+                "history-delete",
+                "--db", "/tmp/dnspilot.sqlite",
+                "--id", "run-1",
+            ]
+        )
+    }
 }
 
 private final class RecordingHistoryProcessRunner: BenchmarkProcessRunning {

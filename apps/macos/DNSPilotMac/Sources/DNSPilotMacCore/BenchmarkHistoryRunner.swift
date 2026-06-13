@@ -28,6 +28,21 @@ public struct BenchmarkHistoryRunner {
         return try BenchmarkHistoryJSONDecoder.decode(output.standardOutput)
     }
 
+    public func delete(historyID: String, databaseURL: URL) throws {
+        let output = try processRunner.run(
+            executableURL: executableURL,
+            arguments: [
+                "history-delete",
+                "--db", databaseURL.path,
+                "--id", historyID,
+            ],
+            cancellation: nil
+        )
+        guard output.exitCode == 0 else {
+            throw BenchmarkHistoryRunnerError.processFailed(Self.failureMessage(from: output))
+        }
+    }
+
     private static func failureMessage(from output: BenchmarkProcessOutput) -> String {
         let standardError = output.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
         if !standardError.isEmpty {

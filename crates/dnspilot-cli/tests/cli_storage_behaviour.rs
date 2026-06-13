@@ -1003,6 +1003,70 @@ fn benchmark_command_can_save_history_to_sqlite() {
     let _ = fs::remove_file(db_path);
 }
 
+#[test]
+fn history_delete_command_removes_saved_history_record() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-history-delete-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+    save_history_run(&db_path, "run-1");
+
+    let delete = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "history-delete",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "run-1",
+        ])
+        .output()
+        .expect("run dnspilot-cli history-delete");
+
+    assert!(
+        delete.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&delete.stderr)
+    );
+
+    let history = list_history(&db_path);
+    assert!(history.is_empty());
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
+fn history_delete_command_rejects_missing_history_id() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-history-delete-missing-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let delete = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "history-delete",
+            "--db",
+            db_path.to_str().expect("utf8 path"),
+            "--id",
+            "missing-run",
+        ])
+        .output()
+        .expect("run dnspilot-cli history-delete");
+
+    assert!(
+        !delete.status.success(),
+        "history-delete should reject missing history IDs"
+    );
+    let stderr = String::from_utf8_lossy(&delete.stderr);
+    assert!(
+        stderr.contains("benchmark history 'missing-run' not found"),
+        "stderr: {stderr}"
+    );
+
+    let _ = fs::remove_file(db_path);
+}
+
 fn add_plain_profile(db_path: &std::path::Path, id: &str, name: &str, ipv4: &str) {
     let add = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
         .args([
@@ -1091,6 +1155,54 @@ fn list_suites(db_path: &std::path::Path) -> Vec<Value> {
     json["test_suites"]
         .as_array()
         .expect("test suites array")
+        .clone()
+}
+
+fn save_history_run(db_path: &std::path::Path, history_id: &str) {
+    let resolver = start_fake_resolver(2);
+    let benchmark = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "benchmark",
+            "--resolver",
+            &resolver.to_string(),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+            "--save-db",
+            db_path.to_str().expect("utf8 path"),
+            "--history-id",
+            history_id,
+        ])
+        .output()
+        .expect("run dnspilot-cli benchmark");
+
+    assert!(
+        benchmark.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&benchmark.stderr)
+    );
+}
+
+fn list_history(db_path: &std::path::Path) -> Vec<Value> {
+    let list = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args(["history-list", "--db", db_path.to_str().expect("utf8 path")])
+        .output()
+        .expect("run dnspilot-cli history-list");
+
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+
+    let stdout = String::from_utf8(list.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    json["benchmark_history"]
+        .as_array()
+        .expect("history array")
         .clone()
 }
 
