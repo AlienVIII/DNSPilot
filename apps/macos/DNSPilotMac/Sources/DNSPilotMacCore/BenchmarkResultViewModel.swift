@@ -45,6 +45,7 @@ public struct BenchmarkResultViewModel: Equatable {
 
         notes = Self.userFacingNotes(
             safetyNotes: result.summary.safetyNotes,
+            commonFailureNote: Self.commonPartialFailureNote(for: result.runs),
             reasons: result.recommendation?.reasons ?? [],
             caveats: result.recommendation?.caveats ?? []
         )
@@ -62,16 +63,40 @@ public struct BenchmarkResultViewModel: Equatable {
 
     private static func userFacingNotes(
         safetyNotes: [String],
+        commonFailureNote: String?,
         reasons: [String],
         caveats: [String]
     ) -> [String] {
         var seen = Set<String>()
-        return (safetyNotes + reasons + caveats).filter { note in
+        let commonNotes = commonFailureNote.map { [$0] } ?? []
+        let notes = safetyNotes + commonNotes + reasons + caveats
+        return notes.filter { note in
             guard !note.lowercased().hasPrefix("recommended profile:") else {
                 return false
             }
             return seen.insert(note).inserted
         }
+    }
+
+    private static func commonPartialFailureNote(for runs: [BenchmarkResultRun]) -> String? {
+        guard runs.count >= 2 else {
+            return nil
+        }
+
+        let partialFailureRates = runs
+            .map(\.metrics.failureRate)
+            .filter { $0 > 0 && $0 < 1 }
+        guard Double(partialFailureRates.count) / Double(runs.count) >= 0.6 else {
+            return nil
+        }
+
+        let lowest = partialFailureRates.min() ?? 0
+        let highest = partialFailureRates.max() ?? 0
+        guard highest - lowest <= 0.10 else {
+            return nil
+        }
+
+        return "Many candidates failed at a similar partial rate; this can indicate current network, VPN, firewall, captive portal, or IPv6 reachability limits rather than one bad DNS provider."
     }
 
     private static func scopeLabel(for scope: BenchmarkMeasurementScope) -> String {

@@ -111,6 +111,7 @@ DNS handling, and platform capability reporting.
 - [x] [100] v0.1 macOS custom DNS management — edit/delete saved custom plain DNS profiles.
 - [x] [101] v0.1 macOS benchmark diagnostics and DNS statuses — decode all-timeout results, add issue logs, select-all, and per-DNS status.
 - [x] [102] v0.1 macOS benchmark result trust states — soften degraded recommendations and show degraded row status.
+- [x] [103] v0.1 macOS benchmark common-failure note — explain similar partial failures as possible network conditions.
 
 ---
 
@@ -3987,6 +3988,36 @@ Result: 1 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkProgressViewModelTests
 Result: 8 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 116 passed, 0 failed
+
+cargo test --workspace --tests
+Result: pass
+
+git diff --check
+Result: clean
+```
+
+---
+
+## Chunk 103: v0.1 macOS Benchmark Common-Failure Note
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`
+
+### What changed
+
+Added a narrow UI heuristic for degraded benchmark results: when many candidates
+fail at a similar partial rate, the result notes now explain that the pattern
+can come from the current network, VPN, firewall, captive portal, or IPv6
+reachability rather than one bad DNS provider.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests/testResultViewModelSoftensRecommendationForDegradedInconclusiveRuns
+Result: 1 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 116 passed, 0 failed
