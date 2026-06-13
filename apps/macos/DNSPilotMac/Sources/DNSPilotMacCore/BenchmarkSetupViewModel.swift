@@ -19,6 +19,16 @@ public struct BenchmarkSetupViewModel: Equatable {
             .map(\.id)
     }
 
+    public var profileSelectionSummary: String {
+        let runnableIDs = runnableProfileIDs
+        guard !runnableIDs.isEmpty else {
+            return "No runnable profiles available"
+        }
+
+        let selectedRunnableCount = runnableIDs.filter { selectedProfileIDs.contains($0) }.count
+        return "\(selectedRunnableCount) of \(runnableIDs.count) runnable selected"
+    }
+
     public var suiteOptions: [BenchmarkSuiteOption] {
         catalog.testSuites.map(BenchmarkSuiteOption.init(testSuite:))
     }

@@ -5,7 +5,7 @@ final class ApplicationActivationPlanTests: XCTestCase {
     func testLaunchPlanPromotesSwiftPMExecutableToForegroundApplication() {
         XCTAssertEqual(
             DNSPilotApplicationActivationPlan.launch.actions,
-            [.setRegularActivationPolicy, .activateIgnoringOtherApps]
+            [.setRegularActivationPolicy, .activateIgnoringOtherApps, .ensureMainWindowVisible(delayMilliseconds: 200)]
         )
     }
 }

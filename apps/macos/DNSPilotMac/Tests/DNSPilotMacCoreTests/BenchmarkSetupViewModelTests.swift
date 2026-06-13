@@ -55,6 +55,30 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(encryptedOption?.isRunnable, false)
         XCTAssertEqual(encryptedOption?.detailLabel, "Requires OS DNS profile flow")
     }
+
+    func testSetupSummarizesRunnableProfileSelection() {
+        let partialSelection = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+        let allSelected = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare", "google-public-dns"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertEqual(partialSelection.profileSelectionSummary, "1 of 2 runnable selected")
+        XCTAssertEqual(allSelected.profileSelectionSummary, "2 of 2 runnable selected")
+    }
 }
 
 private func makeSetupCatalog() -> CatalogSnapshot {

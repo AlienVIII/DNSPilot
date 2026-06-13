@@ -55,6 +55,46 @@ open_app() {
   /usr/bin/open -n "$APP_BUNDLE"
 }
 
+verify_app_window() {
+  APP_NAME="$APP_NAME" /usr/bin/swift -e 'import CoreGraphics
+import Darwin
+import Foundation
+
+let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? ""
+let options = CGWindowListOption(arrayLiteral: .optionOnScreenOnly)
+let windows = CGWindowListCopyWindowInfo(options, CGWindowID(0)) as? [[String: Any]] ?? []
+let hasWindow = windows.contains { window in
+    guard (window[kCGWindowOwnerName as String] as? String) == appName else {
+        return false
+    }
+    guard (window[kCGWindowLayer as String] as? Int) == 0 else {
+        return false
+    }
+    guard (window[kCGWindowIsOnscreen as String] as? Int) == 1 else {
+        return false
+    }
+    guard let bounds = window[kCGWindowBounds as String] as? [String: Any],
+          let width = bounds["Width"] as? Double,
+          let height = bounds["Height"] as? Double else {
+        return false
+    }
+    return width >= 600 && height >= 400
+}
+exit(hasWindow ? 0 : 1)'
+}
+
+verify_launch() {
+  for _ in {1..20}; do
+    if pgrep -x "$APP_NAME" >/dev/null && verify_app_window; then
+      return 0
+    fi
+    sleep 0.25
+  done
+
+  echo "$APP_NAME did not expose an on-screen app window." >&2
+  return 1
+}
+
 case "$MODE" in
   run)
     open_app
@@ -72,8 +112,7 @@ case "$MODE" in
     ;;
   --verify|verify)
     open_app
-    sleep 1
-    pgrep -x "$APP_NAME" >/dev/null
+    verify_launch
     ;;
   *)
     echo "usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2

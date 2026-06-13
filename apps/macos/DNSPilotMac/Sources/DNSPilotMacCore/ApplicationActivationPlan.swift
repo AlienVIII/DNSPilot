@@ -1,6 +1,7 @@
 public enum DNSPilotApplicationActivationAction: Equatable, Sendable {
     case setRegularActivationPolicy
     case activateIgnoringOtherApps
+    case ensureMainWindowVisible(delayMilliseconds: Int)
 }
 
 public struct DNSPilotApplicationActivationPlan: Equatable, Sendable {
@@ -14,6 +15,7 @@ public struct DNSPilotApplicationActivationPlan: Equatable, Sendable {
         actions: [
             .setRegularActivationPolicy,
             .activateIgnoringOtherApps,
+            .ensureMainWindowVisible(delayMilliseconds: 200),
         ]
     )
 }

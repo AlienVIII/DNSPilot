@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import OSLog
 import DNSPilotMacCore
 
 @main
@@ -16,8 +17,20 @@ struct DNSPilotMacApp: App {
 
 @MainActor
 private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate {
+    private static let logger = Logger(subsystem: "com.dnspilot.mac", category: "windowing")
+    private var fallbackMainWindow: NSWindow?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.logger.info("Application did finish launching")
         applyActivationPlan(.launch)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        Self.logger.info("Application reopen requested visible_windows=\(flag, privacy: .public)")
+        if !flag {
+            openMainWindowIfNeeded()
+        }
+        return true
     }
 
     private func applyActivationPlan(_ plan: DNSPilotApplicationActivationPlan) {
@@ -29,8 +42,52 @@ private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate
                 DispatchQueue.main.async {
                     NSApp.activate(ignoringOtherApps: true)
                 }
+            case .ensureMainWindowVisible(let delayMilliseconds):
+                Self.logger.info("Scheduling main window visibility check delay_ms=\(delayMilliseconds, privacy: .public)")
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMilliseconds)) { [weak self] in
+                    self?.openMainWindowIfNeeded()
+                }
             }
         }
+    }
+
+    private func openMainWindowIfNeeded() {
+        let usableMainWindowCount = NSApp.windows.filter(Self.isUsableMainWindow).count
+        Self.logger.info("Checking main window visibility usable_windows=\(usableMainWindowCount, privacy: .public)")
+        if NSApp.windows.contains(where: Self.isUsableMainWindow) {
+            return
+        }
+
+        if let fallbackMainWindow {
+            fallbackMainWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "DNSPilotMac"
+        window.contentView = NSHostingView(
+            rootView: DNSPilotShellView()
+                .frame(minWidth: 900, minHeight: 620)
+        )
+        window.center()
+        fallbackMainWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        Self.logger.info("Created fallback main window")
+    }
+
+    private static func isUsableMainWindow(_ window: NSWindow) -> Bool {
+        window.isVisible
+            && window.canBecomeKey
+            && !window.isMiniaturized
+            && window.frame.width >= 600
+            && window.frame.height >= 400
     }
 }
 
@@ -933,6 +990,10 @@ private struct BenchmarkDetailView: View {
                                 .font(.body.weight(.semibold))
                         }
                         .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
+
+                        Text(setupViewModel.profileSelectionSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
                         ForEach(setupViewModel.profileOptions) { option in
                             Toggle(isOn: profileBinding(for: option)) {
