@@ -755,11 +755,11 @@ pub fn recommendation_gate(
 
     if metrics.iter().all(|metric| metric.reliability() < 0.95) {
         return RecommendationGate {
-            can_recommend: true,
+            can_recommend: false,
             health: RecommendationHealth::Degraded,
             primary_issue: RecommendationIssue::AllResolversLowReliability,
             notes: vec![
-                "All candidates have reduced reliability; apply prompts should be conservative."
+                "All candidates have reduced reliability; Keep current DNS and retest on a stable network."
                     .into(),
             ],
         };

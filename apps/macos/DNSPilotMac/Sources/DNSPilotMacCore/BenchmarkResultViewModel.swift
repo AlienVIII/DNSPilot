@@ -33,6 +33,8 @@ public struct BenchmarkResultViewModel: Equatable {
             } else {
                 recommendationLabel = "Best measured candidate: \(candidateName)"
             }
+        } else if let blockedLabel = Self.blockedRecommendationLabel(for: result.summary.primaryIssue) {
+            recommendationLabel = blockedLabel
         } else {
             recommendationLabel = "No recommendation"
         }
@@ -59,6 +61,15 @@ public struct BenchmarkResultViewModel: Equatable {
             return false
         }
         return confidence == .high || confidence == .medium
+    }
+
+    private static func blockedRecommendationLabel(for primaryIssue: String) -> String? {
+        switch primaryIssue {
+        case "all-resolvers-low-reliability":
+            "Keep current DNS"
+        default:
+            nil
+        }
     }
 
     private static func userFacingNotes(

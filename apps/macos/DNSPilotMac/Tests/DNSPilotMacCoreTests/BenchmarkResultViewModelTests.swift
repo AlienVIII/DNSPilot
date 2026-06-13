@@ -146,6 +146,45 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.notes.contains("Recommended profile: adguard-dns."))
     }
 
+    func testResultViewModelKeepsCurrentDNSWhenAllCandidatesHaveLowReliability() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsTCP,
+                mode: .bestOverall,
+                health: .degraded,
+                primaryIssue: "all-resolvers-low-reliability",
+                canRecommend: false,
+                safetyNotes: ["All candidates have reduced reliability; Keep current DNS and retest on a stable network."],
+                resolverCount: 2,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: nil,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: 443,
+                maxConnectTargetsPerDomain: 4,
+                tlsEnabled: false,
+                trustStore: nil,
+                tlsSampleCount: 0,
+                recommendedProfileID: nil
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 55, failureRate: 0.5),
+                makeResultRun(profileID: "adguard-dns", medianDNS: 31, failureRate: 0.5),
+            ],
+            recommendation: nil,
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.recommendationLabel, "Keep current DNS")
+        XCTAssertEqual(viewModel.confidenceLabel, "Inconclusive")
+        XCTAssertTrue(viewModel.notes.contains("All candidates have reduced reliability; Keep current DNS and retest on a stable network."))
+    }
+
     func testResultViewModelIncludesDedupedRunCaveats() {
         let tcpCaveat = "Some resolved endpoints failed TCP connect; DNS may be mapping to a poor, blocked, or unreachable path."
         let result = BenchmarkResultPayload(

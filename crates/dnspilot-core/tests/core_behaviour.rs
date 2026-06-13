@@ -241,6 +241,25 @@ fn recommendation_gate_allows_degraded_partial_failure() {
 }
 
 #[test]
+fn recommendation_gate_blocks_when_every_candidate_has_low_reliability() {
+    let first = metrics("first", 55.0, 70.0, 0.5, 0.5, 35.0, 1.0, 0.0);
+    let second = metrics("second", 31.0, 42.0, 0.5, 0.5, 40.0, 1.0, 0.0);
+
+    let gate = recommendation_gate(&[first, second], MeasurementScope::DnsTcp);
+
+    assert!(!gate.can_recommend);
+    assert_eq!(gate.health, RecommendationHealth::Degraded);
+    assert_eq!(
+        gate.primary_issue,
+        RecommendationIssue::AllResolversLowReliability
+    );
+    assert!(gate
+        .notes
+        .iter()
+        .any(|note| note.contains("Keep current DNS")));
+}
+
+#[test]
 fn filtered_dns_expected_block_is_not_a_failure_for_filtering_goal() {
     let outcome = classify_resolution_outcome(
         ResolutionOutcome::Blocked,
