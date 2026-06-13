@@ -63,8 +63,8 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             Saved run: compare-run-1
 
             Candidates:
-            Cloudflare | 127.0.0.1:53 | DNS median 4 ms | DNS P95 4 ms | Failure 0% failed
-            Google Public DNS | 127.0.0.1:53 | DNS median 8 ms | DNS P95 8 ms | Failure 0% failed
+            Cloudflare | 127.0.0.1:53 | DNS median 4 ms | DNS P95 4 ms | Failure 0% failed | Diagnosis No issues
+            Google Public DNS | 127.0.0.1:53 | DNS median 8 ms | DNS P95 8 ms | Failure 0% failed | Diagnosis No issues
 
             Notes:
             Lowest median DNS latency.
@@ -282,6 +282,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
                     profileID: "cloudflare",
                     medianDNS: 50,
                     failureRate: 0.5,
+                    timeoutRate: 0,
                     ipv4Health: 1,
                     ipv6Health: 0
                 ),
@@ -300,6 +301,58 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
 
         XCTAssertEqual(viewModel.rows.first?.failureRateLabel, "50% failed (IPv6 weak)")
+        XCTAssertEqual(viewModel.rows.first?.diagnosisLabel, "IPv6 weak")
+    }
+
+    func testResultViewModelDiagnosesTcpAndTimeoutFailures() {
+        let tcpCaveat = "Some resolved endpoints failed TCP connect; DNS may be mapping to a poor, blocked, or unreachable path."
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsTCP,
+                mode: .bestOverall,
+                health: .degraded,
+                primaryIssue: "partial-failure",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: nil,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: 443,
+                maxConnectTargetsPerDomain: 2,
+                tlsEnabled: false,
+                trustStore: nil,
+                tlsSampleCount: 0,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(
+                    profileID: "cloudflare",
+                    medianDNS: 50,
+                    failureRate: 0.5,
+                    timeoutRate: 0.25,
+                    caveats: [tcpCaveat],
+                    ipv4Health: 1,
+                    ipv6Health: 0
+                ),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.6,
+                confidence: .inconclusive,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.rows.first?.diagnosisLabel, "TCP path failures, IPv6 weak, timeouts")
     }
 
     func testResultViewModelShowsNoRecommendationAndNAForAllFailedRuns() {
@@ -392,6 +445,7 @@ private func makeResultRun(
     profileID: String,
     medianDNS: Double?,
     failureRate: Double,
+    timeoutRate: Double? = nil,
     caveats: [String] = [],
     ipv4Health: Double = 1,
     ipv6Health: Double = 1
@@ -404,7 +458,7 @@ private func makeResultRun(
             medianDNSLatencyMS: medianDNS,
             p95DNSLatencyMS: medianDNS,
             failureRate: failureRate,
-            timeoutRate: failureRate,
+            timeoutRate: timeoutRate ?? failureRate,
             medianConnectLatencyMS: medianDNS,
             ipv4Health: ipv4Health,
             ipv6Health: ipv6Health,

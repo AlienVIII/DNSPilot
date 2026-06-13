@@ -2201,6 +2201,7 @@ private struct BenchmarkResultPanel: View {
                                 Text("Median TCP").font(.headline)
                             }
                             Text("Failure").font(.headline)
+                            Text("Diagnosis").font(.headline)
                         }
 
                         ForEach(viewModel.rows) { row in
@@ -2217,10 +2218,11 @@ private struct BenchmarkResultPanel: View {
                                     Text(row.medianConnectLatencyLabel)
                                 }
                                 Text(row.failureRateLabel)
+                                Text(row.diagnosisLabel)
                             }
                         }
                     }
-                    .frame(minWidth: viewModel.showsConnectionMetrics ? 760 : 620, alignment: .leading)
+                    .frame(minWidth: viewModel.showsConnectionMetrics ? 900 : 760, alignment: .leading)
                 }
 
                 if !viewModel.notes.isEmpty {

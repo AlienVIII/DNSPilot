@@ -97,6 +97,7 @@ public struct BenchmarkResultViewModel: Equatable {
                 parts.append("TCP median \(row.medianConnectLatencyLabel)")
             }
             parts.append("Failure \(row.failureRateLabel)")
+            parts.append("Diagnosis \(row.diagnosisLabel)")
             lines.append(parts.joined(separator: " | "))
         }
 
@@ -259,6 +260,7 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
     public let p95DNSLatencyLabel: String
     public let medianConnectLatencyLabel: String
     public let failureRateLabel: String
+    public let diagnosisLabel: String
 
     public init(run: BenchmarkResultRun, displayName: String?) {
         id = run.profileID
@@ -286,6 +288,7 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
             failureRate: run.metrics.failureRate
         )
         failureRateLabel = Self.failureRateLabel(for: run.metrics)
+        diagnosisLabel = Self.diagnosisLabel(for: run)
     }
 
     private static func latencyLabel(_ value: Double?, failureRate: Double) -> String {
@@ -319,6 +322,35 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
             return base
         }
         return "\(base) (\(weakFamilies.joined(separator: "/")) weak)"
+    }
+
+    private static func diagnosisLabel(for run: BenchmarkResultRun) -> String {
+        var issues = [String]()
+        let caveatText = run.caveats.joined(separator: " ").lowercased()
+
+        if caveatText.contains("dns lookups failed") {
+            issues.append("DNS lookup failures")
+        }
+        if caveatText.contains("failed tcp connect") {
+            issues.append("TCP path failures")
+        }
+        if caveatText.contains("no usable a/aaaa") {
+            issues.append("No usable A/AAAA answers")
+        }
+        if run.metrics.ipv4Health < 0.75 {
+            issues.append("IPv4 weak")
+        }
+        if run.metrics.ipv6Health < 0.75 {
+            issues.append("IPv6 weak")
+        }
+        if run.metrics.timeoutRate > 0 {
+            issues.append("timeouts")
+        }
+        if run.metrics.failureRate >= 1, issues.isEmpty {
+            issues.append("All probes failed")
+        }
+
+        return issues.isEmpty ? "No issues" : issues.joined(separator: ", ")
     }
 }
 
