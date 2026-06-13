@@ -1303,7 +1303,7 @@ private struct BenchmarkDetailView: View {
                     BenchmarkIssueList(issues: setupViewModel.readinessIssues)
                 }
 
-                if progressViewModel.shouldDisplay {
+                if shouldShowBenchmarkRunArtifacts, progressViewModel.shouldDisplay {
                     BenchmarkProgressPanel(
                         viewModel: progressViewModel,
                         startedAt: currentBenchmarkStartedAt,
@@ -1634,6 +1634,10 @@ private struct BenchmarkDetailView: View {
         guard outcome != nil else {
             return false
         }
+        return shouldShowBenchmarkRunArtifacts
+    }
+
+    private var shouldShowBenchmarkRunArtifacts: Bool {
         guard let currentBenchmarkPlan else {
             return true
         }
