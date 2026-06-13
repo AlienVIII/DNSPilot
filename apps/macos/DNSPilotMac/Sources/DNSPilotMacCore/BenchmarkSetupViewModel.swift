@@ -43,6 +43,23 @@ public struct BenchmarkSetupViewModel: Equatable {
         "Direct resolver test; system DNS flush is not required."
     }
 
+    public var estimatedDurationWarning: String? {
+        let plan = plan
+        guard plan.validation.canRun else {
+            return nil
+        }
+        let worstCaseMilliseconds = Self.worstCaseMilliseconds(
+            resolverCount: plan.resolverCount,
+            domainCount: plan.domains.count,
+            attempts: attempts,
+            mode: mode
+        )
+        guard worstCaseMilliseconds >= Self.longBenchmarkWarningThresholdMS else {
+            return nil
+        }
+        return "Estimated worst-case wait: about \(BenchmarkElapsedTimeFormatter.label(milliseconds: worstCaseMilliseconds)). Reduce profiles, domains, or attempts if this looks too long."
+    }
+
     public var suiteOptions: [BenchmarkSuiteOption] {
         catalog.testSuites.map(BenchmarkSuiteOption.init(testSuite:))
     }
@@ -125,6 +142,34 @@ public struct BenchmarkSetupViewModel: Equatable {
 
     private static func countLabel(_ count: Int, singular: String, plural: String) -> String {
         "\(count) \(count == 1 ? singular : plural)"
+    }
+
+    private static let dnsRecordFamiliesPerDomain = 2
+    private static let dnsTimeoutMS = 800
+    private static let connectTimeoutMS = 1_000
+    private static let maxConnectTargetsPerDomain = 4
+    private static let longBenchmarkWarningThresholdMS = 30_000
+
+    private static func worstCaseMilliseconds(
+        resolverCount: Int,
+        domainCount: Int,
+        attempts: Int,
+        mode: BenchmarkPlanMode
+    ) -> Int {
+        let dnsMilliseconds = resolverCount
+            * domainCount
+            * dnsRecordFamiliesPerDomain
+            * attempts
+            * dnsTimeoutMS
+        guard mode == .connectionPathCompare else {
+            return dnsMilliseconds
+        }
+        let tcpMilliseconds = resolverCount
+            * domainCount
+            * maxConnectTargetsPerDomain
+            * attempts
+            * connectTimeoutMS
+        return dnsMilliseconds + tcpMilliseconds
     }
 }
 

@@ -94,6 +94,37 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, 2 resolvers, 1 domain, 2 attempts")
     }
 
+    func testSetupWarnsWhenWorstCaseBenchmarkDurationIsLong() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare", "google-public-dns"],
+            selectedSuiteID: "developer",
+            customDomainsText: "azure.microsoft.com login.microsoftonline.com management.azure.com",
+            attempts: 3,
+            mode: .connectionPathCompare
+        )
+
+        XCTAssertEqual(
+            viewModel.estimatedDurationWarning,
+            "Estimated worst-case wait: about 134.4 s. Reduce profiles, domains, or attempts if this looks too long."
+        )
+    }
+
+    func testSetupDoesNotWarnForShortBenchmarks() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertNil(viewModel.estimatedDurationWarning)
+    }
+
     func testSetupExplainsDirectResolverFlushPolicy() {
         let viewModel = BenchmarkSetupViewModel(
             catalog: makeSetupCatalog(),

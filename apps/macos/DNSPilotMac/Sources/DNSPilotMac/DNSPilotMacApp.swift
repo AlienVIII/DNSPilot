@@ -1272,6 +1272,11 @@ private struct BenchmarkDetailView: View {
                 Label(setupViewModel.flushPolicySummary, systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let estimatedDurationWarning = setupViewModel.estimatedDurationWarning {
+                    Label(estimatedDurationWarning, systemImage: "hourglass")
+                        .font(.caption)
+                        .foregroundStyle(DNSPilotDesign.Palette.warning)
+                }
 
                 if !setupViewModel.readinessIssues.isEmpty {
                     BenchmarkIssueList(issues: setupViewModel.readinessIssues)
