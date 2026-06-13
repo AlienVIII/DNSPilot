@@ -66,8 +66,8 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
             [
-                "Cloudflare:running:Running in batch",
-                "Google:running:Running in batch",
+                "Cloudflare:running:Queued in batch",
+                "Google:running:Queued in batch",
             ]
         )
     }
@@ -111,7 +111,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             viewModel.currentStepVerboseLines,
             [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
-                "* Planned input: 2 domain(s), 2 resolver(s), 1 attempt(s); worst-case DNS phase about 6.4s.",
+                "* Planned input: 2 domain(s), 2 resolver(s), 1 attempt(s); worst-case DNS phase about 6.4s, TCP phase about 16.0s.",
                 "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
             ]
         )

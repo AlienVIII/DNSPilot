@@ -119,6 +119,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
     public let attempts: Int
     public let dnsTimeoutMS: Int
     public let connectTimeoutMS: Int
+    public let maxConnectTargetsPerDomain: Int
     public let resolverTargets: [BenchmarkProgressResolverTarget]
 
     public init(
@@ -127,6 +128,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
         attempts: Int,
         dnsTimeoutMS: Int = 800,
         connectTimeoutMS: Int = 1_000,
+        maxConnectTargetsPerDomain: Int = 4,
         resolverTargets: [BenchmarkProgressResolverTarget] = []
     ) {
         self.resolverCount = resolverCount
@@ -134,6 +136,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
         self.attempts = attempts
         self.dnsTimeoutMS = dnsTimeoutMS
         self.connectTimeoutMS = connectTimeoutMS
+        self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
         self.resolverTargets = resolverTargets
     }
 
@@ -286,6 +289,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         }
 
         let dnsSeconds = worstCaseDNSSeconds(summary: planSummary)
+        let tcpSeconds = worstCaseTCPSeconds(summary: planSummary)
         switch mode {
         case .dnsOnlyCompare:
             return [
@@ -296,7 +300,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         case .connectionPathCompare:
             return [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
-                "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds).",
+                "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds), TCP phase about \(tcpSeconds).",
                 "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
             ]
         }
@@ -327,7 +331,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                     name: target.name,
                     resolver: target.resolver,
                     status: .running,
-                    detail: "Running in batch"
+                    detail: "Queued in batch"
                 )
             }
         }
@@ -353,6 +357,16 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             * 2
             * summary.attempts
             * summary.dnsTimeoutMS
+        let seconds = Double(totalMilliseconds) / 1_000
+        return String(format: "%.1fs", seconds)
+    }
+
+    private static func worstCaseTCPSeconds(summary: BenchmarkProgressPlanSummary) -> String {
+        let totalMilliseconds = summary.resolverCount
+            * summary.domainCount
+            * summary.maxConnectTargetsPerDomain
+            * summary.attempts
+            * summary.connectTimeoutMS
         let seconds = Double(totalMilliseconds) / 1_000
         return String(format: "%.1fs", seconds)
     }
