@@ -1526,35 +1526,38 @@ private struct BenchmarkResultPanel: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
-                    GridRow {
-                        Text("Status").font(.headline)
-                        Text("Profile").font(.headline)
-                        Text("Resolver").font(.headline)
-                        Text("Median DNS").font(.headline)
-                        Text("P95 DNS").font(.headline)
-                        if viewModel.showsConnectionMetrics {
-                            Text("Median TCP").font(.headline)
-                        }
-                        Text("Failure").font(.headline)
-                    }
-
-                    ForEach(viewModel.rows) { row in
+                ScrollView(.horizontal) {
+                    Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
                         GridRow {
-                            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
-                                BenchmarkProgressStatusIcon(status: row.status)
-                                Text(row.status.displayLabel)
-                            }
-                            Text(row.name)
-                            Text(row.resolver).font(.body.monospaced())
-                            Text(row.medianDNSLatencyLabel)
-                            Text(row.p95DNSLatencyLabel)
+                            Text("Status").font(.headline)
+                            Text("Profile").font(.headline)
+                            Text("Resolver").font(.headline)
+                            Text("Median DNS").font(.headline)
+                            Text("P95 DNS").font(.headline)
                             if viewModel.showsConnectionMetrics {
-                                Text(row.medianConnectLatencyLabel)
+                                Text("Median TCP").font(.headline)
                             }
-                            Text(row.failureRateLabel)
+                            Text("Failure").font(.headline)
+                        }
+
+                        ForEach(viewModel.rows) { row in
+                            GridRow {
+                                HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                                    BenchmarkProgressStatusIcon(status: row.status)
+                                    Text(row.status.displayLabel)
+                                }
+                                Text(row.name)
+                                Text(row.resolver).font(.body.monospaced())
+                                Text(row.medianDNSLatencyLabel)
+                                Text(row.p95DNSLatencyLabel)
+                                if viewModel.showsConnectionMetrics {
+                                    Text(row.medianConnectLatencyLabel)
+                                }
+                                Text(row.failureRateLabel)
+                            }
                         }
                     }
+                    .frame(minWidth: viewModel.showsConnectionMetrics ? 760 : 620, alignment: .leading)
                 }
 
                 if !viewModel.notes.isEmpty {
