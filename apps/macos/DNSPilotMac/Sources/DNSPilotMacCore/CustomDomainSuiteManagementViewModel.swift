@@ -45,7 +45,7 @@ public struct CustomDomainSuiteManagementRow: Equatable, Identifiable, Sendable 
         opensAsNewSuite = hasReservedIDCollision
         editHelpLabel = hasReservedIDCollision ? "Copy to new suite" : "Edit suite"
         warningLabel = hasReservedIDCollision
-            ? "ID conflicts with a built-in suite. Edit opens a new custom-* copy; delete this legacy row after saving."
+            ? "Built-in ID conflict. Edit creates a new custom-* copy; delete this legacy row after saving."
             : nil
     }
 }

@@ -625,10 +625,11 @@ private struct CustomDNSProfileManagementRowView: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: DNSPilotDesign.Spacing.row) {
+        HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.row) {
             Image(systemName: isSelected ? "pencil.circle.fill" : "server.rack")
                 .foregroundStyle(isSelected ? DNSPilotDesign.Palette.accent : .secondary)
                 .frame(width: 24)
+                .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name)
@@ -643,6 +644,8 @@ private struct CustomDNSProfileManagementRowView: View {
                     Label(warningLabel, systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(DNSPilotDesign.Palette.warning)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -679,10 +682,11 @@ private struct CustomDomainSuiteManagementRowView: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: DNSPilotDesign.Spacing.row) {
+        HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.row) {
             Image(systemName: isSelected ? "pencil.circle.fill" : "list.bullet.rectangle")
                 .foregroundStyle(isSelected ? DNSPilotDesign.Palette.accent : .secondary)
                 .frame(width: 24)
+                .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name)
@@ -697,6 +701,8 @@ private struct CustomDomainSuiteManagementRowView: View {
                     Label(warningLabel, systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(DNSPilotDesign.Palette.warning)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 

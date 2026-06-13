@@ -46,7 +46,7 @@ public struct CustomDNSProfileManagementRow: Equatable, Identifiable, Sendable {
         opensAsNewProfile = hasReservedIDCollision
         editHelpLabel = hasReservedIDCollision ? "Copy to new profile" : "Edit profile"
         warningLabel = hasReservedIDCollision
-            ? "ID conflicts with a built-in profile. Edit opens a new custom-* copy; delete this legacy row after saving."
+            ? "Built-in ID conflict. Edit creates a new custom-* copy; delete this legacy row after saving."
             : nil
     }
 }

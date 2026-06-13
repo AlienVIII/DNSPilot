@@ -40,7 +40,7 @@ final class CustomDNSProfileManagementViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows[0].editHelpLabel, "Copy to new profile")
         XCTAssertEqual(
             viewModel.rows[0].warningLabel,
-            "ID conflicts with a built-in profile. Edit opens a new custom-* copy; delete this legacy row after saving."
+            "Built-in ID conflict. Edit creates a new custom-* copy; delete this legacy row after saving."
         )
     }
 }
