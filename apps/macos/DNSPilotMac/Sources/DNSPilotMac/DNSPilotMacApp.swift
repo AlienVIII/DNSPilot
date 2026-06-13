@@ -6,12 +6,95 @@ import DNSPilotMacCore
 @main
 struct DNSPilotMacApp: App {
     @NSApplicationDelegateAdaptor(DNSPilotApplicationDelegate.self) private var applicationDelegate
+    @StateObject private var navigation = DNSPilotNavigationModel()
 
     var body: some Scene {
-        WindowGroup {
-            DNSPilotShellView()
+        WindowGroup("DNS Pilot", id: DNSPilotWindowID.main) {
+            DNSPilotShellView(navigation: navigation)
                 .frame(minWidth: 900, minHeight: 620)
         }
+
+        MenuBarExtra("DNS Pilot", systemImage: "network") {
+            DNSPilotMenuBarView(navigation: navigation)
+        }
+    }
+}
+
+private enum DNSPilotWindowID {
+    static let main = "main"
+}
+
+private enum SidebarSelection: Hashable {
+    case capabilities
+    case benchmark
+    case customDNS
+    case history
+    case catalog
+}
+
+@MainActor
+private final class DNSPilotNavigationModel: ObservableObject {
+    @Published var selection: SidebarSelection? = .capabilities
+}
+
+private struct DNSPilotMenuBarView: View {
+    @ObservedObject var navigation: DNSPilotNavigationModel
+    @Environment(\.openWindow) private var openWindow
+
+    private let viewModel = MenuBarQuickActionsViewModel()
+
+    var body: some View {
+        ForEach(viewModel.actions) { action in
+            switch action.kind {
+            case .destination(let destination):
+                Button {
+                    open(destination)
+                } label: {
+                    Label(action.title, systemImage: action.systemImage)
+                }
+            case .quit:
+                Divider()
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Label(action.title, systemImage: action.systemImage)
+                }
+            }
+        }
+    }
+
+    private func open(_ destination: MenuBarQuickDestination) {
+        switch destination {
+        case .openApp:
+            navigation.selection = .capabilities
+        case .benchmark:
+            navigation.selection = .benchmark
+        case .history:
+            navigation.selection = .history
+        }
+
+        openWindow(id: DNSPilotWindowID.main)
+        DNSPilotWindowActivation.activateSoon()
+    }
+}
+
+@MainActor
+private enum DNSPilotWindowActivation {
+    static func activateSoon() {
+        NSApp.setActivationPolicy(.regular)
+        DispatchQueue.main.async {
+            activateExistingWindow()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(120)) {
+            activateExistingWindow()
+        }
+    }
+
+    private static func activateExistingWindow() {
+        NSApp.windows
+            .filter { $0.canBecomeKey && !$0.isMiniaturized }
+            .forEach { $0.makeKeyAndOrderFront(nil) }
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -72,7 +155,7 @@ private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate
         )
         window.title = "DNSPilotMac"
         window.contentView = NSHostingView(
-            rootView: DNSPilotShellView()
+            rootView: DNSPilotShellView(navigation: DNSPilotNavigationModel())
                 .frame(minWidth: 900, minHeight: 620)
         )
         window.center()
@@ -91,16 +174,8 @@ private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate
     }
 }
 
-private enum SidebarSelection: Hashable {
-    case capabilities
-    case benchmark
-    case customDNS
-    case history
-    case catalog
-}
-
 private struct DNSPilotShellView: View {
-    @State private var selection: SidebarSelection? = .capabilities
+    @ObservedObject var navigation: DNSPilotNavigationModel
     @State private var catalogViewModel = CatalogViewModel()
     @State private var hasRequestedStorageCatalogRefresh = false
 
@@ -108,7 +183,7 @@ private struct DNSPilotShellView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selection) {
+            List(selection: $navigation.selection) {
                 Section("Overview") {
                     Label("Capabilities", systemImage: "checkmark.seal")
                         .tag(SidebarSelection.capabilities)
@@ -131,7 +206,7 @@ private struct DNSPilotShellView: View {
             .navigationTitle("DNS Pilot")
             .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 280)
         } detail: {
-            switch selection ?? .capabilities {
+            switch navigation.selection ?? .capabilities {
             case .capabilities:
                 CapabilityMatrixDetailView(viewModel: capabilityViewModel)
             case .benchmark:
