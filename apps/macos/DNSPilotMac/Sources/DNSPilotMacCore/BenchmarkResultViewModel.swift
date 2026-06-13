@@ -75,6 +75,10 @@ public struct BenchmarkResultViewModel: Equatable {
     }
 
     public var resultReport: String {
+        resultReportText(elapsedMS: nil)
+    }
+
+    public func resultReportText(elapsedMS: Int?) -> String {
         var lines = [
             "Benchmark result",
             "Health: \(healthLabel)",
@@ -82,6 +86,9 @@ public struct BenchmarkResultViewModel: Equatable {
             "Confidence: \(confidenceLabel)",
             "Recommendation: \(recommendationLabel)",
         ]
+        if let elapsedMS {
+            lines.append("Completed in: \(BenchmarkElapsedTimeFormatter.label(milliseconds: elapsedMS))")
+        }
         if let fullSavedHistoryID {
             lines.append("Saved run: \(fullSavedHistoryID)")
         }

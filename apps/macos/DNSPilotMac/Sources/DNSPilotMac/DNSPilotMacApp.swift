@@ -1487,7 +1487,10 @@ private struct BenchmarkDetailView: View {
                 if let outcome {
                     switch outcome {
                     case .completed(let resultViewModel):
-                        BenchmarkResultPanel(viewModel: resultViewModel)
+                        BenchmarkResultPanel(
+                            viewModel: resultViewModel,
+                            elapsedMS: lastBenchmarkElapsedMS
+                        )
                     case .failed(let failure):
                         BenchmarkFailurePanel(
                             failure: failure,
@@ -2179,6 +2182,7 @@ private struct BenchmarkFailureRow: View {
 
 private struct BenchmarkResultPanel: View {
     let viewModel: BenchmarkResultViewModel
+    let elapsedMS: Int?
 
     var body: some View {
         BenchmarkSection(title: "Result") {
@@ -2190,6 +2194,12 @@ private struct BenchmarkResultPanel: View {
                     if let recordFamilyLabel = viewModel.recordFamilyLabel {
                         Label(recordFamilyLabel, systemImage: "list.bullet.rectangle")
                     }
+                    if let elapsedMS {
+                        Label(
+                            "Completed in \(BenchmarkElapsedTimeFormatter.label(milliseconds: elapsedMS))",
+                            systemImage: "timer"
+                        )
+                    }
                 }
                 .foregroundStyle(.secondary)
 
@@ -2197,7 +2207,7 @@ private struct BenchmarkResultPanel: View {
                     .font(.title3.weight(.semibold))
 
                 Button {
-                    copyToPasteboard(viewModel.resultReport)
+                    copyToPasteboard(viewModel.resultReportText(elapsedMS: elapsedMS))
                 } label: {
                     Label("Copy Result Report", systemImage: "doc.on.doc")
                 }
