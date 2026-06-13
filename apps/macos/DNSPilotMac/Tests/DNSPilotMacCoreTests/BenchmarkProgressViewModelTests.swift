@@ -148,7 +148,8 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
                     total: 3,
                     status: .success,
                     failureRate: 0,
-                    timeoutRate: 0
+                    timeoutRate: 0,
+                    elapsedMS: 123.4
                 ),
                 BenchmarkProgressEvent(
                     type: .resolverStarted,
@@ -167,7 +168,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
             [
-                "Cloudflare:success:0% failed",
+                "Cloudflare:success:0% failed - 123 ms",
                 "Quad9:running:Running 2/3",
                 "Google:idle:Pending",
             ]

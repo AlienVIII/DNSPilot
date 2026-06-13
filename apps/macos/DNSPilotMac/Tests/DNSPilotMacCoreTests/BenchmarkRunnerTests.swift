@@ -133,7 +133,7 @@ final class BenchmarkRunnerTests: XCTestCase {
     func testProgressEventDecoderMapsResolverFinishedJSONLine() throws {
         let event = try BenchmarkProgressEventJSONDecoder.decode(
             """
-            {"type":"resolver_finished","measurement_scope":"dns-tcp","profile_id":"cloudflare","resolver":"1.1.1.1:53","index":1,"total":2,"status":"degraded","failure_rate":0.5,"timeout_rate":0.25}
+            {"type":"resolver_finished","measurement_scope":"dns-tcp","profile_id":"cloudflare","resolver":"1.1.1.1:53","index":1,"total":2,"status":"degraded","failure_rate":0.5,"timeout_rate":0.25,"elapsed_ms":123.4}
             """
         )
 
@@ -146,6 +146,7 @@ final class BenchmarkRunnerTests: XCTestCase {
         XCTAssertEqual(event.status, .degraded)
         XCTAssertEqual(event.failureRate, 0.5)
         XCTAssertEqual(event.timeoutRate, 0.25)
+        XCTAssertEqual(event.elapsedMS, 123.4)
     }
 
     func testFoundationRunnerTerminatesProcessWhenCancellationIsRequested() throws {

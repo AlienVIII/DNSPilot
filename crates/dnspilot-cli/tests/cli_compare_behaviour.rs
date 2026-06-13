@@ -130,12 +130,15 @@ fn compare_command_can_emit_progress_jsonl_to_stderr() {
     assert_eq!(events[0]["profile_id"], "slow");
     assert_eq!(events[0]["index"], 1);
     assert_eq!(events[0]["total"], 2);
+    assert!(events[0]["elapsed_ms"].is_null());
     assert_eq!(events[1]["type"], "resolver_finished");
     assert_eq!(events[1]["profile_id"], "slow");
     assert_eq!(events[1]["status"], "success");
+    assert!(events[1]["elapsed_ms"].as_f64().unwrap() >= 0.0);
     assert_eq!(events[2]["profile_id"], "fast");
     assert_eq!(events[3]["type"], "resolver_finished");
     assert_eq!(events[3]["profile_id"], "fast");
+    assert!(events[3]["elapsed_ms"].as_f64().unwrap() >= 0.0);
 }
 
 #[test]

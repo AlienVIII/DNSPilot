@@ -16,7 +16,7 @@ use dnspilot_core::{
     SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Parser)]
 #[command(name = "dnspilot")]
@@ -508,7 +508,9 @@ fn main() {
                     index + 1,
                     resolver_count,
                     None,
+                    None,
                 );
+                let resolver_started_at = Instant::now();
                 let config = DnsBenchmarkConfig {
                     profile_id: profile_id.clone(),
                     domains: domains.clone(),
@@ -528,6 +530,7 @@ fn main() {
                     index + 1,
                     resolver_count,
                     Some(&run.metrics),
+                    Some(resolver_started_at.elapsed()),
                 );
                 metrics.push(run.metrics.clone());
                 runs.push(serde_json::json!({
@@ -768,8 +771,10 @@ fn main() {
                     index + 1,
                     resolver_count,
                     None,
+                    None,
                 );
 
+                let resolver_started_at = Instant::now();
                 let config = ConnectionPathConfig {
                     profile_id: profile_id.clone(),
                     domains: domains.clone(),
@@ -793,6 +798,7 @@ fn main() {
                     index + 1,
                     resolver_count,
                     Some(&run.metrics),
+                    Some(resolver_started_at.elapsed()),
                 );
                 let tls_samples = run
                     .tls
@@ -1553,6 +1559,7 @@ fn emit_resolver_progress(
     index: usize,
     total: usize,
     metrics: Option<&BenchmarkMetrics>,
+    elapsed: Option<Duration>,
 ) {
     if !enabled {
         return;
@@ -1570,6 +1577,9 @@ fn emit_resolver_progress(
         event["status"] = serde_json::Value::String(progress_status(metrics).into());
         event["failure_rate"] = serde_json::Value::from(metrics.failure_rate);
         event["timeout_rate"] = serde_json::Value::from(metrics.timeout_rate);
+    }
+    if let Some(elapsed) = elapsed {
+        event["elapsed_ms"] = serde_json::Value::from(elapsed.as_secs_f64() * 1000.0);
     }
 
     eprintln!(

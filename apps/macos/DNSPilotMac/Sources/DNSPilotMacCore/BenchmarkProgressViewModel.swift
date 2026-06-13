@@ -434,15 +434,20 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         case .resolverStarted:
             return "Running \(event.index)/\(event.total)"
         case .resolverFinished:
-            guard let failureRate = event.failureRate else {
-                return "Finished"
+            let summary = event.failureRate.map { "\(percent($0))% failed" } ?? "Finished"
+            guard let elapsedMS = event.elapsedMS else {
+                return summary
             }
-            return "\(percent(failureRate))% failed"
+            return "\(summary) - \(formatElapsedMS(elapsedMS))"
         }
     }
 
     private static func percent(_ value: Double) -> Int {
         Int((min(max(value, 0), 1) * 100).rounded())
+    }
+
+    private static func formatElapsedMS(_ value: Double) -> String {
+        "\(Int(max(value, 0).rounded())) ms"
     }
 
     private static func worstCaseDNSSeconds(summary: BenchmarkProgressPlanSummary) -> String {

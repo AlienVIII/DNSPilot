@@ -65,6 +65,7 @@ public struct BenchmarkProgressEvent: Decodable, Equatable, Sendable {
     public let status: BenchmarkProgressEventStatus?
     public let failureRate: Double?
     public let timeoutRate: Double?
+    public let elapsedMS: Double?
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -76,6 +77,7 @@ public struct BenchmarkProgressEvent: Decodable, Equatable, Sendable {
         case status
         case failureRate = "failure_rate"
         case timeoutRate = "timeout_rate"
+        case elapsedMS = "elapsed_ms"
     }
 
     public init(
@@ -87,7 +89,8 @@ public struct BenchmarkProgressEvent: Decodable, Equatable, Sendable {
         total: Int,
         status: BenchmarkProgressEventStatus?,
         failureRate: Double?,
-        timeoutRate: Double?
+        timeoutRate: Double?,
+        elapsedMS: Double? = nil
     ) {
         self.type = type
         self.measurementScope = measurementScope
@@ -98,6 +101,7 @@ public struct BenchmarkProgressEvent: Decodable, Equatable, Sendable {
         self.status = status
         self.failureRate = failureRate
         self.timeoutRate = timeoutRate
+        self.elapsedMS = elapsedMS
     }
 }
 
