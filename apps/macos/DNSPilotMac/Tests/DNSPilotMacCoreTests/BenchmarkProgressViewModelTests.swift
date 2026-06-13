@@ -70,6 +70,32 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         )
     }
 
+    func testProgressUsesSelectedRecordFamilyInVerboseLinesAndWorstCase() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .dnsOnlyCompare,
+            state: .running(runID: BenchmarkRunID(1)),
+            outcome: nil,
+            historySaved: false,
+            planSummary: BenchmarkProgressPlanSummary(
+                resolverCount: 2,
+                domainCount: 3,
+                attempts: 1,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                recordFamily: .ipv4Only
+            )
+        )
+
+        XCTAssertEqual(
+            viewModel.currentStepVerboseLines,
+            [
+                "* Resolving 3 domain(s) with 2 resolver(s), 1 attempt(s), A only.",
+                "* Worst-case DNS wait before output: about 4.8s; stdout is drained while the CLI runs.",
+                "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
+            ]
+        )
+    }
+
     func testProgressShowsResolverRowsWhileRunning() {
         let viewModel = BenchmarkProgressViewModel(
             mode: .dnsOnlyCompare,

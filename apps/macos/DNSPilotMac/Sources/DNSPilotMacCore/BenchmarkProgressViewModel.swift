@@ -137,6 +137,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
     public let dnsTimeoutMS: Int
     public let connectTimeoutMS: Int
     public let maxConnectTargetsPerDomain: Int
+    public let recordFamily: BenchmarkRecordFamily
     public let resolverTargets: [BenchmarkProgressResolverTarget]
 
     public init(
@@ -146,6 +147,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
         dnsTimeoutMS: Int = 800,
         connectTimeoutMS: Int = 1_000,
         maxConnectTargetsPerDomain: Int = 4,
+        recordFamily: BenchmarkRecordFamily = .both,
         resolverTargets: [BenchmarkProgressResolverTarget] = []
     ) {
         self.resolverCount = resolverCount
@@ -154,6 +156,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
         self.dnsTimeoutMS = dnsTimeoutMS
         self.connectTimeoutMS = connectTimeoutMS
         self.maxConnectTargetsPerDomain = maxConnectTargetsPerDomain
+        self.recordFamily = recordFamily
         self.resolverTargets = resolverTargets
     }
 
@@ -165,6 +168,7 @@ public struct BenchmarkProgressPlanSummary: Equatable, Sendable {
             dnsTimeoutMS: plan.dnsTimeoutMS,
             connectTimeoutMS: plan.connectTimeoutMS,
             maxConnectTargetsPerDomain: plan.maxConnectTargetsPerDomain,
+            recordFamily: plan.recordFamily,
             resolverTargets: plan.resolverTargets
         )
     }
@@ -313,7 +317,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         switch mode {
         case .dnsOnlyCompare:
             return [
-                "* Resolving \(planSummary.domainCount) domain(s) with \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s), A + AAAA.",
+                "* Resolving \(planSummary.domainCount) domain(s) with \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s), \(planSummary.recordFamily.displayLabel).",
                 "* Worst-case DNS wait before output: about \(dnsSeconds); stdout is drained while the CLI runs.",
                 "* Resolver status rows update after the CLI returns; current process output is drained for issue diagnostics.",
             ]
@@ -374,7 +378,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
     private static func worstCaseDNSSeconds(summary: BenchmarkProgressPlanSummary) -> String {
         let totalMilliseconds = summary.resolverCount
             * summary.domainCount
-            * 2
+            * summary.recordFamily.recordTypeCount
             * summary.attempts
             * summary.dnsTimeoutMS
         let seconds = Double(totalMilliseconds) / 1_000
