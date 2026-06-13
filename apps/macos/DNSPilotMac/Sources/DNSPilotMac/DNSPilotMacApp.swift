@@ -1266,6 +1266,8 @@ private struct BenchmarkDetailView: View {
                         Button(action: cancelBenchmark) {
                             Label("Cancel", systemImage: "xmark")
                         }
+                        .accessibilityLabel("Cancel benchmark")
+                        .accessibilityIdentifier("benchmark-cancel-button")
                         .disabled(!runControls.isCancelEnabled)
                     }
                     Button(action: runBenchmark) {
@@ -1279,6 +1281,8 @@ private struct BenchmarkDetailView: View {
                             Label(runControls.primaryLabel, systemImage: "play.fill")
                         }
                     }
+                    .accessibilityLabel(runControls.primaryLabel == "Run" ? "Run benchmark" : runControls.primaryLabel)
+                    .accessibilityIdentifier("benchmark-run-button")
                     .disabled(!runControls.isPrimaryEnabled)
                     .help(setupViewModel.canRun ? "Run benchmark" : "Resolve readiness issues")
                 }
