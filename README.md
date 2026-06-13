@@ -116,7 +116,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   copyable full issue report, and developer OSLog diagnostics for
   process/parse failure.
 - CLI `compare` and `path-compare` can emit opt-in per-resolver progress JSONL
-  on stderr while preserving final benchmark JSON on stdout.
+  on stderr, including finished resolver elapsed time, while preserving final
+  benchmark JSON on stdout.
 - macOS Benchmark warns on long worst-case benchmark plans and exposes DNS
   timeout, TCP timeout, and TCP target cap controls.
 - macOS Benchmark exposes DNS record-family controls (`A + AAAA`, `A only`,
@@ -128,6 +129,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Benchmark result notes call out similar partial-failure patterns across
   many DNS candidates as possible current-network/VPN/firewall/captive
   portal/IPv6 issues.
+- macOS Benchmark result notes suggest an `A only` retest when IPv6 is weak
+  across many DNS candidates.
 - macOS Benchmark result decoder/ViewModel surfaces deduplicated per-run CLI
   caveats, such as TCP endpoint failures, in result notes.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
