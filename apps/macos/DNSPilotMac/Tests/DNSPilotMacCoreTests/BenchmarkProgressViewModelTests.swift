@@ -65,7 +65,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving 3 domain(s) with 2 resolver(s), 1 attempt(s), A + AAAA.",
                 "* Worst-case DNS wait before output: about 9.6s; stdout is drained while the CLI runs.",
-                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
+                "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
             ]
         )
     }
@@ -91,7 +91,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving 3 domain(s) with 2 resolver(s), 1 attempt(s), A only.",
                 "* Worst-case DNS wait before output: about 4.8s; stdout is drained while the CLI runs.",
-                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
+                "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
             ]
         )
     }
@@ -118,6 +118,58 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "Cloudflare:running:Waiting for final JSON",
                 "Google:running:Waiting for final JSON",
+            ]
+        )
+    }
+
+    func testProgressShowsLiveResolverRowsFromProgressEvents() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .dnsOnlyCompare,
+            state: .running(runID: BenchmarkRunID(1)),
+            outcome: nil,
+            historySaved: false,
+            planSummary: BenchmarkProgressPlanSummary(
+                resolverCount: 3,
+                domainCount: 1,
+                attempts: 1,
+                resolverTargets: [
+                    BenchmarkProgressResolverTarget(id: "cloudflare", name: "Cloudflare", resolver: "1.1.1.1:53"),
+                    BenchmarkProgressResolverTarget(id: "quad9", name: "Quad9", resolver: "9.9.9.9:53"),
+                    BenchmarkProgressResolverTarget(id: "google", name: "Google", resolver: "8.8.8.8:53"),
+                ]
+            ),
+            progressEvents: [
+                BenchmarkProgressEvent(
+                    type: .resolverFinished,
+                    measurementScope: .dnsOnly,
+                    profileID: "cloudflare",
+                    resolver: "1.1.1.1:53",
+                    index: 1,
+                    total: 3,
+                    status: .success,
+                    failureRate: 0,
+                    timeoutRate: 0
+                ),
+                BenchmarkProgressEvent(
+                    type: .resolverStarted,
+                    measurementScope: .dnsOnly,
+                    profileID: "quad9",
+                    resolver: "9.9.9.9:53",
+                    index: 2,
+                    total: 3,
+                    status: nil,
+                    failureRate: nil,
+                    timeoutRate: nil
+                ),
+            ]
+        )
+
+        XCTAssertEqual(
+            viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
+            [
+                "Cloudflare:success:0% failed",
+                "Quad9:running:Running 2/3",
+                "Google:idle:Pending",
             ]
         )
     }
@@ -162,7 +214,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
             [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: 2 domain(s), 2 resolver(s), 1 attempt(s); worst-case DNS phase about 6.4s, TCP phase about 16.0s.",
-                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
+                "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
             ]
         )
     }

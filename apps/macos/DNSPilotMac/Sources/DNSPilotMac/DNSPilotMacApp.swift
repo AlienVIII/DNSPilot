@@ -1168,6 +1168,7 @@ private struct BenchmarkDetailView: View {
     @State private var currentCancellation: BenchmarkRunCancellation?
     @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
     @State private var currentBenchmarkStartedAt: Date?
+    @State private var currentProgressEvents: [BenchmarkProgressEvent] = []
     @State private var lastBenchmarkElapsedMS: Int?
     @State private var handledQuickBenchmarkRequestID = 0
     @State private var outcome: BenchmarkExecutionOutcome?
@@ -1202,7 +1203,8 @@ private struct BenchmarkDetailView: View {
             state: runStateMachine.state,
             outcome: outcome,
             historySaved: completedResultSavedHistory,
-            planSummary: BenchmarkProgressPlanSummary(plan: currentBenchmarkPlan ?? setupViewModel.plan)
+            planSummary: BenchmarkProgressPlanSummary(plan: currentBenchmarkPlan ?? setupViewModel.plan),
+            progressEvents: currentProgressEvents
         )
     }
 
@@ -1797,6 +1799,7 @@ private struct BenchmarkDetailView: View {
         let cancellation = BenchmarkRunCancellation()
         currentCancellation = cancellation
         outcome = nil
+        currentProgressEvents = []
         lastBenchmarkElapsedMS = nil
         let startedAt = Date()
         currentBenchmarkStartedAt = startedAt
@@ -1814,7 +1817,14 @@ private struct BenchmarkDetailView: View {
                 plan: plan,
                 persistence: persistence,
                 cancellation: cancellation
-            )
+            ) { event in
+                DispatchQueue.main.async {
+                    guard currentCancellation === cancellation else {
+                        return
+                    }
+                    currentProgressEvents.append(event)
+                }
+            }
 
             DispatchQueue.main.async {
                 if case .cancelling = runStateMachine.state {

@@ -184,7 +184,8 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         state: BenchmarkRunState,
         outcome: BenchmarkExecutionOutcome?,
         historySaved: Bool,
-        planSummary: BenchmarkProgressPlanSummary? = nil
+        planSummary: BenchmarkProgressPlanSummary? = nil,
+        progressEvents: [BenchmarkProgressEvent] = []
     ) {
         let failure: BenchmarkExecutionFailure? = {
             if case .failed(let failure) = outcome {
@@ -227,7 +228,8 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             isRunning: isRunning,
             failure: failure,
             outcome: outcome,
-            targets: planSummary?.resolverTargets ?? []
+            targets: planSummary?.resolverTargets ?? [],
+            progressEvents: progressEvents
         )
     }
 
@@ -308,7 +310,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             return [
                 "* Running benchmark command.",
                 "* Waiting for CLI output; cancel is available if the network blocks.",
-                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
+                "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
             ]
         }
 
@@ -319,13 +321,13 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             return [
                 "* Resolving \(planSummary.domainCount) domain(s) with \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s), \(planSummary.recordFamily.displayLabel).",
                 "* Worst-case DNS wait before output: about \(dnsSeconds); stdout is drained while the CLI runs.",
-                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
+                "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
             ]
         case .connectionPathCompare:
             return [
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds), TCP phase about \(tcpSeconds).",
-                "* CLI probes resolvers sequentially; per-resolver rows update after the final JSON result.",
+                "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
             ]
         }
     }
@@ -334,7 +336,8 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         isRunning: Bool,
         failure: BenchmarkExecutionFailure?,
         outcome: BenchmarkExecutionOutcome?,
-        targets: [BenchmarkProgressResolverTarget]
+        targets: [BenchmarkProgressResolverTarget],
+        progressEvents: [BenchmarkProgressEvent]
     ) -> [BenchmarkResolverStatusViewModel] {
         if case .completed(let resultViewModel) = outcome {
             return resultViewModel.rows.map { row in
@@ -349,6 +352,29 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         }
 
         if isRunning {
+            if !progressEvents.isEmpty {
+                let latestEvents = latestProgressEventsByProfileID(progressEvents)
+                return targets.map { target in
+                    if let event = latestEvents[target.id] {
+                        return BenchmarkResolverStatusViewModel(
+                            id: target.id,
+                            name: target.name,
+                            resolver: target.resolver,
+                            status: status(for: event),
+                            detail: detail(for: event)
+                        )
+                    }
+
+                    return BenchmarkResolverStatusViewModel(
+                        id: target.id,
+                        name: target.name,
+                        resolver: target.resolver,
+                        status: .idle,
+                        detail: "Pending"
+                    )
+                }
+            }
+
             return targets.map { target in
                 BenchmarkResolverStatusViewModel(
                     id: target.id,
@@ -373,6 +399,50 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         }
 
         return []
+    }
+
+    private static func latestProgressEventsByProfileID(
+        _ events: [BenchmarkProgressEvent]
+    ) -> [String: BenchmarkProgressEvent] {
+        var latestEvents: [String: BenchmarkProgressEvent] = [:]
+        for event in events {
+            latestEvents[event.profileID] = event
+        }
+        return latestEvents
+    }
+
+    private static func status(for event: BenchmarkProgressEvent) -> BenchmarkProgressStatus {
+        switch event.type {
+        case .resolverStarted:
+            return .running
+        case .resolverFinished:
+            switch event.status {
+            case .success:
+                return .success
+            case .degraded:
+                return .degraded
+            case .failed:
+                return .failed
+            case nil:
+                return .success
+            }
+        }
+    }
+
+    private static func detail(for event: BenchmarkProgressEvent) -> String {
+        switch event.type {
+        case .resolverStarted:
+            return "Running \(event.index)/\(event.total)"
+        case .resolverFinished:
+            guard let failureRate = event.failureRate else {
+                return "Finished"
+            }
+            return "\(percent(failureRate))% failed"
+        }
+    }
+
+    private static func percent(_ value: Double) -> Int {
+        Int((min(max(value, 0), 1) * 100).rounded())
     }
 
     private static func worstCaseDNSSeconds(summary: BenchmarkProgressPlanSummary) -> String {

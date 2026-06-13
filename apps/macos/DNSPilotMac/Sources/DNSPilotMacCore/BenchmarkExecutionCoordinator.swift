@@ -19,13 +19,15 @@ public struct BenchmarkExecutionCoordinator {
     public func execute(
         plan: BenchmarkPlanViewModel,
         persistence: BenchmarkHistoryPersistence? = nil,
-        cancellation: BenchmarkRunCancellation? = nil
+        cancellation: BenchmarkRunCancellation? = nil,
+        progressHandler: BenchmarkProgressEventHandler? = nil
     ) -> BenchmarkExecutionOutcome {
         do {
             let runResult = try runner.run(
                 plan: plan,
                 persistence: persistence,
-                cancellation: cancellation
+                cancellation: cancellation,
+                progressHandler: progressHandler
             )
             Self.logger.info(
                 "Benchmark process finished exit=\(runResult.exitCode, privacy: .public) stdout_bytes=\(runResult.standardOutput.utf8.count, privacy: .public) stderr_bytes=\(runResult.standardError.utf8.count, privacy: .public) args=\(runResult.commandArguments.joined(separator: " "), privacy: .private)"

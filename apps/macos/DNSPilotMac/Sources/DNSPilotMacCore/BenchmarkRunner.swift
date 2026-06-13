@@ -44,18 +44,18 @@ public struct BenchmarkProcessOutput: Equatable {
 
 public typealias BenchmarkProgressEventHandler = @Sendable (BenchmarkProgressEvent) -> Void
 
-public enum BenchmarkProgressEventType: String, Decodable, Equatable {
+public enum BenchmarkProgressEventType: String, Decodable, Equatable, Sendable {
     case resolverStarted = "resolver_started"
     case resolverFinished = "resolver_finished"
 }
 
-public enum BenchmarkProgressEventStatus: String, Decodable, Equatable {
+public enum BenchmarkProgressEventStatus: String, Decodable, Equatable, Sendable {
     case success
     case degraded
     case failed
 }
 
-public struct BenchmarkProgressEvent: Decodable, Equatable {
+public struct BenchmarkProgressEvent: Decodable, Equatable, Sendable {
     public let type: BenchmarkProgressEventType
     public let measurementScope: BenchmarkMeasurementScope
     public let profileID: String

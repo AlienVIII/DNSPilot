@@ -1,6 +1,6 @@
 import Foundation
 
-public enum BenchmarkMeasurementScope: String, Decodable, Equatable {
+public enum BenchmarkMeasurementScope: String, Decodable, Equatable, Sendable {
     case dnsOnly = "dns-only"
     case dnsTCP = "dns-tcp"
     case dnsTCPTLS = "dns-tcp-tls"

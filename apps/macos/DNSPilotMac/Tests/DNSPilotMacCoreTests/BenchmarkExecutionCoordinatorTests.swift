@@ -211,16 +211,51 @@ final class BenchmarkExecutionCoordinatorTests: XCTestCase {
             ["--save-db", "/tmp/dnspilot.sqlite", "--history-id", "compare-run-1"]
         )
     }
+
+    func testCoordinatorForwardsProgressEvents() {
+        let event = BenchmarkProgressEvent(
+            type: .resolverStarted,
+            measurementScope: .dnsOnly,
+            profileID: "cloudflare",
+            resolver: "1.1.1.1:53",
+            index: 1,
+            total: 1,
+            status: nil,
+            failureRate: nil,
+            timeoutRate: nil
+        )
+        let processRunner = FixedProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: successfulCompareJSON, standardError: ""),
+            progressEvents: [event]
+        )
+        let coordinator = BenchmarkExecutionCoordinator(
+            runner: BenchmarkRunner(
+                executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+                processRunner: processRunner
+            ),
+            catalog: makeExecutionCatalog()
+        )
+        let receivedEvents = LockedExecutionProgressEvents()
+
+        _ = coordinator.execute(plan: makeExecutionPlan()) { event in
+            receivedEvents.append(event)
+        }
+
+        XCTAssertTrue(processRunner.receivedArguments.contains("--progress-jsonl"))
+        XCTAssertEqual(receivedEvents.values, [event])
+    }
 }
 
 private final class FixedProcessRunner: BenchmarkProcessRunning {
     private let output: BenchmarkProcessOutput
+    private let progressEvents: [BenchmarkProgressEvent]
     private(set) var runCount = 0
     private(set) var receivedCancellation: BenchmarkRunCancellation?
     private(set) var receivedArguments: [String] = []
 
-    init(output: BenchmarkProcessOutput) {
+    init(output: BenchmarkProcessOutput, progressEvents: [BenchmarkProgressEvent] = []) {
         self.output = output
+        self.progressEvents = progressEvents
     }
 
     func run(
@@ -232,6 +267,36 @@ private final class FixedProcessRunner: BenchmarkProcessRunning {
         receivedCancellation = cancellation
         receivedArguments = arguments
         return output
+    }
+
+    func run(
+        executableURL: URL,
+        arguments: [String],
+        cancellation: BenchmarkRunCancellation?,
+        progressHandler: BenchmarkProgressEventHandler?
+    ) throws -> BenchmarkProcessOutput {
+        runCount += 1
+        receivedCancellation = cancellation
+        receivedArguments = arguments
+        progressEvents.forEach { progressHandler?($0) }
+        return output
+    }
+}
+
+private final class LockedExecutionProgressEvents: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [BenchmarkProgressEvent] = []
+
+    var values: [BenchmarkProgressEvent] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+
+    func append(_ event: BenchmarkProgressEvent) {
+        lock.lock()
+        storage.append(event)
+        lock.unlock()
     }
 }
 
