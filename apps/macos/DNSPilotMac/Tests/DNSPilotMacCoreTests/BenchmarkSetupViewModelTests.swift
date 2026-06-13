@@ -126,6 +126,10 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.runnableProfileIDs, ["cloudflare"])
         XCTAssertEqual(viewModel.profileSelectionSummary, "1 of 1 runnable selected")
+        XCTAssertEqual(
+            viewModel.profileOptions.first { $0.id == "google-public-dns" }?.detailLabel,
+            "No IPv6 resolver"
+        )
         XCTAssertEqual(viewModel.runPlanSummary, "DNS only, IPv6 resolver, A + AAAA, 1 resolver, 1 domain, 1 attempt")
         XCTAssertEqual(
             viewModel.plan.commandArguments,

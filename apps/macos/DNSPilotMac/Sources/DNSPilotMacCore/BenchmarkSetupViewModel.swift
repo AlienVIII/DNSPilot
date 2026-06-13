@@ -221,10 +221,13 @@ public struct BenchmarkProfileOption: Equatable, Identifiable {
     public init(profile: CatalogProfile, resolverTransport: BenchmarkResolverTransport = .automatic) {
         id = profile.id
         name = profile.name
+        let socketAddress = resolverTransport.socketAddress(for: profile)
         isRunnable = profile.protocol == .plain
-            && resolverTransport.socketAddress(for: profile) != nil
+            && socketAddress != nil
         if isRunnable {
             detailLabel = "\(profile.ipv4Servers.count) IPv4 / \(profile.ipv6Servers.count) IPv6"
+        } else if profile.protocol == .plain, let summaryLabel = resolverTransport.summaryLabel {
+            detailLabel = "No \(summaryLabel)"
         } else {
             detailLabel = "Requires OS DNS profile flow"
         }
