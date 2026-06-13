@@ -115,6 +115,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Benchmark shows per-DNS status rows, select-all runnable profiles, a
   copyable full issue report, and developer OSLog diagnostics for
   process/parse failure.
+- CLI `compare` and `path-compare` can emit opt-in per-resolver progress JSONL
+  on stderr while preserving final benchmark JSON on stdout.
 - macOS Benchmark warns on long worst-case benchmark plans and exposes DNS
   timeout, TCP timeout, and TCP target cap controls.
 - macOS Benchmark exposes DNS record-family controls (`A + AAAA`, `A only`,
@@ -217,9 +219,11 @@ cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1 --ip-family ipv4-only
+cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --progress-jsonl
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --domain github.com --attempts 1 --ip-family ipv4-only
+cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --progress-jsonl
 cargo run -p dnspilot-cli -- path-estimate --resolver 1.1.1.1:53 --domain github.com --attempts 1 --tls-handshake-timeout-ms 1000
 cargo run -p dnspilot-cli -- path-compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1 --tls-handshake-timeout-ms 1000
 cargo run -p dnspilot-cli -- storage-smoke --db /tmp/dnspilot.sqlite

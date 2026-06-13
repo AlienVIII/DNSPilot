@@ -117,6 +117,72 @@ fn path_compare_command_can_limit_to_ipv4_records() {
 }
 
 #[test]
+fn path_compare_command_can_emit_progress_jsonl_to_stderr() {
+    let tcp_listener = TcpListener::bind("127.0.0.1:0").expect("bind local TCP listener");
+    let connect_port = tcp_listener.local_addr().expect("listener addr").port();
+    thread::spawn(move || {
+        for _ in 0..2 {
+            let _ = tcp_listener.accept().expect("accept TCP connection");
+        }
+    });
+
+    let first = start_fake_resolver_with_a(1, Duration::from_millis(1), Ipv4Addr::new(127, 0, 0, 1));
+    let second = start_fake_resolver_with_a(1, Duration::from_millis(1), Ipv4Addr::new(127, 0, 0, 1));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "path-compare",
+            "--resolver",
+            &format!("first={first}"),
+            "--resolver",
+            &format!("second={second}"),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--dns-timeout-ms",
+            "500",
+            "--connect-timeout-ms",
+            "500",
+            "--connect-port",
+            &connect_port.to_string(),
+            "--ip-family",
+            "ipv4-only",
+            "--progress-jsonl",
+        ])
+        .output()
+        .expect("run dnspilot-cli path-compare");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
+    let result_json: Value = serde_json::from_str(&stdout).expect("stdout should stay final json");
+    assert_eq!(result_json["summary"]["measurement_scope"], "dns-tcp");
+
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
+    let events = stderr
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).expect("stderr line should be progress json"))
+        .collect::<Vec<_>>();
+
+    assert_eq!(events.len(), 4);
+    assert_eq!(events[0]["type"], "resolver_started");
+    assert_eq!(events[0]["measurement_scope"], "dns-tcp");
+    assert_eq!(events[0]["profile_id"], "first");
+    assert_eq!(events[0]["index"], 1);
+    assert_eq!(events[0]["total"], 2);
+    assert_eq!(events[1]["type"], "resolver_finished");
+    assert_eq!(events[1]["profile_id"], "first");
+    assert_eq!(events[1]["status"], "success");
+    assert_eq!(events[3]["type"], "resolver_finished");
+    assert_eq!(events[3]["profile_id"], "second");
+}
+
+#[test]
 fn path_compare_command_can_use_saved_domain_suite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-path-compare-suite-{}.sqlite",

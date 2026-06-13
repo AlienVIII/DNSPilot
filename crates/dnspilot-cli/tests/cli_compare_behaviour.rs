@@ -86,6 +86,59 @@ fn compare_command_can_limit_to_ipv4_records() {
 }
 
 #[test]
+fn compare_command_can_emit_progress_jsonl_to_stderr() {
+    let slow = start_fake_resolver(2, Duration::from_millis(10));
+    let fast = start_fake_resolver(2, Duration::from_millis(1));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--resolver",
+            &format!("slow={slow}"),
+            "--resolver",
+            &format!("fast={fast}"),
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "500",
+            "--progress-jsonl",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
+    let result_json: Value = serde_json::from_str(&stdout).expect("stdout should stay final json");
+    assert_eq!(result_json["summary"]["measurement_scope"], "dns-only");
+
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
+    let events = stderr
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).expect("stderr line should be progress json"))
+        .collect::<Vec<_>>();
+
+    assert_eq!(events.len(), 4);
+    assert_eq!(events[0]["type"], "resolver_started");
+    assert_eq!(events[0]["measurement_scope"], "dns-only");
+    assert_eq!(events[0]["profile_id"], "slow");
+    assert_eq!(events[0]["index"], 1);
+    assert_eq!(events[0]["total"], 2);
+    assert_eq!(events[1]["type"], "resolver_finished");
+    assert_eq!(events[1]["profile_id"], "slow");
+    assert_eq!(events[1]["status"], "success");
+    assert_eq!(events[2]["profile_id"], "fast");
+    assert_eq!(events[3]["type"], "resolver_finished");
+    assert_eq!(events[3]["profile_id"], "fast");
+}
+
+#[test]
 fn compare_command_can_use_saved_domain_suite() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-compare-suite-{}.sqlite",

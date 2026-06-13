@@ -103,6 +103,8 @@ enum Command {
         save_db: Option<std::path::PathBuf>,
         #[arg(long)]
         history_id: Option<String>,
+        #[arg(long)]
+        progress_jsonl: bool,
     },
     PathEstimate {
         #[arg(long)]
@@ -167,6 +169,8 @@ enum Command {
         save_db: Option<std::path::PathBuf>,
         #[arg(long)]
         history_id: Option<String>,
+        #[arg(long)]
+        progress_jsonl: bool,
     },
     StorageSmoke {
         #[arg(long)]
@@ -457,6 +461,7 @@ fn main() {
             timeout_ms,
             save_db,
             history_id,
+            progress_jsonl,
         } => {
             reject_zero_usize("--attempts", attempts);
             reject_zero_u64("--timeout-ms", timeout_ms);
@@ -494,6 +499,16 @@ fn main() {
                     std::process::exit(2);
                 }
                 resolver_profile_ids.push(profile_id.clone());
+                emit_resolver_progress(
+                    progress_jsonl,
+                    "resolver_started",
+                    MeasurementScope::DnsOnly,
+                    &profile_id,
+                    resolver,
+                    index + 1,
+                    resolver_count,
+                    None,
+                );
                 let config = DnsBenchmarkConfig {
                     profile_id: profile_id.clone(),
                     domains: domains.clone(),
@@ -504,6 +519,16 @@ fn main() {
                     record_family: ip_family.into(),
                 };
                 let run = run_udp_dns_benchmark(&config, resolver);
+                emit_resolver_progress(
+                    progress_jsonl,
+                    "resolver_finished",
+                    MeasurementScope::DnsOnly,
+                    &profile_id,
+                    resolver,
+                    index + 1,
+                    resolver_count,
+                    Some(&run.metrics),
+                );
                 metrics.push(run.metrics.clone());
                 runs.push(serde_json::json!({
                     "profile_id": profile_id,
@@ -682,6 +707,7 @@ fn main() {
             tls_handshake_timeout_ms,
             save_db,
             history_id,
+            progress_jsonl,
         } => {
             reject_zero_usize("--attempts", attempts);
             reject_zero_u64("--dns-timeout-ms", dns_timeout_ms);
@@ -728,6 +754,21 @@ fn main() {
                     std::process::exit(2);
                 }
                 resolver_profile_ids.push(profile_id.clone());
+                let scope = if tls_enabled {
+                    MeasurementScope::DnsTcpTls
+                } else {
+                    MeasurementScope::DnsTcp
+                };
+                emit_resolver_progress(
+                    progress_jsonl,
+                    "resolver_started",
+                    scope,
+                    &profile_id,
+                    resolver,
+                    index + 1,
+                    resolver_count,
+                    None,
+                );
 
                 let config = ConnectionPathConfig {
                     profile_id: profile_id.clone(),
@@ -743,6 +784,16 @@ fn main() {
                     record_family: ip_family.into(),
                 };
                 let run = run_udp_connection_path_estimate(&config, resolver);
+                emit_resolver_progress(
+                    progress_jsonl,
+                    "resolver_finished",
+                    scope,
+                    &profile_id,
+                    resolver,
+                    index + 1,
+                    resolver_count,
+                    Some(&run.metrics),
+                );
                 let tls_samples = run
                     .tls
                     .as_ref()
@@ -1491,6 +1542,58 @@ fn save_benchmark_history(db: &std::path::Path, record: BenchmarkHistoryRecord) 
         eprintln!("{error}");
         std::process::exit(2);
     });
+}
+
+fn emit_resolver_progress(
+    enabled: bool,
+    event_type: &str,
+    measurement_scope: MeasurementScope,
+    profile_id: &str,
+    resolver: SocketAddr,
+    index: usize,
+    total: usize,
+    metrics: Option<&BenchmarkMetrics>,
+) {
+    if !enabled {
+        return;
+    }
+
+    let mut event = serde_json::json!({
+        "type": event_type,
+        "measurement_scope": measurement_scope_name(measurement_scope),
+        "profile_id": profile_id,
+        "resolver": resolver.to_string(),
+        "index": index,
+        "total": total,
+    });
+    if let Some(metrics) = metrics {
+        event["status"] = serde_json::Value::String(progress_status(metrics).into());
+        event["failure_rate"] = serde_json::Value::from(metrics.failure_rate);
+        event["timeout_rate"] = serde_json::Value::from(metrics.timeout_rate);
+    }
+
+    eprintln!(
+        "{}",
+        serde_json::to_string(&event).expect("serialize progress event")
+    );
+}
+
+fn progress_status(metrics: &BenchmarkMetrics) -> &'static str {
+    if metrics.failure_rate >= 1.0 {
+        "failed"
+    } else if metrics.failure_rate > 0.0 || metrics.timeout_rate > 0.0 {
+        "degraded"
+    } else {
+        "success"
+    }
+}
+
+fn measurement_scope_name(scope: MeasurementScope) -> &'static str {
+    match scope {
+        MeasurementScope::DnsOnly => "dns-only",
+        MeasurementScope::DnsTcp => "dns-tcp",
+        MeasurementScope::DnsTcpTls => "dns-tcp-tls",
+    }
 }
 
 fn default_history_id(prefix: &str) -> String {
