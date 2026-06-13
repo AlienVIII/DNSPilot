@@ -43,6 +43,23 @@ public struct BenchmarkExecutionFailure: Equatable, Sendable, ExpressibleByStrin
         self.init(message: value, failedStep: .preparingBenchmark, debugLog: value)
     }
 
+    public func issueReport(modeLabel: String, elapsedMS: Int?) -> String {
+        var lines = [
+            "Benchmark failed",
+            "Mode: \(modeLabel)",
+            "Failed at: \(failedStep.label)",
+            "Reason: \(message)",
+            "Suggestion: \(suggestion)",
+        ]
+        if let elapsedMS {
+            lines.append("Elapsed: \(elapsedMS) ms")
+        }
+        lines.append("")
+        lines.append("Debug log:")
+        lines.append(debugLog)
+        return lines.joined(separator: "\n")
+    }
+
     private static func defaultSuggestion(for step: BenchmarkFailureStep) -> String {
         switch step {
         case .preparingBenchmark:

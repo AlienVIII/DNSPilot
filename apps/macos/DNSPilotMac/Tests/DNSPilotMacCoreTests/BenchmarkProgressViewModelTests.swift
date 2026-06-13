@@ -2,6 +2,30 @@ import XCTest
 @testable import DNSPilotMacCore
 
 final class BenchmarkProgressViewModelTests: XCTestCase {
+    func testFailureIssueReportIncludesContextAndDebugLog() {
+        let failure = BenchmarkExecutionFailure(
+            message: "DNS lookup timeout",
+            failedStep: .resolvingDNS,
+            debugLog: "arguments: compare --profiles cloudflare\nstderr: timed out"
+        )
+
+        XCTAssertEqual(
+            failure.issueReport(modeLabel: "DNS only", elapsedMS: 1_240),
+            """
+            Benchmark failed
+            Mode: DNS only
+            Failed at: Resolving DNS
+            Reason: DNS lookup timeout
+            Suggestion: Try DNS + TCP or check resolver, firewall, VPN, or network configuration.
+            Elapsed: 1240 ms
+
+            Debug log:
+            arguments: compare --profiles cloudflare
+            stderr: timed out
+            """
+        )
+    }
+
     func testProgressShowsDnsOnlyResolvingWhileRunning() {
         let viewModel = BenchmarkProgressViewModel(
             mode: .dnsOnlyCompare,

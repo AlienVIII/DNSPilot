@@ -2062,10 +2062,10 @@ private struct BenchmarkFailurePanel: View {
                             .font(.headline)
                         Spacer()
                         Button(action: copyIssueLog) {
-                            Label("Copy Issue Log", systemImage: "doc.on.doc")
+                            Label("Copy Issue Report", systemImage: "doc.on.doc")
                         }
                     }
-                    Text("Copy this when creating an issue.")
+                    Text("Copy the full failure report when creating an issue.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(failure.debugLog)
@@ -2082,7 +2082,10 @@ private struct BenchmarkFailurePanel: View {
     private func copyIssueLog() {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(failure.debugLog, forType: .string)
+        pasteboard.setString(
+            failure.issueReport(modeLabel: mode.displayLabel, elapsedMS: elapsedMS),
+            forType: .string
+        )
     }
 }
 
@@ -2099,8 +2102,10 @@ private struct BenchmarkFailureRow: View {
                     .frame(width: 88, alignment: .leading)
                 Text(value)
                     .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
