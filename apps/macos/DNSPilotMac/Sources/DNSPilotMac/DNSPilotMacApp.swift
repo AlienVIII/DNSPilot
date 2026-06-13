@@ -210,7 +210,10 @@ private struct DNSPilotShellView: View {
             case .capabilities:
                 CapabilityMatrixDetailView(viewModel: capabilityViewModel)
             case .benchmark:
-                BenchmarkDetailHostView(catalogViewModel: catalogViewModel)
+                BenchmarkDetailHostView(
+                    catalogViewModel: catalogViewModel,
+                    onCatalogChanged: refreshCatalogFromStorage
+                )
             case .customDNS:
                 CustomDNSDetailHostView(
                     executableAvailability: BenchmarkExecutableResolver().resolve(),
@@ -797,6 +800,7 @@ private struct CatalogOverviewDetailView: View {
 
 private struct BenchmarkDetailHostView: View {
     let catalogViewModel: CatalogViewModel
+    let onCatalogChanged: () -> Void
 
     var body: some View {
         if let loadErrorMessage = catalogViewModel.loadErrorMessage {
@@ -804,7 +808,8 @@ private struct BenchmarkDetailHostView: View {
         } else if let catalog = catalogViewModel.catalog {
             BenchmarkDetailView(
                 catalog: catalog,
-                executableAvailability: BenchmarkExecutableResolver().resolve()
+                executableAvailability: BenchmarkExecutableResolver().resolve(),
+                onCatalogChanged: onCatalogChanged
             )
         } else {
             BenchmarkUnavailableView(message: "Catalog unavailable.")
@@ -949,10 +954,13 @@ private struct HistoryDetailView: View {
 private struct BenchmarkDetailView: View {
     let catalog: CatalogSnapshot
     let executableAvailability: BenchmarkExecutableAvailability
+    let onCatalogChanged: () -> Void
 
     @State private var selectedProfileIDs: [String]
     @State private var selectedSuiteID: String?
     @State private var customDomainsText: String
+    @State private var suiteNameText: String
+    @State private var suiteSaveState: CustomSuiteSaveState
     @State private var attempts: Int
     @State private var mode: BenchmarkPlanMode
     @State private var runStateMachine = BenchmarkRunStateMachine()
@@ -991,6 +999,13 @@ private struct BenchmarkDetailView: View {
         )
     }
 
+    private var suiteForm: CustomDomainSuiteFormViewModel {
+        CustomDomainSuiteFormViewModel(
+            name: suiteNameText,
+            domainsText: customDomainsText
+        )
+    }
+
     private var completedResultSavedHistory: Bool {
         guard case .completed(let resultViewModel) = outcome else {
             return false
@@ -998,9 +1013,14 @@ private struct BenchmarkDetailView: View {
         return resultViewModel.savedHistoryLabel != nil
     }
 
-    init(catalog: CatalogSnapshot, executableAvailability: BenchmarkExecutableAvailability) {
+    init(
+        catalog: CatalogSnapshot,
+        executableAvailability: BenchmarkExecutableAvailability,
+        onCatalogChanged: @escaping () -> Void
+    ) {
         self.catalog = catalog
         self.executableAvailability = executableAvailability
+        self.onCatalogChanged = onCatalogChanged
         let defaults = BenchmarkSetupViewModel(
             catalog: catalog,
             executableAvailability: executableAvailability
@@ -1008,6 +1028,8 @@ private struct BenchmarkDetailView: View {
         _selectedProfileIDs = State(initialValue: defaults.selectedProfileIDs)
         _selectedSuiteID = State(initialValue: defaults.selectedSuiteID)
         _customDomainsText = State(initialValue: defaults.customDomainsText)
+        _suiteNameText = State(initialValue: "")
+        _suiteSaveState = State(initialValue: .idle)
         _attempts = State(initialValue: defaults.attempts)
         _mode = State(initialValue: defaults.mode)
     }
@@ -1117,6 +1139,40 @@ private struct BenchmarkDetailView: View {
                                 RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
                                     .stroke(.separator.opacity(0.5))
                             }
+
+                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                            HStack(spacing: DNSPilotDesign.Spacing.row) {
+                                TextField("Suite name", text: $suiteNameText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 260, alignment: .leading)
+                                    .disabled(isBenchmarkActive || isSavingSuite)
+
+                                Button(action: saveCustomSuite) {
+                                    if isSavingSuite {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Label("Save Suite", systemImage: "tray.and.arrow.down")
+                                    }
+                                }
+                                .disabled(!suiteForm.canSave || isBenchmarkActive || isSavingSuite)
+                                .help(suiteForm.canSave ? "Save custom domains as a suite" : suiteForm.issues.joined(separator: "\n"))
+                            }
+
+                            if shouldShowSuiteIssues, !suiteForm.issues.isEmpty {
+                                ForEach(suiteForm.issues, id: \.self) { issue in
+                                    Label(issue, systemImage: "exclamationmark.triangle")
+                                        .font(.caption)
+                                        .foregroundStyle(DNSPilotDesign.Palette.warning)
+                                }
+                            }
+
+                            if let suiteSaveMessage {
+                                Label(suiteSaveMessage, systemImage: suiteSaveSystemImage)
+                                    .font(.caption)
+                                    .foregroundStyle(suiteSaveForegroundStyle)
+                            }
+                        }
                     }
                 }
 
@@ -1145,6 +1201,8 @@ private struct BenchmarkDetailView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(DNSPilotDesign.Palette.background)
+        .onChange(of: suiteNameText) { _, _ in resetSuiteSaveState() }
+        .onChange(of: customDomainsText) { _, _ in resetSuiteSaveState() }
     }
 
     private func profileBinding(for option: BenchmarkProfileOption) -> Binding<Bool> {
@@ -1179,12 +1237,107 @@ private struct BenchmarkDetailView: View {
         )
     }
 
+    private var isSavingSuite: Bool {
+        if case .saving = suiteSaveState {
+            return true
+        }
+        return false
+    }
+
+    private var shouldShowSuiteIssues: Bool {
+        !suiteNameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var suiteSaveMessage: String? {
+        switch suiteSaveState {
+        case .idle:
+            nil
+        case .saving:
+            "Saving \(suiteForm.name)..."
+        case .saved(let suiteID, let name):
+            "Saved \(name) as \(suiteID)."
+        case .failed(let message):
+            message
+        }
+    }
+
+    private var suiteSaveSystemImage: String {
+        switch suiteSaveState {
+        case .idle:
+            "info.circle"
+        case .saving:
+            "clock"
+        case .saved:
+            "checkmark.circle"
+        case .failed:
+            "exclamationmark.triangle"
+        }
+    }
+
+    private var suiteSaveForegroundStyle: Color {
+        switch suiteSaveState {
+        case .failed:
+            DNSPilotDesign.Palette.warning
+        case .idle, .saving, .saved:
+            .secondary
+        }
+    }
+
     private var isBenchmarkActive: Bool {
         switch runStateMachine.state {
         case .running, .cancelling:
             true
         case .idle, .completed, .failed, .cancelled:
             false
+        }
+    }
+
+    private func saveCustomSuite() {
+        guard !isBenchmarkActive, !isSavingSuite else {
+            return
+        }
+        let form = suiteForm
+        guard form.canSave else {
+            suiteSaveState = .failed(form.issues.joined(separator: "\n"))
+            return
+        }
+        guard let factory = makePreparedHistoryPersistenceFactory() else {
+            suiteSaveState = .failed("Suite storage is unavailable.")
+            return
+        }
+        guard case .ready(let executableURL) = executableAvailability else {
+            suiteSaveState = .failed("DNS Pilot CLI executable is unavailable.")
+            return
+        }
+
+        suiteSaveState = .saving
+        let databaseURL = factory.databaseURL
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let coordinator = CustomDomainSuiteSaveCoordinator(
+                runner: CustomDomainSuiteSaveRunner(executableURL: executableURL)
+            )
+            let outcome = coordinator.save(form: form, databaseURL: databaseURL)
+
+            DispatchQueue.main.async {
+                switch outcome {
+                case .saved(let suiteID, let name):
+                    selectedSuiteID = suiteID
+                    suiteSaveState = .saved(suiteID: suiteID, name: name)
+                    onCatalogChanged()
+                case .failed(let message):
+                    suiteSaveState = .failed(message)
+                }
+            }
+        }
+    }
+
+    private func resetSuiteSaveState() {
+        switch suiteSaveState {
+        case .saved, .failed:
+            suiteSaveState = .idle
+        case .idle, .saving:
+            break
         }
     }
 
@@ -1296,6 +1449,13 @@ private struct BenchmarkDetailView: View {
     private static func elapsedMilliseconds(since startDate: Date) -> Int {
         max(0, Int(Date().timeIntervalSince(startDate) * 1000))
     }
+}
+
+private enum CustomSuiteSaveState: Equatable {
+    case idle
+    case saving
+    case saved(suiteID: String, name: String)
+    case failed(String)
 }
 
 private func makePreparedHistoryPersistenceFactory() -> BenchmarkHistoryPersistenceFactory? {
