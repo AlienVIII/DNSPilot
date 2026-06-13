@@ -210,6 +210,22 @@ fn recommendation_reason_uses_dns_lookup_text_for_raw_dns_mode() {
 }
 
 #[test]
+fn recommendation_caveat_uses_tcp_text_for_connection_path_mode() {
+    let candidate = metrics("cloudflare", 18.0, 42.0, 0.0, 0.0, 75.0, 1.0, 0.95);
+
+    let recommendation = recommend(&[candidate], None, RecommendationMode::BestOverall)
+        .expect("recommendation should be produced");
+
+    assert!(recommendation
+        .caveats
+        .contains(&"This estimates DNS and TCP connection behavior, not full HTTPS, browser, or app speed.".to_string()));
+    assert!(!recommendation
+        .caveats
+        .iter()
+        .any(|caveat| caveat.contains("DNS and HTTPS connection behavior")));
+}
+
+#[test]
 fn recommendation_gate_blocks_all_failed_candidates() {
     let first = metrics(
         "first",

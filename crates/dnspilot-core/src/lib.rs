@@ -737,7 +737,8 @@ fn recommendation_scope_text(mode: RecommendationMode) -> (String, String) {
         ),
         _ => (
             format!("Best connection-path estimate for {:?} mode.", mode),
-            "This estimates DNS and HTTPS connection behavior, not full browser or app speed.".into(),
+            "This estimates DNS and TCP connection behavior, not full HTTPS, browser, or app speed."
+                .into(),
         ),
     }
 }
