@@ -45,6 +45,46 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         )
     }
 
+    func testProgressStaysVisibleWhileCancelling() {
+        let viewModel = BenchmarkProgressViewModel(
+            mode: .dnsOnlyCompare,
+            state: .cancelling(runID: BenchmarkRunID(1)),
+            outcome: nil,
+            historySaved: false,
+            planSummary: BenchmarkProgressPlanSummary(
+                resolverCount: 1,
+                domainCount: 1,
+                attempts: 1,
+                resolverTargets: [
+                    BenchmarkProgressResolverTarget(id: "cloudflare", name: "Cloudflare", resolver: "1.1.1.1:53"),
+                ]
+            )
+        )
+
+        XCTAssertEqual(
+            viewModel.steps.map { "\($0.title):\($0.status.rawValue)" },
+            [
+                "Preparing benchmark:success",
+                "Resolving DNS:running",
+                "Parsing result:idle",
+                "Saving history:idle",
+            ]
+        )
+        XCTAssertEqual(
+            viewModel.currentStepVerboseLines,
+            [
+                "* Cancellation requested; waiting for the CLI process to stop.",
+                "* Output is still drained so the final state and debug log stay consistent.",
+            ]
+        )
+        XCTAssertEqual(
+            viewModel.resolverStatuses.map { "\($0.name):\($0.status.rawValue):\($0.detail)" },
+            [
+                "Cloudflare:running:Cancelling",
+            ]
+        )
+    }
+
     func testProgressShowsDnsOnlyVerboseLinesWhileRunning() {
         let viewModel = BenchmarkProgressViewModel(
             mode: .dnsOnlyCompare,

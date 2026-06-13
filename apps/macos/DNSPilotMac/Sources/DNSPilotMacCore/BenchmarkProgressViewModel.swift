@@ -193,22 +193,28 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
             }
             return nil
         }()
-        let isRunning = {
-            if case .running = state {
+        let isCancelling = {
+            if case .cancelling = state {
                 return true
             }
             return false
         }()
+        let isActive = {
+            if case .running = state {
+                return true
+            }
+            return isCancelling
+        }()
         let isCompleted = state == .completed
 
         var nextSteps: [BenchmarkProgressStepViewModel] = [
-            Self.step(.preparingBenchmark, status: Self.status(for: .preparingBenchmark, failure: failure, isRunning: isRunning, isCompleted: isCompleted)),
-            Self.step(.resolvingDNS, status: Self.status(for: .resolvingDNS, failure: failure, isRunning: isRunning, isCompleted: isCompleted)),
+            Self.step(.preparingBenchmark, status: Self.status(for: .preparingBenchmark, failure: failure, isRunning: isActive, isCompleted: isCompleted)),
+            Self.step(.resolvingDNS, status: Self.status(for: .resolvingDNS, failure: failure, isRunning: isActive, isCompleted: isCompleted)),
         ]
 
         if mode == .connectionPathCompare {
             nextSteps.append(
-                Self.step(.measuringConnection, status: Self.status(for: .measuringConnection, failure: failure, isRunning: isRunning, isCompleted: isCompleted))
+                Self.step(.measuringConnection, status: Self.status(for: .measuringConnection, failure: failure, isRunning: isActive, isCompleted: isCompleted))
             )
         }
 
@@ -221,11 +227,13 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         steps = nextSteps
         currentStepVerboseLines = Self.verboseLines(
             mode: mode,
-            isRunning: isRunning,
+            isRunning: isActive,
+            isCancelling: isCancelling,
             planSummary: planSummary
         )
         resolverStatuses = Self.resolverStatuses(
-            isRunning: isRunning,
+            isRunning: isActive,
+            isCancelling: isCancelling,
             failure: failure,
             outcome: outcome,
             targets: planSummary?.resolverTargets ?? [],
@@ -301,10 +309,17 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
     private static func verboseLines(
         mode: BenchmarkPlanMode,
         isRunning: Bool,
+        isCancelling: Bool,
         planSummary: BenchmarkProgressPlanSummary?
     ) -> [String] {
         guard isRunning else {
             return []
+        }
+        if isCancelling {
+            return [
+                "* Cancellation requested; waiting for the CLI process to stop.",
+                "* Output is still drained so the final state and debug log stay consistent.",
+            ]
         }
         guard let planSummary else {
             return [
@@ -334,6 +349,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
 
     private static func resolverStatuses(
         isRunning: Bool,
+        isCancelling: Bool,
         failure: BenchmarkExecutionFailure?,
         outcome: BenchmarkExecutionOutcome?,
         targets: [BenchmarkProgressResolverTarget],
@@ -381,7 +397,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                     name: target.name,
                     resolver: target.resolver,
                     status: .running,
-                    detail: "Waiting for final JSON"
+                    detail: isCancelling ? "Cancelling" : "Waiting for final JSON"
                 )
             }
         }
