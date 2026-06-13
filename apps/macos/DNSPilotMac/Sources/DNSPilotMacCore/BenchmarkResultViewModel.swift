@@ -101,6 +101,9 @@ public struct BenchmarkResultViewModel: Equatable {
             "Confidence: \(confidenceLabel)",
             "Recommendation: \(recommendationLabel)",
         ]
+        let nextStep = BenchmarkResultNextStepViewModel(result: self)
+        lines.append(nextStep.title)
+        lines.append(contentsOf: nextStep.lines)
         if let elapsedMS {
             lines.append("Completed in: \(BenchmarkElapsedTimeFormatter.label(milliseconds: elapsedMS))")
         }

@@ -62,6 +62,11 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             Scope: DNS only
             Confidence: High confidence
             Recommendation: Recommended: Cloudflare
+            Next step: Review DNS settings
+            DNS Pilot has not changed system DNS.
+            Recommended profile: Cloudflare.
+            Only change DNS after checking VPN, MDM, captive portal, and corporate network requirements.
+            After changing DNS manually, flush cache and run the benchmark again.
             Saved run: compare-run-1
 
             Candidates:
