@@ -1311,6 +1311,22 @@ private struct BenchmarkDetailView: View {
                     )
                 }
 
+                if let outcome {
+                    switch outcome {
+                    case .completed(let resultViewModel):
+                        BenchmarkResultPanel(
+                            viewModel: resultViewModel,
+                            elapsedMS: lastBenchmarkElapsedMS
+                        )
+                    case .failed(let failure):
+                        BenchmarkFailurePanel(
+                            failure: failure,
+                            mode: mode,
+                            elapsedMS: lastBenchmarkElapsedMS
+                        )
+                    }
+                }
+
                 BenchmarkSection(title: "Mode") {
                     Picker("Mode", selection: $mode) {
                         Text("DNS only").tag(BenchmarkPlanMode.dnsOnlyCompare)
@@ -1490,21 +1506,6 @@ private struct BenchmarkDetailView: View {
                     }
                 }
 
-                if let outcome {
-                    switch outcome {
-                    case .completed(let resultViewModel):
-                        BenchmarkResultPanel(
-                            viewModel: resultViewModel,
-                            elapsedMS: lastBenchmarkElapsedMS
-                        )
-                    case .failed(let failure):
-                        BenchmarkFailurePanel(
-                            failure: failure,
-                            mode: mode,
-                            elapsedMS: lastBenchmarkElapsedMS
-                        )
-                    }
-                }
             }
             .padding(DNSPilotDesign.Spacing.panel)
             .frame(maxWidth: .infinity, alignment: .topLeading)
