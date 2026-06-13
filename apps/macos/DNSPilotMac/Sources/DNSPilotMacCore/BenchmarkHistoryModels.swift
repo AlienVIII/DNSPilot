@@ -91,9 +91,17 @@ public struct BenchmarkHistoryRow: Equatable, Identifiable {
         resolverSummary = "\(record.resolverProfileIDs.count) resolver\(record.resolverProfileIDs.count == 1 ? "" : "s")"
         healthLabel = Self.healthLabel(for: record.gate.health)
 
-        if record.gate.canRecommend,
-           let profileID = record.recommendationProfileID {
-            recommendationLabel = "Recommended: \(profileNames[profileID] ?? profileID)"
+        let shouldKeepCurrentDNS = Self.shouldKeepCurrentDNS(for: record)
+        if shouldKeepCurrentDNS {
+            recommendationLabel = "Keep current DNS"
+        } else if record.gate.canRecommend,
+                  let profileID = record.recommendationProfileID {
+            let profileName = profileNames[profileID] ?? profileID
+            if record.gate.health == .healthy {
+                recommendationLabel = "Recommended: \(profileName)"
+            } else {
+                recommendationLabel = "Best measured: \(profileName)"
+            }
         } else {
             recommendationLabel = "No recommendation"
         }
@@ -108,6 +116,19 @@ public struct BenchmarkHistoryRow: Equatable, Identifiable {
             return first
         }
         return "\(first) + \(remainingCount) more"
+    }
+
+    private static func shouldKeepCurrentDNS(for record: BenchmarkHistoryRecord) -> Bool {
+        if record.gate.primaryIssue == "all-resolvers-low-reliability" {
+            return true
+        }
+        guard record.gate.canRecommend,
+              record.gate.health != .healthy,
+              record.recommendationProfileID != nil,
+              !record.metrics.isEmpty else {
+            return false
+        }
+        return record.metrics.allSatisfy { $0.failureRate >= 0.5 }
     }
 
     private static func scopeLabel(for scope: BenchmarkMeasurementScope) -> String {

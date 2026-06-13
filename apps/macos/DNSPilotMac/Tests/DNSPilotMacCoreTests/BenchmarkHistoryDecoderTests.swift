@@ -55,6 +55,62 @@ final class BenchmarkHistoryViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.rows.map(\.id), ["run-new", "run-old"])
     }
+
+    func testViewModelKeepsCurrentDNSForLowReliabilityHistoryRun() {
+        let payload = BenchmarkHistoryPayload(
+            db: "/tmp/dnspilot.sqlite",
+            schemaVersion: 1,
+            benchmarkHistoryCount: 1,
+            records: [
+                makeHistoryRecord(
+                    id: "degraded-run",
+                    gate: BenchmarkHistoryGate(
+                        canRecommend: true,
+                        health: .degraded,
+                        primaryIssue: "partial-failure",
+                        notes: []
+                    ),
+                    recommendationProfileID: "cloudflare",
+                    metrics: [
+                        makeHistoryMetric(profileID: "cloudflare", failureRate: 0.5),
+                        makeHistoryMetric(profileID: "google", failureRate: 0.5),
+                    ]
+                ),
+            ]
+        )
+
+        let viewModel = BenchmarkHistoryViewModel(payload: payload, catalog: makeHistoryCatalog())
+
+        XCTAssertEqual(viewModel.rows.first?.recommendationLabel, "Keep current DNS")
+    }
+
+    func testViewModelShowsBestMeasuredForDegradedButUsableHistoryRun() {
+        let payload = BenchmarkHistoryPayload(
+            db: "/tmp/dnspilot.sqlite",
+            schemaVersion: 1,
+            benchmarkHistoryCount: 1,
+            records: [
+                makeHistoryRecord(
+                    id: "partial-run",
+                    gate: BenchmarkHistoryGate(
+                        canRecommend: true,
+                        health: .degraded,
+                        primaryIssue: "partial-failure",
+                        notes: []
+                    ),
+                    recommendationProfileID: "cloudflare",
+                    metrics: [
+                        makeHistoryMetric(profileID: "cloudflare", failureRate: 0.2),
+                        makeHistoryMetric(profileID: "google", failureRate: 0.0),
+                    ]
+                ),
+            ]
+        )
+
+        let viewModel = BenchmarkHistoryViewModel(payload: payload, catalog: makeHistoryCatalog())
+
+        XCTAssertEqual(viewModel.rows.first?.recommendationLabel, "Best measured: Cloudflare")
+    }
 }
 
 let historyListJSON = """
@@ -183,5 +239,39 @@ func makeHistoryCatalog() -> CatalogSnapshot {
             ),
         ],
         testSuites: []
+    )
+}
+
+func makeHistoryRecord(
+    id: String,
+    gate: BenchmarkHistoryGate,
+    recommendationProfileID: String?,
+    metrics: [BenchmarkResultMetrics]
+) -> BenchmarkHistoryRecord {
+    BenchmarkHistoryRecord(
+        id: id,
+        startedAt: "started",
+        scope: .dnsTCP,
+        mode: .bestOverall,
+        domains: ["github.com"],
+        resolverProfileIDs: metrics.map(\.profileID),
+        metrics: metrics,
+        gate: gate,
+        recommendationProfileID: recommendationProfileID,
+        notes: []
+    )
+}
+
+func makeHistoryMetric(profileID: String, failureRate: Double) -> BenchmarkResultMetrics {
+    BenchmarkResultMetrics(
+        profileID: profileID,
+        medianDNSLatencyMS: 10,
+        p95DNSLatencyMS: 20,
+        failureRate: failureRate,
+        timeoutRate: failureRate,
+        medianConnectLatencyMS: 30,
+        ipv4Health: 1,
+        ipv6Health: failureRate >= 0.5 ? 0 : 1,
+        priorityFit: 1 - failureRate
     )
 }
