@@ -46,6 +46,8 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.healthLabel, "Healthy")
         XCTAssertEqual(viewModel.recommendationLabel, "Recommended: Cloudflare")
         XCTAssertEqual(viewModel.confidenceLabel, "High confidence")
+        XCTAssertTrue(viewModel.hasActionableRecommendation)
+        XCTAssertFalse(viewModel.recommendsKeepingCurrentDNS)
         XCTAssertFalse(viewModel.showsConnectionMetrics)
         XCTAssertEqual(viewModel.rows.map(\.name), ["Cloudflare", "Google Public DNS"])
         XCTAssertEqual(viewModel.rows.first?.medianDNSLatencyLabel, "4 ms")
@@ -74,6 +76,103 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             DNS-only warning.
             """
         )
+    }
+
+    func testNextStepGuidanceAllowsManualSettingsOnlyForStrongRecommendation() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .healthy,
+                primaryIssue: "none",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 500,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 4, failureRate: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.97,
+                confidence: .high,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let resultViewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+        let guidance = BenchmarkResultNextStepViewModel(result: resultViewModel)
+
+        XCTAssertEqual(guidance.title, "Next step: Review DNS settings")
+        XCTAssertEqual(guidance.actionLabel, "Open Network Settings")
+        XCTAssertTrue(guidance.canOpenNetworkSettings)
+        XCTAssertEqual(
+            guidance.lines,
+            [
+                "DNS Pilot has not changed system DNS.",
+                "Recommended profile: Cloudflare.",
+                "Only change DNS after checking VPN, MDM, captive portal, and corporate network requirements.",
+                "After changing DNS manually, flush cache and run the benchmark again.",
+            ]
+        )
+    }
+
+    func testNextStepGuidanceKeepsCurrentDNSForWeakResult() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsTCP,
+                mode: .bestOverall,
+                health: .degraded,
+                primaryIssue: "all-resolvers-low-reliability",
+                canRecommend: false,
+                safetyNotes: ["All candidates have reduced reliability; Keep current DNS and retest on a stable network."],
+                resolverCount: 2,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: nil,
+                dnsTimeoutMS: 800,
+                connectTimeoutMS: 1_000,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: 443,
+                maxConnectTargetsPerDomain: 4,
+                tlsEnabled: false,
+                trustStore: nil,
+                tlsSampleCount: 0,
+                recommendedProfileID: nil
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 55, failureRate: 0.5),
+                makeResultRun(profileID: "adguard-dns", medianDNS: 31, failureRate: 0.5),
+            ],
+            recommendation: nil,
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let resultViewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+        let guidance = BenchmarkResultNextStepViewModel(result: resultViewModel)
+
+        XCTAssertFalse(resultViewModel.hasActionableRecommendation)
+        XCTAssertTrue(resultViewModel.recommendsKeepingCurrentDNS)
+        XCTAssertEqual(guidance.title, "Next step: Keep current DNS")
+        XCTAssertEqual(guidance.actionLabel, "Copy Next Step")
+        XCTAssertFalse(guidance.canOpenNetworkSettings)
+        XCTAssertTrue(guidance.lines.contains("This run is not reliable enough to change DNS from it."))
     }
 
     func testResultViewModelShortensLongSavedHistoryIDForResultPanel() {

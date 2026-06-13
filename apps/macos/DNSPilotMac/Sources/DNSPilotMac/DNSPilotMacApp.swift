@@ -2189,6 +2189,24 @@ private func copyToPasteboard(_ value: String) {
     pasteboard.setString(value, forType: .string)
 }
 
+private func openNetworkSettings() {
+    let settingsURLs = [
+        "x-apple.systempreferences:com.apple.Network-Settings.extension",
+        "x-apple.systempreferences:com.apple.preference.network",
+    ]
+
+    for urlString in settingsURLs {
+        guard let url = URL(string: urlString) else {
+            continue
+        }
+        if NSWorkspace.shared.open(url) {
+            return
+        }
+    }
+
+    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+}
+
 private struct BenchmarkFailureRow: View {
     let label: String
     let value: String
@@ -2234,6 +2252,10 @@ private struct BenchmarkResultPanel: View {
 
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
+
+                BenchmarkResultNextStepPanel(
+                    viewModel: BenchmarkResultNextStepViewModel(result: viewModel)
+                )
 
                 Button {
                     copyToPasteboard(viewModel.resultReportText(elapsedMS: elapsedMS))
@@ -2303,6 +2325,42 @@ private struct BenchmarkResultPanel: View {
                 Text(viewModel.warning)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct BenchmarkResultNextStepPanel: View {
+    let viewModel: BenchmarkResultNextStepViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            Divider()
+
+            Label(viewModel.title, systemImage: viewModel.canOpenNetworkSettings ? "gearshape" : "shield")
+                .font(.headline)
+
+            ForEach(viewModel.lines, id: \.self) { line in
+                Label(line, systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                if viewModel.canOpenNetworkSettings {
+                    Button {
+                        openNetworkSettings()
+                    } label: {
+                        Label(viewModel.actionLabel, systemImage: "gearshape")
+                    }
+                    .accessibilityIdentifier("benchmark-open-network-settings-button")
+                }
+
+                Button {
+                    copyToPasteboard(viewModel.copyText)
+                } label: {
+                    Label("Copy Next Step", systemImage: "doc.on.doc")
+                }
+                .accessibilityIdentifier("benchmark-copy-next-step-button")
             }
         }
     }

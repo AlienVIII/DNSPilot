@@ -12,6 +12,9 @@ public struct BenchmarkResultViewModel: Equatable {
     public let savedHistoryLabel: String?
     public let fullSavedHistoryID: String?
     public let recordFamilyLabel: String?
+    public let recommendedProfileName: String?
+    public let recommendsKeepingCurrentDNS: Bool
+    public let hasActionableRecommendation: Bool
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
         let profileNames = Dictionary(
@@ -31,11 +34,21 @@ public struct BenchmarkResultViewModel: Equatable {
 
         let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID
         let recommendedCandidateName = recommendedProfileID.map { profileNames[$0] ?? $0 }
+        recommendedProfileName = recommendedCandidateName
         let shouldProtectCurrentDNS = Self.shouldProtectCurrentDNS(
             summary: result.summary,
             runs: result.runs,
             hasMeasuredCandidate: recommendedCandidateName != nil
         )
+        let blockedRecommendationLabel = Self.blockedRecommendationLabel(for: result.summary.primaryIssue)
+        recommendsKeepingCurrentDNS = shouldProtectCurrentDNS || blockedRecommendationLabel == "Keep current DNS"
+        hasActionableRecommendation = result.summary.canRecommend
+            && recommendedCandidateName != nil
+            && !recommendsKeepingCurrentDNS
+            && Self.shouldUseStrongRecommendation(
+                health: result.summary.health,
+                confidence: result.recommendation?.confidence
+            )
         let bestMeasuredNote: String?
         if shouldProtectCurrentDNS, let recommendedCandidateName {
             bestMeasuredNote = "Best measured candidate during this run: \(recommendedCandidateName)."
@@ -45,7 +58,7 @@ public struct BenchmarkResultViewModel: Equatable {
         let commonFailureNote = Self.commonPartialFailureNote(for: result.runs)
         let ipFamilyActionNote = Self.ipFamilyActionNote(for: result.runs)
 
-        if shouldProtectCurrentDNS {
+        if recommendsKeepingCurrentDNS {
             recommendationLabel = "Keep current DNS"
         } else if result.summary.canRecommend,
                   let candidateName = recommendedCandidateName {
@@ -54,7 +67,7 @@ public struct BenchmarkResultViewModel: Equatable {
             } else {
                 recommendationLabel = "Best measured candidate: \(candidateName)"
             }
-        } else if let blockedLabel = Self.blockedRecommendationLabel(for: result.summary.primaryIssue) {
+        } else if let blockedLabel = blockedRecommendationLabel {
             recommendationLabel = blockedLabel
         } else {
             recommendationLabel = "No recommendation"
@@ -382,6 +395,49 @@ public struct BenchmarkResultRow: Equatable, Identifiable {
         }
 
         return issues.isEmpty ? "No issues" : issues.joined(separator: ", ")
+    }
+}
+
+public struct BenchmarkResultNextStepViewModel: Equatable {
+    public let title: String
+    public let actionLabel: String
+    public let canOpenNetworkSettings: Bool
+    public let lines: [String]
+
+    public init(result: BenchmarkResultViewModel) {
+        if result.hasActionableRecommendation, let recommendedProfileName = result.recommendedProfileName {
+            title = "Next step: Review DNS settings"
+            actionLabel = "Open Network Settings"
+            canOpenNetworkSettings = true
+            lines = [
+                "DNS Pilot has not changed system DNS.",
+                "Recommended profile: \(recommendedProfileName).",
+                "Only change DNS after checking VPN, MDM, captive portal, and corporate network requirements.",
+                "After changing DNS manually, flush cache and run the benchmark again.",
+            ]
+        } else if result.recommendsKeepingCurrentDNS {
+            title = "Next step: Keep current DNS"
+            actionLabel = "Copy Next Step"
+            canOpenNetworkSettings = false
+            lines = [
+                "DNS Pilot has not changed system DNS.",
+                "This run is not reliable enough to change DNS from it.",
+                "Retest with DNS + TCP, A only, or a cleaner network before applying a resolver.",
+            ]
+        } else {
+            title = "Next step: Retest before changing DNS"
+            actionLabel = "Copy Next Step"
+            canOpenNetworkSettings = false
+            lines = [
+                "DNS Pilot has not changed system DNS.",
+                "No resolver is strong enough to apply from this run.",
+                "Try DNS + TCP, adjust DNS records, or check firewall, VPN, and captive portal state.",
+            ]
+        }
+    }
+
+    public var copyText: String {
+        ([title] + lines).joined(separator: "\n")
     }
 }
 
