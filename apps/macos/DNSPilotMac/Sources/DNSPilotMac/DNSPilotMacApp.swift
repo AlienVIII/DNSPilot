@@ -1788,7 +1788,7 @@ private struct BenchmarkDetailView: View {
             return
         }
         handledQuickBenchmarkRequestID = requestID
-        guard !isBenchmarkActive else {
+        guard !isBenchmarkActive, !isMutatingSuite else {
             return
         }
         applyQuickBenchmarkPreset()
@@ -1800,6 +1800,11 @@ private struct BenchmarkDetailView: View {
             catalog: catalog,
             executableAvailability: executableAvailability
         )
+        editingSuiteID = nil
+        suiteNameText = ""
+        suiteSaveState = .idle
+        suitePendingDelete = nil
+        isDeleteSuiteConfirmationPresented = false
         selectedProfileIDs = preset.selectedProfileIDs
         selectedSuiteID = preset.selectedSuiteID
         customDomainsText = preset.customDomainsText
