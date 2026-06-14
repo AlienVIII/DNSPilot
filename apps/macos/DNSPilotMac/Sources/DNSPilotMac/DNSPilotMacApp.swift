@@ -79,6 +79,9 @@ private struct DNSPilotMenuBarView: View {
             navigation.requestQuickBenchmark()
         case .history:
             navigation.selection = .history
+        case .networkSettings:
+            openNetworkSettings()
+            return
         }
 
         openWindow(id: DNSPilotWindowID.main)

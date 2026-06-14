@@ -12,12 +12,22 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
             return nil
         }
 
-        XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .history])
+        XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .history, .networkSettings])
     }
 
     func testQuickActionTitlesStayShortForMenuBar() {
         let viewModel = MenuBarQuickActionsViewModel()
 
         XCTAssertTrue(viewModel.actions.allSatisfy { $0.title.count <= 30 })
+    }
+
+    func testQuickActionsExposeStoreSafeSettingsFallback() {
+        let viewModel = MenuBarQuickActionsViewModel()
+
+        let action = viewModel.actions.first { $0.id == "network-settings" }
+
+        XCTAssertEqual(action?.title, "Open Network Settings")
+        XCTAssertEqual(action?.systemImage, "gearshape")
+        XCTAssertEqual(action?.kind, .destination(.networkSettings))
     }
 }

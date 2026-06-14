@@ -10,6 +10,7 @@ public enum MenuBarQuickDestination: String, Equatable {
     case benchmark
     case quickBenchmark
     case history
+    case networkSettings
 }
 
 public struct MenuBarQuickAction: Equatable, Identifiable {
@@ -59,6 +60,12 @@ public struct MenuBarQuickActionsViewModel: Equatable {
                 title: "History",
                 systemImage: "clock.arrow.circlepath",
                 kind: .destination(.history)
+            ),
+            MenuBarQuickAction(
+                id: "network-settings",
+                title: "Open Network Settings",
+                systemImage: "gearshape",
+                kind: .destination(.networkSettings)
             ),
             MenuBarQuickAction(
                 id: "quit",
