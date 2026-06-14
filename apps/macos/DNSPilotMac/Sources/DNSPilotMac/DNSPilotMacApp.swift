@@ -1370,6 +1370,12 @@ private struct BenchmarkDetailView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
+                        if let profileSelectionCaveat = setupViewModel.profileSelectionCaveat {
+                            Label(profileSelectionCaveat, systemImage: "line.3.horizontal.decrease.circle")
+                                .font(.caption)
+                                .foregroundStyle(DNSPilotDesign.Palette.warning)
+                        }
+
                         ForEach(setupViewModel.profileOptions) { option in
                             Toggle(isOn: profileBinding(for: option)) {
                                 HStack {

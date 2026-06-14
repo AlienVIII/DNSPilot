@@ -36,6 +36,19 @@ public struct BenchmarkSetupViewModel: Equatable {
         return "\(selectedRunnableCount) of \(runnableIDs.count) runnable selected"
     }
 
+    public var profileSelectionCaveat: String? {
+        let selectedProfiles = catalog.profiles.filter { profile in
+            selectedProfileIDs.contains(profile.id)
+                && BenchmarkProfileOption(profile: profile, resolverTransport: resolverTransport).isRunnable
+        }
+        let includesUnfiltered = selectedProfiles.contains { $0.filteringType == .none }
+        let includesFiltered = selectedProfiles.contains { $0.filteringType != .none }
+        guard includesUnfiltered && includesFiltered else {
+            return nil
+        }
+        return "Filtered DNS is selected with unfiltered resolvers; compare filtering goals separately."
+    }
+
     public var runPlanSummary: String {
         let plan = plan
         var parts = [modeLabel]

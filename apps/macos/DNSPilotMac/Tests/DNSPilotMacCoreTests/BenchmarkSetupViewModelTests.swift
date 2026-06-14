@@ -186,6 +186,44 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(allSelected.profileSelectionSummary, "2 of 2 runnable selected")
     }
 
+    func testSetupWarnsWhenFilteredAndUnfilteredProfilesAreMixed() {
+        let catalog = makeFilteringSetupCatalog()
+        let mixedSelection = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare", "filtered"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+        let unfilteredOnly = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+        let filteredOnly = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["filtered"],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .dnsOnlyCompare
+        )
+
+        XCTAssertEqual(
+            mixedSelection.profileSelectionCaveat,
+            "Filtered DNS is selected with unfiltered resolvers; compare filtering goals separately."
+        )
+        XCTAssertNil(unfilteredOnly.profileSelectionCaveat)
+        XCTAssertNil(filteredOnly.profileSelectionCaveat)
+    }
+
     func testSetupSummarizesRunPlanBeforeStarting() {
         let viewModel = BenchmarkSetupViewModel(
             catalog: makeSetupCatalog(),
@@ -347,5 +385,28 @@ private func makeSetupCatalog() -> CatalogSnapshot {
                 tags: []
             ),
         ]
+    )
+}
+
+private func makeFilteringSetupCatalog() -> CatalogSnapshot {
+    let baseCatalog = makeSetupCatalog()
+    return CatalogSnapshot(
+        profiles: baseCatalog.profiles + [
+            CatalogProfile(
+                id: "filtered",
+                name: "Filtered",
+                description: "Filtered DNS.",
+                ipv4Servers: ["1.1.1.2"],
+                ipv6Servers: [],
+                protocol: .plain,
+                dohURL: nil,
+                dotHostname: nil,
+                filteringType: .malware,
+                tags: [],
+                useCase: "filtering",
+                securityNotes: []
+            ),
+        ],
+        testSuites: baseCatalog.testSuites
     )
 }
