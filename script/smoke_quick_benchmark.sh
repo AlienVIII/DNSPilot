@@ -30,7 +30,7 @@ start_ms="$(perl -MTime::HiRes=time -e 'printf "%.0f", time()*1000')"
   cd "$ROOT_DIR"
   cargo run -q -p dnspilot-cli -- path-compare \
     --resolver cloudflare=1.1.1.1:53 \
-    --resolver google=8.8.8.8:53 \
+    --resolver cloudflare-malware=1.1.1.2:53 \
     --domain github.com \
     --attempts 1 \
     --dns-timeout-ms 800 \
