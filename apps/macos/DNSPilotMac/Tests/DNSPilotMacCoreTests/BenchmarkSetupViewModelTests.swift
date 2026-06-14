@@ -48,6 +48,63 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
     }
 
+    func testSetupDefaultsUseFilteredProfilesOnlyToFillMissingUnfilteredSlots() {
+        let catalog = CatalogSnapshot(
+            profiles: [
+                CatalogProfile(
+                    id: "filtered-first",
+                    name: "Filtered First",
+                    description: "Filtered DNS.",
+                    ipv4Servers: ["1.1.1.2"],
+                    ipv6Servers: [],
+                    protocol: .plain,
+                    dohURL: nil,
+                    dotHostname: nil,
+                    filteringType: .malware,
+                    tags: [],
+                    useCase: "filtering",
+                    securityNotes: []
+                ),
+                CatalogProfile(
+                    id: "unfiltered",
+                    name: "Unfiltered",
+                    description: "Plain DNS.",
+                    ipv4Servers: ["8.8.8.8"],
+                    ipv6Servers: [],
+                    protocol: .plain,
+                    dohURL: nil,
+                    dotHostname: nil,
+                    filteringType: .none,
+                    tags: [],
+                    useCase: "performance",
+                    securityNotes: []
+                ),
+                CatalogProfile(
+                    id: "filtered-second",
+                    name: "Filtered Second",
+                    description: "Filtered DNS.",
+                    ipv4Servers: ["1.1.1.3"],
+                    ipv6Servers: [],
+                    protocol: .plain,
+                    dohURL: nil,
+                    dotHostname: nil,
+                    filteringType: .family,
+                    tags: [],
+                    useCase: "filtering",
+                    securityNotes: []
+                ),
+            ],
+            testSuites: makeSetupCatalog().testSuites
+        )
+
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
+        )
+
+        XCTAssertEqual(viewModel.selectedProfileIDs, ["unfiltered", "filtered-first"])
+    }
+
     func testQuickRunPresetUsesFastSafeDefaults() {
         let viewModel = BenchmarkSetupViewModel.quickRunPreset(
             catalog: makeSetupCatalog(),
