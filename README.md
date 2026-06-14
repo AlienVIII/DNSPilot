@@ -219,6 +219,7 @@ swift build --package-path apps/macos/DNSPilotMac
 ./script/build_and_run.sh --sandbox-verify
 ./script/validate_macos_bundle.sh
 ./script/smoke_quick_benchmark.sh
+./script/smoke_quick_benchmark.sh dns-only
 cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- capabilities

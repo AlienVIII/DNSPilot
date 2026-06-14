@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TIMEOUT_SECONDS="${DNSPILOT_SMOKE_TIMEOUT_SECONDS:-20}"
+MODE="${1:-quick}"
 
 RESULT_JSON="$(mktemp /tmp/dnspilot-smoke-result.XXXXXX)"
 PROGRESS_LOG="$(mktemp /tmp/dnspilot-smoke-progress.XXXXXX)"
@@ -26,17 +27,42 @@ trap cleanup EXIT
 
 start_ms="$(perl -MTime::HiRes=time -e 'printf "%.0f", time()*1000')"
 
+case "$MODE" in
+  quick|dns-tcp)
+    SMOKE_LABEL="quick benchmark"
+    COMMAND=(
+      cargo run -q -p dnspilot-cli -- path-compare
+      --resolver cloudflare=1.1.1.1:53
+      --resolver google-public-dns=8.8.8.8:53
+      --domain github.com
+      --attempts 1
+      --dns-timeout-ms 800
+      --connect-timeout-ms 800
+      --max-connect-targets-per-domain 2
+      --progress-jsonl
+    )
+    ;;
+  dns-only)
+    SMOKE_LABEL="DNS-only benchmark"
+    COMMAND=(
+      cargo run -q -p dnspilot-cli -- compare
+      --resolver cloudflare=1.1.1.1:53
+      --resolver google-public-dns=8.8.8.8:53
+      --domain github.com
+      --attempts 1
+      --timeout-ms 800
+      --progress-jsonl
+    )
+    ;;
+  *)
+    echo "usage: $0 [quick|dns-tcp|dns-only]" >&2
+    exit 2
+    ;;
+esac
+
 (
   cd "$ROOT_DIR"
-  cargo run -q -p dnspilot-cli -- path-compare \
-    --resolver cloudflare=1.1.1.1:53 \
-    --resolver google-public-dns=8.8.8.8:53 \
-    --domain github.com \
-    --attempts 1 \
-    --dns-timeout-ms 800 \
-    --connect-timeout-ms 800 \
-    --max-connect-targets-per-domain 2 \
-    --progress-jsonl
+  "${COMMAND[@]}"
 ) >"$RESULT_JSON" 2>"$PROGRESS_LOG" &
 PID="$!"
 
@@ -53,23 +79,23 @@ end_ms="$(perl -MTime::HiRes=time -e 'printf "%.0f", time()*1000')"
 elapsed_ms=$((end_ms - start_ms))
 
 if [[ "$exit_code" -ne 0 ]]; then
-  echo "quick benchmark smoke failed with exit code $exit_code after ${elapsed_ms}ms" >&2
+  echo "$SMOKE_LABEL smoke failed with exit code $exit_code after ${elapsed_ms}ms" >&2
   sed -n '1,80p' "$PROGRESS_LOG" >&2
   exit "$exit_code"
 fi
 
 progress_lines="$(wc -l <"$PROGRESS_LOG" | tr -d ' ')"
 if [[ "$progress_lines" -lt 2 ]]; then
-  echo "quick benchmark smoke did not emit enough progress lines" >&2
+  echo "$SMOKE_LABEL smoke did not emit enough progress lines" >&2
   sed -n '1,80p' "$PROGRESS_LOG" >&2
   exit 1
 fi
 
 if ! grep -q '"runs"' "$RESULT_JSON"; then
-  echo "quick benchmark smoke result did not include runs JSON" >&2
+  echo "$SMOKE_LABEL smoke result did not include runs JSON" >&2
   perl -0777 -pe 's/\s+/ /g' "$RESULT_JSON" >&2
   exit 1
 fi
 
-echo "quick benchmark smoke passed in ${elapsed_ms}ms with ${progress_lines} progress lines"
+echo "$SMOKE_LABEL smoke passed in ${elapsed_ms}ms with ${progress_lines} progress lines"
 sed -n '1,8p' "$PROGRESS_LOG"
