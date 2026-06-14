@@ -158,6 +158,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   DNS saves, so saved profiles can appear in Benchmark/Catalog flows.
 - macOS shared app storage path uses `DNSPilot/dnspilot.sqlite` for profiles,
   suites, and history.
+- macOS development bundle places the CLI in `Contents/Library/Helpers`, ships
+  App Store sandbox entitlement templates for the app and helper, and has
+  structural plus sandbox-signing verification scripts.
 - CLI full capability matrix command for platform shell contract checks.
 - CLI benchmark preflight command for flush guidance contract checks.
 - CLI apply-policy command for protected-network apply prompt checks.
@@ -213,6 +216,8 @@ cargo test -p dnspilot-core
 swift test --package-path apps/macos/DNSPilotMac
 swift build --package-path apps/macos/DNSPilotMac
 ./script/build_and_run.sh --verify
+./script/build_and_run.sh --sandbox-verify
+./script/validate_macos_bundle.sh
 cargo run -p dnspilot-cli -- catalog
 cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- capabilities
