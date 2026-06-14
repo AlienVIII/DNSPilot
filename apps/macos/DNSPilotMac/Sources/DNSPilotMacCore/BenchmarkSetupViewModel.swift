@@ -182,10 +182,18 @@ public struct BenchmarkSetupViewModel: Equatable {
     }
 
     private static func defaultProfileIDs(from catalog: CatalogSnapshot) -> [String] {
-        catalog.profiles
+        let runnableProfiles = catalog.profiles
             .filter { BenchmarkProfileOption(profile: $0, resolverTransport: .automatic).isRunnable }
+
+        let unfilteredProfileIDs = runnableProfiles
+            .filter { $0.filteringType == .none }
             .prefix(2)
             .map(\.id)
+        if unfilteredProfileIDs.count == 2 {
+            return Array(unfilteredProfileIDs)
+        }
+
+        return Array(runnableProfiles.prefix(2).map(\.id))
     }
 
     private static func parseCustomDomains(_ text: String) -> [String] {

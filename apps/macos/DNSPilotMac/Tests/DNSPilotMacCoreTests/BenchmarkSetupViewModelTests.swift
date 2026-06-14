@@ -18,6 +18,36 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.readinessIssues, [])
     }
 
+    func testSetupDefaultsPreferUnfilteredProfilesForGeneralBenchmarks() {
+        let baseCatalog = makeSetupCatalog()
+        let catalog = CatalogSnapshot(
+            profiles: [
+                CatalogProfile(
+                    id: "filtered-first",
+                    name: "Filtered First",
+                    description: "Filtered DNS.",
+                    ipv4Servers: ["1.1.1.2"],
+                    ipv6Servers: [],
+                    protocol: .plain,
+                    dohURL: nil,
+                    dotHostname: nil,
+                    filteringType: .malware,
+                    tags: [],
+                    useCase: "filtering",
+                    securityNotes: []
+                ),
+            ] + baseCatalog.profiles,
+            testSuites: baseCatalog.testSuites
+        )
+
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
+        )
+
+        XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
+    }
+
     func testQuickRunPresetUsesFastSafeDefaults() {
         let viewModel = BenchmarkSetupViewModel.quickRunPreset(
             catalog: makeSetupCatalog(),
