@@ -117,8 +117,8 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.connectTimeoutMS, 800)
         XCTAssertEqual(viewModel.maxConnectTargetsPerDomain, 2)
         XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
-        XCTAssertEqual(viewModel.selectedSuiteID, "developer")
-        XCTAssertEqual(viewModel.customDomainsText, "")
+        XCTAssertNil(viewModel.selectedSuiteID)
+        XCTAssertEqual(viewModel.customDomainsText, "github.com")
         XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, A + AAAA, 2 resolvers, 1 domain, 1 attempt, 2 TCP targets/domain")
     }
 
