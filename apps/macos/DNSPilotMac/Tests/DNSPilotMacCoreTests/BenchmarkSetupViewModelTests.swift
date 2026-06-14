@@ -24,12 +24,15 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
         )
 
-        XCTAssertEqual(viewModel.mode, .dnsOnlyCompare)
+        XCTAssertEqual(viewModel.mode, .connectionPathCompare)
         XCTAssertEqual(viewModel.attempts, 1)
+        XCTAssertEqual(viewModel.dnsTimeoutMS, 800)
+        XCTAssertEqual(viewModel.connectTimeoutMS, 800)
+        XCTAssertEqual(viewModel.maxConnectTargetsPerDomain, 2)
         XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
         XCTAssertEqual(viewModel.selectedSuiteID, "developer")
         XCTAssertEqual(viewModel.customDomainsText, "")
-        XCTAssertEqual(viewModel.runPlanSummary, "DNS only, A + AAAA, 2 resolvers, 1 domain, 1 attempt")
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, A + AAAA, 2 resolvers, 1 domain, 1 attempt, 2 TCP targets/domain")
     }
 
     func testSetupParsesCustomDomainTextIntoPlan() {

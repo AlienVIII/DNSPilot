@@ -133,9 +133,23 @@ public struct BenchmarkSetupViewModel: Equatable {
         catalog: CatalogSnapshot,
         executableAvailability: BenchmarkExecutableAvailability
     ) -> BenchmarkSetupViewModel {
-        BenchmarkSetupViewModel(
+        let defaults = BenchmarkSetupViewModel(
             catalog: catalog,
             executableAvailability: executableAvailability
+        )
+        return BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: executableAvailability,
+            selectedProfileIDs: defaults.selectedProfileIDs,
+            selectedSuiteID: defaults.selectedSuiteID,
+            customDomainsText: defaults.customDomainsText,
+            attempts: 1,
+            dnsTimeoutMS: 800,
+            connectTimeoutMS: 800,
+            maxConnectTargetsPerDomain: 2,
+            recordFamily: defaults.recordFamily,
+            resolverTransport: defaults.resolverTransport,
+            mode: .connectionPathCompare
         )
     }
 
