@@ -142,13 +142,19 @@ if grep -q "com.apple.security.get-task-allow" <<<"$app_signing_report"; then
   warn "signed app entitlements include get-task-allow; acceptable for debug only"
 fi
 
-helper_signing_report="$(codesign -dvvv "$HELPER_BINARY" 2>&1 || true)"
+helper_signing_report="$(codesign -dvvv --entitlements :- "$HELPER_BINARY" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$helper_signing_report"; then
   warn "CLI helper is ad-hoc signed; release packaging must sign helper with Packaging/DNSPilotHelper.entitlements"
 elif grep -q "Authority=" <<<"$helper_signing_report"; then
   pass "CLI helper has a certificate-backed signature"
 else
   warn "CLI helper signing state could not be classified"
+fi
+
+if grep -q "com.apple.security.inherit" <<<"$helper_signing_report"; then
+  pass "signed CLI helper entitlements include sandbox inheritance"
+else
+  warn "signed CLI helper entitlements do not include sandbox inheritance; release signing must use Packaging/DNSPilotHelper.entitlements"
 fi
 
 if (( failures > 0 )); then

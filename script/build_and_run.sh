@@ -116,11 +116,17 @@ case "$MODE" in
     verify_launch
     "$ROOT_DIR/script/validate_macos_bundle.sh" "$APP_BUNDLE"
     ;;
+  --sandbox-verify|sandbox-verify)
+    "$ROOT_DIR/script/sign_macos_bundle.sh" "$APP_BUNDLE"
+    open_app
+    verify_launch
+    "$ROOT_DIR/script/validate_macos_bundle.sh" "$APP_BUNDLE"
+    ;;
   --validate|validate)
     "$ROOT_DIR/script/validate_macos_bundle.sh" "$APP_BUNDLE"
     ;;
   *)
-    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify|--validate]" >&2
+    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify|--sandbox-verify|--validate]" >&2
     exit 2
     ;;
 esac
