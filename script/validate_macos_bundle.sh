@@ -7,6 +7,7 @@ APP_NAME="DNSPilotMac"
 CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
 ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
+HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
 
 INFO_PLIST="$APP_BUNDLE/Contents/Info.plist"
 APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
@@ -98,6 +99,30 @@ else
   fail "store entitlements must allow outbound network client"
 fi
 
+if [[ -f "$HELPER_ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$HELPER_ENTITLEMENTS_TEMPLATE" >/dev/null; then
+  pass "helper entitlements template is valid"
+else
+  fail "helper entitlements template is missing or invalid"
+fi
+
+if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.app-sandbox"; then
+  pass "helper entitlements enable App Sandbox"
+else
+  fail "helper entitlements must enable App Sandbox"
+fi
+
+if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.inherit"; then
+  pass "helper entitlements inherit containing app sandbox"
+else
+  fail "helper entitlements must inherit containing app sandbox"
+fi
+
+if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.network.client"; then
+  fail "helper entitlements should not declare network.client when using sandbox inheritance"
+else
+  pass "helper entitlements avoid extra App Sandbox rights"
+fi
+
 app_signing_report="$(codesign -dvvv --entitlements :- "$APP_BUNDLE" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$app_signing_report"; then
   warn "app bundle is ad-hoc signed; expected for local debug, not distribution-ready"
@@ -119,7 +144,7 @@ fi
 
 helper_signing_report="$(codesign -dvvv "$HELPER_BINARY" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$helper_signing_report"; then
-  warn "CLI helper is ad-hoc signed; release packaging must sign helper deliberately"
+  warn "CLI helper is ad-hoc signed; release packaging must sign helper with Packaging/DNSPilotHelper.entitlements"
 elif grep -q "Authority=" <<<"$helper_signing_report"; then
   pass "CLI helper has a certificate-backed signature"
 else
