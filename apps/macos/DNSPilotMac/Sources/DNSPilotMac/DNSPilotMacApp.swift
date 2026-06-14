@@ -1781,10 +1781,10 @@ private struct BenchmarkDetailView: View {
         guard requestID > handledQuickBenchmarkRequestID else {
             return
         }
+        handledQuickBenchmarkRequestID = requestID
         guard !isBenchmarkActive else {
             return
         }
-        handledQuickBenchmarkRequestID = requestID
         applyQuickBenchmarkPreset()
         runBenchmark()
     }
