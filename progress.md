@@ -5094,6 +5094,38 @@ Result: 120 passed, 0 failed
 
 ---
 
+## Chunk 198: v0.1 CLI Apply Plan Payload
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_apply_policy_behaviour.rs`, `README.md`, `progress.md`
+
+### What changed
+
+Added `dnspilot-cli apply-plan`, a versioned JSON shell command for the shared
+apply-plan contract. UI shells can now request guide/apply/protect decisions
+from core inputs instead of duplicating platform policy rules.
+
+### Edge Cases / Caveats
+
+- The command accepts recommended profile ID, gate health, recommendation
+  confidence, optional profile DB, and managed-network flags.
+- It still returns a plan only; no OS DNS mutation happens in the CLI.
+
+### Verification
+
+```text
+cargo fmt --all
+Result: formatted
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_apply_policy_behaviour
+Result: 4 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 122 passed, 0 failed
+```
+
+---
+
 ## Chunk 196: v0.1 Manual Apply Checklist
 
 **Status:** Complete

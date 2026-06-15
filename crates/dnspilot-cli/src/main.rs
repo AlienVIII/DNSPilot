@@ -1,7 +1,8 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use dnspilot_core::{
-    apply_prompt_policy_payload_for, benchmark_preflight_payload_for, built_in_profiles,
-    built_in_test_suites, capability_for, capability_matrix_payload, catalog_payload,
+    apply_plan_payload_for, apply_prompt_policy_payload_for, benchmark_preflight_payload_for,
+    built_in_profiles, built_in_test_suites, capability_for, capability_matrix_payload,
+    catalog_payload,
     connect_probe::{ConnectProbeOutcome, ConnectProbeSample, TcpConnectTarget},
     connection_path::{run_udp_connection_path_estimate, ConnectionPathConfig},
     dns_benchmark::{
@@ -11,9 +12,10 @@ use dnspilot_core::{
     dns_wire::{validate_domain_name, RecordType},
     recommend, recommendation_gate,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
-    BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, DnsProfile, DnsProtocol,
-    FilteringType, MeasurementScope, NetworkEnvironment, Platform, RecommendationMode,
-    SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
+    BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProfile,
+    DnsProtocol, FilteringType, MeasurementScope, NetworkEnvironment, Platform, Recommendation,
+    RecommendationDecision, RecommendationGate, RecommendationHealth, RecommendationIssue,
+    RecommendationMode, SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
 use std::time::{Duration, Instant};
@@ -43,6 +45,26 @@ enum Command {
     ApplyPolicy {
         #[arg(value_enum)]
         platform: PlatformArg,
+        #[arg(long)]
+        vpn_active: bool,
+        #[arg(long)]
+        mdm_profile_active: bool,
+        #[arg(long)]
+        corporate_dns_detected: bool,
+        #[arg(long)]
+        captive_portal_detected: bool,
+    },
+    ApplyPlan {
+        #[arg(value_enum)]
+        platform: PlatformArg,
+        #[arg(long)]
+        profile_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        profile_id: Option<String>,
+        #[arg(long, value_enum, default_value_t = ConfidenceArg::High)]
+        confidence: ConfidenceArg,
+        #[arg(long, value_enum, default_value_t = GateHealthArg::Healthy)]
+        gate_health: GateHealthArg,
         #[arg(long)]
         vpn_active: bool,
         #[arg(long)]
@@ -307,6 +329,22 @@ enum PreflightScopeArg {
     SystemDnsValidation,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum ConfidenceArg {
+    High,
+    Medium,
+    Low,
+    Inconclusive,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum GateHealthArg {
+    Healthy,
+    Degraded,
+    Failed,
+    Inconclusive,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum FilteringTypeArg {
     None,
@@ -370,6 +408,45 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&policy).expect("serialize apply policy")
+            );
+        }
+        Command::ApplyPlan {
+            platform,
+            profile_db,
+            profile_id,
+            confidence,
+            gate_health,
+            vpn_active,
+            mdm_profile_active,
+            corporate_dns_detected,
+            captive_portal_detected,
+        } => {
+            let environment = NetworkEnvironment {
+                vpn_active,
+                mdm_profile_active,
+                corporate_dns_detected,
+                captive_portal_detected,
+            };
+            let profiles = resolve_apply_plan_profiles(profile_db.as_deref());
+            let gate = apply_plan_gate(gate_health);
+            let recommendation = profile_id.map(|profile_id| Recommendation {
+                decision: RecommendationDecision::ApplyProfile(profile_id.clone()),
+                profile_id,
+                score: 1.0,
+                confidence: confidence.into(),
+                reasons: vec!["CLI apply-plan recommendation input.".into()],
+                caveats: Vec::new(),
+            });
+            let plan = apply_plan_payload_for(
+                platform.into(),
+                &environment,
+                &gate,
+                recommendation.as_ref(),
+                &profiles,
+            );
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&plan).expect("serialize apply plan")
             );
         }
         Command::Benchmark {
@@ -1503,6 +1580,42 @@ fn resolve_profile_resolvers(
         .collect()
 }
 
+fn resolve_apply_plan_profiles(profile_db: Option<&std::path::Path>) -> Vec<DnsProfile> {
+    let Some(profile_db) = profile_db else {
+        return built_in_profiles();
+    };
+    let storage = SqliteStorage::open(profile_db).unwrap_or_else(|error| {
+        eprintln!("{error}");
+        std::process::exit(2);
+    });
+    load_snapshot_or_builtin(&storage).profiles
+}
+
+fn apply_plan_gate(health: GateHealthArg) -> RecommendationGate {
+    let can_recommend = matches!(health, GateHealthArg::Healthy | GateHealthArg::Degraded);
+    let primary_issue = match health {
+        GateHealthArg::Healthy => RecommendationIssue::None,
+        GateHealthArg::Degraded => RecommendationIssue::PartialFailure,
+        GateHealthArg::Failed => RecommendationIssue::AllResolversFailed,
+        GateHealthArg::Inconclusive => RecommendationIssue::NoResolvers,
+    };
+    let notes = match health {
+        GateHealthArg::Healthy => Vec::new(),
+        GateHealthArg::Degraded => {
+            vec!["At least one candidate had partial failure or timeout.".into()]
+        }
+        GateHealthArg::Failed => vec!["Every candidate failed the measured scope.".into()],
+        GateHealthArg::Inconclusive => vec!["Benchmark result was inconclusive.".into()],
+    };
+
+    RecommendationGate {
+        can_recommend,
+        health: health.into(),
+        primary_issue,
+        notes,
+    }
+}
+
 fn resolve_plain_profile_address(
     profiles: &[DnsProfile],
     profile_id: &str,
@@ -1823,6 +1936,28 @@ impl From<PreflightScopeArg> for BenchmarkPreflightScope {
                 BenchmarkPreflightScope::DirectResolverBenchmark
             }
             PreflightScopeArg::SystemDnsValidation => BenchmarkPreflightScope::SystemDnsValidation,
+        }
+    }
+}
+
+impl From<ConfidenceArg> for Confidence {
+    fn from(value: ConfidenceArg) -> Self {
+        match value {
+            ConfidenceArg::High => Confidence::High,
+            ConfidenceArg::Medium => Confidence::Medium,
+            ConfidenceArg::Low => Confidence::Low,
+            ConfidenceArg::Inconclusive => Confidence::Inconclusive,
+        }
+    }
+}
+
+impl From<GateHealthArg> for RecommendationHealth {
+    fn from(value: GateHealthArg) -> Self {
+        match value {
+            GateHealthArg::Healthy => RecommendationHealth::Healthy,
+            GateHealthArg::Degraded => RecommendationHealth::Degraded,
+            GateHealthArg::Failed => RecommendationHealth::Failed,
+            GateHealthArg::Inconclusive => RecommendationHealth::Inconclusive,
         }
     }
 }

@@ -49,6 +49,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - Shared apply-plan contract that combines benchmark gate, recommendation,
   platform capability, network environment, and DNS profile data before any UI
   or power adapter offers DNS apply.
+- CLI `apply-plan` command for shell/UI consumers to obtain the shared apply
+  decision as versioned JSON.
 - macOS SwiftUI shell scaffold with centralized design tokens and capability
   matrix view model tests.
 - macOS capability JSON decoder/bridge for the Rust `capabilities` schema and
@@ -231,6 +233,7 @@ cargo run -p dnspilot-cli -- capability macos-store
 cargo run -p dnspilot-cli -- capabilities
 cargo run -p dnspilot-cli -- preflight macos-store --scope system-dns-validation
 cargo run -p dnspilot-cli -- apply-policy macos-store --vpn-active
+cargo run -p dnspilot-cli -- apply-plan macos-store --profile-id cloudflare
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1
