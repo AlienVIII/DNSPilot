@@ -154,6 +154,77 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertTrue(guidance.copyText.contains("IPv6 DNS:\n2606:4700:4700::1111"))
     }
 
+    func testNextStepGuidanceDoesNotApplyRecommendationWithoutPlainServers() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .healthy,
+                primaryIssue: "none",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 500,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: "doh-only"
+            ),
+            runs: [
+                makeResultRun(profileID: "doh-only", medianDNS: 4, failureRate: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "doh-only",
+                score: 0.97,
+                confidence: .high,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+        var catalog = makeResultCatalog()
+        catalog = CatalogSnapshot(
+            profiles: catalog.profiles + [
+                CatalogProfile(
+                    id: "doh-only",
+                    name: "DoH Only",
+                    description: "Encrypted DNS profile.",
+                    ipv4Servers: [],
+                    ipv6Servers: [],
+                    protocol: .doh,
+                    dohURL: "https://dns.example/dns-query",
+                    dotHostname: nil,
+                    filteringType: .none,
+                    tags: [],
+                    useCase: "privacy",
+                    securityNotes: []
+                ),
+            ],
+            testSuites: []
+        )
+
+        let resultViewModel = BenchmarkResultViewModel(result: result, catalog: catalog)
+        let guidance = BenchmarkResultNextStepViewModel(result: resultViewModel)
+
+        XCTAssertFalse(resultViewModel.hasActionableRecommendation)
+        XCTAssertNil(resultViewModel.recommendedDNSSettings)
+        XCTAssertEqual(
+            resultViewModel.manualApplyUnavailableReason,
+            "Recommended profile uses encrypted DNS; manual plain-DNS apply is not available in this build yet."
+        )
+        XCTAssertEqual(guidance.title, "Next step: Manual apply not available")
+        XCTAssertFalse(guidance.canOpenNetworkSettings)
+        XCTAssertFalse(guidance.copyText.contains("Recommended DNS servers:"))
+    }
+
     func testNextStepGuidanceKeepsCurrentDNSForWeakResult() {
         let result = BenchmarkResultPayload(
             summary: BenchmarkResultSummary(

@@ -5057,3 +5057,37 @@ Result: 180 passed, 0 failed
 ./script/build_and_run.sh --verify
 Result: macOS bundle structural validation passed
 ```
+
+---
+
+## Chunk 195: v0.1 Harden Manual Apply Eligibility
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`, `progress.md`
+
+### What changed
+
+Manual apply is now gated on copyable plain DNS server data. Strong benchmark
+winners that are encrypted-only, missing from the loaded catalog, or missing
+IPv4/IPv6 server addresses no longer expose the apply/open-settings action.
+They show a specific unavailable reason instead.
+
+### Edge Cases / Caveats
+
+- This keeps Store-safe builds from implying that encrypted DNS profiles can be
+  applied through the current plain DNS settings flow.
+- SwiftPM test filtering hung while loading the test bundle in this environment;
+  cleaning the package and running the full suite passed.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean
+Result: clean complete
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 181 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```

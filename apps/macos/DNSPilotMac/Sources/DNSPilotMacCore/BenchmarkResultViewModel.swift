@@ -14,13 +14,14 @@ public struct BenchmarkResultViewModel: Equatable {
     public let recordFamilyLabel: String?
     public let recommendedProfileName: String?
     public let recommendedDNSSettings: BenchmarkRecommendedDNSSettings?
+    public let manualApplyUnavailableReason: String?
     public let recommendsKeepingCurrentDNS: Bool
     public let hasActionableRecommendation: Bool
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
         let catalogProfiles = catalog?.profiles ?? []
-        let profileNames = Dictionary(uniqueKeysWithValues: catalogProfiles.map { ($0.id, $0.name) })
-        let profilesByID = Dictionary(uniqueKeysWithValues: catalogProfiles.map { ($0.id, $0) })
+        let profileNames = Dictionary(catalogProfiles.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let profilesByID = Dictionary(catalogProfiles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         scopeLabel = Self.scopeLabel(for: result.summary.measurementScope)
         healthLabel = Self.healthLabel(for: result.summary.health)
@@ -34,6 +35,7 @@ public struct BenchmarkResultViewModel: Equatable {
         recordFamilyLabel = result.summary.recordFamily?.displayLabel
 
         let recommendedProfileID = result.summary.recommendedProfileID ?? result.recommendation?.profileID
+        let recommendedProfile = recommendedProfileID.flatMap { profilesByID[$0] }
         let recommendedCandidateName = recommendedProfileID.map { profileNames[$0] ?? $0 }
         recommendedProfileName = recommendedCandidateName
         let shouldProtectCurrentDNS = Self.shouldProtectCurrentDNS(
@@ -43,28 +45,34 @@ public struct BenchmarkResultViewModel: Equatable {
         )
         let blockedRecommendationLabel = Self.blockedRecommendationLabel(for: result.summary.primaryIssue)
         recommendsKeepingCurrentDNS = shouldProtectCurrentDNS || blockedRecommendationLabel == "Keep current DNS"
-        let actionableRecommendation = result.summary.canRecommend
+        let measuredRecommendationIsStrong = result.summary.canRecommend
             && recommendedCandidateName != nil
             && !recommendsKeepingCurrentDNS
             && Self.shouldUseStrongRecommendation(
                 health: result.summary.health,
                 confidence: result.recommendation?.confidence
             )
-        hasActionableRecommendation = actionableRecommendation
-        if actionableRecommendation,
+        let candidateDNSSettings: BenchmarkRecommendedDNSSettings?
+        if measuredRecommendationIsStrong,
            let recommendedProfileID,
-           let recommendedProfile = profilesByID[recommendedProfileID],
+           let recommendedProfile,
            recommendedProfile.protocol == .plain {
-            recommendedDNSSettings = BenchmarkRecommendedDNSSettings(
+            let settings = BenchmarkRecommendedDNSSettings(
                 profileID: recommendedProfileID,
                 profileName: recommendedCandidateName ?? recommendedProfile.name,
                 testedResolver: result.runs.first { $0.profileID == recommendedProfileID }?.resolver,
                 ipv4Servers: recommendedProfile.ipv4Servers,
                 ipv6Servers: recommendedProfile.ipv6Servers
             )
+            candidateDNSSettings = settings.hasServers ? settings : nil
         } else {
-            recommendedDNSSettings = nil
+            candidateDNSSettings = nil
         }
+        recommendedDNSSettings = candidateDNSSettings
+        hasActionableRecommendation = candidateDNSSettings != nil
+        manualApplyUnavailableReason = measuredRecommendationIsStrong && candidateDNSSettings == nil
+            ? Self.manualApplyUnavailableReason(for: recommendedProfile)
+            : nil
         let bestMeasuredNote: String?
         if shouldProtectCurrentDNS, let recommendedCandidateName {
             bestMeasuredNote = "Best measured candidate during this run: \(recommendedCandidateName)."
@@ -101,7 +109,9 @@ public struct BenchmarkResultViewModel: Equatable {
             commonFailureNote: commonFailureNote,
             ipFamilyActionNote: ipFamilyActionNote,
             reasons: result.recommendation?.reasons ?? [],
-            caveats: (result.recommendation?.caveats ?? []) + result.runs.flatMap(\.caveats)
+            caveats: (result.recommendation?.caveats ?? [])
+                + (manualApplyUnavailableReason.map { [$0] } ?? [])
+                + result.runs.flatMap(\.caveats)
         )
     }
 
@@ -195,6 +205,16 @@ public struct BenchmarkResultViewModel: Equatable {
         default:
             nil
         }
+    }
+
+    private static func manualApplyUnavailableReason(for profile: CatalogProfile?) -> String {
+        guard let profile else {
+            return "Recommended profile is not in the loaded catalog, so DNS Pilot cannot build a safe apply guide yet."
+        }
+        guard profile.protocol == .plain else {
+            return "Recommended profile uses encrypted DNS; manual plain-DNS apply is not available in this build yet."
+        }
+        return "Recommended profile has no IPv4/IPv6 server addresses, so DNS Pilot cannot build a safe apply guide yet."
     }
 
     private static func userFacingNotes(
@@ -497,6 +517,17 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
                 "Copy the DNS servers, open Network Settings, then paste them into the active network service DNS list.",
                 "Only change DNS after checking VPN, MDM, captive portal, and corporate network requirements.",
                 "After changing DNS manually, flush cache and run the benchmark again.",
+            ]
+        } else if let manualApplyUnavailableReason = result.manualApplyUnavailableReason {
+            title = "Next step: Manual apply not available"
+            actionLabel = "Copy Next Step"
+            canOpenNetworkSettings = false
+            dnsSettings = nil
+            lines = [
+                "DNS Pilot has not changed system DNS.",
+                manualApplyUnavailableReason,
+                "Use a plain DNS profile for manual macOS Network Settings apply, or wait for encrypted DNS profile support.",
+                "Retest before changing DNS from this result.",
             ]
         } else if result.recommendsKeepingCurrentDNS {
             title = "Next step: Keep current DNS"
