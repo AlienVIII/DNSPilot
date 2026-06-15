@@ -5060,6 +5060,35 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 200: v0.1 macOS Apply Plan Runner
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ApplyPlanRunner.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ApplyPlanRunnerTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added a macOS core runner boundary for `dnspilot-cli apply-plan`. The app can
+now build apply-plan CLI arguments, invoke the helper through the shared process
+runner, decode the payload, and surface process failures.
+
+### Edge Cases / Caveats
+
+- This is process-boundary plumbing, not UI wiring yet.
+- Incremental SwiftPM test runs can hang at XCTest bundle load in this local
+  environment; clean + full test remains the reliable validation path.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 186 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 197: v0.1 Shared Apply Plan Contract
 
 **Status:** Complete
