@@ -91,6 +91,48 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertTrue(viewModel.copyText.contains("VPN is active"))
     }
 
+    func testApplyPlanReportFormatterAppendsLoadedPlan() {
+        let plan = ApplyPlanViewModel(
+            plan: ApplyPlan(
+                platformID: "macos-store",
+                applyCapability: .appleNetworkExtensionDNSSettings,
+                disposition: .guideOnly,
+                profileID: "cloudflare",
+                profileName: "Cloudflare",
+                dnsServers: ["1.1.1.1"],
+                canApply: false,
+                notes: ["Store-safe build must guide plain DNS changes through OS settings."]
+            )
+        )
+
+        let report = BenchmarkApplyPlanReportFormatter.appendApplyPlan(
+            outcome: .loaded(plan),
+            isLoading: false,
+            to: "Benchmark result"
+        )
+
+        XCTAssertTrue(report.contains("Apply policy"))
+        XCTAssertTrue(report.contains("Apply plan: Guided"))
+        XCTAssertTrue(report.contains("DNS servers:\n1.1.1.1"))
+    }
+
+    func testApplyPlanReportFormatterAppendsFailureAndLoadingStates() {
+        let failedReport = BenchmarkApplyPlanReportFormatter.appendApplyPlan(
+            outcome: .failed("apply plan failed"),
+            isLoading: false,
+            to: "Benchmark result"
+        )
+        let loadingReport = BenchmarkApplyPlanReportFormatter.appendApplyPlan(
+            outcome: nil,
+            isLoading: true,
+            to: "Benchmark result"
+        )
+
+        XCTAssertTrue(failedReport.contains("Apply policy unavailable"))
+        XCTAssertTrue(failedReport.contains("apply plan failed"))
+        XCTAssertTrue(loadingReport.contains("Apply policy: checking"))
+    }
+
     func testPreflightDecoderMapsRustCliSchema() throws {
         let json = """
         {

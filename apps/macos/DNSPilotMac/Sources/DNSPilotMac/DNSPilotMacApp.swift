@@ -2413,7 +2413,13 @@ private struct BenchmarkResultPanel: View {
                 }
 
                 Button {
-                    copyToPasteboard(viewModel.resultReportText(elapsedMS: elapsedMS))
+                    copyToPasteboard(
+                        BenchmarkApplyPlanReportFormatter.appendApplyPlan(
+                            outcome: applyPlanOutcome,
+                            isLoading: isLoadingApplyPlan,
+                            to: viewModel.resultReportText(elapsedMS: elapsedMS)
+                        )
+                    )
                 } label: {
                     Label("Copy Result Report", systemImage: "doc.on.doc")
                 }

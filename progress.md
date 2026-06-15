@@ -5060,6 +5060,39 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 206: v0.1 Apply Plan Result Report
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkApplyPlanReportFormatter.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added a report formatter that appends apply-plan status to copied benchmark
+reports. The Result screen now copies benchmark details plus apply-policy
+loading, success, or failure information when available.
+
+### Edge Cases / Caveats
+
+- If no apply-plan state exists yet, copied reports stay unchanged.
+- Loading reports say the apply policy is still checking instead of implying
+  guidance is ready.
+- Failed apply-plan loads preserve the failure message for issue reports.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac --filter PolicyPayloadDecoderTests/testApplyPlanReportFormatterAppendsLoadedPlan
+Result: expected RED compile failure before production code; formatter missing.
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 197 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 205: v0.1 Benchmark Apply Plan UI Wiring
 
 **Status:** Complete
