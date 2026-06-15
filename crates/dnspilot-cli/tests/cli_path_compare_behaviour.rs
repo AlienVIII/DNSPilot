@@ -126,8 +126,10 @@ fn path_compare_command_can_emit_progress_jsonl_to_stderr() {
         }
     });
 
-    let first = start_fake_resolver_with_a(1, Duration::from_millis(1), Ipv4Addr::new(127, 0, 0, 1));
-    let second = start_fake_resolver_with_a(1, Duration::from_millis(1), Ipv4Addr::new(127, 0, 0, 1));
+    let first =
+        start_fake_resolver_with_a(1, Duration::from_millis(1), Ipv4Addr::new(127, 0, 0, 1));
+    let second =
+        start_fake_resolver_with_a(1, Duration::from_millis(1), Ipv4Addr::new(127, 0, 0, 1));
 
     let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
         .args([
@@ -166,7 +168,9 @@ fn path_compare_command_can_emit_progress_jsonl_to_stderr() {
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
     let events = stderr
         .lines()
-        .map(|line| serde_json::from_str::<Value>(line).expect("stderr line should be progress json"))
+        .map(|line| {
+            serde_json::from_str::<Value>(line).expect("stderr line should be progress json")
+        })
         .collect::<Vec<_>>();
 
     assert_eq!(events.len(), 4);

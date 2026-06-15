@@ -1,11 +1,12 @@
 use dnspilot_core::{
-    apply_prompt_policy_for, apply_prompt_policy_payload_for, benchmark_preflight_for,
-    benchmark_preflight_payload_for, built_in_profiles, built_in_test_suites, capability_for,
-    capability_matrix_payload, catalog_payload, classify_resolution_outcome, recommend,
-    recommendation_gate, ApplyCapability, ApplyPromptDisposition, BenchmarkMetrics,
-    BenchmarkPreflightScope, Confidence, DnsProtocol, FilteringType, FlushCapability,
-    FlushRequirement, MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision,
-    RecommendationHealth, RecommendationIssue, RecommendationMode, ResolutionOutcome,
+    apply_plan_for, apply_prompt_policy_for, apply_prompt_policy_payload_for,
+    benchmark_preflight_for, benchmark_preflight_payload_for, built_in_profiles,
+    built_in_test_suites, capability_for, capability_matrix_payload, catalog_payload,
+    classify_resolution_outcome, recommend, recommendation_gate, ApplyCapability,
+    ApplyPlanDisposition, ApplyPromptDisposition, BenchmarkMetrics, BenchmarkPreflightScope,
+    Confidence, DnsProtocol, FilteringType, FlushCapability, FlushRequirement, MeasurementScope,
+    NetworkEnvironment, Platform, RecommendationDecision, RecommendationGate, RecommendationHealth,
+    RecommendationIssue, RecommendationMode, ResolutionOutcome,
 };
 
 fn metrics(
@@ -466,6 +467,139 @@ fn apply_prompt_policy_payload_versions_shell_contract() {
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["platform"], "macos-store");
     assert_eq!(json["disposition"], "protect-current-dns");
+}
+
+#[test]
+fn apply_plan_guides_plain_dns_for_store_safe_platforms() {
+    let profiles = built_in_profiles();
+    let recommendation = recommend(
+        &[metrics("cloudflare", 12.0, 18.0, 0.0, 0.0, 35.0, 1.0, 1.0)],
+        None,
+        RecommendationMode::BestOverall,
+    )
+    .expect("recommendation should be produced");
+    let gate = healthy_gate();
+
+    let plan = apply_plan_for(
+        Platform::MacOSStore,
+        &NetworkEnvironment::default(),
+        &gate,
+        Some(&recommendation),
+        &profiles,
+    );
+
+    assert_eq!(plan.disposition, ApplyPlanDisposition::GuideOnly);
+    assert_eq!(
+        plan.apply_capability,
+        ApplyCapability::AppleNetworkExtensionDnsSettings
+    );
+    assert!(!plan.can_apply);
+    assert_eq!(plan.profile_id.as_deref(), Some("cloudflare"));
+    assert!(plan.dns_servers.contains(&"1.1.1.1".to_string()));
+    assert!(plan
+        .notes
+        .iter()
+        .any(|note| note.contains("guide plain DNS changes")));
+}
+
+#[test]
+fn apply_plan_allows_power_plain_dns_with_user_approval() {
+    let profiles = built_in_profiles();
+    let recommendation = recommend(
+        &[metrics("quad9", 12.0, 18.0, 0.0, 0.0, 35.0, 1.0, 1.0)],
+        None,
+        RecommendationMode::BestOverall,
+    )
+    .expect("recommendation should be produced");
+    let gate = healthy_gate();
+
+    let plan = apply_plan_for(
+        Platform::LinuxNativePower,
+        &NetworkEnvironment::default(),
+        &gate,
+        Some(&recommendation),
+        &profiles,
+    );
+
+    assert_eq!(
+        plan.disposition,
+        ApplyPlanDisposition::ApplyWithUserApproval
+    );
+    assert_eq!(
+        plan.apply_capability,
+        ApplyCapability::LinuxNetworkManagerPolkit
+    );
+    assert!(plan.can_apply);
+    assert_eq!(plan.profile_name.as_deref(), Some("Quad9"));
+}
+
+#[test]
+fn apply_plan_protects_managed_networks_before_profile_apply() {
+    let profiles = built_in_profiles();
+    let recommendation = recommend(
+        &[metrics("cloudflare", 12.0, 18.0, 0.0, 0.0, 35.0, 1.0, 1.0)],
+        None,
+        RecommendationMode::BestOverall,
+    )
+    .expect("recommendation should be produced");
+    let gate = healthy_gate();
+    let environment = NetworkEnvironment {
+        vpn_active: true,
+        ..NetworkEnvironment::default()
+    };
+
+    let plan = apply_plan_for(
+        Platform::MacOSPower,
+        &environment,
+        &gate,
+        Some(&recommendation),
+        &profiles,
+    );
+
+    assert_eq!(plan.disposition, ApplyPlanDisposition::ProtectCurrentDns);
+    assert!(!plan.can_apply);
+    assert!(plan.notes.iter().any(|note| note.contains("VPN")));
+}
+
+#[test]
+fn apply_plan_blocks_unhealthy_or_low_confidence_recommendations() {
+    let profiles = built_in_profiles();
+    let recommendation = recommend(
+        &[metrics("cloudflare", 12.0, 18.0, 0.0, 0.0, 35.0, 1.0, 1.0)],
+        None,
+        RecommendationMode::BestOverall,
+    )
+    .expect("recommendation should be produced");
+    let degraded_gate = RecommendationGate {
+        can_recommend: true,
+        health: RecommendationHealth::Degraded,
+        primary_issue: RecommendationIssue::PartialFailure,
+        notes: vec!["At least one candidate had partial failure or timeout.".into()],
+    };
+
+    let plan = apply_plan_for(
+        Platform::MacOSPower,
+        &NetworkEnvironment::default(),
+        &degraded_gate,
+        Some(&recommendation),
+        &profiles,
+    );
+
+    assert_eq!(plan.disposition, ApplyPlanDisposition::NotRecommended);
+    assert!(!plan.can_apply);
+    assert!(plan
+        .notes
+        .iter()
+        .any(|note| note.contains("not healthy enough")));
+}
+
+fn healthy_gate() -> RecommendationGate {
+    RecommendationGate {
+        can_recommend: true,
+        health: RecommendationHealth::Healthy,
+        primary_issue: RecommendationIssue::None,
+        notes: Vec::new(),
+    }
 }
 
 #[test]

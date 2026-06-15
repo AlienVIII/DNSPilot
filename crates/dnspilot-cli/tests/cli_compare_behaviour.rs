@@ -121,7 +121,9 @@ fn compare_command_can_emit_progress_jsonl_to_stderr() {
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
     let events = stderr
         .lines()
-        .map(|line| serde_json::from_str::<Value>(line).expect("stderr line should be progress json"))
+        .map(|line| {
+            serde_json::from_str::<Value>(line).expect("stderr line should be progress json")
+        })
         .collect::<Vec<_>>();
 
     assert_eq!(events.len(), 4);

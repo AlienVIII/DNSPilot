@@ -5060,6 +5060,40 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 197: v0.1 Shared Apply Plan Contract
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `README.md`, `progress.md`
+
+### What changed
+
+Added a shared Rust `apply_plan_for` contract. It combines the benchmark
+recommendation gate, recommendation confidence/decision, platform capability,
+network environment, and DNS profile data before any UI or future power adapter
+offers DNS apply.
+
+### Edge Cases / Caveats
+
+- Store-safe plain DNS is guide-only, not silent system mutation.
+- Power/native platforms can plan user-approved plain DNS apply, but the actual
+  privileged adapter remains a later edition.
+- Managed network signals still force Protect current DNS before profile logic.
+
+### Verification
+
+```text
+cargo fmt --all
+Result: formatted
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour
+Result: 25 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 120 passed, 0 failed
+```
+
+---
+
 ## Chunk 196: v0.1 Manual Apply Checklist
 
 **Status:** Complete

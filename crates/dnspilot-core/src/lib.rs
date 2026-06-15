@@ -451,6 +451,35 @@ pub struct ApplyPromptPolicyPayload {
     pub policy: ApplyPromptPolicy,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ApplyPlanDisposition {
+    ApplyWithUserApproval,
+    GuideOnly,
+    ProtectCurrentDns,
+    Unsupported,
+    NotRecommended,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApplyPlan {
+    pub platform: Platform,
+    pub apply_capability: ApplyCapability,
+    pub disposition: ApplyPlanDisposition,
+    pub profile_id: Option<String>,
+    pub profile_name: Option<String>,
+    pub dns_servers: Vec<String>,
+    pub can_apply: bool,
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApplyPlanPayload {
+    pub schema_version: u32,
+    #[serde(flatten)]
+    pub plan: ApplyPlan,
+}
+
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum DnsPilotError {
     #[error("no benchmark metrics provided")]
@@ -501,6 +530,283 @@ pub fn apply_prompt_policy_payload_for(
     ApplyPromptPolicyPayload {
         schema_version: SHELL_PAYLOAD_SCHEMA_VERSION,
         policy: apply_prompt_policy_for(platform, environment),
+    }
+}
+
+pub fn apply_plan_payload_for(
+    platform: Platform,
+    environment: &NetworkEnvironment,
+    gate: &RecommendationGate,
+    recommendation: Option<&Recommendation>,
+    profiles: &[DnsProfile],
+) -> ApplyPlanPayload {
+    ApplyPlanPayload {
+        schema_version: SHELL_PAYLOAD_SCHEMA_VERSION,
+        plan: apply_plan_for(platform, environment, gate, recommendation, profiles),
+    }
+}
+
+pub fn apply_plan_for(
+    platform: Platform,
+    environment: &NetworkEnvironment,
+    gate: &RecommendationGate,
+    recommendation: Option<&Recommendation>,
+    profiles: &[DnsProfile],
+) -> ApplyPlan {
+    let prompt_policy = apply_prompt_policy_for(platform, environment);
+    let mut notes = prompt_policy.notes.clone();
+
+    if !gate.can_recommend {
+        notes.extend(gate.notes.clone());
+        notes.push("Benchmark gate did not allow DNS changes.".into());
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::NotRecommended,
+            None,
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    }
+
+    if gate.health != RecommendationHealth::Healthy {
+        notes.extend(gate.notes.clone());
+        notes.push(
+            "Recommendation is not healthy enough for apply; keep current DNS and retest.".into(),
+        );
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::NotRecommended,
+            None,
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    }
+
+    let Some(recommendation) = recommendation else {
+        notes.push("No benchmark recommendation was provided.".into());
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::NotRecommended,
+            None,
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    };
+
+    if !matches!(
+        recommendation.confidence,
+        Confidence::High | Confidence::Medium
+    ) {
+        notes.push(
+            "Recommendation confidence is too low for apply; keep current DNS and retest.".into(),
+        );
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::NotRecommended,
+            Some(recommendation.profile_id.clone()),
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    }
+
+    let RecommendationDecision::ApplyProfile(recommended_profile_id) = &recommendation.decision
+    else {
+        notes.push("Recommendation says to keep current DNS.".into());
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::NotRecommended,
+            Some(recommendation.profile_id.clone()),
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    };
+
+    if prompt_policy.disposition == ApplyPromptDisposition::ProtectCurrentDns {
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::ProtectCurrentDns,
+            Some(recommended_profile_id.clone()),
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    }
+
+    if prompt_policy.disposition == ApplyPromptDisposition::Unsupported {
+        notes.push("Platform does not support DNS apply prompts.".into());
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::Unsupported,
+            Some(recommended_profile_id.clone()),
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    }
+
+    let Some(profile) = profiles
+        .iter()
+        .find(|profile| profile.id == *recommended_profile_id)
+    else {
+        notes.push("Recommended profile was not found in the loaded catalog.".into());
+        return apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            ApplyPlanDisposition::Unsupported,
+            Some(recommended_profile_id.clone()),
+            None,
+            Vec::new(),
+            false,
+            notes,
+        );
+    };
+
+    match profile.protocol {
+        DnsProtocol::Plain => {
+            plain_dns_apply_plan(platform, prompt_policy.apply_capability, profile, notes)
+        }
+        DnsProtocol::Doh | DnsProtocol::Dot => {
+            encrypted_dns_apply_plan(platform, prompt_policy.apply_capability, profile, notes)
+        }
+    }
+}
+
+fn plain_dns_apply_plan(
+    platform: Platform,
+    apply_capability: ApplyCapability,
+    profile: &DnsProfile,
+    mut notes: Vec<String>,
+) -> ApplyPlan {
+    let dns_servers = profile
+        .ipv4_servers
+        .iter()
+        .chain(profile.ipv6_servers.iter())
+        .cloned()
+        .collect::<Vec<_>>();
+    if dns_servers.is_empty() {
+        notes.push("Plain DNS profile has no IPv4 or IPv6 server addresses.".into());
+        return apply_plan(
+            platform,
+            apply_capability,
+            ApplyPlanDisposition::Unsupported,
+            Some(profile.id.clone()),
+            Some(profile.name.clone()),
+            dns_servers,
+            false,
+            notes,
+        );
+    }
+
+    let power_adapter_available = matches!(
+        platform,
+        Platform::MacOSPower | Platform::WindowsPower | Platform::LinuxNativePower
+    );
+    if power_adapter_available {
+        notes.push(
+            "Power/native adapter may apply plain DNS with explicit user approval or privilege."
+                .into(),
+        );
+        return apply_plan(
+            platform,
+            apply_capability,
+            ApplyPlanDisposition::ApplyWithUserApproval,
+            Some(profile.id.clone()),
+            Some(profile.name.clone()),
+            dns_servers,
+            true,
+            notes,
+        );
+    }
+
+    notes.push("Store-safe build must guide plain DNS changes through OS settings.".into());
+    apply_plan(
+        platform,
+        apply_capability,
+        ApplyPlanDisposition::GuideOnly,
+        Some(profile.id.clone()),
+        Some(profile.name.clone()),
+        dns_servers,
+        false,
+        notes,
+    )
+}
+
+fn encrypted_dns_apply_plan(
+    platform: Platform,
+    apply_capability: ApplyCapability,
+    profile: &DnsProfile,
+    mut notes: Vec<String>,
+) -> ApplyPlan {
+    if matches!(platform, Platform::MacOSStore | Platform::IOS)
+        && apply_capability == ApplyCapability::AppleNetworkExtensionDnsSettings
+    {
+        notes.push(
+            "Apple DNS Settings profile can be offered only through explicit user enablement."
+                .into(),
+        );
+        return apply_plan(
+            platform,
+            apply_capability,
+            ApplyPlanDisposition::ApplyWithUserApproval,
+            Some(profile.id.clone()),
+            Some(profile.name.clone()),
+            Vec::new(),
+            true,
+            notes,
+        );
+    }
+
+    notes.push("Encrypted DNS apply is not available for this platform/build yet.".into());
+    apply_plan(
+        platform,
+        apply_capability,
+        ApplyPlanDisposition::Unsupported,
+        Some(profile.id.clone()),
+        Some(profile.name.clone()),
+        Vec::new(),
+        false,
+        notes,
+    )
+}
+
+fn apply_plan(
+    platform: Platform,
+    apply_capability: ApplyCapability,
+    disposition: ApplyPlanDisposition,
+    profile_id: Option<String>,
+    profile_name: Option<String>,
+    dns_servers: Vec<String>,
+    can_apply: bool,
+    notes: Vec<String>,
+) -> ApplyPlan {
+    ApplyPlan {
+        platform,
+        apply_capability,
+        disposition,
+        profile_id,
+        profile_name,
+        dns_servers,
+        can_apply,
+        notes,
     }
 }
 
