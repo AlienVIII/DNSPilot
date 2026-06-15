@@ -375,6 +375,32 @@ public struct BenchmarkRecommendedDNSSettings: Equatable {
         return lines.joined(separator: "\n")
     }
 
+    public var manualApplyChecklistText: String {
+        var lines = [
+            "Manual DNS apply checklist",
+            "Profile: \(profileName)",
+            "",
+            "DNS servers:",
+            serverListText,
+            "",
+            "Steps:",
+            "1. Copy the DNS servers.",
+            "2. Open macOS Network Settings.",
+            "3. Select the active network service, then open DNS settings.",
+            "4. Paste the DNS servers and apply the change.",
+            "5. Flush DNS cache or reconnect the network if results look stale.",
+            "6. Run DNS + TCP again; use A only first if IPv6 looked weak.",
+            "",
+            "Caveats:",
+            "DNS Pilot has not changed system DNS.",
+            "VPN, MDM, corporate DNS, captive portal, or browser Secure DNS can override this setting.",
+        ]
+        if let testedResolver {
+            lines.insert("Tested resolver: \(testedResolver)", at: 2)
+        }
+        return lines.joined(separator: "\n")
+    }
+
     public var displayLines: [String] {
         var lines = [String]()
         if let testedResolver {
@@ -555,6 +581,10 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
     public var copyText: String {
         let dnsLines = dnsSettings.map { ["", "Recommended DNS servers:", $0.copyText] } ?? []
         return ([title] + lines + dnsLines).joined(separator: "\n")
+    }
+
+    public var manualApplyChecklistText: String? {
+        dnsSettings?.manualApplyChecklistText
     }
 }
 

@@ -152,6 +152,9 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertTrue(guidance.copyText.contains("Recommended DNS servers:"))
         XCTAssertTrue(guidance.copyText.contains("IPv4 DNS:\n1.1.1.1\n1.0.0.1"))
         XCTAssertTrue(guidance.copyText.contains("IPv6 DNS:\n2606:4700:4700::1111"))
+        XCTAssertTrue(guidance.manualApplyChecklistText?.contains("Manual DNS apply checklist") == true)
+        XCTAssertTrue(guidance.manualApplyChecklistText?.contains("Run DNS + TCP again") == true)
+        XCTAssertTrue(guidance.manualApplyChecklistText?.contains("VPN, MDM, corporate DNS") == true)
     }
 
     func testNextStepGuidanceDoesNotApplyRecommendationWithoutPlainServers() {
@@ -223,6 +226,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(guidance.title, "Next step: Manual apply not available")
         XCTAssertFalse(guidance.canOpenNetworkSettings)
         XCTAssertFalse(guidance.copyText.contains("Recommended DNS servers:"))
+        XCTAssertNil(guidance.manualApplyChecklistText)
     }
 
     func testNextStepGuidanceKeepsCurrentDNSForWeakResult() {

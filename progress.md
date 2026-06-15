@@ -5060,6 +5060,35 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 196: v0.1 Manual Apply Checklist
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`, `progress.md`
+
+### What changed
+
+Strong plain-DNS recommendations now expose a copyable manual apply checklist
+beside the DNS-server copy action. The checklist includes the recommended
+servers, macOS Network Settings handoff, retest guidance, and override caveats
+for VPN, MDM, corporate DNS, captive portals, and browser Secure DNS.
+
+### Edge Cases / Caveats
+
+- The checklist is only exposed when manual apply is actually eligible.
+- This remains guided apply; Store-safe builds still do not change system DNS.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 181 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 195: v0.1 Harden Manual Apply Eligibility
 
 **Status:** Complete

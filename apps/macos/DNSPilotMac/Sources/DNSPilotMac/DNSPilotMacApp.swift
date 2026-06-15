@@ -2470,6 +2470,16 @@ private struct BenchmarkResultNextStepPanel: View {
                     .help("Copy only the DNS server addresses for pasting into macOS Network Settings.")
                 }
 
+                if let manualApplyChecklistText = viewModel.manualApplyChecklistText {
+                    Button {
+                        copyToPasteboard(manualApplyChecklistText)
+                    } label: {
+                        Label("Copy Apply Checklist", systemImage: "checklist")
+                    }
+                    .accessibilityIdentifier("benchmark-copy-apply-checklist-button")
+                    .help("Copy the manual apply and retest checklist.")
+                }
+
                 if viewModel.canOpenNetworkSettings {
                     Button {
                         openNetworkSettings()
