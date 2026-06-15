@@ -2447,7 +2447,29 @@ private struct BenchmarkResultNextStepPanel: View {
                     .foregroundStyle(.secondary)
             }
 
+            if let dnsSettings = viewModel.dnsSettings {
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Label("DNS servers to paste: \(dnsSettings.profileName)", systemImage: "server.rack")
+                        .font(.subheadline.weight(.semibold))
+                    ForEach(dnsSettings.displayLines, id: \.self) { line in
+                        Label(line, systemImage: "number")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
+            }
+
             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
+                    Button {
+                        copyToPasteboard(dnsSettings.serverListText)
+                    } label: {
+                        Label("Copy DNS Servers", systemImage: "doc.on.doc")
+                    }
+                    .accessibilityIdentifier("benchmark-copy-dns-servers-button")
+                    .help("Copy only the DNS server addresses for pasting into macOS Network Settings.")
+                }
+
                 if viewModel.canOpenNetworkSettings {
                     Button {
                         openNetworkSettings()

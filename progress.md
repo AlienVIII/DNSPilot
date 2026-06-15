@@ -5003,3 +5003,57 @@ Result: 93 passed, 0 failed
 swift test --package-path apps/macos/DNSPilotMac
 Result: 14 passed, 0 failed
 ```
+
+---
+
+## Chunk 194: v0.1 macOS Guided Apply From Recommendation
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Strong benchmark recommendations now produce store-safe guided apply data. The
+result panel can show the recommended profile, tested resolver, IPv4/IPv6 DNS
+servers to paste, a copy-DNS action, and a Network Settings handoff while
+explicitly stating that DNS Pilot has not changed system DNS.
+
+### Before
+
+```mermaid
+graph LR
+  RESULT[benchmark result] --> NEXT[next step text]
+  NEXT --> SETTINGS[open Network Settings]
+```
+
+### After
+
+```mermaid
+graph LR
+  RESULT[benchmark result] --> APPLY[guided apply model NEW]
+  APPLY --> DNS[copy DNS servers NEW]
+  APPLY --> SETTINGS[open Network Settings]
+  APPLY --> REPORT[result report with servers CHANGED]
+```
+
+### Edge Cases / Caveats
+
+- Store-safe builds still do not mutate system DNS silently.
+- The result shows the tested resolver separately from provider fallback
+  servers, because the benchmark currently measures the selected resolver
+  address used for the run.
+- Weak/degraded/inconclusive runs still keep current DNS and do not expose an
+  apply action.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests
+Result: 14 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 180 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```

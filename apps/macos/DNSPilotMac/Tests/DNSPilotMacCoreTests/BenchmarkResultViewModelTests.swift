@@ -54,6 +54,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.notes, ["Lowest median DNS latency.", "Connection path not measured."])
         XCTAssertEqual(viewModel.savedHistoryLabel, "Saved run: compare-run-1")
         XCTAssertEqual(viewModel.fullSavedHistoryID, "compare-run-1")
+        XCTAssertEqual(viewModel.recommendedDNSSettings?.serverListText, "1.1.1.1\n1.0.0.1\n2606:4700:4700::1111")
         XCTAssertEqual(
             viewModel.resultReport,
             """
@@ -62,12 +63,23 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             Scope: DNS only
             Confidence: High confidence
             Recommendation: Recommended: Cloudflare
-            Next step: Review DNS settings
+            Next step: Apply recommended DNS manually
             DNS Pilot has not changed system DNS.
             Recommended profile: Cloudflare.
+            Copy the DNS servers, open Network Settings, then paste them into the active network service DNS list.
             Only change DNS after checking VPN, MDM, captive portal, and corporate network requirements.
             After changing DNS manually, flush cache and run the benchmark again.
             Saved run: compare-run-1
+
+            Recommended DNS servers:
+            Profile: Cloudflare
+            Tested resolver: 127.0.0.1:53
+            IPv4 DNS:
+            1.1.1.1
+            1.0.0.1
+            IPv6 DNS:
+            2606:4700:4700::1111
+            DNS Pilot has not changed system DNS. Paste these manually only if this network is not managed by VPN, MDM, or corporate policy.
 
             Candidates:
             Cloudflare | 127.0.0.1:53 | DNS median 4 ms | DNS P95 4 ms | Failure 0% failed | Diagnosis No issues
@@ -123,18 +135,23 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         let resultViewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
         let guidance = BenchmarkResultNextStepViewModel(result: resultViewModel)
 
-        XCTAssertEqual(guidance.title, "Next step: Review DNS settings")
+        XCTAssertEqual(guidance.title, "Next step: Apply recommended DNS manually")
         XCTAssertEqual(guidance.actionLabel, "Open Network Settings")
         XCTAssertTrue(guidance.canOpenNetworkSettings)
+        XCTAssertEqual(guidance.dnsSettings?.serverListText, "1.1.1.1\n1.0.0.1\n2606:4700:4700::1111")
         XCTAssertEqual(
             guidance.lines,
             [
                 "DNS Pilot has not changed system DNS.",
                 "Recommended profile: Cloudflare.",
+                "Copy the DNS servers, open Network Settings, then paste them into the active network service DNS list.",
                 "Only change DNS after checking VPN, MDM, captive portal, and corporate network requirements.",
                 "After changing DNS manually, flush cache and run the benchmark again.",
             ]
         )
+        XCTAssertTrue(guidance.copyText.contains("Recommended DNS servers:"))
+        XCTAssertTrue(guidance.copyText.contains("IPv4 DNS:\n1.1.1.1\n1.0.0.1"))
+        XCTAssertTrue(guidance.copyText.contains("IPv6 DNS:\n2606:4700:4700::1111"))
     }
 
     func testNextStepGuidanceKeepsCurrentDNSForWeakResult() {
@@ -712,8 +729,8 @@ private func makeResultCatalog() -> CatalogSnapshot {
                 id: "cloudflare",
                 name: "Cloudflare",
                 description: "Fast public DNS.",
-                ipv4Servers: ["1.1.1.1"],
-                ipv6Servers: [],
+                ipv4Servers: ["1.1.1.1", "1.0.0.1"],
+                ipv6Servers: ["2606:4700:4700::1111"],
                 protocol: .plain,
                 dohURL: nil,
                 dotHostname: nil,

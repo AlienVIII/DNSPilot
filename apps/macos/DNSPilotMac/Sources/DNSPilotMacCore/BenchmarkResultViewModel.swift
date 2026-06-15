@@ -13,13 +13,14 @@ public struct BenchmarkResultViewModel: Equatable {
     public let fullSavedHistoryID: String?
     public let recordFamilyLabel: String?
     public let recommendedProfileName: String?
+    public let recommendedDNSSettings: BenchmarkRecommendedDNSSettings?
     public let recommendsKeepingCurrentDNS: Bool
     public let hasActionableRecommendation: Bool
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
-        let profileNames = Dictionary(
-            uniqueKeysWithValues: (catalog?.profiles ?? []).map { ($0.id, $0.name) }
-        )
+        let catalogProfiles = catalog?.profiles ?? []
+        let profileNames = Dictionary(uniqueKeysWithValues: catalogProfiles.map { ($0.id, $0.name) })
+        let profilesByID = Dictionary(uniqueKeysWithValues: catalogProfiles.map { ($0.id, $0) })
 
         scopeLabel = Self.scopeLabel(for: result.summary.measurementScope)
         healthLabel = Self.healthLabel(for: result.summary.health)
@@ -42,13 +43,28 @@ public struct BenchmarkResultViewModel: Equatable {
         )
         let blockedRecommendationLabel = Self.blockedRecommendationLabel(for: result.summary.primaryIssue)
         recommendsKeepingCurrentDNS = shouldProtectCurrentDNS || blockedRecommendationLabel == "Keep current DNS"
-        hasActionableRecommendation = result.summary.canRecommend
+        let actionableRecommendation = result.summary.canRecommend
             && recommendedCandidateName != nil
             && !recommendsKeepingCurrentDNS
             && Self.shouldUseStrongRecommendation(
                 health: result.summary.health,
                 confidence: result.recommendation?.confidence
             )
+        hasActionableRecommendation = actionableRecommendation
+        if actionableRecommendation,
+           let recommendedProfileID,
+           let recommendedProfile = profilesByID[recommendedProfileID],
+           recommendedProfile.protocol == .plain {
+            recommendedDNSSettings = BenchmarkRecommendedDNSSettings(
+                profileID: recommendedProfileID,
+                profileName: recommendedCandidateName ?? recommendedProfile.name,
+                testedResolver: result.runs.first { $0.profileID == recommendedProfileID }?.resolver,
+                ipv4Servers: recommendedProfile.ipv4Servers,
+                ipv6Servers: recommendedProfile.ipv6Servers
+            )
+        } else {
+            recommendedDNSSettings = nil
+        }
         let bestMeasuredNote: String?
         if shouldProtectCurrentDNS, let recommendedCandidateName {
             bestMeasuredNote = "Best measured candidate during this run: \(recommendedCandidateName)."
@@ -112,6 +128,11 @@ public struct BenchmarkResultViewModel: Equatable {
         }
         if let recordFamilyLabel {
             lines.append("DNS records: \(recordFamilyLabel)")
+        }
+        if let recommendedDNSSettings {
+            lines.append("")
+            lines.append("Recommended DNS servers:")
+            lines.append(recommendedDNSSettings.copyText)
         }
 
         lines.append("")
@@ -296,6 +317,62 @@ public struct BenchmarkResultViewModel: Equatable {
     }
 }
 
+public struct BenchmarkRecommendedDNSSettings: Equatable {
+    public let profileID: String
+    public let profileName: String
+    public let testedResolver: String?
+    public let ipv4Servers: [String]
+    public let ipv6Servers: [String]
+
+    public var allServers: [String] {
+        ipv4Servers + ipv6Servers
+    }
+
+    public var hasServers: Bool {
+        !allServers.isEmpty
+    }
+
+    public var serverListText: String {
+        allServers.joined(separator: "\n")
+    }
+
+    public var copyText: String {
+        var lines = [
+            "Profile: \(profileName)",
+        ]
+        if let testedResolver {
+            lines.append("Tested resolver: \(testedResolver)")
+        }
+        if !ipv4Servers.isEmpty {
+            lines.append("IPv4 DNS:")
+            lines.append(contentsOf: ipv4Servers)
+        }
+        if !ipv6Servers.isEmpty {
+            lines.append("IPv6 DNS:")
+            lines.append(contentsOf: ipv6Servers)
+        }
+        lines.append("DNS Pilot has not changed system DNS. Paste these manually only if this network is not managed by VPN, MDM, or corporate policy.")
+        return lines.joined(separator: "\n")
+    }
+
+    public var displayLines: [String] {
+        var lines = [String]()
+        if let testedResolver {
+            lines.append("Tested resolver: \(testedResolver).")
+        }
+        if !ipv4Servers.isEmpty {
+            lines.append("IPv4 to paste: \(ipv4Servers.joined(separator: ", ")).")
+        }
+        if !ipv6Servers.isEmpty {
+            lines.append("IPv6 to paste: \(ipv6Servers.joined(separator: ", ")).")
+        }
+        if allServers.count > 1 {
+            lines.append("Only the resolver used in this run was measured directly; extra provider servers are fallback entries.")
+        }
+        return lines
+    }
+}
+
 public struct BenchmarkResultRow: Equatable, Identifiable {
     public let id: String
     public let profileID: String
@@ -405,16 +482,19 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
     public let title: String
     public let actionLabel: String
     public let canOpenNetworkSettings: Bool
+    public let dnsSettings: BenchmarkRecommendedDNSSettings?
     public let lines: [String]
 
     public init(result: BenchmarkResultViewModel) {
         if result.hasActionableRecommendation, let recommendedProfileName = result.recommendedProfileName {
-            title = "Next step: Review DNS settings"
+            title = "Next step: Apply recommended DNS manually"
             actionLabel = "Open Network Settings"
             canOpenNetworkSettings = true
+            dnsSettings = result.recommendedDNSSettings
             lines = [
                 "DNS Pilot has not changed system DNS.",
                 "Recommended profile: \(recommendedProfileName).",
+                "Copy the DNS servers, open Network Settings, then paste them into the active network service DNS list.",
                 "Only change DNS after checking VPN, MDM, captive portal, and corporate network requirements.",
                 "After changing DNS manually, flush cache and run the benchmark again.",
             ]
@@ -422,6 +502,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Keep current DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",
                 "This run is not reliable enough to change DNS from it.",
@@ -431,6 +512,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Retest before changing DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",
                 "No resolver is strong enough to apply from this run.",
@@ -440,7 +522,8 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
     }
 
     public var copyText: String {
-        ([title] + lines).joined(separator: "\n")
+        let dnsLines = dnsSettings.map { ["", "Recommended DNS servers:", $0.copyText] } ?? []
+        return ([title] + lines + dnsLines).joined(separator: "\n")
     }
 }
 

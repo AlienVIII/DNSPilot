@@ -133,6 +133,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   across many DNS candidates.
 - macOS Benchmark result decoder/ViewModel surfaces deduplicated per-run CLI
   caveats, such as TCP endpoint failures, in result notes.
+- macOS Benchmark strong recommendations include store-safe guided apply
+  details: DNS servers to paste, tested resolver, copy action, and Network
+  Settings handoff without changing system DNS silently.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
   when partial failures line up with a specific IP family.
 - macOS Benchmark result rows and copied result reports include per-resolver
