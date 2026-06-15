@@ -5060,6 +5060,39 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 203: v0.1 Benchmark Result Apply Plan Source
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkApplyPlanRequestFactoryTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+`BenchmarkResultViewModel` now keeps the source benchmark payload privately and
+can create an `ApplyPlanRequest` through the shared request factory. This gives
+SwiftUI a typed bridge to apply-plan without reconstructing policy inputs from
+display labels.
+
+### Edge Cases / Caveats
+
+- The raw benchmark payload stays private; UI receives only the request builder.
+- Profile database URL and protected-network flags are provided by the caller so
+  UI/app shell can include runtime context later.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkApplyPlanRequestFactoryTests/testResultViewModelBuildsApplyPlanRequestFromSourcePayload
+Result: expected RED compile failure before production code; ViewModel method missing.
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 193 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 202: v0.1 Benchmark Apply Plan Request Factory
 
 **Status:** Complete

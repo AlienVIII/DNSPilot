@@ -1,6 +1,8 @@
 import Foundation
 
 public struct BenchmarkResultViewModel: Equatable {
+    private let sourcePayload: BenchmarkResultPayload
+
     public let scopeLabel: String
     public let healthLabel: String
     public let recommendationLabel: String
@@ -19,6 +21,7 @@ public struct BenchmarkResultViewModel: Equatable {
     public let hasActionableRecommendation: Bool
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
+        sourcePayload = result
         let catalogProfiles = catalog?.profiles ?? []
         let profileNames = Dictionary(catalogProfiles.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
         let profilesByID = Dictionary(catalogProfiles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -112,6 +115,25 @@ public struct BenchmarkResultViewModel: Equatable {
             caveats: (result.recommendation?.caveats ?? [])
                 + (manualApplyUnavailableReason.map { [$0] } ?? [])
                 + result.runs.flatMap(\.caveats)
+        )
+    }
+
+    public func makeApplyPlanRequest(
+        platformID: String = "macos-store",
+        profileDatabaseURL: URL? = nil,
+        vpnActive: Bool = false,
+        mdmProfileActive: Bool = false,
+        corporateDNSDetected: Bool = false,
+        captivePortalDetected: Bool = false
+    ) -> ApplyPlanRequest {
+        BenchmarkApplyPlanRequestFactory.makeRequest(
+            for: sourcePayload,
+            platformID: platformID,
+            profileDatabaseURL: profileDatabaseURL,
+            vpnActive: vpnActive,
+            mdmProfileActive: mdmProfileActive,
+            corporateDNSDetected: corporateDNSDetected,
+            captivePortalDetected: captivePortalDetected
         )
     }
 

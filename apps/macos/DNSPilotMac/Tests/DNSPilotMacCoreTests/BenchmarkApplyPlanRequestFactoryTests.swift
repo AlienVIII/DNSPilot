@@ -77,6 +77,28 @@ final class BenchmarkApplyPlanRequestFactoryTests: XCTestCase {
         XCTAssertEqual(request.confidence, .inconclusive)
         XCTAssertEqual(request.gateHealth, .failed)
     }
+
+    func testResultViewModelBuildsApplyPlanRequestFromSourcePayload() {
+        let databaseURL = URL(fileURLWithPath: "/tmp/custom.sqlite")
+        let result = makeApplyPlanBenchmarkResult(
+            health: .healthy,
+            canRecommend: true,
+            recommendedProfileID: "cloudflare",
+            confidence: .high
+        )
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: nil)
+
+        let request = viewModel.makeApplyPlanRequest(
+            profileDatabaseURL: databaseURL,
+            vpnActive: true
+        )
+
+        XCTAssertEqual(request.profileDatabaseURL, databaseURL)
+        XCTAssertEqual(request.profileID, "cloudflare")
+        XCTAssertEqual(request.confidence, .high)
+        XCTAssertEqual(request.gateHealth, .healthy)
+        XCTAssertTrue(request.vpnActive)
+    }
 }
 
 private func makeApplyPlanBenchmarkResult(

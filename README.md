@@ -72,6 +72,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS benchmark-to-apply-plan request factory for converting benchmark health,
   confidence, recommended profile, and protected-network flags into shared
   apply-plan inputs.
+- macOS benchmark result ViewModel can build apply-plan requests from the source
+  benchmark payload without exposing raw payload data to SwiftUI.
 - macOS apply-plan ViewModel for guide/apply/protect labels, action gating, and
   copyable plan text.
 - macOS policy guidance ViewModel for flush/apply labels and protected-network
