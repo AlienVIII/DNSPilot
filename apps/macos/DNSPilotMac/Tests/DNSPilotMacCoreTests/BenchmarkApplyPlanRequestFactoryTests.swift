@@ -99,6 +99,68 @@ final class BenchmarkApplyPlanRequestFactoryTests: XCTestCase {
         XCTAssertEqual(request.gateHealth, .healthy)
         XCTAssertTrue(request.vpnActive)
     }
+
+    func testLoadCoordinatorLoadsApplyPlanForBenchmarkResult() {
+        let databaseURL = URL(fileURLWithPath: "/tmp/custom.sqlite")
+        let result = makeApplyPlanBenchmarkResult(
+            health: .healthy,
+            canRecommend: true,
+            recommendedProfileID: "cloudflare",
+            confidence: .high
+        )
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: nil)
+        let coordinator = BenchmarkApplyPlanLoadCoordinator { request in
+            XCTAssertEqual(request.profileDatabaseURL, databaseURL)
+            XCTAssertEqual(request.profileID, "cloudflare")
+            return ApplyPlan(
+                platformID: "macos-store",
+                applyCapability: .appleNetworkExtensionDNSSettings,
+                disposition: .guideOnly,
+                profileID: "cloudflare",
+                profileName: "Cloudflare",
+                dnsServers: ["1.1.1.1", "1.0.0.1"],
+                canApply: false,
+                notes: ["Store-safe build must guide plain DNS changes through OS settings."]
+            )
+        }
+
+        let outcome = coordinator.load(for: viewModel, profileDatabaseURL: databaseURL)
+
+        XCTAssertEqual(
+            outcome,
+            .loaded(
+                ApplyPlanViewModel(
+                    plan: ApplyPlan(
+                        platformID: "macos-store",
+                        applyCapability: .appleNetworkExtensionDNSSettings,
+                        disposition: .guideOnly,
+                        profileID: "cloudflare",
+                        profileName: "Cloudflare",
+                        dnsServers: ["1.1.1.1", "1.0.0.1"],
+                        canApply: false,
+                        notes: ["Store-safe build must guide plain DNS changes through OS settings."]
+                    )
+                )
+            )
+        )
+    }
+
+    func testLoadCoordinatorMapsApplyPlanFailuresToMessage() {
+        let result = makeApplyPlanBenchmarkResult(
+            health: .healthy,
+            canRecommend: true,
+            recommendedProfileID: "cloudflare",
+            confidence: .high
+        )
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: nil)
+        let coordinator = BenchmarkApplyPlanLoadCoordinator { _ in
+            throw ApplyPlanRunnerError.processFailed("apply plan failed")
+        }
+
+        let outcome = coordinator.load(for: viewModel)
+
+        XCTAssertEqual(outcome, .failed("apply plan failed"))
+    }
 }
 
 private func makeApplyPlanBenchmarkResult(

@@ -5060,6 +5060,40 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 204: v0.1 Benchmark Apply Plan Load Coordinator
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkApplyPlanLoadCoordinator.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkApplyPlanRequestFactoryTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added a testable coordinator that loads shared apply-plan policy from a
+benchmark result and returns either an `ApplyPlanViewModel` or a user-facing
+failure message. The coordinator uses closure injection for tests and can wrap
+the real `ApplyPlanRunner` in the app shell.
+
+### Edge Cases / Caveats
+
+- Runner failures preserve concrete process messages instead of falling back to
+  generic localized errors.
+- The coordinator remains side-effect free except for the injected load call;
+  SwiftUI still owns async scheduling and current-result staleness checks.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkApplyPlanRequestFactoryTests/testLoadCoordinatorLoadsApplyPlanForBenchmarkResult
+Result: expected RED compile failure before production code; coordinator missing.
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 195 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 203: v0.1 Benchmark Result Apply Plan Source
 
 **Status:** Complete
