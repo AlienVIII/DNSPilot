@@ -66,6 +66,7 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   rows.
 - macOS shell payload decoders reject unsupported `schema_version` values.
 - macOS preflight/apply-policy JSON decoders for flush and apply-safety UI.
+- macOS apply-plan JSON decoder for shared guide/apply/protect payloads.
 - macOS policy guidance ViewModel for flush/apply labels and protected-network
   prompt suppression.
 - macOS benchmark plan ViewModel for selected profiles, suites/custom domains,

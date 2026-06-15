@@ -61,3 +61,42 @@ public struct ApplyPolicy: Equatable {
         self.notes = notes
     }
 }
+
+public enum DNSPilotApplyPlanDisposition: Equatable {
+    case applyWithUserApproval
+    case guideOnly
+    case protectCurrentDNS
+    case unsupported
+    case notRecommended
+}
+
+public struct ApplyPlan: Equatable {
+    public let platformID: String
+    public let applyCapability: DNSPilotApplyCapability
+    public let disposition: DNSPilotApplyPlanDisposition
+    public let profileID: String?
+    public let profileName: String?
+    public let dnsServers: [String]
+    public let canApply: Bool
+    public let notes: [String]
+
+    public init(
+        platformID: String,
+        applyCapability: DNSPilotApplyCapability,
+        disposition: DNSPilotApplyPlanDisposition,
+        profileID: String?,
+        profileName: String?,
+        dnsServers: [String],
+        canApply: Bool,
+        notes: [String]
+    ) {
+        self.platformID = platformID
+        self.applyCapability = applyCapability
+        self.disposition = disposition
+        self.profileID = profileID
+        self.profileName = profileName
+        self.dnsServers = dnsServers
+        self.canApply = canApply
+        self.notes = notes
+    }
+}

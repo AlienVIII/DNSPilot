@@ -121,4 +121,49 @@ final class PolicyPayloadDecoderTests: XCTestCase {
 
         XCTAssertThrowsError(try ApplyPolicyJSONDecoder().decode(Data(json.utf8)))
     }
+
+    func testApplyPlanDecoderMapsRustCliSchema() throws {
+        let json = """
+        {
+          "schema_version": 1,
+          "platform": "macos-store",
+          "apply_capability": "apple-network-extension-dns-settings",
+          "disposition": "guide-only",
+          "profile_id": "cloudflare",
+          "profile_name": "Cloudflare",
+          "dns_servers": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111"],
+          "can_apply": false,
+          "notes": ["Store-safe build must guide plain DNS changes through OS settings."]
+        }
+        """
+
+        let plan = try ApplyPlanJSONDecoder().decode(Data(json.utf8))
+
+        XCTAssertEqual(plan.platformID, "macos-store")
+        XCTAssertEqual(plan.applyCapability, .appleNetworkExtensionDNSSettings)
+        XCTAssertEqual(plan.disposition, .guideOnly)
+        XCTAssertEqual(plan.profileID, "cloudflare")
+        XCTAssertEqual(plan.profileName, "Cloudflare")
+        XCTAssertEqual(plan.dnsServers, ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111"])
+        XCTAssertFalse(plan.canApply)
+        XCTAssertEqual(plan.notes.count, 1)
+    }
+
+    func testApplyPlanDecoderRejectsUnsupportedSchemaVersion() {
+        let json = """
+        {
+          "schema_version": 2,
+          "platform": "linux-native-power",
+          "apply_capability": "linux-network-manager-polkit",
+          "disposition": "apply-with-user-approval",
+          "profile_id": "quad9",
+          "profile_name": "Quad9",
+          "dns_servers": ["9.9.9.9"],
+          "can_apply": true,
+          "notes": []
+        }
+        """
+
+        XCTAssertThrowsError(try ApplyPlanJSONDecoder().decode(Data(json.utf8)))
+    }
 }

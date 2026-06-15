@@ -5126,6 +5126,35 @@ Result: 122 passed, 0 failed
 
 ---
 
+## Chunk 199: v0.1 macOS Apply Plan Decoder
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyJSONDecoder.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added macOS Swift models and decoder for the Rust `apply-plan` shell payload.
+The native shell can now parse guide/apply/protect/not-recommended decisions,
+profile metadata, DNS servers, and notes from the shared core contract.
+
+### Edge Cases / Caveats
+
+- Decoder rejects unsupported schema versions.
+- This is decode/readiness plumbing; UI wiring to call `apply-plan` remains a
+  later chunk.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+Result: 183 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 196: v0.1 Manual Apply Checklist
 
 **Status:** Complete
