@@ -1165,6 +1165,10 @@ private struct BenchmarkDetailView: View {
     @State private var recordFamily: BenchmarkRecordFamily
     @State private var resolverTransport: BenchmarkResolverTransport
     @State private var mode: BenchmarkPlanMode
+    @State private var vpnActive = false
+    @State private var mdmProfileActive = false
+    @State private var corporateDNSDetected = false
+    @State private var captivePortalDetected = false
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
     @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
@@ -1370,6 +1374,30 @@ private struct BenchmarkDetailView: View {
                     .labelsHidden()
                     .frame(maxWidth: 340, alignment: .leading)
                     .help(recordFamily.helpText)
+                }
+
+                BenchmarkSection(title: "Network Safeguards") {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                        Toggle("VPN active", isOn: $vpnActive)
+                            .disabled(isBenchmarkActive)
+                            .help("Protect current DNS when a VPN may own routing or DNS.")
+                        Toggle("MDM managed", isOn: $mdmProfileActive)
+                            .disabled(isBenchmarkActive)
+                            .help("Protect current DNS when this Mac may be managed by an organization.")
+                        Toggle("Corporate DNS required", isOn: $corporateDNSDetected)
+                            .disabled(isBenchmarkActive)
+                            .help("Protect current DNS when internal domains may require company DNS.")
+                        Toggle("Captive portal", isOn: $captivePortalDetected)
+                            .disabled(isBenchmarkActive)
+                            .help("Protect current DNS while a hotel, airport, or guest Wi-Fi login may be active.")
+
+                        Label(
+                            "Enabled safeguards affect apply policy only; benchmark measurements still run.",
+                            systemImage: "shield"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                 }
 
                 BenchmarkSection(title: "Profiles") {
@@ -1605,6 +1633,10 @@ private struct BenchmarkDetailView: View {
         .background(DNSPilotDesign.Palette.background)
         .onChange(of: suiteNameText) { _, _ in resetSuiteSaveState() }
         .onChange(of: customDomainsText) { _, _ in resetSuiteSaveState() }
+        .onChange(of: vpnActive) { _, _ in reloadApplyPlanForCurrentResult() }
+        .onChange(of: mdmProfileActive) { _, _ in reloadApplyPlanForCurrentResult() }
+        .onChange(of: corporateDNSDetected) { _, _ in reloadApplyPlanForCurrentResult() }
+        .onChange(of: captivePortalDetected) { _, _ in reloadApplyPlanForCurrentResult() }
         .onChange(of: quickBenchmarkRequestID) { _, requestID in
             handleQuickBenchmarkRequest(requestID)
         }
@@ -2020,6 +2052,10 @@ private struct BenchmarkDetailView: View {
         runID: BenchmarkRunID
     ) {
         let databaseURL = makePreparedHistoryPersistenceFactory()?.databaseURL
+        let vpnActive = vpnActive
+        let mdmProfileActive = mdmProfileActive
+        let corporateDNSDetected = corporateDNSDetected
+        let captivePortalDetected = captivePortalDetected
         applyPlanOutcome = nil
         isLoadingApplyPlan = true
         currentApplyPlanRunID = runID
@@ -2030,7 +2066,11 @@ private struct BenchmarkDetailView: View {
             )
             let loadedOutcome = coordinator.load(
                 for: resultViewModel,
-                profileDatabaseURL: databaseURL
+                profileDatabaseURL: databaseURL,
+                vpnActive: vpnActive,
+                mdmProfileActive: mdmProfileActive,
+                corporateDNSDetected: corporateDNSDetected,
+                captivePortalDetected: captivePortalDetected
             )
 
             DispatchQueue.main.async {
@@ -2041,6 +2081,16 @@ private struct BenchmarkDetailView: View {
                 applyPlanOutcome = loadedOutcome
             }
         }
+    }
+
+    private func reloadApplyPlanForCurrentResult() {
+        guard !isBenchmarkActive,
+              let runID = currentApplyPlanRunID,
+              case .completed(let resultViewModel) = outcome,
+              case .ready(let executableURL) = executableAvailability else {
+            return
+        }
+        loadApplyPlan(for: resultViewModel, executableURL: executableURL, runID: runID)
     }
 
     private func cancelBenchmark() {

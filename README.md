@@ -78,6 +78,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   `ApplyPlanViewModel` or actionable load errors through an injectable runner.
 - macOS Benchmark result UI now loads shared apply-plan policy after a
   completed run and shows store-safe copy/open-settings actions.
+- macOS Benchmark UI has network safeguard toggles for VPN, MDM, corporate DNS,
+  and captive portal states; apply-plan reloads when they change.
 - macOS copied benchmark result reports include apply-plan loading, success, or
   failure details when available.
 - macOS apply-plan ViewModel for guide/apply/protect labels, action gating, and

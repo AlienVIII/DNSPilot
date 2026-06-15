@@ -5060,6 +5060,38 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 207: v0.1 Network Safeguards for Apply Policy
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added Benchmark UI toggles for VPN active, MDM managed, corporate DNS required,
+and captive portal states. These flags feed the shared apply-plan request after
+benchmark completion and reload apply policy when changed, so protected networks
+can keep current DNS even if the benchmark has a fast candidate.
+
+### Edge Cases / Caveats
+
+- Safeguards affect apply policy only; benchmark measurements still run.
+- Quick benchmark presets do not reset safeguards, because safety state should
+  survive preset changes.
+- Toggles are disabled during an active benchmark to avoid mid-run policy drift.
+- Store-safe builds still guide settings changes only; no silent DNS mutation.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 197 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 206: v0.1 Apply Plan Result Report
 
 **Status:** Complete
