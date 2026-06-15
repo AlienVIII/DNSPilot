@@ -1,6 +1,6 @@
 import Foundation
 
-public struct BenchmarkResultViewModel: Equatable {
+public struct BenchmarkResultViewModel: Equatable, Sendable {
     private let sourcePayload: BenchmarkResultPayload
 
     public let scopeLabel: String
@@ -359,7 +359,7 @@ public struct BenchmarkResultViewModel: Equatable {
     }
 }
 
-public struct BenchmarkRecommendedDNSSettings: Equatable {
+public struct BenchmarkRecommendedDNSSettings: Equatable, Sendable {
     public let profileID: String
     public let profileName: String
     public let testedResolver: String?
@@ -441,7 +441,7 @@ public struct BenchmarkRecommendedDNSSettings: Equatable {
     }
 }
 
-public struct BenchmarkResultRow: Equatable, Identifiable {
+public struct BenchmarkResultRow: Equatable, Identifiable, Sendable {
     public let id: String
     public let profileID: String
     public let name: String

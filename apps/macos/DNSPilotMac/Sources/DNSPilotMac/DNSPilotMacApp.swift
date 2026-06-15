@@ -1171,6 +1171,9 @@ private struct BenchmarkDetailView: View {
     @State private var currentBenchmarkStartedAt: Date?
     @State private var currentProgressEvents: [BenchmarkProgressEvent] = []
     @State private var lastBenchmarkElapsedMS: Int?
+    @State private var applyPlanOutcome: BenchmarkApplyPlanLoadOutcome?
+    @State private var isLoadingApplyPlan = false
+    @State private var currentApplyPlanRunID: BenchmarkRunID?
     @State private var handledQuickBenchmarkRequestID = 0
     @State private var outcome: BenchmarkExecutionOutcome?
 
@@ -1317,7 +1320,9 @@ private struct BenchmarkDetailView: View {
                     case .completed(let resultViewModel):
                         BenchmarkResultPanel(
                             viewModel: resultViewModel,
-                            elapsedMS: lastBenchmarkElapsedMS
+                            elapsedMS: lastBenchmarkElapsedMS,
+                            applyPlanOutcome: applyPlanOutcome,
+                            isLoadingApplyPlan: isLoadingApplyPlan
                         )
                     case .failed(let failure):
                         BenchmarkFailurePanel(
@@ -1931,6 +1936,9 @@ private struct BenchmarkDetailView: View {
         let cancellation = BenchmarkRunCancellation()
         currentCancellation = cancellation
         outcome = nil
+        applyPlanOutcome = nil
+        isLoadingApplyPlan = false
+        currentApplyPlanRunID = nil
         currentProgressEvents = []
         lastBenchmarkElapsedMS = nil
         let startedAt = Date()
@@ -1992,9 +2000,45 @@ private struct BenchmarkDetailView: View {
                         currentCancellation = nil
                     }
                     outcome = nextOutcome
+                    if case .completed(let resultViewModel) = nextOutcome {
+                        loadApplyPlan(for: resultViewModel, executableURL: executableURL, runID: runID)
+                    } else {
+                        applyPlanOutcome = nil
+                        isLoadingApplyPlan = false
+                        currentApplyPlanRunID = nil
+                    }
                 default:
                     break
                 }
+            }
+        }
+    }
+
+    private func loadApplyPlan(
+        for resultViewModel: BenchmarkResultViewModel,
+        executableURL: URL,
+        runID: BenchmarkRunID
+    ) {
+        let databaseURL = makePreparedHistoryPersistenceFactory()?.databaseURL
+        applyPlanOutcome = nil
+        isLoadingApplyPlan = true
+        currentApplyPlanRunID = runID
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let coordinator = BenchmarkApplyPlanLoadCoordinator(
+                runner: ApplyPlanRunner(executableURL: executableURL)
+            )
+            let loadedOutcome = coordinator.load(
+                for: resultViewModel,
+                profileDatabaseURL: databaseURL
+            )
+
+            DispatchQueue.main.async {
+                guard currentApplyPlanRunID == runID else {
+                    return
+                }
+                isLoadingApplyPlan = false
+                applyPlanOutcome = loadedOutcome
             }
         }
     }
@@ -2332,6 +2376,8 @@ private struct BenchmarkFailureRow: View {
 private struct BenchmarkResultPanel: View {
     let viewModel: BenchmarkResultViewModel
     let elapsedMS: Int?
+    let applyPlanOutcome: BenchmarkApplyPlanLoadOutcome?
+    let isLoadingApplyPlan: Bool
 
     var body: some View {
         BenchmarkSection(title: "Result") {
@@ -2358,6 +2404,13 @@ private struct BenchmarkResultPanel: View {
                 BenchmarkResultNextStepPanel(
                     viewModel: BenchmarkResultNextStepViewModel(result: viewModel)
                 )
+
+                if isLoadingApplyPlan || applyPlanOutcome != nil {
+                    BenchmarkApplyPlanStatusPanel(
+                        outcome: applyPlanOutcome,
+                        isLoading: isLoadingApplyPlan
+                    )
+                }
 
                 Button {
                     copyToPasteboard(viewModel.resultReportText(elapsedMS: elapsedMS))
@@ -2428,6 +2481,114 @@ private struct BenchmarkResultPanel: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+private struct BenchmarkApplyPlanStatusPanel: View {
+    let outcome: BenchmarkApplyPlanLoadOutcome?
+    let isLoading: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            Divider()
+
+            if isLoading {
+                Label("Checking apply policy", systemImage: "hourglass")
+                    .font(.headline)
+                Label(
+                    "DNS Pilot is verifying the store-safe apply path for this result.",
+                    systemImage: "info.circle"
+                )
+                .foregroundStyle(.secondary)
+            } else {
+                switch outcome {
+                case .loaded(let viewModel):
+                    applyPlanContent(viewModel)
+                case .failed(let message):
+                    Label("Apply policy unavailable", systemImage: "exclamationmark.triangle")
+                        .font(.headline)
+                        .foregroundStyle(DNSPilotDesign.Palette.warning)
+                    Label(message, systemImage: "info.circle")
+                        .foregroundStyle(.secondary)
+                    Button {
+                        copyToPasteboard(message)
+                    } label: {
+                        Label("Copy Apply Error", systemImage: "doc.on.doc")
+                    }
+                case nil:
+                    EmptyView()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func applyPlanContent(_ viewModel: ApplyPlanViewModel) -> some View {
+        Label("Apply policy: \(viewModel.statusLabel)", systemImage: viewModel.canOfferPrimaryAction ? "checkmark.shield" : "shield")
+            .font(.headline)
+
+        Label(viewModel.actionLabel, systemImage: applyPlanActionImage(for: viewModel.plan.disposition))
+            .foregroundStyle(.secondary)
+
+        if !viewModel.dnsServerText.isEmpty {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                Label("DNS servers from shared plan", systemImage: "server.rack")
+                    .font(.subheadline.weight(.semibold))
+                ForEach(viewModel.plan.dnsServers, id: \.self) { server in
+                    Label(server, systemImage: "number")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
+        }
+
+        if !viewModel.plan.notes.isEmpty {
+            ForEach(viewModel.plan.notes, id: \.self) { note in
+                Label(note, systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+            if !viewModel.dnsServerText.isEmpty {
+                Button {
+                    copyToPasteboard(viewModel.dnsServerText)
+                } label: {
+                    Label("Copy Plan DNS", systemImage: "doc.on.doc")
+                }
+                .help("Copy DNS servers from the shared apply-plan output.")
+            }
+
+            if viewModel.plan.disposition == .guideOnly, viewModel.canOfferPrimaryAction {
+                Button {
+                    openNetworkSettings()
+                } label: {
+                    Label("Open Network Settings", systemImage: "gearshape")
+                }
+                .help("Open macOS Network Settings. DNS Pilot will not change DNS automatically.")
+            }
+
+            Button {
+                copyToPasteboard(viewModel.copyText)
+            } label: {
+                Label("Copy Apply Plan", systemImage: "doc.on.doc")
+            }
+        }
+    }
+
+    private func applyPlanActionImage(for disposition: DNSPilotApplyPlanDisposition) -> String {
+        switch disposition {
+        case .applyWithUserApproval:
+            "person.crop.circle.badge.checkmark"
+        case .guideOnly:
+            "gearshape"
+        case .protectCurrentDNS:
+            "lock.shield"
+        case .unsupported:
+            "nosign"
+        case .notRecommended:
+            "arrow.triangle.2.circlepath"
         }
     }
 }

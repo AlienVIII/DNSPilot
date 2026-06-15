@@ -76,6 +76,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   benchmark payload without exposing raw payload data to SwiftUI.
 - macOS benchmark apply-plan load coordinator maps benchmark results to
   `ApplyPlanViewModel` or actionable load errors through an injectable runner.
+- macOS Benchmark result UI now loads shared apply-plan policy after a
+  completed run and shows store-safe copy/open-settings actions.
 - macOS apply-plan ViewModel for guide/apply/protect labels, action gating, and
   copyable plan text.
 - macOS policy guidance ViewModel for flush/apply labels and protected-network

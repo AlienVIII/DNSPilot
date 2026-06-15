@@ -6,26 +6,26 @@ public enum BenchmarkMeasurementScope: String, Decodable, Equatable, Sendable {
     case dnsTCPTLS = "dns-tcp-tls"
 }
 
-public enum BenchmarkRecommendationMode: String, Decodable, Equatable {
+public enum BenchmarkRecommendationMode: String, Decodable, Equatable, Sendable {
     case fastestRawDNS = "fastest-raw-dns"
     case bestOverall = "best-overall"
 }
 
-public enum BenchmarkHealth: String, Decodable, Equatable {
+public enum BenchmarkHealth: String, Decodable, Equatable, Sendable {
     case healthy
     case degraded
     case failed
     case inconclusive
 }
 
-public enum BenchmarkConfidence: String, Decodable, Equatable {
+public enum BenchmarkConfidence: String, Decodable, Equatable, Sendable {
     case high
     case medium
     case low
     case inconclusive
 }
 
-public struct BenchmarkResultPayload: Decodable, Equatable {
+public struct BenchmarkResultPayload: Decodable, Equatable, Sendable {
     public let summary: BenchmarkResultSummary
     public let runs: [BenchmarkResultRun]
     public let recommendation: BenchmarkRecommendation?
@@ -41,7 +41,7 @@ public struct BenchmarkResultPayload: Decodable, Equatable {
     }
 }
 
-public struct BenchmarkResultSummary: Decodable, Equatable {
+public struct BenchmarkResultSummary: Decodable, Equatable, Sendable {
     public let measurementScope: BenchmarkMeasurementScope
     public let mode: BenchmarkRecommendationMode
     public let health: BenchmarkHealth
@@ -131,7 +131,7 @@ public struct BenchmarkResultSummary: Decodable, Equatable {
     }
 }
 
-public struct BenchmarkResultRun: Decodable, Equatable {
+public struct BenchmarkResultRun: Decodable, Equatable, Sendable {
     public let profileID: String
     public let resolver: String
     public let metrics: BenchmarkResultMetrics
@@ -165,7 +165,7 @@ public struct BenchmarkResultRun: Decodable, Equatable {
     }
 }
 
-public struct BenchmarkResultMetrics: Decodable, Equatable {
+public struct BenchmarkResultMetrics: Decodable, Equatable, Sendable {
     public let profileID: String
     public let medianDNSLatencyMS: Double?
     public let p95DNSLatencyMS: Double?
@@ -189,7 +189,7 @@ public struct BenchmarkResultMetrics: Decodable, Equatable {
     }
 }
 
-public struct BenchmarkRecommendation: Decodable, Equatable {
+public struct BenchmarkRecommendation: Decodable, Equatable, Sendable {
     public let profileID: String
     public let score: Double
     public let confidence: BenchmarkConfidence

@@ -5060,6 +5060,40 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 205: v0.1 Benchmark Apply Plan UI Wiring
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `README.md`, `progress.md`
+
+### What changed
+
+The Benchmark result screen now loads shared apply-plan policy after a completed
+run and displays an Apply policy section. Store-safe plain DNS plans expose copy
+DNS and open Network Settings actions; protect/not-recommended/unsupported
+plans show policy notes and copyable plan text without changing system DNS.
+
+### Edge Cases / Caveats
+
+- Apply-plan loading is guarded by the benchmark run ID so stale async results
+  cannot overwrite a newer run.
+- The panel is hidden until loading starts or an apply-plan result exists, so it
+  does not render empty dividers.
+- Result models now conform to `Sendable` to keep Swift 6 background loading
+  warning-free.
+- This is still guided apply for store builds; no silent DNS mutation.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 195 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 204: v0.1 Benchmark Apply Plan Load Coordinator
 
 **Status:** Complete
