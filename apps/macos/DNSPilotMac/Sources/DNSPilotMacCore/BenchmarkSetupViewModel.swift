@@ -259,6 +259,7 @@ public struct BenchmarkProfileOption: Equatable, Identifiable {
     public let id: String
     public let name: String
     public let detailLabel: String
+    public let helpText: String
     public let isRunnable: Bool
 
     public init(profile: CatalogProfile, resolverTransport: BenchmarkResolverTransport = .automatic) {
@@ -269,10 +270,22 @@ public struct BenchmarkProfileOption: Equatable, Identifiable {
             && socketAddress != nil
         if isRunnable {
             detailLabel = "\(profile.ipv4Servers.count) IPv4 / \(profile.ipv6Servers.count) IPv6"
+            helpText = """
+            EN: Plain DNS profile. The tested server address follows the Resolver option.
+            VI: Profile DNS thường. Địa chỉ server được test phụ thuộc vào option Resolver.
+            """
         } else if profile.protocol == .plain, let summaryLabel = resolverTransport.summaryLabel {
             detailLabel = "No \(summaryLabel)"
+            helpText = """
+            EN: This profile cannot run with the current Resolver option because it has no \(summaryLabel).
+            VI: Profile này không chạy được với Resolver hiện tại vì thiếu \(summaryLabel).
+            """
         } else {
             detailLabel = "Requires OS DNS profile flow"
+            helpText = """
+            EN: Encrypted DNS profiles need the OS DNS profile flow and are not included in direct plain-DNS benchmarks yet.
+            VI: DNS mã hóa cần luồng cấu hình DNS của hệ điều hành, chưa chạy trong benchmark DNS thường trực tiếp.
+            """
         }
     }
 }
@@ -281,6 +294,7 @@ public struct BenchmarkSuiteOption: Equatable, Identifiable {
     public let id: String
     public let name: String
     public let domainCountLabel: String
+    public let helpText: String
 
     public init(testSuite: CatalogTestSuite) {
         id = testSuite.id
@@ -288,5 +302,9 @@ public struct BenchmarkSuiteOption: Equatable, Identifiable {
         domainCountLabel = testSuite.domains.count == 1
             ? "1 domain"
             : "\(testSuite.domains.count) domains"
+        helpText = """
+        EN: Benchmark against the saved domains in this suite.
+        VI: Benchmark các domain đã lưu trong bộ test này.
+        """
     }
 }

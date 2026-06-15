@@ -1330,32 +1330,41 @@ private struct BenchmarkDetailView: View {
 
                 BenchmarkSection(title: "Mode") {
                     Picker("Mode", selection: $mode) {
-                        Text("DNS only").tag(BenchmarkPlanMode.dnsOnlyCompare)
-                        Text("DNS + TCP").tag(BenchmarkPlanMode.connectionPathCompare)
+                        Text(BenchmarkPlanMode.dnsOnlyCompare.displayLabel)
+                            .help(BenchmarkPlanMode.dnsOnlyCompare.helpText)
+                            .tag(BenchmarkPlanMode.dnsOnlyCompare)
+                        Text(BenchmarkPlanMode.connectionPathCompare.displayLabel)
+                            .help(BenchmarkPlanMode.connectionPathCompare.helpText)
+                            .tag(BenchmarkPlanMode.connectionPathCompare)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .frame(maxWidth: 280, alignment: .leading)
+                    .help(mode.helpText)
 
                     Picker("Resolver", selection: $resolverTransport) {
                         ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
-                            Text(transport.displayLabel).tag(transport)
+                            Text(transport.displayLabel)
+                                .help(transport.helpText)
+                                .tag(transport)
                         }
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .frame(maxWidth: 280, alignment: .leading)
-                    .help("Choose which DNS server address family to use from each profile.")
+                    .help(resolverTransport.helpText)
 
                     Picker("DNS records", selection: $recordFamily) {
                         ForEach(BenchmarkRecordFamily.allCases, id: \.self) { family in
-                            Text(family.displayLabel).tag(family)
+                            Text(family.displayLabel)
+                                .help(family.helpText)
+                                .tag(family)
                         }
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .frame(maxWidth: 340, alignment: .leading)
-                    .help("Choose which DNS record family to benchmark. Use A only on networks with broken IPv6.")
+                    .help(recordFamily.helpText)
                 }
 
                 BenchmarkSection(title: "Profiles") {
@@ -1365,6 +1374,12 @@ private struct BenchmarkDetailView: View {
                                 .font(.body.weight(.semibold))
                         }
                         .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
+                        .help(
+                            """
+                            EN: Select every plain DNS profile that can run with the current Resolver option.
+                            VI: Chọn tất cả profile DNS thường có thể chạy với option Resolver hiện tại.
+                            """
+                        )
 
                         Text(setupViewModel.profileSelectionSummary)
                             .font(.caption)
@@ -1390,6 +1405,7 @@ private struct BenchmarkDetailView: View {
                                 }
                             }
                             .disabled(!option.isRunnable || isBenchmarkActive)
+                            .help(option.helpText)
                         }
                     }
                 }
@@ -1397,13 +1413,27 @@ private struct BenchmarkDetailView: View {
                 BenchmarkSection(title: "Targets") {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                         Picker("Suite", selection: $selectedSuiteID) {
-                            Text("Custom only").tag(Optional<String>.none)
+                            Text("Custom only")
+                                .help(
+                                    """
+                                    EN: Use only the custom domains typed below.
+                                    VI: Chỉ dùng các domain tự nhập bên dưới.
+                                    """
+                                )
+                                .tag(Optional<String>.none)
                             ForEach(setupViewModel.suiteOptions) { option in
                                 Text("\(option.name) (\(option.domainCountLabel))")
+                                    .help(option.helpText)
                                     .tag(Optional(option.id))
                             }
                         }
                         .frame(maxWidth: 360, alignment: .leading)
+                        .help(
+                            """
+                            EN: Choose a saved domain suite, or choose Custom only and type domains below.
+                            VI: Chọn bộ domain đã lưu, hoặc chọn Custom only rồi nhập domain bên dưới.
+                            """
+                        )
 
                         DNSPilotMultilineTextInput(text: $customDomainsText)
                             .frame(minHeight: 88, alignment: .topLeading)
@@ -1412,6 +1442,12 @@ private struct BenchmarkDetailView: View {
                                 RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
                                     .stroke(.separator.opacity(0.5))
                             }
+                            .help(
+                                """
+                                EN: Enter domains separated by commas, spaces, or new lines.
+                                VI: Nhập domain, phân tách bằng dấu phẩy, khoảng trắng hoặc xuống dòng.
+                                """
+                            )
 
                         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
                             HStack(spacing: DNSPilotDesign.Spacing.row) {
@@ -1419,6 +1455,12 @@ private struct BenchmarkDetailView: View {
                                     .textFieldStyle(.roundedBorder)
                                     .frame(maxWidth: 260, alignment: .leading)
                                     .disabled(isBenchmarkActive || isMutatingSuite)
+                                    .help(
+                                        """
+                                        EN: Name for saving the custom domain list as a reusable suite.
+                                        VI: Tên để lưu danh sách domain thành một bộ test dùng lại.
+                                        """
+                                    )
 
                                 Button(action: saveCustomSuite) {
                                     if isSavingSuite {
@@ -1429,21 +1471,38 @@ private struct BenchmarkDetailView: View {
                                     }
                                 }
                                 .disabled(!suiteForm.canSave || isBenchmarkActive || isMutatingSuite)
-                                .help(suiteForm.canSave ? "Save custom domains as a suite" : suiteForm.issues.joined(separator: "\n"))
+                                .help(
+                                    suiteForm.canSave
+                                        ? """
+                                          EN: Save these custom domains as a reusable suite.
+                                          VI: Lưu các domain này thành bộ test dùng lại.
+                                          """
+                                        : suiteForm.issues.joined(separator: "\n")
+                                )
 
                                 if editingSuiteID != nil {
                                     Button(action: clearSuiteEditor) {
                                         Label("New Suite", systemImage: "plus")
                                     }
                                     .disabled(isBenchmarkActive || isMutatingSuite)
-                                    .help("Create a new suite instead of updating the selected suite")
+                                    .help(
+                                        """
+                                        EN: Create a new suite instead of updating the selected suite.
+                                        VI: Tạo bộ test mới thay vì cập nhật bộ đang chọn.
+                                        """
+                                    )
                                 }
 
                                 Button(action: fillAzureSuiteExample) {
                                     Label("Azure Example", systemImage: "sparkles")
                                 }
                                 .disabled(isBenchmarkActive || isMutatingSuite)
-                                .help("Fill Azure domains")
+                                .help(
+                                    """
+                                    EN: Fill common Azure and Microsoft domains for a quick example.
+                                    VI: Điền nhanh các domain Azure/Microsoft phổ biến làm ví dụ.
+                                    """
+                                )
                             }
 
                             if shouldShowSuiteIssues, !suiteForm.issues.isEmpty {
@@ -1487,13 +1546,24 @@ private struct BenchmarkDetailView: View {
                                 .font(.body.monospacedDigit())
                         }
                         .frame(maxWidth: 220, alignment: .leading)
+                        .help(
+                            """
+                            EN: More attempts reduce noise but make the benchmark take longer.
+                            VI: Nhiều lượt đo hơn sẽ ổn định hơn nhưng benchmark lâu hơn.
+                            """
+                        )
 
                         Stepper(value: $dnsTimeoutMS, in: 200...5_000, step: 100) {
                             Text("DNS timeout: \(dnsTimeoutMS) ms")
                                 .font(.body.monospacedDigit())
                         }
                         .frame(maxWidth: 260, alignment: .leading)
-                        .help("Increase this on slow networks; lower it for quick smoke tests.")
+                        .help(
+                            """
+                            EN: Maximum wait for each DNS lookup. Increase on slow networks; lower for quick smoke tests.
+                            VI: Thời gian chờ tối đa cho mỗi lần phân giải DNS. Tăng khi mạng chậm, giảm khi muốn test nhanh.
+                            """
+                        )
 
                         if mode == .connectionPathCompare {
                             Stepper(value: $connectTimeoutMS, in: 200...5_000, step: 100) {
@@ -1501,14 +1571,24 @@ private struct BenchmarkDetailView: View {
                                     .font(.body.monospacedDigit())
                             }
                             .frame(maxWidth: 260, alignment: .leading)
-                            .help("Per-endpoint TCP connect timeout for DNS + TCP mode.")
+                            .help(
+                                """
+                                EN: Maximum wait for each TCP connect attempt after DNS resolves.
+                                VI: Thời gian chờ tối đa cho mỗi lần thử kết nối TCP sau khi DNS trả IP.
+                                """
+                            )
 
                             Stepper(value: $maxConnectTargetsPerDomain, in: 1...8) {
                                 Text("TCP targets/domain: \(maxConnectTargetsPerDomain)")
                                     .font(.body.monospacedDigit())
                             }
                             .frame(maxWidth: 260, alignment: .leading)
-                            .help("Lower this to reduce DNS + TCP benchmark duration on large CDN domains.")
+                            .help(
+                                """
+                                EN: Limit how many resolved IPs are tested per domain. Lower it for CDN-heavy domains.
+                                VI: Giới hạn số IP được thử cho mỗi domain. Giảm giá trị này với domain/CDN có nhiều IP.
+                                """
+                            )
                         }
                     }
                 }
@@ -2005,17 +2085,6 @@ private extension BenchmarkProgressStatus {
             .orange
         case .failed:
             .red
-        }
-    }
-}
-
-private extension BenchmarkPlanMode {
-    var displayLabel: String {
-        switch self {
-        case .dnsOnlyCompare:
-            "DNS only"
-        case .connectionPathCompare:
-            "DNS + TCP"
         }
     }
 }

@@ -1,6 +1,30 @@
 public enum BenchmarkPlanMode: Equatable, Hashable, Sendable {
     case dnsOnlyCompare
     case connectionPathCompare
+
+    public var displayLabel: String {
+        switch self {
+        case .dnsOnlyCompare:
+            "DNS only"
+        case .connectionPathCompare:
+            "DNS + TCP"
+        }
+    }
+
+    public var helpText: String {
+        switch self {
+        case .dnsOnlyCompare:
+            """
+            EN: Measures DNS lookup latency and reliability only.
+            VI: Chỉ đo tốc độ và độ ổn định khi phân giải DNS; chưa đo kết nối web/app.
+            """
+        case .connectionPathCompare:
+            """
+            EN: Measures DNS lookup, then TCP connect to resolved endpoints.
+            VI: Đo DNS rồi thử kết nối TCP tới IP trả về; sát trải nghiệm hơn DNS only nhưng chưa đo TLS/HTTP/QUIC.
+            """
+        }
+    }
 }
 
 public enum BenchmarkRecordFamily: String, Equatable, Hashable, CaseIterable, Decodable, Sendable {
@@ -20,6 +44,26 @@ public enum BenchmarkRecordFamily: String, Equatable, Hashable, CaseIterable, De
             "A only"
         case .ipv6Only:
             "AAAA only"
+        }
+    }
+
+    public var helpText: String {
+        switch self {
+        case .both:
+            """
+            EN: Query both A and AAAA records. A returns IPv4 addresses; AAAA returns IPv6 addresses.
+            VI: Hỏi cả bản ghi A và AAAA. A là địa chỉ IPv4; AAAA là địa chỉ IPv6.
+            """
+        case .ipv4Only:
+            """
+            EN: Query A records only, so the run tests IPv4 answers without IPv6 noise.
+            VI: Chỉ hỏi bản ghi A để test IPv4, hữu ích khi mạng IPv6 yếu hoặc bị chặn.
+            """
+        case .ipv6Only:
+            """
+            EN: Query AAAA records only, so the run tests IPv6 answers and IPv6 reachability.
+            VI: Chỉ hỏi bản ghi AAAA để test IPv6; dùng khi muốn kiểm tra đường IPv6 riêng.
+            """
         }
     }
 
@@ -46,6 +90,26 @@ public enum BenchmarkResolverTransport: Equatable, Hashable, CaseIterable, Senda
             "IPv4"
         case .ipv6Only:
             "IPv6"
+        }
+    }
+
+    public var helpText: String {
+        switch self {
+        case .automatic:
+            """
+            EN: Use each profile's IPv4 DNS server first, then fall back to IPv6 if needed.
+            VI: Ưu tiên DNS server IPv4 của từng profile, nếu không có thì dùng IPv6.
+            """
+        case .ipv4Only:
+            """
+            EN: Benchmark only IPv4 DNS server addresses, such as 1.1.1.1.
+            VI: Chỉ benchmark địa chỉ DNS server IPv4, ví dụ 1.1.1.1.
+            """
+        case .ipv6Only:
+            """
+            EN: Benchmark only IPv6 DNS server addresses, such as 2606:4700:4700::1111.
+            VI: Chỉ benchmark địa chỉ DNS server IPv6, ví dụ 2606:4700:4700::1111.
+            """
         }
     }
 

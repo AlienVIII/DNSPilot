@@ -160,6 +160,17 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         let encryptedOption = viewModel.profileOptions.first { $0.id == "custom-doh" }
         XCTAssertEqual(encryptedOption?.isRunnable, false)
         XCTAssertEqual(encryptedOption?.detailLabel, "Requires OS DNS profile flow")
+        XCTAssertTrue(encryptedOption?.helpText.contains("DNS mã hóa") == true)
+    }
+
+    func testSetupProfileAndSuiteOptionsExposeVietnameseHelpText() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
+        )
+
+        XCTAssertTrue(viewModel.profileOptions.first?.helpText.contains("Địa chỉ server") == true)
+        XCTAssertTrue(viewModel.suiteOptions.first?.helpText.contains("bộ test") == true)
     }
 
     func testSetupSummarizesRunnableProfileSelection() {

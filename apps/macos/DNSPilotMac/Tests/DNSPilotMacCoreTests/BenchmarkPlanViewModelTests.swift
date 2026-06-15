@@ -136,6 +136,20 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
         )
     }
 
+    func testBenchmarkOptionHelpExplainsDnsRecordsAndVietnameseText() {
+        XCTAssertTrue(BenchmarkRecordFamily.both.helpText.contains("AAAA returns IPv6 addresses"))
+        XCTAssertTrue(BenchmarkRecordFamily.both.helpText.contains("AAAA là địa chỉ IPv6"))
+        XCTAssertTrue(BenchmarkRecordFamily.ipv4Only.helpText.contains("mạng IPv6 yếu"))
+        XCTAssertTrue(BenchmarkRecordFamily.ipv6Only.helpText.contains("kiểm tra đường IPv6"))
+    }
+
+    func testBenchmarkOptionHelpExplainsModeAndResolverTransport() {
+        XCTAssertTrue(BenchmarkPlanMode.dnsOnlyCompare.helpText.contains("phân giải DNS"))
+        XCTAssertTrue(BenchmarkPlanMode.connectionPathCompare.helpText.contains("kết nối TCP"))
+        XCTAssertTrue(BenchmarkResolverTransport.automatic.helpText.contains("Ưu tiên DNS server IPv4"))
+        XCTAssertTrue(BenchmarkResolverTransport.ipv6Only.helpText.contains("DNS server IPv6"))
+    }
+
     func testBenchmarkPlanCanUseIPv6ResolverTransport() {
         let viewModel = BenchmarkPlanViewModel(
             catalog: makeBenchmarkCatalog(),
