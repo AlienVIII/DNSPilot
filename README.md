@@ -69,6 +69,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS apply-plan JSON decoder for shared guide/apply/protect payloads.
 - macOS apply-plan runner boundary for invoking the Rust `apply-plan` command
   through the shared process runner.
+- macOS apply-plan ViewModel for guide/apply/protect labels, action gating, and
+  copyable plan text.
 - macOS policy guidance ViewModel for flush/apply labels and protected-network
   prompt suppression.
 - macOS benchmark plan ViewModel for selected profiles, suites/custom domains,

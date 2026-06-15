@@ -39,3 +39,75 @@ public struct PolicyGuidanceViewModel: Equatable {
         self.applyPolicy = applyPolicy
     }
 }
+
+public struct ApplyPlanViewModel: Equatable {
+    public let plan: ApplyPlan
+
+    public var statusLabel: String {
+        switch plan.disposition {
+        case .applyWithUserApproval:
+            "Ready"
+        case .guideOnly:
+            "Guided"
+        case .protectCurrentDNS:
+            "Protected"
+        case .unsupported:
+            "Unsupported"
+        case .notRecommended:
+            "Retest"
+        }
+    }
+
+    public var actionLabel: String {
+        switch plan.disposition {
+        case .applyWithUserApproval:
+            "Apply with Approval"
+        case .guideOnly:
+            "Copy DNS + Open Settings"
+        case .protectCurrentDNS:
+            "Keep current DNS"
+        case .unsupported:
+            "Unsupported"
+        case .notRecommended:
+            "Retest"
+        }
+    }
+
+    public var canOfferPrimaryAction: Bool {
+        switch plan.disposition {
+        case .applyWithUserApproval:
+            plan.canApply
+        case .guideOnly:
+            !plan.dnsServers.isEmpty
+        case .protectCurrentDNS, .unsupported, .notRecommended:
+            false
+        }
+    }
+
+    public var dnsServerText: String {
+        plan.dnsServers.joined(separator: "\n")
+    }
+
+    public var copyText: String {
+        var lines = [
+            "Apply plan: \(statusLabel)",
+            "Action: \(actionLabel)",
+        ]
+        if let profileName = plan.profileName {
+            lines.append("Profile: \(profileName)")
+        }
+        if !plan.dnsServers.isEmpty {
+            lines.append("DNS servers:")
+            lines.append(dnsServerText)
+        }
+        if !plan.notes.isEmpty {
+            lines.append("Notes:")
+            lines.append(contentsOf: plan.notes)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    public init(plan: ApplyPlan) {
+        self.plan = plan
+    }
+}

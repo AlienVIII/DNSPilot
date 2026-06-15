@@ -50,6 +50,47 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertFalse(guidance.canPromptApply)
     }
 
+    func testApplyPlanViewModelGuidesPlainDNSApply() {
+        let viewModel = ApplyPlanViewModel(
+            plan: ApplyPlan(
+                platformID: "macos-store",
+                applyCapability: .appleNetworkExtensionDNSSettings,
+                disposition: .guideOnly,
+                profileID: "cloudflare",
+                profileName: "Cloudflare",
+                dnsServers: ["1.1.1.1", "1.0.0.1"],
+                canApply: false,
+                notes: ["Store-safe build must guide plain DNS changes through OS settings."]
+            )
+        )
+
+        XCTAssertEqual(viewModel.statusLabel, "Guided")
+        XCTAssertEqual(viewModel.actionLabel, "Copy DNS + Open Settings")
+        XCTAssertTrue(viewModel.canOfferPrimaryAction)
+        XCTAssertEqual(viewModel.dnsServerText, "1.1.1.1\n1.0.0.1")
+        XCTAssertTrue(viewModel.copyText.contains("Profile: Cloudflare"))
+    }
+
+    func testApplyPlanViewModelProtectsCurrentDNS() {
+        let viewModel = ApplyPlanViewModel(
+            plan: ApplyPlan(
+                platformID: "macos-store",
+                applyCapability: .appleNetworkExtensionDNSSettings,
+                disposition: .protectCurrentDNS,
+                profileID: "cloudflare",
+                profileName: nil,
+                dnsServers: [],
+                canApply: false,
+                notes: ["VPN is active; protect current DNS."]
+            )
+        )
+
+        XCTAssertEqual(viewModel.statusLabel, "Protected")
+        XCTAssertEqual(viewModel.actionLabel, "Keep current DNS")
+        XCTAssertFalse(viewModel.canOfferPrimaryAction)
+        XCTAssertTrue(viewModel.copyText.contains("VPN is active"))
+    }
+
     func testPreflightDecoderMapsRustCliSchema() throws {
         let json = """
         {

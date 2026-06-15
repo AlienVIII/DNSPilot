@@ -5060,6 +5060,34 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 201: v0.1 macOS Apply Plan ViewModel
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyGuidanceViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added `ApplyPlanViewModel` to convert decoded apply-plan payloads into stable
+status labels, primary action labels, primary-action gating, DNS-server copy
+text, and issue-report copy text.
+
+### Edge Cases / Caveats
+
+- Guide-only plans can offer a primary action only when DNS servers are present.
+- Protect/unsupported/not-recommended plans cannot expose apply actions.
+
+### Verification
+
+```text
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 188 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 200: v0.1 macOS Apply Plan Runner
 
 **Status:** Complete
