@@ -5060,6 +5060,43 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 202: v0.1 Benchmark Apply Plan Request Factory
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkApplyPlanRequestFactory.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkApplyPlanRequestFactoryTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added a macOS core factory that turns benchmark result payloads into
+`ApplyPlanRequest` values for the shared `apply-plan` policy path. It maps
+benchmark health to gate health, benchmark confidence to apply-plan confidence,
+preserves measured candidates when the gate should decide, and suppresses
+profile IDs when the benchmark summary says not to recommend.
+
+### Edge Cases / Caveats
+
+- Low-confidence healthy candidates are still passed to `apply-plan`; the shared
+  core returns not-recommended instead of UI code making a parallel decision.
+- `canRecommend == false` suppresses profile IDs even if stale result payloads
+  still contain a recommended profile.
+- Targeted SwiftPM filtering can hang after build in this environment; clean +
+  full-suite testing remains the stable verification path.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkApplyPlanRequestFactoryTests
+Result: expected RED compile failure before production code; factory missing.
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 192 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 201: v0.1 macOS Apply Plan ViewModel
 
 **Status:** Complete
