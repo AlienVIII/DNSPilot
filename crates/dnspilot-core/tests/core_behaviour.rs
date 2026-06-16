@@ -44,6 +44,11 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
     assert!(profiles.iter().any(|profile| profile.id == "quad9"));
     assert!(profiles
         .iter()
+        .any(|profile| profile.id == "fpt-telecom-dns"));
+    assert!(profiles.iter().any(|profile| profile.id == "vnpt-dns"));
+    assert!(profiles.iter().any(|profile| profile.id == "viettel-dns"));
+    assert!(profiles
+        .iter()
         .any(|profile| profile.filtering_type == FilteringType::Family));
 
     assert!(suites.iter().any(|suite| suite.id == "general"));

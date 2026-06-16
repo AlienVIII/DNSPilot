@@ -973,6 +973,33 @@ pub fn built_in_profiles() -> Vec<DnsProfile> {
             FilteringType::Family,
             &["family", "filtered"],
         ),
+        profile(
+            "fpt-telecom-dns",
+            "FPT Telecom DNS",
+            "Vietnam ISP DNS from FPT Telecom.",
+            &["210.245.24.20", "210.245.24.22"],
+            &["2405:4800:0:1::1", "2405:4800:0:1::2"],
+            FilteringType::None,
+            &["vietnam", "isp", "unfiltered"],
+        ),
+        profile(
+            "vnpt-dns",
+            "VNPT DNS",
+            "Vietnam ISP DNS commonly used on VNPT networks.",
+            &["203.162.4.191", "203.162.4.190"],
+            &[],
+            FilteringType::None,
+            &["vietnam", "isp", "unfiltered"],
+        ),
+        profile(
+            "viettel-dns",
+            "Viettel DNS",
+            "Vietnam ISP DNS commonly used on Viettel networks.",
+            &["203.113.131.1", "203.113.131.2"],
+            &[],
+            FilteringType::None,
+            &["vietnam", "isp", "unfiltered"],
+        ),
     ]
 }
 

@@ -7,11 +7,11 @@ final class CatalogViewModelTests: XCTestCase {
         let viewModel = CatalogViewModel()
 
         XCTAssertNil(viewModel.loadErrorMessage)
-        XCTAssertEqual(viewModel.profileCount, 9)
+        XCTAssertEqual(viewModel.profileCount, 12)
         XCTAssertEqual(viewModel.testSuiteCount, 5)
         XCTAssertEqual(viewModel.filteredProfileCount, 6)
         XCTAssertTrue(viewModel.hasAzureSuite)
-        XCTAssertEqual(viewModel.catalog?.profiles.map(\.id).suffix(2), ["adguard-dns", "cleanbrowsing-family"])
+        XCTAssertEqual(viewModel.catalog?.profiles.map(\.id).suffix(3), ["fpt-telecom-dns", "vnpt-dns", "viettel-dns"])
         XCTAssertEqual(viewModel.catalog?.testSuites.map(\.id).suffix(2), ["google-firebase", "vietnam-daily"])
     }
 

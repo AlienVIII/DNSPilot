@@ -175,6 +175,33 @@ public struct PreviewCatalogBridge: DNSPilotCatalogBridge {
                     filteringType: .family,
                     tags: ["family", "filtered"]
                 ),
+                Self.profile(
+                    id: "fpt-telecom-dns",
+                    name: "FPT Telecom DNS",
+                    description: "Vietnam ISP DNS from FPT Telecom.",
+                    ipv4Servers: ["210.245.24.20", "210.245.24.22"],
+                    ipv6Servers: ["2405:4800:0:1::1", "2405:4800:0:1::2"],
+                    filteringType: .none,
+                    tags: ["vietnam", "isp", "unfiltered"]
+                ),
+                Self.profile(
+                    id: "vnpt-dns",
+                    name: "VNPT DNS",
+                    description: "Vietnam ISP DNS commonly used on VNPT networks.",
+                    ipv4Servers: ["203.162.4.191", "203.162.4.190"],
+                    ipv6Servers: [],
+                    filteringType: .none,
+                    tags: ["vietnam", "isp", "unfiltered"]
+                ),
+                Self.profile(
+                    id: "viettel-dns",
+                    name: "Viettel DNS",
+                    description: "Vietnam ISP DNS commonly used on Viettel networks.",
+                    ipv4Servers: ["203.113.131.1", "203.113.131.2"],
+                    ipv6Servers: [],
+                    filteringType: .none,
+                    tags: ["vietnam", "isp", "unfiltered"]
+                ),
             ],
             testSuites: [
                 Self.suite(

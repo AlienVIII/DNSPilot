@@ -5162,6 +5162,49 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 212: v0.1 Vietnam ISP DNS Profiles
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-core/tests/core_behaviour.rs`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CatalogViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CatalogViewModelTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Added FPT Telecom, VNPT, and Viettel plain DNS profiles to the shared catalog
+and the macOS preview/fallback catalog. They are Vietnam ISP benchmark
+candidates only; recommendations still depend on measured reliability,
+latency, and confidence.
+
+### Edge Cases / Caveats
+
+- FPT server data is sourced from FPT; VNPT/Viettel entries are common public
+  ISP DNS listings and should remain benchmark-first, not official-best claims.
+- Adding these profiles increases the candidate count, so long benchmark
+  warnings remain important when all profiles are selected.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour built_in_catalog_contains_required_profiles_and_suites
+Result: RED first, then 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests/testDefaultCatalogViewModelProvidesPreviewSummary
+Result: RED first, then 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 124 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 198 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+
+git diff --check
+Result: no whitespace errors
+```
+
+---
+
 ## Chunk 207: v0.1 Network Safeguards for Apply Policy
 
 **Status:** Complete

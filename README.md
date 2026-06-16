@@ -10,6 +10,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 ## Current Scope
 
 - Built-in DNS provider catalog.
+- Built-in Vietnam ISP DNS profiles for FPT Telecom, VNPT, and Viettel
+  benchmarking presets.
 - Built-in test suites for General, Developer, Azure/Microsoft,
   Google/Firebase, and Vietnam/Daily use cases.
 - Versioned core-owned shell payload contracts for catalog and capability
