@@ -128,6 +128,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   and `history-clear` through the shared process boundary.
 - macOS History sidebar screen with refresh, loading, empty, error, delete, clear
   all, and saved run display states.
+- macOS History rows warn that saved recommendations should be retested before
+  apply, because history snapshots are not live apply-plan inputs.
 - macOS benchmark result display includes saved history IDs when a run is
   persisted.
 - macOS DNS-only result decoder accepts missing/null connection latency and

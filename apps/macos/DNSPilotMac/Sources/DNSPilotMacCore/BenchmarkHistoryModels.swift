@@ -83,6 +83,7 @@ public struct BenchmarkHistoryRow: Equatable, Identifiable {
     public let resolverSummary: String
     public let healthLabel: String
     public let recommendationLabel: String
+    public let applyGuidanceLabel: String
 
     init(record: BenchmarkHistoryRecord, profileNames: [String: String]) {
         id = record.id
@@ -94,6 +95,7 @@ public struct BenchmarkHistoryRow: Equatable, Identifiable {
         let shouldKeepCurrentDNS = Self.shouldKeepCurrentDNS(for: record)
         if shouldKeepCurrentDNS {
             recommendationLabel = "Keep current DNS"
+            applyGuidanceLabel = "Do not apply from this saved run"
         } else if record.gate.canRecommend,
                   let profileID = record.recommendationProfileID {
             let profileName = profileNames[profileID] ?? profileID
@@ -102,8 +104,10 @@ public struct BenchmarkHistoryRow: Equatable, Identifiable {
             } else {
                 recommendationLabel = "Best measured: \(profileName)"
             }
+            applyGuidanceLabel = "Retest before applying saved recommendation"
         } else {
             recommendationLabel = "No recommendation"
+            applyGuidanceLabel = "Run a fresh benchmark before applying DNS"
         }
     }
 

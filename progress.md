@@ -5060,6 +5060,39 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 211: v0.1 History Apply Guardrail
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkHistoryModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkHistoryDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+History rows now show explicit apply guidance. Recommended saved runs say to
+retest before applying the saved recommendation; weak saved runs say not to
+apply from that saved run.
+
+### Edge Cases / Caveats
+
+- Saved history remains a local audit/reference surface, not a live apply-plan
+  source.
+- This avoids applying stale DNS recommendations without current network,
+  confidence, resolver address, and safeguard context.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkHistoryViewModelTests/testViewModelBuildsDisplayRows
+Result: 1 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 198 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 210: v0.1 Policy-Aware Result Guidance
 
 **Status:** Complete

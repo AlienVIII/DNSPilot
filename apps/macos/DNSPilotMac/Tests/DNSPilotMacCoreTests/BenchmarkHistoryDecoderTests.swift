@@ -44,6 +44,7 @@ final class BenchmarkHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows[0].resolverSummary, "2 resolvers")
         XCTAssertEqual(viewModel.rows[0].healthLabel, "Healthy")
         XCTAssertEqual(viewModel.rows[0].recommendationLabel, "Recommended: Cloudflare")
+        XCTAssertEqual(viewModel.rows[0].applyGuidanceLabel, "Retest before applying saved recommendation")
     }
 
     func testViewModelShowsNewestSavedRunFirst() throws {
@@ -82,6 +83,7 @@ final class BenchmarkHistoryViewModelTests: XCTestCase {
         let viewModel = BenchmarkHistoryViewModel(payload: payload, catalog: makeHistoryCatalog())
 
         XCTAssertEqual(viewModel.rows.first?.recommendationLabel, "Keep current DNS")
+        XCTAssertEqual(viewModel.rows.first?.applyGuidanceLabel, "Do not apply from this saved run")
     }
 
     func testViewModelShowsBestMeasuredForDegradedButUsableHistoryRun() {
