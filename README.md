@@ -120,6 +120,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   transitions.
 - macOS benchmark run controls for running/cancelling UI state and stale result
   guardrails.
+- macOS menu bar quick benchmark uses a compact DNS + TCP preset across
+  developer, Microsoft login, and Vietnam daily domains.
 - macOS benchmark cancellation token wired through coordinator/runner/process
   execution for best-effort process termination.
 - macOS benchmark history persistence options for appending `--save-db` and

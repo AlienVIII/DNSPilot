@@ -5060,6 +5060,39 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 214: v0.1 Broader Menu Bar Quick Benchmark
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkSetupViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkSetupViewModelTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+The menu bar quick benchmark preset now uses a compact three-domain set:
+developer (`github.com`), Microsoft login (`login.microsoftonline.com`), and
+Vietnam daily (`vnexpress.net`). It remains DNS + TCP, two default unfiltered
+resolvers, one attempt, and two TCP targets per domain.
+
+### Edge Cases / Caveats
+
+- This is still a quick estimate, not a full benchmark suite.
+- It avoids silent DNS swapping; the result still goes through the store-safe
+  apply guide.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkSetupViewModelTests/testQuickRunPresetUsesFastSafeDefaults
+Result: RED first, then 1 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 198 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 213: v0.1 Recommended Profile in Apply Policy
 
 **Status:** Complete

@@ -118,8 +118,11 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.maxConnectTargetsPerDomain, 2)
         XCTAssertEqual(viewModel.selectedProfileIDs, ["cloudflare", "google-public-dns"])
         XCTAssertNil(viewModel.selectedSuiteID)
-        XCTAssertEqual(viewModel.customDomainsText, "github.com")
-        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, A + AAAA, 2 resolvers, 1 domain, 1 attempt, 2 TCP targets/domain")
+        XCTAssertEqual(
+            viewModel.customDomainsText,
+            "github.com\nlogin.microsoftonline.com\nvnexpress.net"
+        )
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, A + AAAA, 2 resolvers, 3 domains, 1 attempt, 2 TCP targets/domain")
     }
 
     func testSetupParsesCustomDomainTextIntoPlan() {

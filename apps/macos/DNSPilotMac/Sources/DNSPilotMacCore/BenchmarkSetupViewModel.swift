@@ -155,7 +155,11 @@ public struct BenchmarkSetupViewModel: Equatable {
             executableAvailability: executableAvailability,
             selectedProfileIDs: defaults.selectedProfileIDs,
             selectedSuiteID: nil,
-            customDomainsText: "github.com",
+            customDomainsText: [
+                "github.com",
+                "login.microsoftonline.com",
+                "vnexpress.net",
+            ].joined(separator: "\n"),
             attempts: 1,
             dnsTimeoutMS: 800,
             connectTimeoutMS: 800,
