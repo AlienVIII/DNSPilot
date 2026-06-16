@@ -5475,3 +5475,51 @@ Result: 181 passed, 0 failed
 ./script/build_and_run.sh --verify
 Result: macOS bundle structural validation passed
 ```
+
+---
+
+## Chunk 208: v0.1 Apply Plan Tested Resolver
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_apply_policy_behaviour.rs`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ApplyPlanRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkApplyPlanRequestFactory.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyModels.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyJSONDecoder.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyGuidanceViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ApplyPlanRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkApplyPlanRequestFactoryTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Apply-plan payloads now preserve the resolver address that actually won the
+benchmark. Plain-DNS apply plans move that measured resolver to the top of the
+copyable DNS server list when it belongs to the recommended profile, while
+keeping remaining provider addresses as fallbacks.
+
+### Edge Cases / Caveats
+
+- Store-safe builds still guide/copy/open settings only; no system DNS mutation
+  is performed.
+- If the measured resolver is not part of the profile server list, the original
+  provider order is kept and the plan notes explain the mismatch.
+- Custom profile databases are covered so user-added DNS options can still
+  produce copyable apply plans.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_apply_policy_behaviour apply_plan_command_preserves_tested_resolver_as_primary_dns_server
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter ApplyPlanRunnerTests/testRequestBuildsApplyPlanArguments
+Result: 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_apply_policy_behaviour
+Result: 6 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-core --test core_behaviour
+Result: 25 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 124 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 197 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```

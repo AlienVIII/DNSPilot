@@ -155,6 +155,7 @@ public struct ApplyPlanJSONDecoder {
             disposition: Self.disposition(for: payload.disposition),
             profileID: payload.profileID,
             profileName: payload.profileName,
+            testedResolver: payload.testedResolver,
             dnsServers: payload.dnsServers,
             canApply: payload.canApply,
             notes: payload.notes
@@ -241,6 +242,7 @@ private struct ApplyPlanPayload: Decodable {
     let disposition: String
     let profileID: String?
     let profileName: String?
+    let testedResolver: String?
     let dnsServers: [String]
     let canApply: Bool
     let notes: [String]
@@ -252,6 +254,7 @@ private struct ApplyPlanPayload: Decodable {
         case disposition
         case profileID = "profile_id"
         case profileName = "profile_name"
+        case testedResolver = "tested_resolver"
         case dnsServers = "dns_servers"
         case canApply = "can_apply"
         case notes

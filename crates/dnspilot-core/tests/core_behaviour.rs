@@ -485,6 +485,7 @@ fn apply_plan_guides_plain_dns_for_store_safe_platforms() {
         &NetworkEnvironment::default(),
         &gate,
         Some(&recommendation),
+        None,
         &profiles,
     );
 
@@ -518,6 +519,7 @@ fn apply_plan_allows_power_plain_dns_with_user_approval() {
         &NetworkEnvironment::default(),
         &gate,
         Some(&recommendation),
+        None,
         &profiles,
     );
 
@@ -553,6 +555,7 @@ fn apply_plan_protects_managed_networks_before_profile_apply() {
         &environment,
         &gate,
         Some(&recommendation),
+        None,
         &profiles,
     );
 
@@ -582,6 +585,7 @@ fn apply_plan_blocks_unhealthy_or_low_confidence_recommendations() {
         &NetworkEnvironment::default(),
         &degraded_gate,
         Some(&recommendation),
+        None,
         &profiles,
     );
 

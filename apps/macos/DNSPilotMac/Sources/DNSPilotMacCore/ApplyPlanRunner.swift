@@ -22,6 +22,7 @@ public struct ApplyPlanRequest: Equatable, Sendable {
     public let platformID: String
     public let profileDatabaseURL: URL?
     public let profileID: String?
+    public let testedResolver: String?
     public let confidence: ApplyPlanConfidence
     public let gateHealth: ApplyPlanGateHealth
     public let vpnActive: Bool
@@ -33,6 +34,7 @@ public struct ApplyPlanRequest: Equatable, Sendable {
         platformID: String = "macos-store",
         profileDatabaseURL: URL? = nil,
         profileID: String?,
+        testedResolver: String? = nil,
         confidence: ApplyPlanConfidence = .high,
         gateHealth: ApplyPlanGateHealth = .healthy,
         vpnActive: Bool = false,
@@ -43,6 +45,7 @@ public struct ApplyPlanRequest: Equatable, Sendable {
         self.platformID = platformID
         self.profileDatabaseURL = profileDatabaseURL
         self.profileID = profileID
+        self.testedResolver = testedResolver
         self.confidence = confidence
         self.gateHealth = gateHealth
         self.vpnActive = vpnActive
@@ -63,6 +66,9 @@ public struct ApplyPlanRequest: Equatable, Sendable {
         }
         if let profileID {
             arguments += ["--profile-id", profileID]
+        }
+        if let testedResolver {
+            arguments += ["--tested-resolver", testedResolver]
         }
         if vpnActive {
             arguments.append("--vpn-active")

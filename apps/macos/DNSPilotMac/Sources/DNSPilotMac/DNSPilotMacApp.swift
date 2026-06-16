@@ -2587,6 +2587,11 @@ private struct BenchmarkApplyPlanStatusPanel: View {
         Label(viewModel.actionLabel, systemImage: applyPlanActionImage(for: viewModel.plan.disposition))
             .foregroundStyle(.secondary)
 
+        if let testedResolver = viewModel.plan.testedResolver {
+            Label("Tested resolver: \(testedResolver)", systemImage: "scope")
+                .foregroundStyle(.secondary)
+        }
+
         if !viewModel.dnsServerText.isEmpty {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
                 Label("DNS servers from shared plan", systemImage: "server.rack")

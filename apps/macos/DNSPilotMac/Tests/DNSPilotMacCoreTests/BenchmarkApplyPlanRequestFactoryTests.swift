@@ -25,6 +25,7 @@ final class BenchmarkApplyPlanRequestFactoryTests: XCTestCase {
         XCTAssertEqual(request.platformID, "macos-store")
         XCTAssertEqual(request.profileDatabaseURL, databaseURL)
         XCTAssertEqual(request.profileID, "cloudflare")
+        XCTAssertEqual(request.testedResolver, "127.0.0.1:53")
         XCTAssertEqual(request.confidence, .medium)
         XCTAssertEqual(request.gateHealth, .healthy)
         XCTAssertTrue(request.vpnActive)
@@ -95,6 +96,7 @@ final class BenchmarkApplyPlanRequestFactoryTests: XCTestCase {
 
         XCTAssertEqual(request.profileDatabaseURL, databaseURL)
         XCTAssertEqual(request.profileID, "cloudflare")
+        XCTAssertEqual(request.testedResolver, "127.0.0.1:53")
         XCTAssertEqual(request.confidence, .high)
         XCTAssertEqual(request.gateHealth, .healthy)
         XCTAssertTrue(request.vpnActive)
@@ -118,6 +120,7 @@ final class BenchmarkApplyPlanRequestFactoryTests: XCTestCase {
                 disposition: .guideOnly,
                 profileID: "cloudflare",
                 profileName: "Cloudflare",
+                testedResolver: "127.0.0.1:53",
                 dnsServers: ["1.1.1.1", "1.0.0.1"],
                 canApply: false,
                 notes: ["Store-safe build must guide plain DNS changes through OS settings."]
@@ -136,6 +139,7 @@ final class BenchmarkApplyPlanRequestFactoryTests: XCTestCase {
                         disposition: .guideOnly,
                         profileID: "cloudflare",
                         profileName: "Cloudflare",
+                        testedResolver: "127.0.0.1:53",
                         dnsServers: ["1.1.1.1", "1.0.0.1"],
                         canApply: false,
                         notes: ["Store-safe build must guide plain DNS changes through OS settings."]

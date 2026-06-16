@@ -76,6 +76,7 @@ public struct ApplyPlan: Equatable {
     public let disposition: DNSPilotApplyPlanDisposition
     public let profileID: String?
     public let profileName: String?
+    public let testedResolver: String?
     public let dnsServers: [String]
     public let canApply: Bool
     public let notes: [String]
@@ -86,6 +87,7 @@ public struct ApplyPlan: Equatable {
         disposition: DNSPilotApplyPlanDisposition,
         profileID: String?,
         profileName: String?,
+        testedResolver: String? = nil,
         dnsServers: [String],
         canApply: Bool,
         notes: [String]
@@ -95,6 +97,7 @@ public struct ApplyPlan: Equatable {
         self.disposition = disposition
         self.profileID = profileID
         self.profileName = profileName
+        self.testedResolver = testedResolver
         self.dnsServers = dnsServers
         self.canApply = canApply
         self.notes = notes

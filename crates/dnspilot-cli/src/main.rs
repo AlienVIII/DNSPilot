@@ -61,6 +61,8 @@ enum Command {
         profile_db: Option<std::path::PathBuf>,
         #[arg(long)]
         profile_id: Option<String>,
+        #[arg(long)]
+        tested_resolver: Option<String>,
         #[arg(long, value_enum, default_value_t = ConfidenceArg::High)]
         confidence: ConfidenceArg,
         #[arg(long, value_enum, default_value_t = GateHealthArg::Healthy)]
@@ -414,6 +416,7 @@ fn main() {
             platform,
             profile_db,
             profile_id,
+            tested_resolver,
             confidence,
             gate_health,
             vpn_active,
@@ -442,6 +445,7 @@ fn main() {
                 &environment,
                 &gate,
                 recommendation.as_ref(),
+                tested_resolver.as_deref(),
                 &profiles,
             );
             println!(

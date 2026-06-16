@@ -8,6 +8,7 @@ final class ApplyPlanRunnerTests: XCTestCase {
             platformID: "linux-native-power",
             profileDatabaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
             profileID: "cloudflare",
+            testedResolver: "1.0.0.1:53",
             confidence: .medium,
             gateHealth: .healthy,
             vpnActive: true,
@@ -25,6 +26,7 @@ final class ApplyPlanRunnerTests: XCTestCase {
                 "--gate-health", "healthy",
                 "--profile-db", "/tmp/dnspilot.sqlite",
                 "--profile-id", "cloudflare",
+                "--tested-resolver", "1.0.0.1:53",
                 "--vpn-active",
                 "--mdm-profile-active",
                 "--corporate-dns-detected",
@@ -59,6 +61,7 @@ final class ApplyPlanRunnerTests: XCTestCase {
             ]
         )
         XCTAssertEqual(plan.profileID, "cloudflare")
+        XCTAssertEqual(plan.testedResolver, "1.1.1.1:53")
         XCTAssertEqual(plan.disposition, .guideOnly)
         XCTAssertEqual(plan.dnsServers.first, "1.1.1.1")
     }
@@ -109,6 +112,7 @@ private let applyPlanJSON = """
   "disposition": "guide-only",
   "profile_id": "cloudflare",
   "profile_name": "Cloudflare",
+  "tested_resolver": "1.1.1.1:53",
   "dns_servers": ["1.1.1.1", "1.0.0.1"],
   "can_apply": false,
   "notes": ["Store-safe build must guide plain DNS changes through OS settings."]

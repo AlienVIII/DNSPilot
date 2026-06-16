@@ -58,6 +58,7 @@ final class PolicyPayloadDecoderTests: XCTestCase {
                 disposition: .guideOnly,
                 profileID: "cloudflare",
                 profileName: "Cloudflare",
+                testedResolver: "1.1.1.1:53",
                 dnsServers: ["1.1.1.1", "1.0.0.1"],
                 canApply: false,
                 notes: ["Store-safe build must guide plain DNS changes through OS settings."]
@@ -69,6 +70,7 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertTrue(viewModel.canOfferPrimaryAction)
         XCTAssertEqual(viewModel.dnsServerText, "1.1.1.1\n1.0.0.1")
         XCTAssertTrue(viewModel.copyText.contains("Profile: Cloudflare"))
+        XCTAssertTrue(viewModel.copyText.contains("Tested resolver: 1.1.1.1:53"))
     }
 
     func testApplyPlanViewModelProtectsCurrentDNS() {
@@ -214,6 +216,7 @@ final class PolicyPayloadDecoderTests: XCTestCase {
           "disposition": "guide-only",
           "profile_id": "cloudflare",
           "profile_name": "Cloudflare",
+          "tested_resolver": "1.0.0.1:53",
           "dns_servers": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111"],
           "can_apply": false,
           "notes": ["Store-safe build must guide plain DNS changes through OS settings."]
@@ -227,6 +230,7 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertEqual(plan.disposition, .guideOnly)
         XCTAssertEqual(plan.profileID, "cloudflare")
         XCTAssertEqual(plan.profileName, "Cloudflare")
+        XCTAssertEqual(plan.testedResolver, "1.0.0.1:53")
         XCTAssertEqual(plan.dnsServers, ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111"])
         XCTAssertFalse(plan.canApply)
         XCTAssertEqual(plan.notes.count, 1)

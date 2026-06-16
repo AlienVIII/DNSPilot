@@ -14,6 +14,7 @@ public enum BenchmarkApplyPlanRequestFactory {
             platformID: platformID,
             profileDatabaseURL: profileDatabaseURL,
             profileID: recommendedProfileID(for: result),
+            testedResolver: testedResolver(for: result),
             confidence: applyPlanConfidence(for: result.recommendation?.confidence),
             gateHealth: applyPlanGateHealth(for: result.summary.health),
             vpnActive: vpnActive,
@@ -28,6 +29,13 @@ public enum BenchmarkApplyPlanRequestFactory {
             return nil
         }
         return result.summary.recommendedProfileID ?? result.recommendation?.profileID
+    }
+
+    private static func testedResolver(for result: BenchmarkResultPayload) -> String? {
+        guard let recommendedProfileID = recommendedProfileID(for: result) else {
+            return nil
+        }
+        return result.runs.first { $0.profileID == recommendedProfileID }?.resolver
     }
 
     private static func applyPlanConfidence(for confidence: BenchmarkConfidence?) -> ApplyPlanConfidence {

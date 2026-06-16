@@ -51,6 +51,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   or power adapter offers DNS apply.
 - CLI `apply-plan` command for shell/UI consumers to obtain the shared apply
   decision as versioned JSON.
+- CLI/macOS apply-plan payloads preserve the tested resolver and place it first
+  in copyable plain-DNS server lists when it belongs to the recommended profile.
 - macOS SwiftUI shell scaffold with centralized design tokens and capability
   matrix view model tests.
 - macOS capability JSON decoder/bridge for the Rust `capabilities` schema and
@@ -84,6 +86,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   failure details when available.
 - macOS apply-plan ViewModel for guide/apply/protect labels, action gating, and
   copyable plan text.
+- macOS Benchmark apply-policy UI shows the tested resolver used to build the
+  copy/open-settings plan.
 - macOS policy guidance ViewModel for flush/apply labels and protected-network
   prompt suppression.
 - macOS benchmark plan ViewModel for selected profiles, suites/custom domains,
@@ -252,6 +256,7 @@ cargo run -p dnspilot-cli -- capabilities
 cargo run -p dnspilot-cli -- preflight macos-store --scope system-dns-validation
 cargo run -p dnspilot-cli -- apply-policy macos-store --vpn-active
 cargo run -p dnspilot-cli -- apply-plan macos-store --profile-id cloudflare
+cargo run -p dnspilot-cli -- apply-plan macos-store --profile-id cloudflare --tested-resolver 1.0.0.1:53
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1

@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use url::Url;
 
 pub mod connect_probe;
@@ -468,6 +468,7 @@ pub struct ApplyPlan {
     pub disposition: ApplyPlanDisposition,
     pub profile_id: Option<String>,
     pub profile_name: Option<String>,
+    pub tested_resolver: Option<String>,
     pub dns_servers: Vec<String>,
     pub can_apply: bool,
     pub notes: Vec<String>,
@@ -538,11 +539,19 @@ pub fn apply_plan_payload_for(
     environment: &NetworkEnvironment,
     gate: &RecommendationGate,
     recommendation: Option<&Recommendation>,
+    tested_resolver: Option<&str>,
     profiles: &[DnsProfile],
 ) -> ApplyPlanPayload {
     ApplyPlanPayload {
         schema_version: SHELL_PAYLOAD_SCHEMA_VERSION,
-        plan: apply_plan_for(platform, environment, gate, recommendation, profiles),
+        plan: apply_plan_for(
+            platform,
+            environment,
+            gate,
+            recommendation,
+            tested_resolver,
+            profiles,
+        ),
     }
 }
 
@@ -551,6 +560,7 @@ pub fn apply_plan_for(
     environment: &NetworkEnvironment,
     gate: &RecommendationGate,
     recommendation: Option<&Recommendation>,
+    tested_resolver: Option<&str>,
     profiles: &[DnsProfile],
 ) -> ApplyPlan {
     let prompt_policy = apply_prompt_policy_for(platform, environment);
@@ -563,6 +573,7 @@ pub fn apply_plan_for(
             platform,
             prompt_policy.apply_capability,
             ApplyPlanDisposition::NotRecommended,
+            None,
             None,
             None,
             Vec::new(),
@@ -582,6 +593,7 @@ pub fn apply_plan_for(
             ApplyPlanDisposition::NotRecommended,
             None,
             None,
+            None,
             Vec::new(),
             false,
             notes,
@@ -594,6 +606,7 @@ pub fn apply_plan_for(
             platform,
             prompt_policy.apply_capability,
             ApplyPlanDisposition::NotRecommended,
+            None,
             None,
             None,
             Vec::new(),
@@ -615,6 +628,7 @@ pub fn apply_plan_for(
             ApplyPlanDisposition::NotRecommended,
             Some(recommendation.profile_id.clone()),
             None,
+            tested_resolver.map(str::to_string),
             Vec::new(),
             false,
             notes,
@@ -630,6 +644,7 @@ pub fn apply_plan_for(
             ApplyPlanDisposition::NotRecommended,
             Some(recommendation.profile_id.clone()),
             None,
+            tested_resolver.map(str::to_string),
             Vec::new(),
             false,
             notes,
@@ -643,6 +658,7 @@ pub fn apply_plan_for(
             ApplyPlanDisposition::ProtectCurrentDns,
             Some(recommended_profile_id.clone()),
             None,
+            tested_resolver.map(str::to_string),
             Vec::new(),
             false,
             notes,
@@ -657,6 +673,7 @@ pub fn apply_plan_for(
             ApplyPlanDisposition::Unsupported,
             Some(recommended_profile_id.clone()),
             None,
+            tested_resolver.map(str::to_string),
             Vec::new(),
             false,
             notes,
@@ -674,6 +691,7 @@ pub fn apply_plan_for(
             ApplyPlanDisposition::Unsupported,
             Some(recommended_profile_id.clone()),
             None,
+            tested_resolver.map(str::to_string),
             Vec::new(),
             false,
             notes,
@@ -681,12 +699,20 @@ pub fn apply_plan_for(
     };
 
     match profile.protocol {
-        DnsProtocol::Plain => {
-            plain_dns_apply_plan(platform, prompt_policy.apply_capability, profile, notes)
-        }
-        DnsProtocol::Doh | DnsProtocol::Dot => {
-            encrypted_dns_apply_plan(platform, prompt_policy.apply_capability, profile, notes)
-        }
+        DnsProtocol::Plain => plain_dns_apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            profile,
+            tested_resolver,
+            notes,
+        ),
+        DnsProtocol::Doh | DnsProtocol::Dot => encrypted_dns_apply_plan(
+            platform,
+            prompt_policy.apply_capability,
+            profile,
+            tested_resolver,
+            notes,
+        ),
     }
 }
 
@@ -694,14 +720,10 @@ fn plain_dns_apply_plan(
     platform: Platform,
     apply_capability: ApplyCapability,
     profile: &DnsProfile,
+    tested_resolver: Option<&str>,
     mut notes: Vec<String>,
 ) -> ApplyPlan {
-    let dns_servers = profile
-        .ipv4_servers
-        .iter()
-        .chain(profile.ipv6_servers.iter())
-        .cloned()
-        .collect::<Vec<_>>();
+    let dns_servers = ordered_plain_dns_servers(profile, tested_resolver, &mut notes);
     if dns_servers.is_empty() {
         notes.push("Plain DNS profile has no IPv4 or IPv6 server addresses.".into());
         return apply_plan(
@@ -710,6 +732,7 @@ fn plain_dns_apply_plan(
             ApplyPlanDisposition::Unsupported,
             Some(profile.id.clone()),
             Some(profile.name.clone()),
+            tested_resolver.map(str::to_string),
             dns_servers,
             false,
             notes,
@@ -731,6 +754,7 @@ fn plain_dns_apply_plan(
             ApplyPlanDisposition::ApplyWithUserApproval,
             Some(profile.id.clone()),
             Some(profile.name.clone()),
+            tested_resolver.map(str::to_string),
             dns_servers,
             true,
             notes,
@@ -744,6 +768,7 @@ fn plain_dns_apply_plan(
         ApplyPlanDisposition::GuideOnly,
         Some(profile.id.clone()),
         Some(profile.name.clone()),
+        tested_resolver.map(str::to_string),
         dns_servers,
         false,
         notes,
@@ -754,6 +779,7 @@ fn encrypted_dns_apply_plan(
     platform: Platform,
     apply_capability: ApplyCapability,
     profile: &DnsProfile,
+    tested_resolver: Option<&str>,
     mut notes: Vec<String>,
 ) -> ApplyPlan {
     if matches!(platform, Platform::MacOSStore | Platform::IOS)
@@ -769,6 +795,7 @@ fn encrypted_dns_apply_plan(
             ApplyPlanDisposition::ApplyWithUserApproval,
             Some(profile.id.clone()),
             Some(profile.name.clone()),
+            tested_resolver.map(str::to_string),
             Vec::new(),
             true,
             notes,
@@ -782,6 +809,7 @@ fn encrypted_dns_apply_plan(
         ApplyPlanDisposition::Unsupported,
         Some(profile.id.clone()),
         Some(profile.name.clone()),
+        tested_resolver.map(str::to_string),
         Vec::new(),
         false,
         notes,
@@ -794,6 +822,7 @@ fn apply_plan(
     disposition: ApplyPlanDisposition,
     profile_id: Option<String>,
     profile_name: Option<String>,
+    tested_resolver: Option<String>,
     dns_servers: Vec<String>,
     can_apply: bool,
     notes: Vec<String>,
@@ -804,10 +833,61 @@ fn apply_plan(
         disposition,
         profile_id,
         profile_name,
+        tested_resolver,
         dns_servers,
         can_apply,
         notes,
     }
+}
+
+fn ordered_plain_dns_servers(
+    profile: &DnsProfile,
+    tested_resolver: Option<&str>,
+    notes: &mut Vec<String>,
+) -> Vec<String> {
+    let mut dns_servers = profile
+        .ipv4_servers
+        .iter()
+        .chain(profile.ipv6_servers.iter())
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let Some(tested_ip) = tested_resolver_ip(tested_resolver) else {
+        return dns_servers;
+    };
+
+    if let Some(index) = dns_servers.iter().position(|server| *server == tested_ip) {
+        let primary = dns_servers.remove(index);
+        dns_servers.insert(0, primary);
+        notes.push(
+            "Apply plan keeps the measured resolver first; remaining DNS servers are provider fallbacks."
+                .into(),
+        );
+    } else {
+        notes.push(
+            "Measured resolver was not found in the profile DNS server list; provider fallback order is unchanged."
+                .into(),
+        );
+    }
+
+    dns_servers
+}
+
+fn tested_resolver_ip(tested_resolver: Option<&str>) -> Option<String> {
+    let tested_resolver = tested_resolver?.trim();
+    if tested_resolver.is_empty() {
+        return None;
+    }
+
+    tested_resolver
+        .parse::<SocketAddr>()
+        .map(|address| address.ip().to_string())
+        .or_else(|_| {
+            tested_resolver
+                .parse::<IpAddr>()
+                .map(|address| address.to_string())
+        })
+        .ok()
 }
 
 pub fn built_in_profiles() -> Vec<DnsProfile> {

@@ -96,6 +96,9 @@ public struct ApplyPlanViewModel: Equatable {
         if let profileName = plan.profileName {
             lines.append("Profile: \(profileName)")
         }
+        if let testedResolver = plan.testedResolver {
+            lines.append("Tested resolver: \(testedResolver)")
+        }
         if !plan.dnsServers.isEmpty {
             lines.append("DNS servers:")
             lines.append(dnsServerText)
