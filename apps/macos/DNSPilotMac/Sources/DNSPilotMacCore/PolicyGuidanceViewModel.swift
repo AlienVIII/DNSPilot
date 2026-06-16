@@ -84,6 +84,24 @@ public struct ApplyPlanViewModel: Equatable {
         }
     }
 
+    public var guidedPrimaryActionLabel: String? {
+        guard plan.disposition == .guideOnly, canOfferPrimaryAction else {
+            return nil
+        }
+        return actionLabel
+    }
+
+    public var guidedPrimaryActionCopyText: String? {
+        guard guidedPrimaryActionLabel != nil else {
+            return nil
+        }
+        return dnsServerText
+    }
+
+    public var opensNetworkSettingsAfterGuidedPrimaryAction: Bool {
+        guidedPrimaryActionLabel != nil
+    }
+
     public var dnsServerText: String {
         plan.dnsServers.joined(separator: "\n")
     }

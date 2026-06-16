@@ -5060,6 +5060,40 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 209: v0.1 Guided Apply Primary Action
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyGuidanceViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+The apply-policy panel now exposes a single guided primary action for store-safe
+plain DNS recommendations. It copies the measured DNS server list to the
+pasteboard and opens macOS Network Settings, while keeping copy-only and full
+apply-plan debug actions available.
+
+### Edge Cases / Caveats
+
+- The guided action appears only for guide-only plans with copyable DNS servers.
+- Protected, unsupported, not-recommended, or future power-apply plans do not
+  expose this store-safe guided action.
+- DNS Pilot still does not mutate system DNS in the store-safe build.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter PolicyPayloadDecoderTests/testApplyPlanViewModelGuidesPlainDNSApply
+Result: 1 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 197 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 207: v0.1 Network Safeguards for Apply Policy
 
 **Status:** Complete

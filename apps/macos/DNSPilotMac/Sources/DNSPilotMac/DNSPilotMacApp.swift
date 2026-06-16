@@ -2612,6 +2612,20 @@ private struct BenchmarkApplyPlanStatusPanel: View {
         }
 
         HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+            if let primaryActionLabel = viewModel.guidedPrimaryActionLabel,
+               let primaryCopyText = viewModel.guidedPrimaryActionCopyText {
+                Button {
+                    copyToPasteboard(primaryCopyText)
+                    if viewModel.opensNetworkSettingsAfterGuidedPrimaryAction {
+                        openNetworkSettings()
+                    }
+                } label: {
+                    Label(primaryActionLabel, systemImage: "gearshape")
+                }
+                .accessibilityIdentifier("benchmark-guided-apply-button")
+                .help("Copy measured DNS servers, then open macOS Network Settings for manual apply.")
+            }
+
             if !viewModel.dnsServerText.isEmpty {
                 Button {
                     copyToPasteboard(viewModel.dnsServerText)
@@ -2619,15 +2633,6 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                     Label("Copy Plan DNS", systemImage: "doc.on.doc")
                 }
                 .help("Copy DNS servers from the shared apply-plan output.")
-            }
-
-            if viewModel.plan.disposition == .guideOnly, viewModel.canOfferPrimaryAction {
-                Button {
-                    openNetworkSettings()
-                } label: {
-                    Label("Open Network Settings", systemImage: "gearshape")
-                }
-                .help("Open macOS Network Settings. DNS Pilot will not change DNS automatically.")
             }
 
             Button {

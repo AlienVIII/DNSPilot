@@ -71,6 +71,9 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertEqual(viewModel.dnsServerText, "1.1.1.1\n1.0.0.1")
         XCTAssertTrue(viewModel.copyText.contains("Profile: Cloudflare"))
         XCTAssertTrue(viewModel.copyText.contains("Tested resolver: 1.1.1.1:53"))
+        XCTAssertEqual(viewModel.guidedPrimaryActionLabel, "Copy DNS + Open Settings")
+        XCTAssertEqual(viewModel.guidedPrimaryActionCopyText, "1.1.1.1\n1.0.0.1")
+        XCTAssertTrue(viewModel.opensNetworkSettingsAfterGuidedPrimaryAction)
     }
 
     func testApplyPlanViewModelProtectsCurrentDNS() {
@@ -90,6 +93,9 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertEqual(viewModel.statusLabel, "Protected")
         XCTAssertEqual(viewModel.actionLabel, "Keep current DNS")
         XCTAssertFalse(viewModel.canOfferPrimaryAction)
+        XCTAssertNil(viewModel.guidedPrimaryActionLabel)
+        XCTAssertNil(viewModel.guidedPrimaryActionCopyText)
+        XCTAssertFalse(viewModel.opensNetworkSettingsAfterGuidedPrimaryAction)
         XCTAssertTrue(viewModel.copyText.contains("VPN is active"))
     }
 
