@@ -38,6 +38,41 @@ fn benchmark_command_outputs_json_metrics_from_udp_resolver() {
 }
 
 #[test]
+fn system_benchmark_command_outputs_system_dns_validation_payload() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "system-benchmark",
+            "--domain",
+            "localhost",
+            "--attempts",
+            "1",
+            "--ip-family",
+            "ipv4-only",
+            "--timeout-ms",
+            "500",
+        ])
+        .output()
+        .expect("run dnspilot-cli system-benchmark");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+
+    assert_eq!(json["scope"], "system-dns-validation");
+    assert_eq!(json["metrics"]["profile_id"], "system-dns");
+    assert_eq!(json["samples"].as_array().expect("samples array").len(), 1);
+    assert_eq!(
+        json["preflight"]["flush_requirement"],
+        "recommended-before-test"
+    );
+}
+
+#[test]
 fn benchmark_command_rejects_zero_attempts() {
     let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
         .args([

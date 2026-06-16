@@ -14,6 +14,7 @@ pub mod dns_benchmark;
 pub mod dns_resolver;
 pub mod dns_wire;
 pub mod storage;
+pub mod system_dns;
 pub mod tls_probe;
 
 pub use storage::{

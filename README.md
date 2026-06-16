@@ -41,6 +41,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   custom domain suites.
 - CLI benchmark commands reject invalid or duplicate resolved domains before
   network activity.
+- CLI system-DNS validation benchmark measures the OS resolver path after manual
+  DNS changes and carries flush-before-test preflight guidance.
 - CLI benchmark, compare, and path-compare history save/list/delete/clear
   commands backed by SQLite snapshots.
 - Store-safe platform capability matrix.
@@ -271,6 +273,7 @@ cargo run -p dnspilot-cli -- preflight macos-store --scope system-dns-validation
 cargo run -p dnspilot-cli -- apply-policy macos-store --vpn-active
 cargo run -p dnspilot-cli -- apply-plan macos-store --profile-id cloudflare
 cargo run -p dnspilot-cli -- apply-plan macos-store --profile-id cloudflare --tested-resolver 1.0.0.1:53
+cargo run -p dnspilot-cli -- system-benchmark --domain localhost --ip-family ipv4-only --attempts 1
 cargo run -p dnspilot-cli -- recommend-sample
 cargo run -p dnspilot-cli -- benchmark --resolver 1.1.1.1:53 --domain github.com --attempts 1
 cargo run -p dnspilot-cli -- compare --resolver cloudflare=1.1.1.1:53 --resolver google=8.8.8.8:53 --domain github.com --attempts 1

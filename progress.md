@@ -5060,6 +5060,41 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 216: v0.1 System DNS Validation CLI
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-core/src/system_dns.rs`, `crates/dnspilot-core/src/lib.rs`, `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `README.md`, `progress.md`
+
+### What changed
+
+Added a bounded system-DNS benchmark path for post-apply validation. The CLI
+`system-benchmark` command measures the OS resolver path, returns normal DNS
+metrics/sample JSON, and embeds system-DNS validation preflight guidance so
+flush-before-test is scoped to the right workflow.
+
+### Edge Cases / Caveats
+
+- Direct resolver benchmarks still must not flush; they bypass the OS DNS cache.
+- System resolver lookup is bounded by a timeout from the caller perspective,
+  but an OS resolver worker thread may finish later after a timeout.
+- Browser Secure DNS, VPN, MDM, captive portals, and app caches can still
+  distort system-DNS validation results.
+
+### Verification
+
+```text
+CARGO_INCREMENTAL=0 cargo test -p dnspilot-cli --test cli_benchmark_behaviour system_benchmark_command_outputs_system_dns_validation_payload
+Result: RED first, then 1 passed, 0 failed
+
+CARGO_INCREMENTAL=0 cargo test --workspace --tests
+Result: 125 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 215: v0.1 Apply Policy Checklist
 
 **Status:** Complete

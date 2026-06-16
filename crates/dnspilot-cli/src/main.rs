@@ -11,6 +11,7 @@ use dnspilot_core::{
     },
     dns_wire::{validate_domain_name, RecordType},
     recommend, recommendation_gate,
+    system_dns::run_system_dns_benchmark,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProfile,
     DnsProtocol, FilteringType, MeasurementScope, NetworkEnvironment, Platform, Recommendation,
@@ -101,6 +102,22 @@ enum Command {
         save_db: Option<std::path::PathBuf>,
         #[arg(long)]
         history_id: Option<String>,
+    },
+    SystemBenchmark {
+        #[arg(long, value_enum, default_value_t = PlatformArg::MacosStore)]
+        platform: PlatformArg,
+        #[arg(long = "domain")]
+        domains: Vec<String>,
+        #[arg(long)]
+        suite_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        suite_id: Option<String>,
+        #[arg(long, default_value_t = 3)]
+        attempts: usize,
+        #[arg(long, value_enum, default_value_t = IpFamilyArg::Both)]
+        ip_family: IpFamilyArg,
+        #[arg(long, default_value_t = 800)]
+        timeout_ms: u64,
     },
     Compare {
         #[arg(long = "resolver")]
@@ -527,6 +544,45 @@ fn main() {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&payload).expect("serialize benchmark")
+            );
+        }
+        Command::SystemBenchmark {
+            platform,
+            domains,
+            suite_db,
+            suite_id,
+            attempts,
+            ip_family,
+            timeout_ms,
+        } => {
+            reject_zero_usize("--attempts", attempts);
+            reject_zero_u64("--timeout-ms", timeout_ms);
+
+            let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
+            let config = DnsBenchmarkConfig {
+                profile_id: "system-dns".into(),
+                domains,
+                attempts_per_record: attempts,
+                timeout: Duration::from_millis(timeout_ms),
+                first_transaction_id: 0x6000,
+                record_family: ip_family.into(),
+            };
+            let run = run_system_dns_benchmark(&config);
+            let preflight = benchmark_preflight_payload_for(
+                platform.into(),
+                BenchmarkPreflightScope::SystemDnsValidation,
+            );
+            let payload = serde_json::json!({
+                "scope": "system-dns-validation",
+                "preflight": preflight.preflight,
+                "metrics": run.metrics,
+                "samples": run.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
+                "ip_family": ip_family_name(ip_family),
+                "warning": "System DNS validation measures the OS resolver path after DNS changes; flush cache first, and still expect browser Secure DNS, VPN, MDM, captive portal, and app caches to distort results.",
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("serialize system benchmark")
             );
         }
         Command::Compare {
