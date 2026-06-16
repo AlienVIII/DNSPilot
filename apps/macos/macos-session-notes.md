@@ -5,6 +5,7 @@
 - Store-safe manual apply only; no silent DNS mutation.
 - Flush belongs to post-apply system DNS validation, not direct resolver benchmark.
 - System DNS validation is a validation mode, not a recommendation/apply mode.
+- Post-apply validation CTA should reuse the current benchmark target domains and never mutate DNS.
 
 ## Context
 - Current app exists under `apps/macos/DNSPilotMac`.
@@ -12,7 +13,6 @@
 
 ## Open Questions
 - Should encrypted DNS profile support wait until after App Store policy review?
-- Should v1 add a direct post-apply CTA that preselects System DNS validation?
 
 ## Handoff
 - Keep platform changes in `apps/macos/**`.

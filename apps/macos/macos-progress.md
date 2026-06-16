@@ -5,6 +5,7 @@
 - Benchmark progress, result, failure, debug log, and apply-policy surfaces.
 - Store-safe copy/open-settings apply guidance.
 - System DNS validation mode in Benchmark tab using current Core CLI `system-benchmark` payload via macOS-side adapter.
+- Post-apply result CTA to run System DNS validation against the current macOS resolver.
 
 ## Current Work
 - macOS remains UX lead lane.
@@ -15,5 +16,5 @@
 - Power-edition helper is out of scope for store build.
 
 ## Next Actions
-- Consider a dedicated post-apply CTA that opens System DNS mode with the same target domains.
+- Refine release signing and App Store entitlement validation.
 - Keep all Core CLI gaps in `macos-core-cli-request.md`.

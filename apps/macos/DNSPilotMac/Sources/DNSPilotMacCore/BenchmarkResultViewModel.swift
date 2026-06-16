@@ -552,6 +552,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
     public let title: String
     public let actionLabel: String
     public let canOpenNetworkSettings: Bool
+    public let canValidateSystemDNSAfterApply: Bool
     public let dnsSettings: BenchmarkRecommendedDNSSettings?
     public let lines: [String]
 
@@ -560,6 +561,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Apply recommended DNS manually"
             actionLabel = "Open Network Settings"
             canOpenNetworkSettings = true
+            canValidateSystemDNSAfterApply = true
             dnsSettings = result.recommendedDNSSettings
             lines = [
                 "DNS Pilot has not changed system DNS.",
@@ -572,6 +574,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Manual apply not available"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            canValidateSystemDNSAfterApply = false
             dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",
@@ -583,6 +586,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Keep current DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            canValidateSystemDNSAfterApply = false
             dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",
@@ -593,6 +597,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Retest before changing DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            canValidateSystemDNSAfterApply = false
             dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",

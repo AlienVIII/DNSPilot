@@ -138,6 +138,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(guidance.title, "Next step: Apply recommended DNS manually")
         XCTAssertEqual(guidance.actionLabel, "Open Network Settings")
         XCTAssertTrue(guidance.canOpenNetworkSettings)
+        XCTAssertTrue(guidance.canValidateSystemDNSAfterApply)
         XCTAssertEqual(guidance.dnsSettings?.serverListText, "1.1.1.1\n1.0.0.1\n2606:4700:4700::1111")
         XCTAssertEqual(
             guidance.lines,
@@ -315,6 +316,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(guidance.title, "Next step: Keep current DNS")
         XCTAssertEqual(guidance.actionLabel, "Copy Next Step")
         XCTAssertFalse(guidance.canOpenNetworkSettings)
+        XCTAssertFalse(guidance.canValidateSystemDNSAfterApply)
         XCTAssertTrue(guidance.lines.contains("This run is not reliable enough to change DNS from it."))
     }
 

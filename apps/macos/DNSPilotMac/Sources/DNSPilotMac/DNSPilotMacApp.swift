@@ -1326,7 +1326,8 @@ private struct BenchmarkDetailView: View {
                             viewModel: resultViewModel,
                             elapsedMS: lastBenchmarkElapsedMS,
                             applyPlanOutcome: applyPlanOutcome,
-                            isLoadingApplyPlan: isLoadingApplyPlan
+                            isLoadingApplyPlan: isLoadingApplyPlan,
+                            onStartSystemDNSValidation: startSystemDNSValidationBenchmark
                         )
                     case .failed(let failure):
                         BenchmarkFailurePanel(
@@ -2126,6 +2127,16 @@ private struct BenchmarkDetailView: View {
         }
     }
 
+    private func startSystemDNSValidationBenchmark() {
+        guard !isBenchmarkActive else {
+            return
+        }
+        mode = .systemDNSValidation
+        DispatchQueue.main.async {
+            runBenchmark()
+        }
+    }
+
     private func makeHistoryPersistence(for plan: BenchmarkPlanViewModel) -> BenchmarkHistoryPersistence? {
         guard plan.supportsHistoryPersistence else {
             return nil
@@ -2457,9 +2468,14 @@ private struct BenchmarkResultPanel: View {
     let elapsedMS: Int?
     let applyPlanOutcome: BenchmarkApplyPlanLoadOutcome?
     let isLoadingApplyPlan: Bool
+    let onStartSystemDNSValidation: () -> Void
 
     private var hasApplyPlanState: Bool {
         isLoadingApplyPlan || applyPlanOutcome != nil
+    }
+
+    private var nextStepViewModel: BenchmarkResultNextStepViewModel {
+        BenchmarkResultNextStepViewModel(result: viewModel)
     }
 
     var body: some View {
@@ -2486,7 +2502,7 @@ private struct BenchmarkResultPanel: View {
 
                 if !hasApplyPlanState {
                     BenchmarkResultNextStepPanel(
-                        viewModel: BenchmarkResultNextStepViewModel(result: viewModel)
+                        viewModel: nextStepViewModel
                     )
                 }
 
@@ -2495,6 +2511,14 @@ private struct BenchmarkResultPanel: View {
                         outcome: applyPlanOutcome,
                         isLoading: isLoadingApplyPlan
                     )
+                }
+
+                if nextStepViewModel.canValidateSystemDNSAfterApply {
+                    Button(action: onStartSystemDNSValidation) {
+                        Label("Validate System DNS", systemImage: "checkmark.seal")
+                    }
+                    .accessibilityIdentifier("benchmark-validate-system-dns-button")
+                    .help("After manual DNS apply and cache flush, run System DNS validation against the current macOS resolver.")
                 }
 
                 Button {
