@@ -73,6 +73,13 @@ public struct ApplyPlanViewModel: Equatable {
         }
     }
 
+    public var recommendedProfileLabel: String? {
+        guard let profileLabel = plan.profileName ?? plan.profileID else {
+            return nil
+        }
+        return "Recommended: \(profileLabel)"
+    }
+
     public var canOfferPrimaryAction: Bool {
         switch plan.disposition {
         case .applyWithUserApproval:

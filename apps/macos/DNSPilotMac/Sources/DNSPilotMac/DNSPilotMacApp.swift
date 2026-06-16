@@ -2596,6 +2596,11 @@ private struct BenchmarkApplyPlanStatusPanel: View {
         Label(viewModel.actionLabel, systemImage: applyPlanActionImage(for: viewModel.plan.disposition))
             .foregroundStyle(.secondary)
 
+        if let recommendedProfileLabel = viewModel.recommendedProfileLabel {
+            Label(recommendedProfileLabel, systemImage: "target")
+                .foregroundStyle(.secondary)
+        }
+
         if let testedResolver = viewModel.plan.testedResolver {
             Label("Tested resolver: \(testedResolver)", systemImage: "scope")
                 .foregroundStyle(.secondary)

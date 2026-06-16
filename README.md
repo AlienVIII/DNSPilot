@@ -90,6 +90,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   copyable plan text.
 - macOS Benchmark apply-policy UI shows the tested resolver used to build the
   copy/open-settings plan.
+- macOS Benchmark apply-policy UI shows the recommended profile beside the
+  tested resolver and copyable DNS servers.
 - macOS Benchmark apply-policy UI offers one guided primary action that copies
   measured DNS servers and opens Network Settings without mutating DNS itself.
 - macOS Benchmark result surface treats apply-policy as authoritative when it is

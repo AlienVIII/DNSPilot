@@ -67,6 +67,7 @@ final class PolicyPayloadDecoderTests: XCTestCase {
 
         XCTAssertEqual(viewModel.statusLabel, "Guided")
         XCTAssertEqual(viewModel.actionLabel, "Copy DNS + Open Settings")
+        XCTAssertEqual(viewModel.recommendedProfileLabel, "Recommended: Cloudflare")
         XCTAssertTrue(viewModel.canOfferPrimaryAction)
         XCTAssertEqual(viewModel.dnsServerText, "1.1.1.1\n1.0.0.1")
         XCTAssertTrue(viewModel.copyText.contains("Profile: Cloudflare"))
@@ -92,6 +93,7 @@ final class PolicyPayloadDecoderTests: XCTestCase {
 
         XCTAssertEqual(viewModel.statusLabel, "Protected")
         XCTAssertEqual(viewModel.actionLabel, "Keep current DNS")
+        XCTAssertEqual(viewModel.recommendedProfileLabel, "Recommended: cloudflare")
         XCTAssertFalse(viewModel.canOfferPrimaryAction)
         XCTAssertNil(viewModel.guidedPrimaryActionLabel)
         XCTAssertNil(viewModel.guidedPrimaryActionCopyText)

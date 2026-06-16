@@ -5060,6 +5060,38 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 213: v0.1 Recommended Profile in Apply Policy
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyGuidanceViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Apply-policy guidance now exposes a recommended profile label and renders it
+beside the tested resolver and DNS server list. This makes the store-safe
+"copy DNS + open settings" path visibly tied to the benchmark winner.
+
+### Edge Cases / Caveats
+
+- The label falls back to `profileID` when a profile name is unavailable.
+- This remains guided apply only on the macOS store-safe build; system DNS is
+  not changed by the app.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter PolicyPayloadDecoderTests/testApplyPlanViewModel
+Result: RED first, then 2 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 198 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 211: v0.1 History Apply Guardrail
 
 **Status:** Complete
