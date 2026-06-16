@@ -5060,6 +5060,41 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 210: v0.1 Policy-Aware Result Guidance
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkResultViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultViewModelTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Benchmark results now treat apply-policy as the authoritative guidance source
+when that policy is loading or available. The legacy next-step panel is hidden
+in that state, and copied result reports can omit legacy next-step text before
+appending the apply-policy result.
+
+### Edge Cases / Caveats
+
+- If apply-policy is not available at all, the legacy next-step guidance still
+  appears as a fallback.
+- This prevents safeguard states like VPN/MDM/corporate/captive portal from
+  conflicting with an older manual apply suggestion.
+- Store-safe behavior remains unchanged: no automatic system DNS mutation.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultViewModelTests/testResultReportCanSuppressLegacyNextStepWhenApplyPolicyIsAuthoritative
+Result: 1 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 198 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 209: v0.1 Guided Apply Primary Action
 
 **Status:** Complete

@@ -141,7 +141,7 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
         resultReportText(elapsedMS: nil)
     }
 
-    public func resultReportText(elapsedMS: Int?) -> String {
+    public func resultReportText(elapsedMS: Int?, includeNextStep: Bool = true) -> String {
         var lines = [
             "Benchmark result",
             "Health: \(healthLabel)",
@@ -149,9 +149,11 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
             "Confidence: \(confidenceLabel)",
             "Recommendation: \(recommendationLabel)",
         ]
-        let nextStep = BenchmarkResultNextStepViewModel(result: self)
-        lines.append(nextStep.title)
-        lines.append(contentsOf: nextStep.lines)
+        if includeNextStep {
+            let nextStep = BenchmarkResultNextStepViewModel(result: self)
+            lines.append(nextStep.title)
+            lines.append(contentsOf: nextStep.lines)
+        }
         if let elapsedMS {
             lines.append("Completed in: \(BenchmarkElapsedTimeFormatter.label(milliseconds: elapsedMS))")
         }

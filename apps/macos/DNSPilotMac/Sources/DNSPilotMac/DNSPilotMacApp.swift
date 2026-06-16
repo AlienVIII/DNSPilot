@@ -2429,6 +2429,10 @@ private struct BenchmarkResultPanel: View {
     let applyPlanOutcome: BenchmarkApplyPlanLoadOutcome?
     let isLoadingApplyPlan: Bool
 
+    private var hasApplyPlanState: Bool {
+        isLoadingApplyPlan || applyPlanOutcome != nil
+    }
+
     var body: some View {
         BenchmarkSection(title: "Result") {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
@@ -2451,11 +2455,13 @@ private struct BenchmarkResultPanel: View {
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
 
-                BenchmarkResultNextStepPanel(
-                    viewModel: BenchmarkResultNextStepViewModel(result: viewModel)
-                )
+                if !hasApplyPlanState {
+                    BenchmarkResultNextStepPanel(
+                        viewModel: BenchmarkResultNextStepViewModel(result: viewModel)
+                    )
+                }
 
-                if isLoadingApplyPlan || applyPlanOutcome != nil {
+                if hasApplyPlanState {
                     BenchmarkApplyPlanStatusPanel(
                         outcome: applyPlanOutcome,
                         isLoading: isLoadingApplyPlan
@@ -2467,7 +2473,10 @@ private struct BenchmarkResultPanel: View {
                         BenchmarkApplyPlanReportFormatter.appendApplyPlan(
                             outcome: applyPlanOutcome,
                             isLoading: isLoadingApplyPlan,
-                            to: viewModel.resultReportText(elapsedMS: elapsedMS)
+                            to: viewModel.resultReportText(
+                                elapsedMS: elapsedMS,
+                                includeNextStep: !hasApplyPlanState
+                            )
                         )
                     )
                 } label: {

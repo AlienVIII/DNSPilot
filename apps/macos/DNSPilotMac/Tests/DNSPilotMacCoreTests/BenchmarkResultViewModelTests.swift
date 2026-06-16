@@ -157,6 +157,52 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertTrue(guidance.manualApplyChecklistText?.contains("VPN, MDM, corporate DNS") == true)
     }
 
+    func testResultReportCanSuppressLegacyNextStepWhenApplyPolicyIsAuthoritative() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .healthy,
+                primaryIssue: "none",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 1,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 500,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 4, failureRate: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.97,
+                confidence: .high,
+                reasons: [],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        let report = viewModel.resultReportText(elapsedMS: nil, includeNextStep: false)
+
+        XCTAssertFalse(report.contains("Next step:"))
+        XCTAssertFalse(report.contains("Copy the DNS servers, open Network Settings"))
+        XCTAssertTrue(report.contains("Recommendation: Recommended: Cloudflare"))
+        XCTAssertTrue(report.contains("Candidates:"))
+    }
+
     func testNextStepGuidanceDoesNotApplyRecommendationWithoutPlainServers() {
         let result = BenchmarkResultPayload(
             summary: BenchmarkResultSummary(
