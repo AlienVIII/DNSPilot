@@ -12,7 +12,7 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
             return nil
         }
 
-        XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .history, .networkSettings])
+        XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .systemDNSValidation, .history, .networkSettings])
     }
 
     func testQuickActionTitlesStayShortForMenuBar() {
@@ -29,5 +29,15 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
         XCTAssertEqual(action?.title, "Open Network Settings")
         XCTAssertEqual(action?.systemImage, "gearshape")
         XCTAssertEqual(action?.kind, .destination(.networkSettings))
+    }
+
+    func testQuickActionsExposeSystemDNSValidation() {
+        let viewModel = MenuBarQuickActionsViewModel()
+
+        let action = viewModel.actions.first { $0.id == "validate-system-dns" }
+
+        XCTAssertEqual(action?.title, "Validate System DNS")
+        XCTAssertEqual(action?.systemImage, "checkmark.seal")
+        XCTAssertEqual(action?.kind, .destination(.systemDNSValidation))
     }
 }

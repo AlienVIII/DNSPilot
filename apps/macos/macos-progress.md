@@ -6,6 +6,7 @@
 - Store-safe copy/open-settings apply guidance.
 - System DNS validation mode in Benchmark tab using current Core CLI `system-benchmark` payload via macOS-side adapter.
 - Post-apply result CTA to run System DNS validation against the current macOS resolver.
+- Menu bar quick action for fast System DNS validation with Developer/Azure/Vietnam smoke-test domains.
 
 ## Current Work
 - macOS remains UX lead lane.

@@ -36,10 +36,16 @@ private enum SidebarSelection: Hashable {
 private final class DNSPilotNavigationModel: ObservableObject {
     @Published var selection: SidebarSelection? = .capabilities
     @Published var quickBenchmarkRequestID = 0
+    @Published var systemDNSValidationRequestID = 0
 
     func requestQuickBenchmark() {
         selection = .benchmark
         quickBenchmarkRequestID += 1
+    }
+
+    func requestSystemDNSValidation() {
+        selection = .benchmark
+        systemDNSValidationRequestID += 1
     }
 }
 
@@ -77,6 +83,8 @@ private struct DNSPilotMenuBarView: View {
             navigation.selection = .benchmark
         case .quickBenchmark:
             navigation.requestQuickBenchmark()
+        case .systemDNSValidation:
+            navigation.requestSystemDNSValidation()
         case .history:
             navigation.selection = .history
         case .networkSettings:
@@ -224,6 +232,7 @@ private struct DNSPilotShellView: View {
                 BenchmarkDetailHostView(
                     catalogViewModel: catalogViewModel,
                     quickBenchmarkRequestID: navigation.quickBenchmarkRequestID,
+                    systemDNSValidationRequestID: navigation.systemDNSValidationRequestID,
                     onCatalogChanged: refreshCatalogFromStorage
                 )
             case .customDNS:
@@ -860,6 +869,7 @@ private struct CatalogOverviewDetailView: View {
 private struct BenchmarkDetailHostView: View {
     let catalogViewModel: CatalogViewModel
     let quickBenchmarkRequestID: Int
+    let systemDNSValidationRequestID: Int
     let onCatalogChanged: () -> Void
 
     var body: some View {
@@ -870,6 +880,7 @@ private struct BenchmarkDetailHostView: View {
                 catalog: catalog,
                 executableAvailability: BenchmarkExecutableResolver().resolve(),
                 quickBenchmarkRequestID: quickBenchmarkRequestID,
+                systemDNSValidationRequestID: systemDNSValidationRequestID,
                 onCatalogChanged: onCatalogChanged
             )
         } else {
@@ -1147,6 +1158,7 @@ private struct BenchmarkDetailView: View {
     let catalog: CatalogSnapshot
     let executableAvailability: BenchmarkExecutableAvailability
     let quickBenchmarkRequestID: Int
+    let systemDNSValidationRequestID: Int
     let onCatalogChanged: () -> Void
 
     @State private var selectedProfileIDs: [String]
@@ -1179,6 +1191,7 @@ private struct BenchmarkDetailView: View {
     @State private var isLoadingApplyPlan = false
     @State private var currentApplyPlanRunID: BenchmarkRunID?
     @State private var handledQuickBenchmarkRequestID = 0
+    @State private var handledSystemDNSValidationRequestID = 0
     @State private var outcome: BenchmarkExecutionOutcome?
 
     private var setupViewModel: BenchmarkSetupViewModel {
@@ -1239,11 +1252,13 @@ private struct BenchmarkDetailView: View {
         catalog: CatalogSnapshot,
         executableAvailability: BenchmarkExecutableAvailability,
         quickBenchmarkRequestID: Int,
+        systemDNSValidationRequestID: Int,
         onCatalogChanged: @escaping () -> Void
     ) {
         self.catalog = catalog
         self.executableAvailability = executableAvailability
         self.quickBenchmarkRequestID = quickBenchmarkRequestID
+        self.systemDNSValidationRequestID = systemDNSValidationRequestID
         self.onCatalogChanged = onCatalogChanged
         let defaults = BenchmarkSetupViewModel(
             catalog: catalog,
@@ -1666,8 +1681,12 @@ private struct BenchmarkDetailView: View {
         .onChange(of: quickBenchmarkRequestID) { _, requestID in
             handleQuickBenchmarkRequest(requestID)
         }
+        .onChange(of: systemDNSValidationRequestID) { _, requestID in
+            handleSystemDNSValidationRequest(requestID)
+        }
         .onAppear {
             handleQuickBenchmarkRequest(quickBenchmarkRequestID)
+            handleSystemDNSValidationRequest(systemDNSValidationRequestID)
         }
         .alert(
             "Delete Custom Suite?",
@@ -1938,6 +1957,18 @@ private struct BenchmarkDetailView: View {
         runBenchmark()
     }
 
+    private func handleSystemDNSValidationRequest(_ requestID: Int) {
+        guard requestID > handledSystemDNSValidationRequestID else {
+            return
+        }
+        handledSystemDNSValidationRequestID = requestID
+        guard !isBenchmarkActive, !isMutatingSuite else {
+            return
+        }
+        applySystemDNSValidationPreset()
+        runBenchmark()
+    }
+
     private func applyQuickBenchmarkPreset() {
         let preset = BenchmarkSetupViewModel.quickRunPreset(
             catalog: catalog,
@@ -1958,6 +1989,26 @@ private struct BenchmarkDetailView: View {
         recordFamily = preset.recordFamily
         resolverTransport = preset.resolverTransport
         mode = preset.mode
+    }
+
+    private func applySystemDNSValidationPreset() {
+        editingSuiteID = nil
+        suiteNameText = ""
+        suiteSaveState = .idle
+        suitePendingDelete = nil
+        isDeleteSuiteConfirmationPresented = false
+        selectedProfileIDs = []
+        selectedSuiteID = nil
+        customDomainsText = [
+            "github.com",
+            "login.microsoftonline.com",
+            "vnexpress.net",
+        ].joined(separator: "\n")
+        attempts = 1
+        dnsTimeoutMS = 800
+        recordFamily = .both
+        resolverTransport = .automatic
+        mode = .systemDNSValidation
     }
 
     private func runBenchmark() {

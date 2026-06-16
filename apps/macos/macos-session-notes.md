@@ -6,6 +6,7 @@
 - Flush belongs to post-apply system DNS validation, not direct resolver benchmark.
 - System DNS validation is a validation mode, not a recommendation/apply mode.
 - Post-apply validation CTA should reuse the current benchmark target domains and never mutate DNS.
+- Menu bar System DNS validation uses a short preset: GitHub, Microsoft login, and Vietnam daily domain.
 
 ## Context
 - Current app exists under `apps/macos/DNSPilotMac`.

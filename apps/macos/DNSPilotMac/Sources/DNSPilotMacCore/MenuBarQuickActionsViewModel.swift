@@ -9,6 +9,7 @@ public enum MenuBarQuickDestination: String, Equatable {
     case openApp
     case benchmark
     case quickBenchmark
+    case systemDNSValidation
     case history
     case networkSettings
 }
@@ -54,6 +55,12 @@ public struct MenuBarQuickActionsViewModel: Equatable {
                 title: "Run Quick Test",
                 systemImage: "play.fill",
                 kind: .destination(.quickBenchmark)
+            ),
+            MenuBarQuickAction(
+                id: "validate-system-dns",
+                title: "Validate System DNS",
+                systemImage: "checkmark.seal",
+                kind: .destination(.systemDNSValidation)
             ),
             MenuBarQuickAction(
                 id: "history",
