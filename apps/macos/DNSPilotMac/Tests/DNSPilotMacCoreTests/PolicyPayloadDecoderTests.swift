@@ -75,6 +75,9 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertEqual(viewModel.guidedPrimaryActionLabel, "Copy DNS + Open Settings")
         XCTAssertEqual(viewModel.guidedPrimaryActionCopyText, "1.1.1.1\n1.0.0.1")
         XCTAssertTrue(viewModel.opensNetworkSettingsAfterGuidedPrimaryAction)
+        XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("DNS Pilot has not changed system DNS.") == true)
+        XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("1.1.1.1\n1.0.0.1") == true)
+        XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("Retest DNS Pilot after applying DNS.") == true)
     }
 
     func testApplyPlanViewModelProtectsCurrentDNS() {
@@ -97,6 +100,7 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertFalse(viewModel.canOfferPrimaryAction)
         XCTAssertNil(viewModel.guidedPrimaryActionLabel)
         XCTAssertNil(viewModel.guidedPrimaryActionCopyText)
+        XCTAssertNil(viewModel.guidedApplyChecklistText)
         XCTAssertFalse(viewModel.opensNetworkSettingsAfterGuidedPrimaryAction)
         XCTAssertTrue(viewModel.copyText.contains("VPN is active"))
     }

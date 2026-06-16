@@ -5060,6 +5060,39 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 215: v0.1 Apply Policy Checklist
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PolicyGuidanceViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PolicyPayloadDecoderTests.swift`, `README.md`, `progress.md`
+
+### What changed
+
+Store-safe apply-policy guidance now has a copyable guided apply checklist. It
+states that DNS Pilot has not changed system DNS, includes the recommended
+profile, tested resolver, DNS servers, macOS Network Settings steps, and retest
+step.
+
+### Edge Cases / Caveats
+
+- Checklist is only available for guide-only plain DNS plans with copyable DNS
+  servers.
+- Protected/unsupported/not-recommended plans do not expose apply steps.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter PolicyPayloadDecoderTests/testApplyPlanViewModel
+Result: RED first, then 2 passed, 0 failed
+
+swift package --package-path apps/macos/DNSPilotMac clean && swift test --package-path apps/macos/DNSPilotMac
+Result: 198 passed, 0 failed
+
+./script/build_and_run.sh --verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
 ## Chunk 214: v0.1 Broader Menu Bar Quick Benchmark
 
 **Status:** Complete

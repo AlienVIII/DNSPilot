@@ -2649,6 +2649,15 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                 .help("Copy DNS servers from the shared apply-plan output.")
             }
 
+            if let guidedApplyChecklistText = viewModel.guidedApplyChecklistText {
+                Button {
+                    copyToPasteboard(guidedApplyChecklistText)
+                } label: {
+                    Label("Copy Apply Steps", systemImage: "checklist")
+                }
+                .help("Copy the guided DNS apply and retest checklist.")
+            }
+
             Button {
                 copyToPasteboard(viewModel.copyText)
             } label: {

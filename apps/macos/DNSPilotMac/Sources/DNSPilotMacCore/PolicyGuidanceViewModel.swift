@@ -109,6 +109,31 @@ public struct ApplyPlanViewModel: Equatable {
         guidedPrimaryActionLabel != nil
     }
 
+    public var guidedApplyChecklistText: String? {
+        guard plan.disposition == .guideOnly, !plan.dnsServers.isEmpty else {
+            return nil
+        }
+        var lines = [
+            "DNS Pilot guided apply",
+            "DNS Pilot has not changed system DNS.",
+        ]
+        if let recommendedProfileLabel {
+            lines.append(recommendedProfileLabel)
+        }
+        if let testedResolver = plan.testedResolver {
+            lines.append("Tested resolver: \(testedResolver)")
+        }
+        lines.append("DNS servers:")
+        lines.append(dnsServerText)
+        lines.append("Steps:")
+        lines.append("1. Open macOS Network Settings.")
+        lines.append("2. Select the active network service.")
+        lines.append("3. Paste these DNS servers into the DNS server list.")
+        lines.append("4. Apply the network changes.")
+        lines.append("5. Retest DNS Pilot after applying DNS.")
+        return lines.joined(separator: "\n")
+    }
+
     public var dnsServerText: String {
         plan.dnsServers.joined(separator: "\n")
     }
