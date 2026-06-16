@@ -1316,6 +1316,16 @@ private struct BenchmarkDetailView: View {
                 Label(setupViewModel.flushPolicySummary, systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let flushChecklistText = setupViewModel.systemDNSFlushChecklistText {
+                    Button {
+                        copyToPasteboard(flushChecklistText)
+                    } label: {
+                        Label("Copy Flush Checklist", systemImage: "checklist")
+                    }
+                    .disabled(isBenchmarkActive)
+                    .accessibilityIdentifier("benchmark-copy-flush-checklist-button")
+                    .help("Copy manual cache flush and validation steps for System DNS mode.")
+                }
                 if let estimatedDurationWarning = setupViewModel.estimatedDurationWarning {
                     Label(estimatedDurationWarning, systemImage: "hourglass")
                         .font(.caption)

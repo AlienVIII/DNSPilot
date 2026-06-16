@@ -363,6 +363,18 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             viewModel.flushPolicySummary,
             "System DNS validation should flush macOS DNS cache before testing."
         )
+        XCTAssertEqual(
+            viewModel.systemDNSFlushChecklistText,
+            """
+            System DNS validation checklist
+            1. Apply DNS manually in macOS Network Settings.
+            2. If allowed, flush local DNS cache before validating:
+               sudo dscacheutil -flushcache
+               sudo killall -HUP mDNSResponder
+            3. Run System DNS validation in DNS Pilot.
+            4. Treat browser Secure DNS, VPN, MDM, captive portal, and app caches as possible distortions.
+            """
+        )
     }
 }
 

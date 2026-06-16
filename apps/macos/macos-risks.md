@@ -3,6 +3,7 @@
 ## UX Risks
 - Users may think DNS Pilot changed DNS automatically.
 - Long all-profile benchmarks may feel stuck without clear progress.
+- Flush commands are advanced; wording must keep them optional and policy/user-approved.
 
 ## Technical Risks
 - System DNS validation can be distorted by caches and browser Secure DNS.
