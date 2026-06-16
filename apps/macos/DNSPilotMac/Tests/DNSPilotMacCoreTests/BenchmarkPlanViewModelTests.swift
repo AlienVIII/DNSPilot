@@ -60,6 +60,45 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
         )
     }
 
+    func testBenchmarkPlanBuildsSystemDNSValidationArgsWithoutProfiles() {
+        let viewModel = BenchmarkPlanViewModel(
+            catalog: makeBenchmarkCatalog(),
+            selectedProfileIDs: [],
+            selectedSuiteID: "developer",
+            customDomains: ["login.microsoftonline.com"],
+            attempts: 2,
+            dnsTimeoutMS: 1_100,
+            recordFamily: .ipv6Only,
+            mode: .systemDNSValidation
+        )
+
+        XCTAssertTrue(viewModel.validation.canRun)
+        XCTAssertEqual(viewModel.resolverCount, 1)
+        XCTAssertEqual(
+            viewModel.resolverTargets,
+            [
+                BenchmarkProgressResolverTarget(
+                    id: "system-dns",
+                    name: "System DNS",
+                    resolver: "macOS system resolver"
+                ),
+            ]
+        )
+        XCTAssertEqual(
+            viewModel.commandArguments,
+            [
+                "system-benchmark",
+                "--platform", "macos-store",
+                "--domain", "github.com",
+                "--domain", "registry.npmjs.org",
+                "--domain", "login.microsoftonline.com",
+                "--attempts", "2",
+                "--ip-family", "ipv6-only",
+                "--timeout-ms", "1100",
+            ]
+        )
+    }
+
     func testBenchmarkPlanRejectsEncryptedProfilesAndMissingDomains() {
         let viewModel = BenchmarkPlanViewModel(
             catalog: makeBenchmarkCatalog(),
@@ -146,6 +185,7 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
     func testBenchmarkOptionHelpExplainsModeAndResolverTransport() {
         XCTAssertTrue(BenchmarkPlanMode.dnsOnlyCompare.helpText.contains("phân giải DNS"))
         XCTAssertTrue(BenchmarkPlanMode.connectionPathCompare.helpText.contains("kết nối TCP"))
+        XCTAssertTrue(BenchmarkPlanMode.systemDNSValidation.helpText.contains("DNS hệ thống"))
         XCTAssertTrue(BenchmarkResolverTransport.automatic.helpText.contains("Ưu tiên DNS server IPv4"))
         XCTAssertTrue(BenchmarkResolverTransport.ipv6Only.helpText.contains("DNS server IPv6"))
     }

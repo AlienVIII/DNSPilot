@@ -208,6 +208,157 @@ public struct BenchmarkRecommendation: Decodable, Equatable, Sendable {
 public enum BenchmarkResultJSONDecoder {
     public static func decode(_ json: String) throws -> BenchmarkResultPayload {
         let data = Data(json.utf8)
-        return try JSONDecoder().decode(BenchmarkResultPayload.self, from: data)
+        let decoder = JSONDecoder()
+        do {
+            return try decoder.decode(BenchmarkResultPayload.self, from: data)
+        } catch let primaryError {
+            guard (try? decoder.decode(BenchmarkPayloadScopeProbe.self, from: data).scope) == "system-dns-validation" else {
+                throw primaryError
+            }
+            return try SystemDNSValidationPayloadAdapter.adapt(
+                decoder.decode(SystemDNSValidationPayload.self, from: data)
+            )
+        }
+    }
+}
+
+private struct BenchmarkPayloadScopeProbe: Decodable {
+    let scope: String?
+}
+
+private struct SystemDNSValidationPayload: Decodable {
+    let scope: String
+    let preflight: SystemDNSValidationPreflight?
+    let metrics: BenchmarkResultMetrics
+    let samples: [SystemDNSValidationSample]
+    let ipFamily: BenchmarkRecordFamily?
+    let warning: String
+
+    private enum CodingKeys: String, CodingKey {
+        case scope
+        case preflight
+        case metrics
+        case samples
+        case ipFamily = "ip_family"
+        case warning
+    }
+}
+
+private struct SystemDNSValidationPreflight: Decodable {
+    let notes: [String]
+}
+
+private struct SystemDNSValidationSample: Decodable {
+    let domain: String
+    let recordType: String
+
+    private enum CodingKeys: String, CodingKey {
+        case domain
+        case recordType = "record_type"
+    }
+}
+
+private enum SystemDNSValidationPayloadAdapter {
+    static func adapt(_ payload: SystemDNSValidationPayload) throws -> BenchmarkResultPayload {
+        guard payload.scope == "system-dns-validation" else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: [],
+                    debugDescription: "Unsupported benchmark payload scope '\(payload.scope)'."
+                )
+            )
+        }
+
+        let domainCount = Set(payload.samples.map(\.domain)).count
+        let recordFamily = payload.ipFamily
+        let attemptsPerRecord = Self.attemptsPerRecord(
+            sampleCount: payload.samples.count,
+            domainCount: domainCount,
+            recordFamily: recordFamily
+        )
+        let notes = Self.safetyNotes(from: payload.preflight?.notes ?? [])
+        return BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: Self.health(for: payload.metrics),
+                primaryIssue: Self.primaryIssue(for: payload.metrics),
+                canRecommend: false,
+                safetyNotes: notes,
+                resolverCount: 1,
+                domainCount: domainCount,
+                attemptsPerRecord: attemptsPerRecord,
+                timeoutMS: nil,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: nil,
+                recordFamily: recordFamily
+            ),
+            runs: [
+                BenchmarkResultRun(
+                    profileID: payload.metrics.profileID,
+                    resolver: "macOS system resolver",
+                    metrics: payload.metrics,
+                    caveats: notes
+                ),
+            ],
+            recommendation: nil,
+            savedHistoryID: nil,
+            warning: payload.warning
+        )
+    }
+
+    private static func safetyNotes(from preflightNotes: [String]) -> [String] {
+        var notes = preflightNotes
+        notes.append("System DNS validation does not produce a resolver recommendation.")
+        return uniquePreservingOrder(notes)
+    }
+
+    private static func health(for metrics: BenchmarkResultMetrics) -> BenchmarkHealth {
+        if metrics.failureRate >= 1.0 {
+            return .failed
+        }
+        if metrics.failureRate > 0.0 || metrics.timeoutRate > 0.0 {
+            return .degraded
+        }
+        return .healthy
+    }
+
+    private static func primaryIssue(for metrics: BenchmarkResultMetrics) -> String {
+        if metrics.failureRate >= 1.0 {
+            return "all-resolvers-failed"
+        }
+        if metrics.failureRate > 0.0 || metrics.timeoutRate > 0.0 {
+            return "partial-failure"
+        }
+        return "none"
+    }
+
+    private static func attemptsPerRecord(
+        sampleCount: Int,
+        domainCount: Int,
+        recordFamily: BenchmarkRecordFamily?
+    ) -> Int {
+        let recordTypeCount = recordFamily?.recordTypeCount ?? 1
+        let denominator = max(domainCount * recordTypeCount, 1)
+        return max(sampleCount / denominator, 1)
+    }
+
+    private static func uniquePreservingOrder(_ values: [String]) -> [String] {
+        var seen: Set<String> = []
+        var result: [String] = []
+        for value in values {
+            guard seen.insert(value).inserted else {
+                continue
+            }
+            result.append(value)
+        }
+        return result
     }
 }

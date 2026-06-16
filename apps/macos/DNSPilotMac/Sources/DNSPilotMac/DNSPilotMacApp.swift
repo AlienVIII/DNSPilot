@@ -1345,23 +1345,38 @@ private struct BenchmarkDetailView: View {
                         Text(BenchmarkPlanMode.connectionPathCompare.displayLabel)
                             .help(BenchmarkPlanMode.connectionPathCompare.helpText)
                             .tag(BenchmarkPlanMode.connectionPathCompare)
+                        Text(BenchmarkPlanMode.systemDNSValidation.displayLabel)
+                            .help(BenchmarkPlanMode.systemDNSValidation.helpText)
+                            .tag(BenchmarkPlanMode.systemDNSValidation)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(maxWidth: 280, alignment: .leading)
+                    .frame(maxWidth: 420, alignment: .leading)
                     .help(mode.helpText)
 
-                    Picker("Resolver", selection: $resolverTransport) {
-                        ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
-                            Text(transport.displayLabel)
-                                .help(transport.helpText)
-                                .tag(transport)
+                    if mode == .systemDNSValidation {
+                        Label("Resolver: current macOS system resolver", systemImage: "desktopcomputer")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .help(
+                                """
+                                EN: System DNS mode validates the resolver currently active in macOS.
+                                VI: Mode System DNS kiểm tra resolver hiện đang active trong macOS.
+                                """
+                            )
+                    } else {
+                        Picker("Resolver", selection: $resolverTransport) {
+                            ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
+                                Text(transport.displayLabel)
+                                    .help(transport.helpText)
+                                    .tag(transport)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(maxWidth: 280, alignment: .leading)
+                        .help(resolverTransport.helpText)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 280, alignment: .leading)
-                    .help(resolverTransport.helpText)
 
                     Picker("DNS records", selection: $recordFamily) {
                         ForEach(BenchmarkRecordFamily.allCases, id: \.self) { family in
@@ -1401,44 +1416,54 @@ private struct BenchmarkDetailView: View {
                 }
 
                 BenchmarkSection(title: "Profiles") {
-                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                        Toggle(isOn: selectAllProfilesBinding) {
-                            Text("Select all runnable")
+                    if mode == .systemDNSValidation {
+                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                            Label("System DNS uses the current macOS resolver; selected profiles are ignored.", systemImage: "desktopcomputer")
                                 .font(.body.weight(.semibold))
-                        }
-                        .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
-                        .help(
-                            """
-                            EN: Select every plain DNS profile that can run with the current Resolver option.
-                            VI: Chọn tất cả profile DNS thường có thể chạy với option Resolver hiện tại.
-                            """
-                        )
-
-                        Text(setupViewModel.profileSelectionSummary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        if let profileSelectionCaveat = setupViewModel.profileSelectionCaveat {
-                            Label(profileSelectionCaveat, systemImage: "line.3.horizontal.decrease.circle")
+                            Label("Use this after manually changing DNS to validate the active OS resolver path.", systemImage: "arrow.triangle.2.circlepath")
                                 .font(.caption)
-                                .foregroundStyle(DNSPilotDesign.Palette.warning)
+                                .foregroundStyle(.secondary)
                         }
-
-                        ForEach(setupViewModel.profileOptions) { option in
-                            Toggle(isOn: profileBinding(for: option)) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(option.name)
-                                            .font(.body.weight(.semibold))
-                                        Text(option.detailLabel)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                }
+                    } else {
+                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                            Toggle(isOn: selectAllProfilesBinding) {
+                                Text("Select all runnable")
+                                    .font(.body.weight(.semibold))
                             }
-                            .disabled(!option.isRunnable || isBenchmarkActive)
-                            .help(option.helpText)
+                            .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
+                            .help(
+                                """
+                                EN: Select every plain DNS profile that can run with the current Resolver option.
+                                VI: Chọn tất cả profile DNS thường có thể chạy với option Resolver hiện tại.
+                                """
+                            )
+
+                            Text(setupViewModel.profileSelectionSummary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if let profileSelectionCaveat = setupViewModel.profileSelectionCaveat {
+                                Label(profileSelectionCaveat, systemImage: "line.3.horizontal.decrease.circle")
+                                    .font(.caption)
+                                    .foregroundStyle(DNSPilotDesign.Palette.warning)
+                            }
+
+                            ForEach(setupViewModel.profileOptions) { option in
+                                Toggle(isOn: profileBinding(for: option)) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(option.name)
+                                                .font(.body.weight(.semibold))
+                                            Text(option.detailLabel)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                                .disabled(!option.isRunnable || isBenchmarkActive)
+                                .help(option.helpText)
+                            }
                         }
                     }
                 }
@@ -2032,7 +2057,8 @@ private struct BenchmarkDetailView: View {
                         currentCancellation = nil
                     }
                     outcome = nextOutcome
-                    if case .completed(let resultViewModel) = nextOutcome {
+                    if case .completed(let resultViewModel) = nextOutcome,
+                       plan.mode != .systemDNSValidation {
                         loadApplyPlan(for: resultViewModel, executableURL: executableURL, runID: runID)
                     } else {
                         applyPlanOutcome = nil
@@ -2101,6 +2127,9 @@ private struct BenchmarkDetailView: View {
     }
 
     private func makeHistoryPersistence(for plan: BenchmarkPlanViewModel) -> BenchmarkHistoryPersistence? {
+        guard plan.supportsHistoryPersistence else {
+            return nil
+        }
         guard let factory = makePreparedHistoryPersistenceFactory() else {
             return nil
         }

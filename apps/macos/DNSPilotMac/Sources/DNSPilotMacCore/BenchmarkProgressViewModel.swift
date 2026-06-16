@@ -221,9 +221,11 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         nextSteps.append(
             Self.step(.parsingResult, status: Self.status(for: .parsingResult, failure: failure, isRunning: false, isCompleted: isCompleted))
         )
-        nextSteps.append(
-            Self.step(.savingHistory, status: Self.historyStatus(failure: failure, isCompleted: isCompleted, historySaved: historySaved))
-        )
+        if mode != .systemDNSValidation {
+            nextSteps.append(
+                Self.step(.savingHistory, status: Self.historyStatus(failure: failure, isCompleted: isCompleted, historySaved: historySaved))
+            )
+        }
         steps = nextSteps
         currentStepVerboseLines = Self.verboseLines(
             mode: mode,
@@ -351,6 +353,12 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
                 "* Resolving DNS, then probing TCP :443 for returned endpoints.",
                 "* Planned input: \(planSummary.domainCount) domain(s), \(planSummary.resolverCount) resolver(s), \(planSummary.attempts) attempt(s); worst-case DNS phase about \(dnsSeconds), TCP phase about \(tcpSeconds).",
                 "* CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
+            ]
+        case .systemDNSValidation:
+            return [
+                "* Validating current macOS system DNS with \(planSummary.domainCount) domain(s), \(planSummary.attempts) attempt(s), \(planSummary.recordFamily.displayLabel).",
+                "* Worst-case wait before output: about \(dnsSeconds); this CLI path does not emit per-resolver progress yet.",
+                "* If this hangs, suspect OS resolver, VPN, firewall, captive portal, or DNS cache state.",
             ]
         }
     }

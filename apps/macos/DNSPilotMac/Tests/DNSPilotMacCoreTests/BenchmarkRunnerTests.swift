@@ -130,6 +130,39 @@ final class BenchmarkRunnerTests: XCTestCase {
         XCTAssertEqual(receivedEvents.values, [event])
     }
 
+    func testRunnerDoesNotRequestProgressJSONLForSystemDNSValidation() throws {
+        let processRunner = RecordingBenchmarkProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "{}", standardError: "")
+        )
+        let runner = BenchmarkRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+
+        _ = try runner.run(plan: makeSystemDNSValidationPlan()) { _ in }
+
+        XCTAssertFalse(processRunner.invocations[0].arguments.contains("--progress-jsonl"))
+    }
+
+    func testRunnerDoesNotAppendHistoryPersistenceForSystemDNSValidation() throws {
+        let processRunner = RecordingBenchmarkProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "{}", standardError: "")
+        )
+        let runner = BenchmarkRunner(
+            executableURL: URL(fileURLWithPath: "/usr/local/bin/dnspilot"),
+            processRunner: processRunner
+        )
+        let persistence = BenchmarkHistoryPersistence(
+            databaseURL: URL(fileURLWithPath: "/tmp/dnspilot.sqlite"),
+            historyID: "system-run-1"
+        )
+
+        _ = try runner.run(plan: makeSystemDNSValidationPlan(), persistence: persistence)
+
+        XCTAssertFalse(processRunner.invocations[0].arguments.contains("--save-db"))
+        XCTAssertFalse(processRunner.invocations[0].arguments.contains("--history-id"))
+    }
+
     func testProgressEventDecoderMapsResolverFinishedJSONLine() throws {
         let event = try BenchmarkProgressEventJSONDecoder.decode(
             """
@@ -301,6 +334,17 @@ private func makeInvalidBenchmarkPlan() -> BenchmarkPlanViewModel {
         customDomains: [],
         attempts: 1,
         mode: .dnsOnlyCompare
+    )
+}
+
+private func makeSystemDNSValidationPlan() -> BenchmarkPlanViewModel {
+    BenchmarkPlanViewModel(
+        catalog: makeRunnerCatalog(),
+        selectedProfileIDs: [],
+        selectedSuiteID: "developer",
+        customDomains: [],
+        attempts: 1,
+        mode: .systemDNSValidation
     )
 }
 

@@ -4,16 +4,16 @@
 - SwiftUI shell with sidebar, benchmark, catalog, history, custom DNS, custom suites, and menu bar quick run.
 - Benchmark progress, result, failure, debug log, and apply-policy surfaces.
 - Store-safe copy/open-settings apply guidance.
+- System DNS validation mode in Benchmark tab using current Core CLI `system-benchmark` payload via macOS-side adapter.
 
 ## Current Work
 - macOS remains UX lead lane.
-- Next focus: post-apply system DNS validation UI using Core CLI system-DNS validation.
+- Next focus: refine post-apply validation guidance and release-ready signing/entitlement checks.
 
 ## Blockers
 - Release signing and App Store entitlement verification are not complete.
 - Power-edition helper is out of scope for store build.
 
 ## Next Actions
-- Add UI for system-DNS validation after manual apply.
+- Consider a dedicated post-apply CTA that opens System DNS mode with the same target domains.
 - Keep all Core CLI gaps in `macos-core-cli-request.md`.
-

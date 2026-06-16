@@ -6,6 +6,7 @@
 
 ## Technical Risks
 - System DNS validation can be distorted by caches and browser Secure DNS.
+- Current Core CLI `system-benchmark` does not emit progress JSONL or save history, so macOS must keep this mode stateless for now.
 - SwiftUI layout can regress on small windows if result tables grow.
 
 ## Platform Risks
@@ -17,4 +18,3 @@
 
 ## Release Risks
 - Debug signing differs from release entitlements.
-

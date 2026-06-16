@@ -123,7 +123,7 @@ public struct BenchmarkExecutionCoordinator {
 
     private static func processFailureStep(for mode: BenchmarkPlanMode) -> BenchmarkFailureStep {
         switch mode {
-        case .dnsOnlyCompare:
+        case .dnsOnlyCompare, .systemDNSValidation:
             .resolvingDNS
         case .connectionPathCompare:
             .measuringConnection
