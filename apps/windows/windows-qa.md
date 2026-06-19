@@ -1,6 +1,7 @@
 # Windows QA Checklist
 
 ## Automated Validation Run on macOS
+- `bash apps/windows/validate-windows-lane.sh`
 - `dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
