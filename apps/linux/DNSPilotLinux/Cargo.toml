@@ -1,0 +1,16 @@
+[package]
+name = "dnspilot-linux-shell"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[lib]
+name = "dnspilot_linux_shell"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dnspilot-linux-shell"
+path = "src/main.rs"
