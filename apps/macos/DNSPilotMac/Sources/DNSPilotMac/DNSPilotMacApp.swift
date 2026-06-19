@@ -726,6 +726,12 @@ private struct GamePingResultPanel: View {
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
 
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Label(viewModel.fastestObservedLabel, systemImage: "bolt")
+                    Label(viewModel.balancedRecommendationLabel, systemImage: "scale.3d")
+                }
+                .foregroundStyle(.secondary)
+
                 ScrollView(.horizontal) {
                     Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
                         GridRow {
@@ -3162,6 +3168,12 @@ private struct BenchmarkResultPanel: View {
 
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
+
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Label(viewModel.fastestObservedLabel, systemImage: "bolt")
+                    Label(viewModel.balancedRecommendationLabel, systemImage: "scale.3d")
+                }
+                .foregroundStyle(.secondary)
 
                 if applyPlanPresentation.showsLocalNextStep {
                     BenchmarkResultNextStepPanel(

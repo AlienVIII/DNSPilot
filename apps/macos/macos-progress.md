@@ -18,6 +18,7 @@
 - macOS local CI harness runs Rust tests, Swift tests, sandbox bundle verification, and live DNS smoke tests; distribution verification activates when a signed bundle path is provided.
 - Built-in gaming suites cover Steam/Valve, Dota 2 SEA, CS2, and Riot/LoL DNS/TCP latency presets.
 - Game Ping sidebar screen runs DNS/TCP path checks for gaming presets with selectable DNS candidates, progress, result grid, and copyable report; it is explicit that this is not ICMP or in-match UDP latency.
+- Benchmark and Game Ping results show fastest observed DNS separately from the balanced recommendation.
 
 ## Current Work
 - macOS remains UX lead lane.

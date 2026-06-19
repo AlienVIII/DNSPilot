@@ -184,6 +184,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Benchmark strong recommendations include store-safe guided apply
   details: DNS servers to paste, tested resolver, copy action, and Network
   Settings handoff without changing system DNS silently.
+- macOS Benchmark and Game Ping results separate fastest observed DNS from the
+  balanced recommendation so users can see raw latency versus safety-gated pick.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
   when partial failures line up with a specific IP family.
 - macOS Benchmark result rows and copied result reports include per-resolver

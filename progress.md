@@ -120,6 +120,7 @@ DNS handling, and platform capability reporting.
 - [x] [109] v0.1 gaming suites — add Steam/Valve, Dota 2 SEA, CS2, and Riot/LoL DNS/TCP presets.
 - [x] [110] v0.1 macOS Game Ping — add gaming preset screen backed by path-compare.
 - [x] [111] v0.1 macOS confirmed apply and flush guidance — confirm copy/open apply and store-safe flush checklist actions.
+- [x] [112] v0.1 macOS fastest vs balanced result labels — separate raw fastest DNS from safety-gated recommendation.
 
 ---
 
@@ -5078,6 +5079,23 @@ instead of running sudo/admin commands.
 ```text
 swift test --package-path apps/macos/DNSPilotMac --filter "BenchmarkResultViewModelTests/testNextStepGuidanceAllowsManualSettingsOnlyForStrongRecommendation|StoreSafeDNSActionViewModelTests|MenuBarQuickActionsViewModelTests"
 Result: 10 passed, 0 failed
+```
+
+---
+
+## Chunk 112: v0.1 macOS Fastest vs Balanced Result Labels
+
+**Status:** Complete
+
+Benchmark and Game Ping results now show the fastest observed DNS candidate
+separately from the balanced recommendation. Reports include both labels so raw
+median-DNS speed is not confused with the safety-gated pick.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter "BenchmarkResultViewModelTests/testResultViewModelBuildsRecommendedSummaryAndRows|BenchmarkResultViewModelTests/testResultViewModelSeparatesFastestObservedFromBalancedRecommendation"
+Result: 2 passed, 0 failed
 ```
 
 ---

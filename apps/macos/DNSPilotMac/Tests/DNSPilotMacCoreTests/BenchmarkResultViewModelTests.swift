@@ -45,6 +45,8 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.scopeLabel, "DNS only")
         XCTAssertEqual(viewModel.healthLabel, "Healthy")
         XCTAssertEqual(viewModel.recommendationLabel, "Recommended: Cloudflare")
+        XCTAssertEqual(viewModel.fastestObservedLabel, "Fastest observed DNS: Cloudflare (4 ms median, 0% failed)")
+        XCTAssertEqual(viewModel.balancedRecommendationLabel, "Balanced recommendation: Cloudflare")
         XCTAssertEqual(viewModel.confidenceLabel, "High confidence")
         XCTAssertTrue(viewModel.hasActionableRecommendation)
         XCTAssertFalse(viewModel.recommendsKeepingCurrentDNS)
@@ -63,6 +65,8 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             Scope: DNS only
             Confidence: High confidence
             Recommendation: Recommended: Cloudflare
+            Fastest observed DNS: Cloudflare (4 ms median, 0% failed)
+            Balanced recommendation: Cloudflare
             Next step: Apply recommended DNS manually
             DNS Pilot has not changed system DNS.
             Recommended profile: Cloudflare.
@@ -93,6 +97,50 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             DNS-only warning.
             """
         )
+    }
+
+    func testResultViewModelSeparatesFastestObservedFromBalancedRecommendation() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .healthy,
+                primaryIssue: "none",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 2,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 500,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 12, failureRate: 0),
+                makeResultRun(profileID: "google-public-dns", medianDNS: 4, failureRate: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.97,
+                confidence: .high,
+                reasons: ["Better reliability across the run."],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.fastestObservedLabel, "Fastest observed DNS: Google Public DNS (4 ms median, 0% failed)")
+        XCTAssertEqual(viewModel.balancedRecommendationLabel, "Balanced recommendation: Cloudflare")
     }
 
     func testNextStepGuidanceAllowsManualSettingsOnlyForStrongRecommendation() {
