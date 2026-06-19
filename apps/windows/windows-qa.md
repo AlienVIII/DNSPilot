@@ -23,6 +23,8 @@
 - Use `Copy checklist`; expected: clipboard text states no silent DNS mutation.
 - Preview a custom DNS profile save; expected: valid profiles produce `profile-add`, invalid IPv4/IPv6 show validation errors.
 - Add/update/delete a custom DNS profile; expected: no UAC prompt, profile list refreshes, built-in profiles are not mutated by the app.
+- Select a built-in profile and try update/delete; expected: blocked with diagnostics, no CLI mutation call succeeds.
+- Select a history row and delete selected; expected: the row is removed after refresh.
 - Refresh storage; expected: saved profiles and history rows reload from the CLI-backed SQLite store.
 - Clear history; expected: history rows empty after refresh.
 - Open tray icon menu; expected: Quick benchmark, Validate current DNS, and Open Network Settings actions route to the same shell behavior.

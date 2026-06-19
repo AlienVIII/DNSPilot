@@ -11,7 +11,7 @@ public sealed class WindowsShellViewModel
         TrayQuickActionsViewModel trayQuickActions,
         PlatformCapability storePlatformCapability,
         PlatformCapability powerPlatformCapability,
-        IReadOnlyList<CatalogProfile> profileRows,
+        IReadOnlyList<ProfileManagementRow> profileRows,
         IReadOnlyList<BenchmarkHistoryRow> historyRows)
     {
         DatabasePath = databasePath;
@@ -34,7 +34,7 @@ public sealed class WindowsShellViewModel
     public TrayQuickActionsViewModel TrayQuickActions { get; }
     public PlatformCapability StorePlatformCapability { get; }
     public PlatformCapability PowerPlatformCapability { get; }
-    public IReadOnlyList<CatalogProfile> ProfileRows { get; }
+    public IReadOnlyList<ProfileManagementRow> ProfileRows { get; }
     public IReadOnlyList<BenchmarkHistoryRow> HistoryRows { get; }
 
     public IReadOnlyList<BenchmarkMode> AvailableBenchmarkModes { get; } = new[]
@@ -121,7 +121,14 @@ public sealed class WindowsShellViewModel
             TrayQuickActionsViewModel.CreateDefault(catalog),
             DefaultStoreCapability(),
             DefaultPowerCapability(),
-            catalog.Profiles,
+            catalog.Profiles.Select(profile => new ProfileManagementRow(
+                profile.Id,
+                profile.Name,
+                CanEdit: profile.UseCase == "custom",
+                CanDelete: profile.UseCase == "custom",
+                profile.Ipv4Servers,
+                profile.Ipv6Servers,
+                string.IsNullOrWhiteSpace(profile.UseCase) ? "built-in" : profile.UseCase)).ToArray(),
             Array.Empty<BenchmarkHistoryRow>());
     }
 
@@ -173,7 +180,7 @@ public sealed class WindowsShellViewModel
             TrayQuickActionsViewModel.CreateDefault(catalog),
             capabilities.RequirePlatform(BenchmarkPlanViewModel.WindowsStorePlatformId),
             capabilities.RequirePlatform("windows-power"),
-            profileList.Profiles,
+            new ProfileManagementViewModel(profileList).Rows,
             new BenchmarkHistoryViewModel(history, catalog).Rows);
     }
 

@@ -26,7 +26,10 @@ public static class CatalogJsonDecoder
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("protocol")] string Protocol,
         [property: JsonPropertyName("ipv4_servers")] IReadOnlyList<string> Ipv4Servers,
-        [property: JsonPropertyName("ipv6_servers")] IReadOnlyList<string> Ipv6Servers)
+        [property: JsonPropertyName("ipv6_servers")] IReadOnlyList<string> Ipv6Servers,
+        [property: JsonPropertyName("use_case")] string? UseCase,
+        [property: JsonPropertyName("filtering_type")] string? FilteringType,
+        [property: JsonPropertyName("tags")] IReadOnlyList<string>? Tags)
     {
         public static CatalogProfile ToCatalogProfile(ProfilePayload payload)
         {
@@ -35,7 +38,12 @@ public static class CatalogJsonDecoder
                 payload.Name,
                 ParseProtocol(payload.Protocol),
                 payload.Ipv4Servers,
-                payload.Ipv6Servers);
+                payload.Ipv6Servers)
+            {
+                UseCase = payload.UseCase ?? "",
+                FilteringType = payload.FilteringType ?? "",
+                Tags = payload.Tags ?? Array.Empty<string>(),
+            };
         }
     }
 

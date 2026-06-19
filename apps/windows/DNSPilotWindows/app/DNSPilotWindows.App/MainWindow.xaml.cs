@@ -98,15 +98,28 @@ public sealed partial class MainWindow : Window
 
     private async void UpdateProfile_Click(object sender, RoutedEventArgs e)
     {
+        var selected = ProfilesList.SelectedItem as ProfileManagementRow;
+        if (selected is { CanEdit: false })
+        {
+            ShowDiagnostics("Profile update blocked", new InvalidOperationException("Built-in profiles cannot be edited from the Store-safe shell."));
+            return;
+        }
+
         var form = BuildProfileForm();
-        var profileId = ProfileIdOrDefault(form);
+        var profileId = selected?.Id ?? ProfileIdOrDefault(form);
         await MutateProfileAsync("Profile update", runner => runner.Update(ViewModel.DatabasePath, profileId, form));
     }
 
     private async void DeleteProfile_Click(object sender, RoutedEventArgs e)
     {
+        var selected = ProfilesList.SelectedItem as ProfileManagementRow;
         var form = BuildProfileForm();
-        var profileId = ProfileIdOrDefault(form);
+        var profileId = selected?.Id ?? ProfileIdOrDefault(form);
+        if (selected is { CanDelete: false })
+        {
+            ShowDiagnostics("Profile delete blocked", new InvalidOperationException("Built-in profiles cannot be deleted from the Store-safe shell."));
+            return;
+        }
         await MutateProfileAsync("Profile delete", runner => runner.Delete(ViewModel.DatabasePath, profileId));
     }
 
@@ -126,6 +139,38 @@ public sealed partial class MainWindow : Window
         {
             ShowDiagnostics("Clear history failed", ex);
         }
+    }
+
+    private async void DeleteHistory_Click(object sender, RoutedEventArgs e)
+    {
+        if (HistoryList.SelectedItem is not BenchmarkHistoryRow row)
+        {
+            ShowDiagnostics("Delete history skipped", new InvalidOperationException("Select a history row first."));
+            return;
+        }
+
+        try
+        {
+            await Task.Run(() => new BenchmarkHistoryRunner(DefaultCliPath()).Delete(ViewModel.DatabasePath, row.Id));
+            await LoadRuntimeContractsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowDiagnostics("Delete history failed", ex);
+        }
+    }
+
+    private void ProfilesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ProfilesList.SelectedItem is not ProfileManagementRow row)
+        {
+            return;
+        }
+
+        ProfileNameBox.Text = row.Name;
+        ProfileIdBox.Text = row.Id;
+        Ipv4Box.Text = string.Join(", ", row.Ipv4Servers);
+        Ipv6Box.Text = string.Join(", ", row.Ipv6Servers);
     }
 
     private void SectionNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -210,12 +255,10 @@ public sealed partial class MainWindow : Window
     {
         DnsServersBox.Text = ViewModel.ApplyGuidance.CopyableDnsServers;
         ChecklistBox.Text = ViewModel.ApplyGuidance.CopyableChecklist;
-        ProfilesList.ItemsSource = ViewModel.ProfileRows
-            .Select(profile => $"{profile.Name} ({profile.Id}) - {string.Join(", ", profile.Ipv4Servers.Concat(profile.Ipv6Servers))}")
-            .ToArray();
+        ProfilesList.ItemsSource = ViewModel.ProfileRows;
         HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
-            ? new[] { "No saved benchmark history" }
-            : ViewModel.HistoryRows.Select(row => $"{row.Title}: {row.RecommendationLabel} - {row.ApplyGuidanceLabel}").ToArray();
+            ? Array.Empty<BenchmarkHistoryRow>()
+            : ViewModel.HistoryRows;
         DiagnosticsBox.Text = string.Join(
             Environment.NewLine,
             "Profile list:",

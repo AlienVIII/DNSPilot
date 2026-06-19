@@ -47,6 +47,43 @@ public sealed class ProfileListRunner
     }
 }
 
+public sealed record ProfileManagementRow(
+    string Id,
+    string Name,
+    bool CanEdit,
+    bool CanDelete,
+    IReadOnlyList<string> Ipv4Servers,
+    IReadOnlyList<string> Ipv6Servers,
+    string UseCase)
+{
+    public override string ToString()
+    {
+        var label = string.IsNullOrWhiteSpace(UseCase) ? "built-in" : UseCase;
+        return $"{Name} ({Id}) - {label}";
+    }
+}
+
+public sealed class ProfileManagementViewModel
+{
+    public ProfileManagementViewModel(ProfileListPayload payload)
+    {
+        Rows = payload.Profiles.Select(profile =>
+        {
+            var isCustom = profile.UseCase == "custom";
+            return new ProfileManagementRow(
+                profile.Id,
+                profile.Name,
+                CanEdit: isCustom,
+                CanDelete: isCustom,
+                profile.Ipv4Servers,
+                profile.Ipv6Servers,
+                string.IsNullOrWhiteSpace(profile.UseCase) ? "built-in" : profile.UseCase);
+        }).ToArray();
+    }
+
+    public IReadOnlyList<ProfileManagementRow> Rows { get; }
+}
+
 public sealed class CustomDnsProfileRunner
 {
     private readonly string _executablePath;

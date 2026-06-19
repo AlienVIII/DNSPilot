@@ -26,6 +26,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Profile and history list decoders map persisted rows for management UI", ProfileAndHistoryListDecodersMapRows);
         Run("Windows shell can hydrate from CLI payloads for catalog, policy, apply, profiles, and history", WindowsShellHydratesFromCliPayloads);
         Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
+        Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -460,6 +461,26 @@ internal sealed class WindowsCoreTestSuite
             .WithApplyPlan(ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan));
 
         Assert.Contains("2606:4700:4700::1001", shell.ApplyGuidance.CopyableDnsServers);
+    }
+
+    private static void ProfileAndHistoryRowsExposeManagementState()
+    {
+        var profiles = ProfileListJsonDecoder.Decode(SampleJson.ProfileList);
+        var profileRows = new ProfileManagementViewModel(profiles).Rows;
+
+        Assert.Equal(2, profileRows.Count);
+        Assert.False(profileRows.First(row => row.Id == "cloudflare").CanEdit, "Built-in profiles should not be editable from Windows shell.");
+        Assert.False(profileRows.First(row => row.Id == "cloudflare").CanDelete, "Built-in profiles should not be deletable from Windows shell.");
+        var custom = profileRows.First(row => row.Id == "lab-dns");
+        Assert.True(custom.CanEdit, "Custom profile should be editable.");
+        Assert.True(custom.CanDelete, "Custom profile should be deletable.");
+        Assert.Equal("Lab DNS (lab-dns) - custom", custom.ToString());
+        Assert.SequenceEqual(new[] { "1.1.1.1" }, custom.Ipv4Servers);
+
+        var history = BenchmarkHistoryJsonDecoder.Decode(SampleJson.HistoryList);
+        var historyRows = new BenchmarkHistoryViewModel(history, TestData.Catalog).Rows;
+        Assert.Equal("compare-run-1", historyRows.Single().Id);
+        Assert.Equal("DNS only: Recommended: Cloudflare", historyRows.Single().ToString());
     }
 }
 

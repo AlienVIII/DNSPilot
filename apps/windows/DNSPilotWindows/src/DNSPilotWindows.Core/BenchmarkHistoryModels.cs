@@ -96,7 +96,13 @@ public sealed record BenchmarkHistoryRow(
     string ResolverSummary,
     string HealthLabel,
     string RecommendationLabel,
-    string ApplyGuidanceLabel);
+    string ApplyGuidanceLabel)
+{
+    public override string ToString()
+    {
+        return $"{Title}: {RecommendationLabel}";
+    }
+}
 
 public sealed class BenchmarkHistoryViewModel
 {

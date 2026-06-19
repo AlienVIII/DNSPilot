@@ -16,6 +16,7 @@
 - WinUI host now attempts to hydrate catalog, capabilities, apply-plan, profiles, and history from `dnspilot-cli` at launch.
 - WinUI host now renders saved profile/history rows and can add/update/delete custom profiles plus refresh/clear history through the CLI boundary.
 - Added benchmark result decoder and apply-plan request factory so successful benchmark JSON can refresh store-safe apply guidance from the measured recommendation.
+- Added profile/history management row models so UI can distinguish custom editable profiles from built-in protected profiles and delete selected history rows.
 
 ## Current Work
 - Windows lane code-complete for store-safe shell behavior that can be validated on macOS; Windows-only UI compile/runtime validation remains pending.
@@ -29,3 +30,4 @@
 - Bundle or point `DNSPILOT_CLI_PATH` at `dnspilot-cli.exe` before live UI benchmark runs.
 - On Windows, verify hydrated catalog/profile/history/apply-plan state after launch.
 - On Windows, verify benchmark success refreshes DNS servers in Apply guidance from the recommended profile/tested resolver.
+- On Windows, verify selecting a custom profile populates the form and built-in profile update/delete is blocked.

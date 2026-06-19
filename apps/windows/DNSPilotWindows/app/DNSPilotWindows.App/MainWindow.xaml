@@ -170,7 +170,7 @@
                     <Border x:Name="ProfilesSection" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                         <StackPanel Spacing="12">
                             <TextBlock Text="Custom DNS profiles" FontSize="20" FontWeight="SemiBold" />
-                            <ListView x:Name="ProfilesList" Header="Saved profiles" MaxHeight="160" />
+                            <ListView x:Name="ProfilesList" Header="Saved profiles" MaxHeight="160" SelectionChanged="ProfilesList_SelectionChanged" />
                             <TextBox x:Name="ProfileNameBox" Header="Name" Text="Cloudflare Lab" />
                             <TextBox x:Name="ProfileIdBox" Header="Profile ID for update/delete" Text="cloudflare-lab" />
                             <TextBox x:Name="Ipv4Box" Header="IPv4 servers" Text="1.1.1.1, 1.0.0.1" ToolTipService.ToolTip="Plain IPv4 DNS server addresses." />
@@ -219,6 +219,12 @@
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <SymbolIcon Symbol="Delete" />
                                         <TextBlock Text="Clear history" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="DeleteHistory_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Remove" />
+                                        <TextBlock Text="Delete selected" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>

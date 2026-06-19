@@ -16,6 +16,7 @@
 - Windows shell now has decoders/runners for catalog, capabilities, apply-plan, profile list, and history list.
 - Custom DNS profile add/update/delete and history delete/clear run through the same CLI process boundary as benchmarks.
 - Benchmark success path now decodes result JSON and refreshes apply guidance via `apply-plan windows-store` using recommended profile/tested resolver.
+- Profile rows now expose edit/delete safety state; only `use_case=custom` profiles are treated as editable/deletable by the Windows shell.
 
 ## Open Questions
 - Store packaging assets, signing, and MSIX submission metadata are not validated yet.
