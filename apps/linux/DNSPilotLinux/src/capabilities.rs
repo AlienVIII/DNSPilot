@@ -6,6 +6,17 @@ pub enum LinuxPackageKind {
     Rpm,
 }
 
+impl LinuxPackageKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            LinuxPackageKind::Flatpak => "Flatpak",
+            LinuxPackageKind::Snap => "Snap",
+            LinuxPackageKind::Deb => "deb",
+            LinuxPackageKind::Rpm => "rpm",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LinuxApplyPath {
     GuidedSettings,
@@ -13,11 +24,31 @@ pub enum LinuxApplyPath {
     Unsupported,
 }
 
+impl LinuxApplyPath {
+    pub fn label(self) -> &'static str {
+        match self {
+            LinuxApplyPath::GuidedSettings => "Guided settings",
+            LinuxApplyPath::NativePowerPackage => "Native power package",
+            LinuxApplyPath::Unsupported => "Unsupported",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BenchmarkMode {
     DnsOnly,
     DnsAndTcp,
     CurrentSystemResolver,
+}
+
+impl BenchmarkMode {
+    pub fn label(self) -> &'static str {
+        match self {
+            BenchmarkMode::DnsOnly => "DNS only",
+            BenchmarkMode::DnsAndTcp => "DNS + TCP",
+            BenchmarkMode::CurrentSystemResolver => "Current/system resolver validation",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
