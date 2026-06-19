@@ -40,6 +40,12 @@ private struct PendingGuidedApplyConfirmation {
     let confirmation: StoreSafeDNSActionConfirmationViewModel
 }
 
+private struct PowerDNSActionAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
 private struct StoreSafeGuidedApplyConfirmationModifier: ViewModifier {
     @Binding var pendingConfirmation: PendingGuidedApplyConfirmation?
 
@@ -77,6 +83,11 @@ private struct StoreSafeGuidedApplyConfirmationModifier: ViewModifier {
 private struct StoreSafeFlushConfirmationModifier: ViewModifier {
     @Binding var isPresented: Bool
     private let guidance = StoreSafeDNSFlushGuidanceViewModel()
+    private let powerActionViewModel = MacOSPowerDNSActionViewModel(
+        isEnabled: MacOSPowerDNSActionConfiguration.isEnabled()
+    )
+    @State private var powerActionAlert: PowerDNSActionAlert?
+    @State private var isRunningPowerFlush = false
 
     func body(content: Content) -> some View {
         content
@@ -85,6 +96,13 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
                 isPresented: $isPresented,
                 titleVisibility: .visible
             ) {
+                if let flushButtonLabel = powerActionViewModel.flushButtonLabel {
+                    Button(flushButtonLabel) {
+                        runPowerFlush()
+                        isPresented = false
+                    }
+                    .disabled(isRunningPowerFlush)
+                }
                 Button(guidance.confirmation.confirmLabel) {
                     copyToPasteboard(guidance.checklistText)
                     isPresented = false
@@ -93,8 +111,112 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
                     isPresented = false
                 }
             } message: {
-                Text(guidance.confirmation.message)
+                Text(flushConfirmationMessage)
             }
+            .alert(item: $powerActionAlert) { alert in
+                Alert(
+                    title: Text(alert.title),
+                    message: Text(alert.message),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+    }
+
+    private var flushConfirmationMessage: String {
+        guard powerActionViewModel.isEnabled else {
+            return guidance.confirmation.message
+        }
+        return "\(powerActionViewModel.flushConfirmationMessage)\n\nYou can still copy the manual checklist instead."
+    }
+
+    private func runPowerFlush() {
+        isRunningPowerFlush = true
+        Task {
+            let result = await Task.detached(priority: .userInitiated) { () -> (Bool, String) in
+                do {
+                    try MacOSPowerDNSActionRunner.fromEnvironment().flushDNS()
+                    return (true, "macOS DNS cache was flushed.")
+                } catch {
+                    return (false, error.localizedDescription)
+                }
+            }.value
+
+            isRunningPowerFlush = false
+            if result.0 {
+                powerActionAlert = PowerDNSActionAlert(title: "DNS flush complete", message: result.1)
+            } else {
+                powerActionAlert = PowerDNSActionAlert(title: "DNS flush failed", message: result.1)
+            }
+        }
+    }
+}
+
+private struct PowerDNSApplyButton: View {
+    let profileName: String?
+    let dnsServers: [String]
+    private let powerActionViewModel = MacOSPowerDNSActionViewModel(
+        isEnabled: MacOSPowerDNSActionConfiguration.isEnabled()
+    )
+    @State private var isShowingConfirmation = false
+    @State private var isRunningApply = false
+    @State private var powerActionAlert: PowerDNSActionAlert?
+
+    var body: some View {
+        if let applyButtonLabel = powerActionViewModel.applyButtonLabel, !dnsServers.isEmpty {
+            Button {
+                isShowingConfirmation = true
+            } label: {
+                if isRunningApply {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Label(applyButtonLabel, systemImage: "lock.shield")
+                }
+            }
+            .disabled(isRunningApply)
+            .confirmationDialog(
+                "Confirm Power DNS apply",
+                isPresented: $isShowingConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(applyButtonLabel) {
+                    runPowerApply()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(powerActionViewModel.applyConfirmationMessage(profileName: profileName, dnsServers: dnsServers))
+            }
+            .alert(item: $powerActionAlert) { alert in
+                Alert(
+                    title: Text(alert.title),
+                    message: Text(alert.message),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+            .help("Ask macOS for administrator approval and apply these DNS servers to the active network service.")
+        }
+    }
+
+    private func runPowerApply() {
+        let servers = dnsServers
+        isRunningApply = true
+        Task {
+            let result = await Task.detached(priority: .userInitiated) { () -> (Bool, String) in
+                do {
+                    try MacOSPowerDNSActionRunner.fromEnvironment().applyDNS(servers: servers)
+                    return (true, "DNS was applied and local DNS cache was flushed.")
+                } catch {
+                    return (false, error.localizedDescription)
+                }
+            }.value
+
+            isRunningApply = false
+            if result.0 {
+                powerActionAlert = PowerDNSActionAlert(title: "DNS apply complete", message: result.1)
+            } else {
+                powerActionAlert = PowerDNSActionAlert(title: "DNS apply failed", message: result.1)
+            }
+        }
     }
 }
 
@@ -3547,6 +3669,13 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                 .help("Copy measured DNS servers, then open macOS Network Settings for manual apply.")
             }
 
+            if viewModel.canOfferPrimaryAction, !viewModel.plan.dnsServers.isEmpty {
+                PowerDNSApplyButton(
+                    profileName: viewModel.plan.profileName ?? viewModel.plan.profileID,
+                    dnsServers: viewModel.plan.dnsServers
+                )
+            }
+
             if !viewModel.dnsServerText.isEmpty {
                 Button {
                     copyToPasteboard(viewModel.dnsServerText)
@@ -3669,6 +3798,13 @@ private struct BenchmarkResultNextStepPanel: View {
                         Label(viewModel.actionLabel, systemImage: "gearshape")
                     }
                     .accessibilityIdentifier("benchmark-open-network-settings-button")
+                }
+
+                if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
+                    PowerDNSApplyButton(
+                        profileName: dnsSettings.profileName,
+                        dnsServers: dnsSettings.allServers
+                    )
                 }
 
                 Button {
@@ -3829,6 +3965,11 @@ private struct CatalogProfileRow: View {
                         Label(summary.guidedApplyButtonLabel, systemImage: "gearshape")
                     }
                     .help("Confirm, copy DNS servers, and open macOS Network Settings. DNS Pilot will not change system DNS automatically.")
+
+                    PowerDNSApplyButton(
+                        profileName: summary.name,
+                        dnsServers: summary.dnsServers
+                    )
                 }
             }
         }

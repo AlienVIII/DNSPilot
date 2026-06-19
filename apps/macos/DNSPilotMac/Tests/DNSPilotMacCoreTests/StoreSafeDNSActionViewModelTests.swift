@@ -38,4 +38,27 @@ final class StoreSafeDNSActionViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.checklistText.contains("sudo dscacheutil -flushcache"))
         XCTAssertTrue(viewModel.checklistText.contains("sudo killall -HUP mDNSResponder"))
     }
+
+    func testPowerDNSActionViewModelIsHiddenWhenDisabled() {
+        let viewModel = MacOSPowerDNSActionViewModel(isEnabled: false)
+
+        XCTAssertNil(viewModel.applyButtonLabel)
+        XCTAssertNil(viewModel.flushButtonLabel)
+    }
+
+    func testPowerDNSActionViewModelExplainsAdminApplyAndFlush() {
+        let viewModel = MacOSPowerDNSActionViewModel(isEnabled: true)
+
+        XCTAssertEqual(viewModel.applyButtonLabel, "Apply Now (Admin)")
+        XCTAssertEqual(viewModel.flushButtonLabel, "Flush Now (Admin)")
+        XCTAssertTrue(
+            viewModel.applyConfirmationMessage(profileName: "Cloudflare", dnsServers: ["1.1.1.1", "1.0.0.1"])
+                .contains("administrator approval")
+        )
+        XCTAssertTrue(
+            viewModel.applyConfirmationMessage(profileName: "Cloudflare", dnsServers: ["1.1.1.1", "1.0.0.1"])
+                .contains("Cloudflare")
+        )
+        XCTAssertTrue(viewModel.flushConfirmationMessage.contains("administrator approval"))
+    }
 }

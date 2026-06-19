@@ -125,6 +125,7 @@ DNS handling, and platform capability reporting.
 - [x] [114] v0.1 saved-domain suites — add YouTube, GitHub, and ChatGPT/OpenAI presets.
 - [x] [115] v0.1 macOS product goal readiness — show support level and caveats for main goals.
 - [x] [116] v0.1 macOS power DNS action runner — add disabled-by-default admin apply/flush adapter.
+- [x] [117] v0.1 macOS power apply/flush UI — expose admin actions only behind explicit Power flag.
 
 ---
 
@@ -5912,6 +5913,44 @@ Result: 3 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 229 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 117: v0.1 macOS Power Apply/Flush UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/StoreSafeDNSActionViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/StoreSafeDNSActionViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Power apply buttons now appear in Benchmark recommendation, legacy next-step,
+and Catalog profile flows only when `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+The Flush DNS confirmation dialog also offers `Flush Now (Admin)` only under
+that same explicit flag.
+
+### Edge Cases / Caveats
+
+- Default store-safe builds keep copy/open-settings guidance only.
+- Power actions run asynchronously so the macOS administrator prompt does not
+  block SwiftUI state updates.
+- Power apply targets the active network service; unusual VPN or enterprise
+  routing can still fail and surfaces as a user-visible error alert.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter StoreSafeDNSActionViewModelTests --filter MacOSPowerDNSActionRunnerTests
+Result: 11 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 237 passed, 0 failed
 
 git diff --check
 Result: passed
