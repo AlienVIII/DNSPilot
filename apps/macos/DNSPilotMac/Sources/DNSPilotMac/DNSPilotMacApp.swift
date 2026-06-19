@@ -1228,6 +1228,7 @@ private struct BenchmarkDetailView: View {
     @State private var applyPlanOutcome: BenchmarkApplyPlanLoadOutcome?
     @State private var isLoadingApplyPlan = false
     @State private var currentApplyPlanRunID: BenchmarkRunID?
+    @State private var currentDNSBeforeApplySnapshot = SystemDNSResolverSnapshot.unavailable
     @State private var handledQuickBenchmarkRequestID = 0
     @State private var handledSystemDNSValidationRequestID = 0
     @State private var outcome: BenchmarkExecutionOutcome?
@@ -1392,6 +1393,7 @@ private struct BenchmarkDetailView: View {
                             elapsedMS: lastBenchmarkElapsedMS,
                             applyPlanOutcome: applyPlanOutcome,
                             isLoadingApplyPlan: isLoadingApplyPlan,
+                            currentDNSBeforeApplySnapshot: currentDNSBeforeApplySnapshot,
                             onStartSystemDNSValidation: startSystemDNSValidationBenchmark
                         )
                     case .failed(let failure):
@@ -2104,6 +2106,7 @@ private struct BenchmarkDetailView: View {
         applyPlanOutcome = nil
         isLoadingApplyPlan = false
         currentApplyPlanRunID = nil
+        currentDNSBeforeApplySnapshot = .unavailable
         currentProgressEvents = []
         lastBenchmarkElapsedMS = nil
         let startedAt = Date()
@@ -2193,6 +2196,8 @@ private struct BenchmarkDetailView: View {
         applyPlanOutcome = nil
         isLoadingApplyPlan = true
         currentApplyPlanRunID = runID
+        let currentDNSBeforeApply = loadCurrentSystemDNSResolverSnapshot()
+        currentDNSBeforeApplySnapshot = currentDNSBeforeApply
 
         DispatchQueue.global(qos: .userInitiated).async {
             let coordinator = BenchmarkApplyPlanLoadCoordinator(
@@ -2215,7 +2220,12 @@ private struct BenchmarkDetailView: View {
                 applyPlanOutcome = loadedOutcome
                 switch loadedOutcome {
                 case .loaded(let viewModel):
-                    onGuidedApplyPlanChanged(GuidedApplyPlanSnapshot.make(from: viewModel))
+                    onGuidedApplyPlanChanged(
+                        GuidedApplyPlanSnapshot.make(
+                            from: viewModel,
+                            currentDNSBeforeApply: currentDNSBeforeApply
+                        )
+                    )
                 case .failed:
                     onGuidedApplyPlanChanged(nil)
                 }
@@ -2666,6 +2676,7 @@ private struct BenchmarkResultPanel: View {
     let elapsedMS: Int?
     let applyPlanOutcome: BenchmarkApplyPlanLoadOutcome?
     let isLoadingApplyPlan: Bool
+    let currentDNSBeforeApplySnapshot: SystemDNSResolverSnapshot
     let onStartSystemDNSValidation: () -> Void
 
     private var applyPlanPresentation: BenchmarkApplyPlanPresentation {
@@ -2710,7 +2721,8 @@ private struct BenchmarkResultPanel: View {
                 if applyPlanPresentation.showsApplyPlanState {
                     BenchmarkApplyPlanStatusPanel(
                         outcome: applyPlanOutcome,
-                        isLoading: isLoadingApplyPlan
+                        isLoading: isLoadingApplyPlan,
+                        currentDNSBeforeApplySnapshot: currentDNSBeforeApplySnapshot
                     )
                 }
 
@@ -2807,6 +2819,7 @@ private struct BenchmarkResultPanel: View {
 private struct BenchmarkApplyPlanStatusPanel: View {
     let outcome: BenchmarkApplyPlanLoadOutcome?
     let isLoading: Bool
+    let currentDNSBeforeApplySnapshot: SystemDNSResolverSnapshot
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -2823,7 +2836,10 @@ private struct BenchmarkApplyPlanStatusPanel: View {
             } else {
                 switch outcome {
                 case .loaded(let viewModel):
-                    applyPlanContent(viewModel)
+                    applyPlanContent(
+                        viewModel,
+                        restoreViewModel: GuidedApplyRestoreViewModel(snapshot: currentDNSBeforeApplySnapshot)
+                    )
                 case .failed(let message):
                     Label("Apply policy unavailable", systemImage: "exclamationmark.triangle")
                         .font(.headline)
@@ -2843,7 +2859,10 @@ private struct BenchmarkApplyPlanStatusPanel: View {
     }
 
     @ViewBuilder
-    private func applyPlanContent(_ viewModel: ApplyPlanViewModel) -> some View {
+    private func applyPlanContent(
+        _ viewModel: ApplyPlanViewModel,
+        restoreViewModel: GuidedApplyRestoreViewModel
+    ) -> some View {
         Label("Apply policy: \(viewModel.statusLabel)", systemImage: viewModel.canOfferPrimaryAction ? "checkmark.shield" : "shield")
             .font(.headline)
 
@@ -2895,6 +2914,29 @@ private struct BenchmarkApplyPlanStatusPanel: View {
             .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
         }
 
+        if viewModel.guidedPrimaryActionLabel != nil {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                Label(restoreViewModel.statusLabel, systemImage: restoreViewModel.hasRestorableDNS ? "arrow.uturn.backward.circle" : "exclamationmark.triangle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(restoreViewModel.hasRestorableDNS ? DNSPilotDesign.Palette.success : DNSPilotDesign.Palette.warning)
+
+                if restoreViewModel.hasRestorableDNS {
+                    ForEach(restoreViewModel.snapshot.servers, id: \.self) { server in
+                        Label(server, systemImage: "number")
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                }
+
+                ForEach(restoreViewModel.detailLines, id: \.self) { line in
+                    Label(line, systemImage: "info.circle")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
+        }
+
         if !viewModel.plan.notes.isEmpty {
             ForEach(viewModel.plan.notes, id: \.self) { note in
                 Label(note, systemImage: "info.circle")
@@ -2928,11 +2970,23 @@ private struct BenchmarkApplyPlanStatusPanel: View {
 
             if let guidedApplyChecklistText = viewModel.guidedApplyChecklistText {
                 Button {
-                    copyToPasteboard(guidedApplyChecklistText)
+                    copyToPasteboard(
+                        viewModel.guidedApplyChecklistTextWithRestore(currentDNSBeforeApplySnapshot)
+                            ?? guidedApplyChecklistText
+                    )
                 } label: {
                     Label("Copy Apply Steps", systemImage: "checklist")
                 }
                 .help("Copy the guided DNS apply and retest checklist.")
+            }
+
+            if viewModel.guidedPrimaryActionLabel != nil {
+                Button {
+                    copyToPasteboard(restoreViewModel.copyText)
+                } label: {
+                    Label("Copy Restore DNS", systemImage: "arrow.uturn.backward.circle")
+                }
+                .help("Copy current DNS settings captured before guided apply.")
             }
 
             Button {

@@ -90,6 +90,46 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("Retest DNS Pilot after applying DNS.") == true)
     }
 
+    func testApplyPlanChecklistIncludesRestoreDNSWhenCaptured() {
+        let viewModel = ApplyPlanViewModel(
+            plan: ApplyPlan(
+                platformID: "macos-store",
+                applyCapability: .appleNetworkExtensionDNSSettings,
+                disposition: .guideOnly,
+                profileID: "cloudflare",
+                profileName: "Cloudflare",
+                testedResolver: "1.1.1.1:53",
+                dnsServers: ["1.1.1.1", "1.0.0.1"],
+                canApply: false,
+                notes: []
+            )
+        )
+
+        let checklist = viewModel.guidedApplyChecklistTextWithRestore(
+            SystemDNSResolverSnapshot(
+                servers: ["192.168.1.1", "2606:4700:4700::1111"],
+                searchDomains: ["home.arpa"],
+                supplementalResolverCount: 1,
+                loadedAt: Date(timeIntervalSince1970: 42)
+            )
+        )
+
+        XCTAssertTrue(checklist?.contains("Current DNS before apply:") == true)
+        XCTAssertTrue(checklist?.contains("192.168.1.1\n2606:4700:4700::1111") == true)
+        XCTAssertTrue(checklist?.contains("Search domains before apply:") == true)
+        XCTAssertTrue(checklist?.contains("home.arpa") == true)
+        XCTAssertTrue(checklist?.contains("If validation fails, paste the previous DNS servers back into the active network service.") == true)
+    }
+
+    func testRestoreViewModelExplainsUnavailableCurrentDNS() {
+        let viewModel = GuidedApplyRestoreViewModel(snapshot: .unavailable)
+
+        XCTAssertFalse(viewModel.hasRestorableDNS)
+        XCTAssertEqual(viewModel.statusLabel, "Current DNS not captured")
+        XCTAssertTrue(viewModel.detailLines.contains("Capture the current macOS DNS settings manually before changing DNS."))
+        XCTAssertTrue(viewModel.copyText.contains("Current DNS unavailable"))
+    }
+
     func testApplyPlanViewModelProtectsCurrentDNS() {
         let viewModel = ApplyPlanViewModel(
             plan: ApplyPlan(

@@ -20,6 +20,12 @@ final class GuidedApplyPlanSnapshotTests: XCTestCase {
 
         let snapshot = GuidedApplyPlanSnapshot.make(
             from: viewModel,
+            currentDNSBeforeApply: SystemDNSResolverSnapshot(
+                servers: ["192.168.1.1"],
+                searchDomains: ["home.arpa"],
+                supplementalResolverCount: 0,
+                loadedAt: Date(timeIntervalSince1970: 40)
+            ),
             createdAt: Date(timeIntervalSince1970: 42)
         )
 
@@ -27,8 +33,31 @@ final class GuidedApplyPlanSnapshotTests: XCTestCase {
         XCTAssertEqual(snapshot?.profileName, "Cloudflare")
         XCTAssertEqual(snapshot?.testedResolver, "1.1.1.1:53")
         XCTAssertEqual(snapshot?.dnsServerText, "1.1.1.1\n1.0.0.1")
+        XCTAssertEqual(snapshot?.restoreDNSServerText, "192.168.1.1")
         XCTAssertTrue(snapshot?.copyText.contains("DNS Pilot has not changed system DNS.") == true)
+        XCTAssertTrue(snapshot?.copyText.contains("Current DNS before apply:\n192.168.1.1") == true)
         XCTAssertTrue(snapshot?.copyText.contains("Store-safe guide only.") == true)
+    }
+
+    func testSnapshotDecodesLegacyPayloadWithoutRestoreFields() throws {
+        let json = """
+        {
+          "profileID": "cloudflare",
+          "profileName": "Cloudflare",
+          "testedResolver": "1.1.1.1:53",
+          "dnsServers": ["1.1.1.1"],
+          "notes": [],
+          "createdAt": 42
+        }
+        """
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .deferredToDate
+        let snapshot = try decoder.decode(GuidedApplyPlanSnapshot.self, from: Data(json.utf8))
+
+        XCTAssertEqual(snapshot.profileID, "cloudflare")
+        XCTAssertTrue(snapshot.restoreDNSServers.isEmpty)
+        XCTAssertTrue(snapshot.restoreSearchDomains.isEmpty)
     }
 
     func testSnapshotRejectsNonGuidedOrEmptyPlans() {
@@ -77,6 +106,8 @@ final class GuidedApplyPlanSnapshotTests: XCTestCase {
             profileName: "Cloudflare",
             testedResolver: "1.1.1.1:53",
             dnsServers: ["1.1.1.1"],
+            restoreDNSServers: [],
+            restoreSearchDomains: [],
             notes: [],
             createdAt: Date(timeIntervalSince1970: 10)
         )
@@ -118,6 +149,8 @@ final class GuidedApplyPlanSnapshotTests: XCTestCase {
             profileName: "Cloudflare",
             testedResolver: "1.1.1.1:53",
             dnsServers: ["1.1.1.1"],
+            restoreDNSServers: [],
+            restoreSearchDomains: [],
             notes: [],
             createdAt: Date(timeIntervalSince1970: 100)
         )

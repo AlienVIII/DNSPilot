@@ -5,6 +5,8 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
     public let profileName: String?
     public let testedResolver: String?
     public let dnsServers: [String]
+    public let restoreDNSServers: [String]
+    public let restoreSearchDomains: [String]
     public let notes: [String]
     public let createdAt: Date
 
@@ -13,6 +15,8 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
         profileName: String?,
         testedResolver: String?,
         dnsServers: [String],
+        restoreDNSServers: [String] = [],
+        restoreSearchDomains: [String] = [],
         notes: [String],
         createdAt: Date
     ) {
@@ -20,12 +24,38 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
         self.profileName = profileName
         self.testedResolver = testedResolver
         self.dnsServers = dnsServers
+        self.restoreDNSServers = restoreDNSServers
+        self.restoreSearchDomains = restoreSearchDomains
         self.notes = notes
         self.createdAt = createdAt
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case profileID
+        case profileName
+        case testedResolver
+        case dnsServers
+        case restoreDNSServers
+        case restoreSearchDomains
+        case notes
+        case createdAt
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        profileID = try container.decodeIfPresent(String.self, forKey: .profileID)
+        profileName = try container.decodeIfPresent(String.self, forKey: .profileName)
+        testedResolver = try container.decodeIfPresent(String.self, forKey: .testedResolver)
+        dnsServers = try container.decode([String].self, forKey: .dnsServers)
+        restoreDNSServers = try container.decodeIfPresent([String].self, forKey: .restoreDNSServers) ?? []
+        restoreSearchDomains = try container.decodeIfPresent([String].self, forKey: .restoreSearchDomains) ?? []
+        notes = try container.decodeIfPresent([String].self, forKey: .notes) ?? []
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
+
     public static func make(
         from viewModel: ApplyPlanViewModel,
+        currentDNSBeforeApply: SystemDNSResolverSnapshot? = nil,
         createdAt: Date = Date()
     ) -> GuidedApplyPlanSnapshot? {
         guard viewModel.plan.disposition == .guideOnly, !viewModel.plan.dnsServers.isEmpty else {
@@ -36,6 +66,8 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
             profileName: viewModel.plan.profileName,
             testedResolver: viewModel.plan.testedResolver,
             dnsServers: viewModel.plan.dnsServers,
+            restoreDNSServers: currentDNSBeforeApply?.servers ?? [],
+            restoreSearchDomains: currentDNSBeforeApply?.searchDomains ?? [],
             notes: viewModel.plan.notes,
             createdAt: createdAt
         )
@@ -47,6 +79,10 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
 
     public var dnsServerText: String {
         dnsServers.joined(separator: "\n")
+    }
+
+    public var restoreDNSServerText: String {
+        restoreDNSServers.joined(separator: "\n")
     }
 
     public func isFresh(now: Date = Date(), maxAge: TimeInterval = 86_400) -> Bool {
@@ -61,6 +97,16 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
         ]
         if let testedResolver {
             lines.append("Tested resolver: \(testedResolver)")
+        }
+        if !restoreDNSServers.isEmpty {
+            lines.append("Current DNS before apply:")
+            lines.append(restoreDNSServerText)
+        } else {
+            lines.append("Current DNS before apply: unavailable")
+        }
+        if !restoreSearchDomains.isEmpty {
+            lines.append("Search domains before apply:")
+            lines.append(contentsOf: restoreSearchDomains)
         }
         lines.append("DNS servers:")
         lines.append(dnsServerText)

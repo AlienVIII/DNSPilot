@@ -13,6 +13,7 @@
 - Bundle validator has distribution mode that fails debug/ad-hoc signing and missing release entitlements instead of warning only.
 - Menu bar can reuse the last actionable guided apply plan for up to 24h: copy last DNS or copy+open Network Settings, without silent system DNS mutation.
 - System DNS validation mode shows current macOS DNS servers/search domains when SystemConfiguration exposes them, with refresh and copy fallback.
+- Guided apply now captures current macOS DNS before apply, shows restore guidance, and stores restore DNS in the last-plan menu bar action when available.
 
 ## Current Work
 - macOS remains UX lead lane.

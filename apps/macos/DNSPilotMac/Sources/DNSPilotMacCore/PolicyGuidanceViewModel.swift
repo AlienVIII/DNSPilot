@@ -148,6 +148,10 @@ public struct ApplyPlanViewModel: Equatable {
     }
 
     public var guidedApplyChecklistText: String? {
+        guidedApplyChecklistTextWithRestore(nil)
+    }
+
+    public func guidedApplyChecklistTextWithRestore(_ restoreSnapshot: SystemDNSResolverSnapshot?) -> String? {
         guard plan.disposition == .guideOnly, !plan.dnsServers.isEmpty else {
             return nil
         }
@@ -163,6 +167,9 @@ public struct ApplyPlanViewModel: Equatable {
         }
         lines.append("DNS servers:")
         lines.append(dnsServerText)
+        if let restoreSnapshot {
+            lines.append(contentsOf: restoreSectionLines(for: GuidedApplyRestoreViewModel(snapshot: restoreSnapshot)))
+        }
         lines.append("Steps:")
         lines.append("1. Open macOS Network Settings.")
         lines.append("2. Select the active network service.")
@@ -174,6 +181,30 @@ public struct ApplyPlanViewModel: Equatable {
         lines.append("6. Run System DNS validation in DNS Pilot.")
         lines.append("7. Retest DNS Pilot after applying DNS.")
         return lines.joined(separator: "\n")
+    }
+
+    private func restoreSectionLines(for restoreViewModel: GuidedApplyRestoreViewModel) -> [String] {
+        guard restoreViewModel.hasRestorableDNS else {
+            return [
+                "Current DNS before apply:",
+                "Current DNS unavailable",
+                "Capture the current macOS DNS settings manually before changing DNS.",
+            ]
+        }
+
+        var lines = [
+            "Current DNS before apply:",
+            restoreViewModel.dnsServerText,
+        ]
+        if !restoreViewModel.snapshot.searchDomains.isEmpty {
+            lines.append("Search domains before apply:")
+            lines.append(contentsOf: restoreViewModel.snapshot.searchDomains)
+        }
+        lines.append("If validation fails, paste the previous DNS servers back into the active network service.")
+        if restoreViewModel.snapshot.supplementalResolverCount > 0 {
+            lines.append("Scoped resolvers were present; restore may need VPN/MDM/service-specific settings.")
+        }
+        return lines
     }
 
     public var dnsServerText: String {
