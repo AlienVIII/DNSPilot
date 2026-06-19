@@ -18,7 +18,7 @@ import {
   palette,
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
-import { lines, safeId } from '@/src/utils/forms';
+import { buildProfileForm, buildSuiteForm } from '@/src/view-models/storage-forms';
 
 type Protocol = 'plain' | 'doh' | 'dot';
 type Filtering = 'none' | 'malware' | 'family' | 'ads' | 'security';
@@ -57,6 +57,31 @@ export default function StorageScreen() {
 
   const customProfiles = useMemo(() => profiles.filter(isCustomProfile), [profiles]);
   const customSuites = useMemo(() => suites.filter(isCustomSuite), [suites]);
+  const profileForm = useMemo(
+    () =>
+      buildProfileForm({
+        profileId,
+        profileName,
+        protocol,
+        ipv4,
+        ipv6,
+        dohUrl,
+        dotHostname,
+        filtering,
+        profileTags,
+      }),
+    [dohUrl, dotHostname, filtering, ipv4, ipv6, profileId, profileName, profileTags, protocol]
+  );
+  const suiteForm = useMemo(
+    () =>
+      buildSuiteForm({
+        suiteId,
+        suiteName,
+        suiteDomains,
+        suiteTags,
+      }),
+    [suiteDomains, suiteId, suiteName, suiteTags]
+  );
 
   function fillProfile(id: string) {
     const profile = customProfiles.find((item) => item.id === id);
@@ -92,25 +117,6 @@ export default function StorageScreen() {
     }
   }
 
-  const profilePayload = {
-    id: profileId || safeId(profileName),
-    name: profileName,
-    protocol,
-    ipv4Servers: lines(ipv4),
-    ipv6Servers: lines(ipv6),
-    dohUrl: dohUrl || undefined,
-    dotHostname: dotHostname || undefined,
-    filtering,
-    tags: lines(profileTags),
-  };
-
-  const suitePayload = {
-    id: suiteId || safeId(suiteName),
-    name: suiteName,
-    domains: lines(suiteDomains),
-    tags: lines(suiteTags),
-  };
-
   return (
     <Screen>
       <Section title="Storage" subtitle="SQLite-backed custom DNS profiles, domain suites, and benchmark history.">
@@ -140,10 +146,11 @@ export default function StorageScreen() {
           {protocol === 'dot' ? <TextField label="DoT hostname" value={dotHostname} onChangeText={setDotHostname} placeholder="dns.example.com" /> : null}
           <Segmented options={filteringOptions} value={filtering} onChange={setFiltering} />
           <TextField label="Tags" value={profileTags} onChangeText={setProfileTags} placeholder="custom, office" />
+          <ErrorBanner message={profileForm.errors.join('\n')} />
           <Row>
-            <Button label="Add" onPress={() => execute('profileAdd', profilePayload)} loading={working} />
-            <Button label="Update" onPress={() => execute('profileUpdate', profilePayload)} variant="secondary" loading={working} />
-            <Button label="Delete" onPress={() => execute('profileDelete', { id: profilePayload.id })} variant="danger" loading={working} />
+            <Button label="Add" onPress={() => execute('profileAdd', profileForm.payload)} loading={working} disabled={!profileForm.canSubmit} />
+            <Button label="Update" onPress={() => execute('profileUpdate', profileForm.payload)} variant="secondary" loading={working} disabled={!profileForm.canSubmit} />
+            <Button label="Delete" onPress={() => execute('profileDelete', { id: profileForm.payload.id })} variant="danger" loading={working} disabled={!profileForm.canDelete} />
           </Row>
           <Row>
             {customProfiles.map((profile) => (
@@ -159,10 +166,11 @@ export default function StorageScreen() {
           </Row>
           <TextField label="Domains" value={suiteDomains} onChangeText={setSuiteDomains} multiline placeholder="github.com&#10;registry.npmjs.org" />
           <TextField label="Tags" value={suiteTags} onChangeText={setSuiteTags} placeholder="custom, work" />
+          <ErrorBanner message={suiteForm.errors.join('\n')} />
           <Row>
-            <Button label="Add suite" onPress={() => execute('suiteAdd', suitePayload)} loading={working} />
-            <Button label="Update suite" onPress={() => execute('suiteUpdate', suitePayload)} variant="secondary" loading={working} />
-            <Button label="Delete suite" onPress={() => execute('suiteDelete', { id: suitePayload.id })} variant="danger" loading={working} />
+            <Button label="Add suite" onPress={() => execute('suiteAdd', suiteForm.payload)} loading={working} disabled={!suiteForm.canSubmit} />
+            <Button label="Update suite" onPress={() => execute('suiteUpdate', suiteForm.payload)} variant="secondary" loading={working} disabled={!suiteForm.canSubmit} />
+            <Button label="Delete suite" onPress={() => execute('suiteDelete', { id: suiteForm.payload.id })} variant="danger" loading={working} disabled={!suiteForm.canDelete} />
           </Row>
           <Row>
             {customSuites.map((suite) => (

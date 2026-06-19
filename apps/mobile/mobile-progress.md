@@ -20,6 +20,8 @@
   IPv4/IPv6 troubleshooting.
 - Added benchmark-result guided settings plan: recommended profile, OS selector,
   protected-network flags, core apply-plan payload, and store-safe steps.
+- Added storage form validation for custom DNS profiles and domain suites,
+  including protocol-specific fields and preserved `custom` tags.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge, with
