@@ -152,3 +152,68 @@ fn cli_plan_uses_stored_profiles_and_session_controls() {
     assert!(stdout.contains("--ip-family ipv4-only"));
     assert!(stdout.contains("--progress-jsonl"));
 }
+
+#[test]
+fn cli_run_executes_supplied_core_cli_and_renders_debug_report() {
+    let store = temp_path("run");
+    let add = binary()
+        .args([
+            "profile-add",
+            "--store",
+            store.to_str().unwrap(),
+            "--id",
+            "local",
+            "--name",
+            "Local DNS",
+            "--ipv4",
+            "1.1.1.1",
+        ])
+        .output()
+        .unwrap();
+    assert!(add.status.success());
+
+    let fake_core = temp_path("fake-core");
+    std::fs::write(
+        &fake_core,
+        "#!/bin/sh\necho '{\"schema_version\":1,\"ok\":true}'\necho '{\"event\":\"resolver_finished\",\"resolver_id\":\"local\",\"elapsed_ms\":7}' >&2\n",
+    )
+    .unwrap();
+    make_executable(&fake_core);
+
+    let output = binary()
+        .args([
+            "run",
+            "--core-cli",
+            fake_core.to_str().unwrap(),
+            "--store",
+            store.to_str().unwrap(),
+            "--package",
+            "flatpak",
+            "--profile-id",
+            "local",
+            "--domain",
+            "github.com",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("DNS Pilot Linux Debug Report"));
+    assert!(stdout.contains("Package: Flatpak"));
+    assert!(stdout.contains("Local DNS: success - 7 ms"));
+    assert!(stdout.contains("Final payload:"));
+    assert!(stdout.contains("\"ok\":true"));
+}
+
+#[cfg(unix)]
+fn make_executable(path: &std::path::Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut permissions = std::fs::metadata(path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    std::fs::set_permissions(path, permissions).unwrap();
+}
+
+#[cfg(not(unix))]
+fn make_executable(_path: &std::path::Path) {}

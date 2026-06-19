@@ -2,7 +2,8 @@ use std::cell::RefCell;
 
 use dnspilot_linux_shell::benchmark::{
     build_core_cli_command, parse_progress_jsonl, run_benchmark_with_runner, CoreCliCommand,
-    CoreCliProgressStatus, CoreCliRunOutput, CoreCliRunner, LinuxBenchmarkPlan, ResolverSelection,
+    CoreCliProgressStatus, CoreCliRunOutput, CoreCliRunner, LinuxBenchmarkPlan,
+    ProcessCoreCliRunner, ResolverSelection,
 };
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, BenchmarkMode, LinuxEnvironmentProbe, LinuxPackageKind,
@@ -229,6 +230,22 @@ fn coordinator_marks_run_step_failed_when_core_cli_exits_nonzero() {
             .step_status(ProcessStepId::ValidateSystemResolver),
         Some(ProcessStatus::Failed)
     );
+}
+
+#[test]
+fn process_core_cli_runner_captures_stdout_stderr_and_exit_code() {
+    let runner = ProcessCoreCliRunner;
+    let output = runner.run(&CoreCliCommand {
+        program: "/bin/sh".to_string(),
+        args: vec![
+            "-c".to_string(),
+            "echo final-payload; echo progress-event >&2; exit 7".to_string(),
+        ],
+    });
+
+    assert_eq!(output.exit_code, 7);
+    assert_eq!(output.stdout.trim(), "final-payload");
+    assert_eq!(output.stderr.trim(), "progress-event");
 }
 
 struct FakeRunner {

@@ -1,5 +1,7 @@
 use dnspilot_linux_shell::app::LinuxAppSession;
-use dnspilot_linux_shell::benchmark::build_core_cli_command;
+use dnspilot_linux_shell::benchmark::{
+    build_core_cli_command, run_benchmark_with_runner, ProcessCoreCliRunner,
+};
 use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxEnvironmentProbe,
     LinuxPackageKind,
@@ -30,6 +32,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
         Some("profile-list") => run_profile_list(args.into_iter().skip(1)),
         Some("profile-delete") => run_profile_delete(args.into_iter().skip(1)),
         Some("plan") => run_plan(args.into_iter().skip(1)),
+        Some("run") => run_execute(args.into_iter().skip(1)),
         _ => run_legacy_report(args),
     }
 }
@@ -121,13 +124,48 @@ fn run_profile_delete(args: impl IntoIterator<Item = String>) -> Result<String, 
 
 fn run_plan(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let config = PlanConfig::parse(args)?;
+    let (_, plan) = build_plan_from_config(&config)?;
+    let command = build_core_cli_command("dnspilot-cli", &plan);
+    Ok(format!(
+        "Core command:\n{} {}",
+        command.program,
+        command.args.join(" ")
+    ))
+}
+
+fn run_execute(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let (core_cli, plan_args) = split_core_cli_arg(args)?;
+    let config = PlanConfig::parse(plan_args)?;
+    let (capability, plan) = build_plan_from_config(&config)?;
+    let runner = ProcessCoreCliRunner;
+    let result = run_benchmark_with_runner(core_cli, "mocked-linux", capability, plan, &runner);
+    let mut output = result.debug_report;
+    if let Some(payload) = result.final_payload {
+        output.push_str("\n\nFinal payload:\n");
+        output.push_str(&payload);
+    }
+    if let Some(error) = result.error {
+        return Err(CliError::new(2, format!("{output}\n\nRun error: {error}")));
+    }
+    Ok(output)
+}
+
+fn build_plan_from_config(
+    config: &PlanConfig,
+) -> Result<
+    (
+        dnspilot_linux_shell::capabilities::LinuxCapabilityViewModel,
+        dnspilot_linux_shell::benchmark::LinuxBenchmarkPlan,
+    ),
+    CliError,
+> {
     let repo = FileProfileRepository::new(config.store.clone());
     let profiles = repo
         .load_profiles()
         .map_err(|error| CliError::new(2, format!("{error:?}")))?;
     let capability = capability_view_model(config.to_probe());
     let mut session = LinuxAppSession::new(
-        capability,
+        capability.clone(),
         default_suite_catalog(config.catalog_vietnam),
         profiles,
     );
@@ -135,22 +173,17 @@ fn run_plan(args: impl IntoIterator<Item = String>) -> Result<String, CliError> 
         .select_mode(config.mode)
         .map_err(|error| CliError::new(2, error))?;
     if !config.profile_ids.is_empty() {
-        session.set_selected_profiles(config.profile_ids);
+        session.set_selected_profiles(config.profile_ids.clone());
     }
     session.resolver_address_family = config.resolver_address_family;
     session.record_family = config.record_family;
-    session.selected_suite_id = config.suite_id;
-    session.set_custom_domains(config.domains);
+    session.selected_suite_id = config.suite_id.clone();
+    session.set_custom_domains(config.domains.clone());
 
     let plan = session
         .build_plan()
         .map_err(|issues| CliError::new(2, issues.join("; ")))?;
-    let command = build_core_cli_command("dnspilot-cli", &plan);
-    Ok(format!(
-        "Core command:\n{} {}",
-        command.program,
-        command.args.join(" ")
-    ))
+    Ok((capability, plan))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -442,6 +475,25 @@ fn parse_record_family(value: &str) -> Result<DnsRecordFamily, CliError> {
         "aaaa" => Ok(DnsRecordFamily::AaaaOnly),
         _ => Err(CliError::new(2, format!("unknown record family: {value}"))),
     }
+}
+
+fn split_core_cli_arg(
+    args: impl IntoIterator<Item = String>,
+) -> Result<(String, Vec<String>), CliError> {
+    let mut core_cli = None;
+    let mut plan_args = Vec::new();
+    let mut args = args.into_iter();
+    while let Some(arg) = args.next() {
+        if arg == "--core-cli" {
+            core_cli = Some(next_arg(&mut args, "--core-cli")?);
+        } else {
+            plan_args.push(arg);
+        }
+    }
+    Ok((
+        core_cli.ok_or_else(|| CliError::new(2, "--core-cli is required"))?,
+        plan_args,
+    ))
 }
 
 fn profile_to_draft(profile: PlainDnsProfile) -> PlainDnsProfileDraft {

@@ -3,6 +3,7 @@ use crate::diagnostics::LinuxDiagnosticReport;
 use crate::process::{LinuxBenchmarkProcessViewModel, ProcessStepId};
 use crate::settings::DnsRecordFamily;
 use serde_json::Value;
+use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolverSelection {
@@ -62,6 +63,26 @@ pub struct LinuxBenchmarkRunResult {
 
 pub trait CoreCliRunner {
     fn run(&self, command: &CoreCliCommand) -> CoreCliRunOutput;
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct ProcessCoreCliRunner;
+
+impl CoreCliRunner for ProcessCoreCliRunner {
+    fn run(&self, command: &CoreCliCommand) -> CoreCliRunOutput {
+        match Command::new(&command.program).args(&command.args).output() {
+            Ok(output) => CoreCliRunOutput {
+                exit_code: output.status.code().unwrap_or(1),
+                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+            },
+            Err(error) => CoreCliRunOutput {
+                exit_code: 1,
+                stdout: String::new(),
+                stderr: error.to_string(),
+            },
+        }
+    }
 }
 
 pub fn build_core_cli_command(
