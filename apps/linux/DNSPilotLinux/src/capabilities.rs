@@ -106,7 +106,7 @@ pub fn capability_view_model(probe: LinuxEnvironmentProbe) -> LinuxCapabilityVie
                 "NetworkManager or systemd-resolved plus polkit is required before real DNS apply is offered."
                     .to_string(),
             );
-            (false, LinuxApplyPath::GuidedSettings, true)
+            (false, LinuxApplyPath::Unsupported, false)
         }
     };
 

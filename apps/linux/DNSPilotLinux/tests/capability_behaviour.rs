@@ -69,14 +69,15 @@ fn deb_or_rpm_can_offer_native_power_apply_when_resolver_stack_and_polkit_exist(
 }
 
 #[test]
-fn deb_or_rpm_without_resolver_stack_stays_guided_and_diagnostic() {
+fn deb_or_rpm_without_resolver_stack_stays_diagnostic_without_guided_settings() {
     let mut native = probe(LinuxPackageKind::Deb);
     native.polkit_available = true;
 
     let capability = capability_view_model(native);
 
     assert!(!capability.can_apply_real_dns);
-    assert_eq!(capability.apply_path, LinuxApplyPath::GuidedSettings);
+    assert_eq!(capability.apply_path, LinuxApplyPath::Unsupported);
+    assert!(!capability.guided_settings_only);
     assert!(capability
         .notes
         .iter()
