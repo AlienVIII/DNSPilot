@@ -121,6 +121,7 @@ DNS handling, and platform capability reporting.
 - [x] [110] v0.1 macOS Game Ping — add gaming preset screen backed by path-compare.
 - [x] [111] v0.1 macOS confirmed apply and flush guidance — confirm copy/open apply and store-safe flush checklist actions.
 - [x] [112] v0.1 macOS fastest vs balanced result labels — separate raw fastest DNS from safety-gated recommendation.
+- [x] [113] v0.1 macOS selected profile guided apply — apply selected plain DNS profiles from Catalog with confirmation.
 
 ---
 
@@ -5096,6 +5097,24 @@ median-DNS speed is not confused with the safety-gated pick.
 ```text
 swift test --package-path apps/macos/DNSPilotMac --filter "BenchmarkResultViewModelTests/testResultViewModelBuildsRecommendedSummaryAndRows|BenchmarkResultViewModelTests/testResultViewModelSeparatesFastestObservedFromBalancedRecommendation"
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 113: v0.1 macOS Selected Profile Guided Apply
+
+**Status:** Complete
+
+Catalog provider rows now expose confirmed store-safe apply for selected plain
+DNS profiles. The action copies that profile's DNS servers and opens macOS
+Network Settings after confirmation; encrypted or empty profiles do not offer
+the guided apply button.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests
+Result: 8 passed, 0 failed
 ```
 
 ---

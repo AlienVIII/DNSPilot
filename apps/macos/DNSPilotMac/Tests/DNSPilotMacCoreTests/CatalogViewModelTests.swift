@@ -22,6 +22,10 @@ final class CatalogViewModelTests: XCTestCase {
             viewModel.catalog?.testSuites.first { $0.id == "gaming-dota2-sea" }?.domains,
             ["dota2.com", "steamcommunity.com", "steampowered.com", "steamcontent.com", "api.steampowered.com"]
         )
+        let cloudflare = viewModel.profileSummaries.first { $0.id == "cloudflare" }
+        XCTAssertTrue(cloudflare?.canGuideApply == true)
+        XCTAssertEqual(cloudflare?.guidedApplyButtonLabel, "Apply...")
+        XCTAssertEqual(cloudflare?.dnsServerText, "1.1.1.1\n1.0.0.1\n2606:4700:4700::1111\n2606:4700:4700::1001")
     }
 
     func testCatalogViewModelBuildsDisplaySummaries() {
@@ -32,6 +36,40 @@ final class CatalogViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.profileSummaries.first?.filteringLabel, "Unfiltered")
         XCTAssertEqual(viewModel.profileSummaries.last?.filteringLabel, "Malware")
         XCTAssertEqual(viewModel.testSuiteSummaries.first?.domainCountLabel, "2 domains")
+    }
+
+    func testCatalogProfileSummaryRejectsEncryptedOrEmptyProfilesForGuidedApply() {
+        let doh = CatalogProfile(
+            id: "secure",
+            name: "Secure",
+            description: "Encrypted DNS.",
+            ipv4Servers: [],
+            ipv6Servers: [],
+            protocol: .doh,
+            dohURL: "https://dns.example/dns-query",
+            dotHostname: nil,
+            filteringType: .none,
+            tags: [],
+            useCase: "privacy",
+            securityNotes: []
+        )
+        let emptyPlain = CatalogProfile(
+            id: "empty",
+            name: "Empty",
+            description: "No servers.",
+            ipv4Servers: [],
+            ipv6Servers: [],
+            protocol: .plain,
+            dohURL: nil,
+            dotHostname: nil,
+            filteringType: .none,
+            tags: [],
+            useCase: "custom",
+            securityNotes: []
+        )
+
+        XCTAssertFalse(CatalogProfileSummary(profile: doh).canGuideApply)
+        XCTAssertFalse(CatalogProfileSummary(profile: emptyPlain).canGuideApply)
     }
 
     func testCatalogDecoderMapsRustCliSchema() throws {

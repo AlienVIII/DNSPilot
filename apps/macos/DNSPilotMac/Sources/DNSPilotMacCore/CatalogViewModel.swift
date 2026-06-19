@@ -47,6 +47,10 @@ public struct CatalogProfileSummary: Equatable, Identifiable {
     public let description: String
     public let serverSummary: String
     public let filteringLabel: String
+    public let dnsServers: [String]
+    public let dnsServerText: String
+    public let canGuideApply: Bool
+    public let guidedApplyButtonLabel: String
 
     public init(profile: CatalogProfile) {
         id = profile.id
@@ -54,6 +58,10 @@ public struct CatalogProfileSummary: Equatable, Identifiable {
         description = profile.description
         serverSummary = "\(profile.ipv4Servers.count) IPv4 / \(profile.ipv6Servers.count) IPv6"
         filteringLabel = Self.label(for: profile.filteringType)
+        dnsServers = profile.ipv4Servers + profile.ipv6Servers
+        dnsServerText = dnsServers.joined(separator: "\n")
+        canGuideApply = profile.protocol == .plain && !dnsServers.isEmpty
+        guidedApplyButtonLabel = "Apply..."
     }
 
     private static func label(for filteringType: CatalogFilteringType) -> String {

@@ -186,6 +186,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   Settings handoff without changing system DNS silently.
 - macOS Benchmark and Game Ping results separate fastest observed DNS from the
   balanced recommendation so users can see raw latency versus safety-gated pick.
+- macOS Catalog provider rows expose confirmed store-safe apply for selected
+  plain DNS profiles.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
   when partial failures line up with a specific IP family.
 - macOS Benchmark result rows and copied result reports include per-resolver

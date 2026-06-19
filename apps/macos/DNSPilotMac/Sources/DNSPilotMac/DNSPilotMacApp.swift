@@ -34,6 +34,46 @@ private enum SidebarSelection: Hashable {
     case catalog
 }
 
+private struct PendingGuidedApplyConfirmation {
+    let copyText: String
+    let opensNetworkSettings: Bool
+    let confirmation: StoreSafeDNSActionConfirmationViewModel
+}
+
+private struct StoreSafeGuidedApplyConfirmationModifier: ViewModifier {
+    @Binding var pendingConfirmation: PendingGuidedApplyConfirmation?
+
+    func body(content: Content) -> some View {
+        content
+            .confirmationDialog(
+                pendingConfirmation?.confirmation.title ?? "Confirm guided DNS apply",
+                isPresented: Binding(
+                    get: { pendingConfirmation != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            pendingConfirmation = nil
+                        }
+                    }
+                ),
+                titleVisibility: .visible,
+                presenting: pendingConfirmation
+            ) { pending in
+                Button(pending.confirmation.confirmLabel) {
+                    copyToPasteboard(pending.copyText)
+                    if pending.opensNetworkSettings {
+                        openNetworkSettings()
+                    }
+                    pendingConfirmation = nil
+                }
+                Button(pending.confirmation.cancelLabel, role: .cancel) {
+                    pendingConfirmation = nil
+                }
+            } message: { pending in
+                Text(pending.confirmation.message)
+            }
+    }
+}
+
 private struct StoreSafeFlushConfirmationModifier: ViewModifier {
     @Binding var isPresented: Bool
     private let guidance = StoreSafeDNSFlushGuidanceViewModel()
@@ -59,6 +99,10 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
 }
 
 private extension View {
+    func storeSafeGuidedApplyConfirmation(pending: Binding<PendingGuidedApplyConfirmation?>) -> some View {
+        modifier(StoreSafeGuidedApplyConfirmationModifier(pendingConfirmation: pending))
+    }
+
     func storeSafeFlushConfirmation(isPresented: Binding<Bool>) -> some View {
         modifier(StoreSafeFlushConfirmationModifier(isPresented: isPresented))
     }
@@ -1306,6 +1350,7 @@ private struct CapabilityMatrixDetailView: View {
 
 private struct CatalogOverviewDetailView: View {
     let viewModel: CatalogViewModel
+    @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
 
     var body: some View {
         ScrollView {
@@ -1337,7 +1382,10 @@ private struct CatalogOverviewDetailView: View {
 
                     CatalogListSection(title: "Providers") {
                         ForEach(viewModel.profileSummaries) { summary in
-                            CatalogProfileRow(summary: summary)
+                            CatalogProfileRow(
+                                summary: summary,
+                                onApply: { requestGuidedApply(summary) }
+                            )
                         }
                     }
 
@@ -1352,6 +1400,22 @@ private struct CatalogOverviewDetailView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(DNSPilotDesign.Palette.background)
+        .storeSafeGuidedApplyConfirmation(pending: $pendingGuidedApplyConfirmation)
+    }
+
+    private func requestGuidedApply(_ summary: CatalogProfileSummary) {
+        guard summary.canGuideApply else {
+            return
+        }
+        pendingGuidedApplyConfirmation = PendingGuidedApplyConfirmation(
+            copyText: summary.dnsServerText,
+            opensNetworkSettings: true,
+            confirmation: StoreSafeDNSActionConfirmationViewModel.guidedApply(
+                profileName: summary.name,
+                dnsServers: summary.dnsServers,
+                hasRestoreDNS: false
+            )
+        )
     }
 }
 
@@ -3280,12 +3344,6 @@ private struct BenchmarkResultPanel: View {
     }
 }
 
-private struct PendingGuidedApplyConfirmation {
-    let copyText: String
-    let opensNetworkSettings: Bool
-    let confirmation: StoreSafeDNSActionConfirmationViewModel
-}
-
 private struct BenchmarkApplyPlanStatusPanel: View {
     let outcome: BenchmarkApplyPlanLoadOutcome?
     let isLoading: Bool
@@ -3327,32 +3385,7 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                 }
             }
         }
-        .confirmationDialog(
-            pendingGuidedApplyConfirmation?.confirmation.title ?? "Confirm guided DNS apply",
-            isPresented: Binding(
-                get: { pendingGuidedApplyConfirmation != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        pendingGuidedApplyConfirmation = nil
-                    }
-                }
-            ),
-            titleVisibility: .visible,
-            presenting: pendingGuidedApplyConfirmation
-        ) { pending in
-            Button(pending.confirmation.confirmLabel) {
-                copyToPasteboard(pending.copyText)
-                if pending.opensNetworkSettings {
-                    openNetworkSettings()
-                }
-                pendingGuidedApplyConfirmation = nil
-            }
-            Button(pending.confirmation.cancelLabel, role: .cancel) {
-                pendingGuidedApplyConfirmation = nil
-            }
-        } message: { pending in
-            Text(pending.confirmation.message)
-        }
+        .storeSafeGuidedApplyConfirmation(pending: $pendingGuidedApplyConfirmation)
     }
 
     @ViewBuilder
@@ -3593,32 +3626,7 @@ private struct BenchmarkResultNextStepPanel: View {
                 .accessibilityIdentifier("benchmark-copy-next-step-button")
             }
         }
-        .confirmationDialog(
-            pendingGuidedApplyConfirmation?.confirmation.title ?? "Confirm guided DNS apply",
-            isPresented: Binding(
-                get: { pendingGuidedApplyConfirmation != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        pendingGuidedApplyConfirmation = nil
-                    }
-                }
-            ),
-            titleVisibility: .visible,
-            presenting: pendingGuidedApplyConfirmation
-        ) { pending in
-            Button(pending.confirmation.confirmLabel) {
-                copyToPasteboard(pending.copyText)
-                if pending.opensNetworkSettings {
-                    openNetworkSettings()
-                }
-                pendingGuidedApplyConfirmation = nil
-            }
-            Button(pending.confirmation.cancelLabel, role: .cancel) {
-                pendingGuidedApplyConfirmation = nil
-            }
-        } message: { pending in
-            Text(pending.confirmation.message)
-        }
+        .storeSafeGuidedApplyConfirmation(pending: $pendingGuidedApplyConfirmation)
     }
 }
 
@@ -3741,6 +3749,7 @@ private struct CatalogListSection<Content: View>: View {
 
 private struct CatalogProfileRow: View {
     let summary: CatalogProfileSummary
+    let onApply: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -3762,6 +3771,12 @@ private struct CatalogProfileRow: View {
                 Text(summary.serverSummary)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if summary.canGuideApply {
+                    Button(action: onApply) {
+                        Label(summary.guidedApplyButtonLabel, systemImage: "gearshape")
+                    }
+                    .help("Confirm, copy DNS servers, and open macOS Network Settings. DNS Pilot will not change system DNS automatically.")
+                }
             }
         }
         .padding(DNSPilotDesign.Spacing.row)
