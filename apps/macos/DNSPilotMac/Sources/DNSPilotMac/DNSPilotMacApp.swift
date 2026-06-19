@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import OSLog
+import SystemConfiguration
 import DNSPilotMacCore
 
 @main
@@ -1213,6 +1214,7 @@ private struct BenchmarkDetailView: View {
     @State private var recordFamily: BenchmarkRecordFamily
     @State private var resolverTransport: BenchmarkResolverTransport
     @State private var mode: BenchmarkPlanMode
+    @State private var systemDNSResolverSnapshot = SystemDNSResolverSnapshot.unavailable
     @State private var vpnActive = false
     @State private var mdmProfileActive = false
     @State private var corporateDNSDetected = false
@@ -1419,15 +1421,11 @@ private struct BenchmarkDetailView: View {
                     .help(mode.helpText)
 
                     if mode == .systemDNSValidation {
-                        Label("Resolver: current macOS system resolver", systemImage: "desktopcomputer")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .help(
-                                """
-                                EN: System DNS mode validates the resolver currently active in macOS.
-                                VI: Mode System DNS kiểm tra resolver hiện đang active trong macOS.
-                                """
-                            )
+                        SystemDNSResolverStatusView(
+                            viewModel: SystemDNSResolverViewModel(snapshot: systemDNSResolverSnapshot),
+                            isRefreshDisabled: isBenchmarkActive,
+                            onRefresh: refreshSystemDNSResolverSnapshot
+                        )
                     } else {
                         Picker("Resolver", selection: $resolverTransport) {
                             ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
@@ -1726,6 +1724,11 @@ private struct BenchmarkDetailView: View {
         .onChange(of: mdmProfileActive) { _, _ in reloadApplyPlanForCurrentResult() }
         .onChange(of: corporateDNSDetected) { _, _ in reloadApplyPlanForCurrentResult() }
         .onChange(of: captivePortalDetected) { _, _ in reloadApplyPlanForCurrentResult() }
+        .onChange(of: mode) { _, nextMode in
+            if nextMode == .systemDNSValidation {
+                refreshSystemDNSResolverSnapshot()
+            }
+        }
         .onChange(of: quickBenchmarkRequestID) { _, requestID in
             handleQuickBenchmarkRequest(requestID)
         }
@@ -1733,6 +1736,9 @@ private struct BenchmarkDetailView: View {
             handleSystemDNSValidationRequest(requestID)
         }
         .onAppear {
+            if mode == .systemDNSValidation {
+                refreshSystemDNSResolverSnapshot()
+            }
             handleQuickBenchmarkRequest(quickBenchmarkRequestID)
             handleSystemDNSValidationRequest(systemDNSValidationRequestID)
         }
@@ -2057,6 +2063,7 @@ private struct BenchmarkDetailView: View {
         recordFamily = .both
         resolverTransport = .automatic
         mode = .systemDNSValidation
+        refreshSystemDNSResolverSnapshot()
     }
 
     private func runBenchmark() {
@@ -2238,9 +2245,14 @@ private struct BenchmarkDetailView: View {
             return
         }
         mode = .systemDNSValidation
+        refreshSystemDNSResolverSnapshot()
         DispatchQueue.main.async {
             runBenchmark()
         }
+    }
+
+    private func refreshSystemDNSResolverSnapshot() {
+        systemDNSResolverSnapshot = loadCurrentSystemDNSResolverSnapshot()
     }
 
     private func makeHistoryPersistence(for plan: BenchmarkPlanViewModel) -> BenchmarkHistoryPersistence? {
@@ -2363,6 +2375,49 @@ private struct BenchmarkIssueList: View {
         .overlay {
             RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card)
                 .stroke(DNSPilotDesign.Palette.warning.opacity(0.35))
+        }
+    }
+}
+
+private struct SystemDNSResolverStatusView: View {
+    let viewModel: SystemDNSResolverViewModel
+    let isRefreshDisabled: Bool
+    let onRefresh: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            Label(viewModel.resolverLabel, systemImage: "desktopcomputer")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .help(
+                    """
+                    EN: System DNS mode validates the resolver path currently active in macOS.
+                    VI: Mode System DNS kiểm tra đường resolver hiện đang active trong macOS.
+                    """
+                )
+
+            ForEach(viewModel.detailLines, id: \.self) { line in
+                Label(line, systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+
+            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                Button(action: onRefresh) {
+                    Label("Refresh Current DNS", systemImage: "arrow.clockwise")
+                }
+                .disabled(isRefreshDisabled)
+                .help("Refresh the current macOS DNS resolver summary.")
+
+                Button {
+                    copyToPasteboard(viewModel.copyText)
+                } label: {
+                    Label("Copy Current DNS", systemImage: "doc.on.doc")
+                }
+                .help("Copy the current macOS DNS resolver summary.")
+            }
         }
     }
 }
@@ -2547,6 +2602,43 @@ private func openNetworkSettings() {
     }
 
     NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+}
+
+private func loadCurrentSystemDNSResolverSnapshot(now: Date = Date()) -> SystemDNSResolverSnapshot {
+    guard let store = SCDynamicStoreCreate(nil, "DNSPilot" as CFString, nil, nil) else {
+        return .unavailable
+    }
+
+    let globalDNS = SCDynamicStoreCopyValue(
+        store,
+        "State:/Network/Global/DNS" as CFString
+    ) as? [String: Any]
+    let scopedKeys = SCDynamicStoreCopyKeyList(
+        store,
+        "State:/Network/Service/.*/DNS" as CFString
+    ) as? [String] ?? []
+
+    return SystemDNSResolverSnapshot(
+        servers: uniqueStrings(stringArray(from: globalDNS?["ServerAddresses"])),
+        searchDomains: uniqueStrings(stringArray(from: globalDNS?["SearchDomains"])),
+        supplementalResolverCount: scopedKeys.count,
+        loadedAt: now
+    )
+}
+
+private func stringArray(from value: Any?) -> [String] {
+    if let strings = value as? [String] {
+        return strings
+    }
+    if let values = value as? [Any] {
+        return values.compactMap { $0 as? String }
+    }
+    return []
+}
+
+private func uniqueStrings(_ values: [String]) -> [String] {
+    var seen = Set<String>()
+    return values.filter { seen.insert($0).inserted }
 }
 
 private struct BenchmarkFailureRow: View {
