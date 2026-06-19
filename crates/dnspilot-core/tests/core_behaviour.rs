@@ -56,6 +56,10 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
     assert!(suites.iter().any(|suite| suite.id == "azure-microsoft"));
     assert!(suites.iter().any(|suite| suite.id == "google-firebase"));
     assert!(suites.iter().any(|suite| suite.id == "vietnam-daily"));
+    assert!(suites.iter().any(|suite| suite.id == "gaming-steam-valve"));
+    assert!(suites.iter().any(|suite| suite.id == "gaming-dota2-sea"));
+    assert!(suites.iter().any(|suite| suite.id == "gaming-cs2"));
+    assert!(suites.iter().any(|suite| suite.id == "gaming-riot-lol"));
 
     let azure = suites
         .iter()
@@ -65,6 +69,22 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
         .domains
         .contains(&"login.microsoftonline.com".to_string()));
     assert!(azure.domains.contains(&"blob.core.windows.net".to_string()));
+
+    let dota = suites
+        .iter()
+        .find(|suite| suite.id == "gaming-dota2-sea")
+        .expect("Dota 2 SEA suite should exist");
+    assert!(dota.tags.contains(&"gaming".to_string()));
+    assert!(dota.tags.contains(&"sea".to_string()));
+    assert!(dota.domains.contains(&"dota2.com".to_string()));
+    assert!(dota.domains.contains(&"steamcommunity.com".to_string()));
+
+    let riot = suites
+        .iter()
+        .find(|suite| suite.id == "gaming-riot-lol")
+        .expect("Riot LoL suite should exist");
+    assert!(riot.domains.contains(&"leagueoflegends.com".to_string()));
+    assert!(riot.domains.contains(&"riotgames.com".to_string()));
 }
 
 #[test]

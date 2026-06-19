@@ -8,11 +8,20 @@ final class CatalogViewModelTests: XCTestCase {
 
         XCTAssertNil(viewModel.loadErrorMessage)
         XCTAssertEqual(viewModel.profileCount, 12)
-        XCTAssertEqual(viewModel.testSuiteCount, 5)
+        XCTAssertEqual(viewModel.testSuiteCount, 9)
         XCTAssertEqual(viewModel.filteredProfileCount, 6)
         XCTAssertTrue(viewModel.hasAzureSuite)
         XCTAssertEqual(viewModel.catalog?.profiles.map(\.id).suffix(3), ["fpt-telecom-dns", "vnpt-dns", "viettel-dns"])
-        XCTAssertEqual(viewModel.catalog?.testSuites.map(\.id).suffix(2), ["google-firebase", "vietnam-daily"])
+        XCTAssertEqual(viewModel.catalog?.testSuites.map(\.id).suffix(4), [
+            "gaming-steam-valve",
+            "gaming-dota2-sea",
+            "gaming-cs2",
+            "gaming-riot-lol",
+        ])
+        XCTAssertEqual(
+            viewModel.catalog?.testSuites.first { $0.id == "gaming-dota2-sea" }?.domains,
+            ["dota2.com", "steamcommunity.com", "steampowered.com", "steamcontent.com", "api.steampowered.com"]
+        )
     }
 
     func testCatalogViewModelBuildsDisplaySummaries() {

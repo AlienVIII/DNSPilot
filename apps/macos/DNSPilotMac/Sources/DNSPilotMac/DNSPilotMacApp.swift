@@ -28,6 +28,7 @@ private enum DNSPilotWindowID {
 private enum SidebarSelection: Hashable {
     case capabilities
     case benchmark
+    case gamePing
     case customDNS
     case history
     case catalog
@@ -241,6 +242,8 @@ private struct DNSPilotShellView: View {
                         .tag(SidebarSelection.capabilities)
                     Label("Benchmark", systemImage: "speedometer")
                         .tag(SidebarSelection.benchmark)
+                    Label("Game Ping", systemImage: "gamecontroller")
+                        .tag(SidebarSelection.gamePing)
                     Label("Custom DNS", systemImage: "plus.circle")
                         .tag(SidebarSelection.customDNS)
                     Label("History", systemImage: "clock.arrow.circlepath")
@@ -269,6 +272,8 @@ private struct DNSPilotShellView: View {
                     onCatalogChanged: refreshCatalogFromStorage,
                     onGuidedApplyPlanChanged: navigation.setLastGuidedApplyPlan
                 )
+            case .gamePing:
+                GamePingDetailHostView(catalogViewModel: catalogViewModel)
             case .customDNS:
                 CustomDNSDetailHostView(
                     executableAvailability: BenchmarkExecutableResolver().resolve(),
@@ -330,6 +335,363 @@ private struct CustomDNSDetailHostView: View {
             )
         case .unavailable(let message):
             BenchmarkUnavailableView(title: "Custom DNS", message: message)
+        }
+    }
+}
+
+private struct GamePingDetailHostView: View {
+    let catalogViewModel: CatalogViewModel
+
+    var body: some View {
+        if let loadErrorMessage = catalogViewModel.loadErrorMessage {
+            BenchmarkUnavailableView(title: "Game Ping", message: loadErrorMessage)
+        } else if let catalog = catalogViewModel.catalog {
+            GamePingDetailView(
+                catalog: catalog,
+                executableAvailability: BenchmarkExecutableResolver().resolve()
+            )
+        } else {
+            BenchmarkUnavailableView(title: "Game Ping", message: "Catalog unavailable.")
+        }
+    }
+}
+
+private struct GamePingDetailView: View {
+    let catalog: CatalogSnapshot
+    let executableAvailability: BenchmarkExecutableAvailability
+
+    @State private var selectedPresetID: String
+    @State private var selectedProfileIDs: Set<String>
+    @State private var attempts = 1
+    @State private var dnsTimeoutMS = 800
+    @State private var connectTimeoutMS = 1_000
+    @State private var runStateMachine = BenchmarkRunStateMachine()
+    @State private var currentCancellation: BenchmarkRunCancellation?
+    @State private var currentStartedAt: Date?
+    @State private var currentProgressEvents: [BenchmarkProgressEvent] = []
+    @State private var completedElapsedMS: Int?
+    @State private var outcome: BenchmarkExecutionOutcome?
+
+    init(catalog: CatalogSnapshot, executableAvailability: BenchmarkExecutableAvailability) {
+        self.catalog = catalog
+        self.executableAvailability = executableAvailability
+        let defaultViewModel = GamePingPlanViewModel(catalog: catalog)
+        _selectedPresetID = State(initialValue: defaultViewModel.selectedPresetID ?? "")
+        _selectedProfileIDs = State(initialValue: Set(defaultViewModel.selectedProfileIDs))
+    }
+
+    private var plainProfiles: [CatalogProfile] {
+        catalog.profiles.filter { $0.protocol == .plain }
+    }
+
+    private var selectedProfileIDList: [String] {
+        plainProfiles.map(\.id).filter { selectedProfileIDs.contains($0) }
+    }
+
+    private var planViewModel: GamePingPlanViewModel {
+        GamePingPlanViewModel(
+            catalog: catalog,
+            selectedPresetID: selectedPresetID.isEmpty ? nil : selectedPresetID,
+            selectedProfileIDs: selectedProfileIDList,
+            attempts: attempts,
+            dnsTimeoutMS: dnsTimeoutMS,
+            connectTimeoutMS: connectTimeoutMS
+        )
+    }
+
+    private var isRunning: Bool {
+        if case .running = runStateMachine.state {
+            return true
+        }
+        if case .cancelling = runStateMachine.state {
+            return true
+        }
+        return false
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                HStack {
+                    Text("Game Ping")
+                        .font(.title2.weight(.semibold))
+                    Spacer()
+                    Button(action: runGamePing) {
+                        Label(isRunning ? "Running" : "Run", systemImage: "play.fill")
+                    }
+                    .disabled(!planViewModel.canRun || isRunning || !executableAvailability.isReady)
+
+                    if isRunning {
+                        Button(action: cancelGamePing) {
+                            Label("Cancel", systemImage: "xmark.circle")
+                        }
+                    }
+                }
+
+                Label(planViewModel.warningText, systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if case .unavailable(let message) = executableAvailability {
+                    BenchmarkIssueList(issues: [message])
+                }
+
+                if !planViewModel.issues.isEmpty {
+                    BenchmarkIssueList(issues: planViewModel.issues)
+                }
+
+                BenchmarkSection(title: "Preset") {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                        Picker("Game", selection: $selectedPresetID) {
+                            ForEach(planViewModel.presetOptions) { option in
+                                Text(option.name).tag(option.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 340, alignment: .leading)
+                        .disabled(isRunning)
+
+                        if let selectedPreset = planViewModel.selectedPreset {
+                            Label(selectedPreset.description, systemImage: "gamecontroller")
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(selectedPreset.domains.joined(separator: ", "))
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+
+                BenchmarkSection(title: "DNS Candidates") {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                        HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                            Button("All") {
+                                selectedProfileIDs = Set(plainProfiles.map(\.id))
+                            }
+                            .disabled(isRunning)
+                            Button("Vietnam") {
+                                selectedProfileIDs = Set(
+                                    plainProfiles
+                                        .filter { $0.tags.contains("vietnam") || $0.tags.contains("isp") }
+                                        .map(\.id)
+                                )
+                            }
+                            .disabled(isRunning)
+                            Button("Global") {
+                                selectedProfileIDs = Set(["cloudflare", "google-public-dns", "quad9"])
+                            }
+                            .disabled(isRunning)
+                        }
+
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), alignment: .leading)], alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                            ForEach(plainProfiles) { profile in
+                                Toggle(profile.name, isOn: Binding(
+                                    get: { selectedProfileIDs.contains(profile.id) },
+                                    set: { isSelected in
+                                        if isSelected {
+                                            selectedProfileIDs.insert(profile.id)
+                                        } else {
+                                            selectedProfileIDs.remove(profile.id)
+                                        }
+                                    }
+                                ))
+                                .disabled(isRunning)
+                            }
+                        }
+                    }
+                }
+
+                BenchmarkSection(title: "Probe") {
+                    HStack(spacing: DNSPilotDesign.Spacing.panel) {
+                        Stepper("Attempts: \(attempts)", value: $attempts, in: 1...5)
+                            .disabled(isRunning)
+                        Stepper("DNS timeout: \(dnsTimeoutMS) ms", value: $dnsTimeoutMS, in: 200...3_000, step: 100)
+                            .disabled(isRunning)
+                        Stepper("TCP timeout: \(connectTimeoutMS) ms", value: $connectTimeoutMS, in: 300...5_000, step: 100)
+                            .disabled(isRunning)
+                    }
+                }
+
+                if isRunning || outcome != nil {
+                    BenchmarkProgressPanel(
+                        viewModel: BenchmarkProgressViewModel(
+                            mode: .connectionPathCompare,
+                            state: runStateMachine.state,
+                            outcome: outcome,
+                            historySaved: false,
+                            planSummary: BenchmarkProgressPlanSummary(plan: planViewModel.plan),
+                            progressEvents: currentProgressEvents
+                        ),
+                        startedAt: currentStartedAt,
+                        completedElapsedMS: completedElapsedMS
+                    )
+                }
+
+                if let outcome {
+                    switch outcome {
+                    case .completed(let result):
+                        GamePingResultPanel(
+                            viewModel: result,
+                            elapsedMS: completedElapsedMS,
+                            setupText: planViewModel.copyText
+                        )
+                    case .failed(let failure):
+                        BenchmarkFailurePanel(
+                            failure: failure,
+                            mode: .connectionPathCompare,
+                            elapsedMS: completedElapsedMS
+                        )
+                    }
+                }
+            }
+            .padding(DNSPilotDesign.Spacing.panel)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(DNSPilotDesign.Palette.background)
+    }
+
+    private func runGamePing() {
+        guard planViewModel.canRun,
+              case .ready(let executableURL) = executableAvailability else {
+            return
+        }
+        let plan = planViewModel.plan
+        let runID = runStateMachine.start()
+        let cancellation = BenchmarkRunCancellation()
+        currentCancellation = cancellation
+        currentStartedAt = Date()
+        currentProgressEvents = []
+        completedElapsedMS = nil
+        outcome = nil
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let coordinator = BenchmarkExecutionCoordinator(
+                runner: BenchmarkRunner(executableURL: executableURL),
+                catalog: catalog
+            )
+            let startedAt = Date()
+            let completedOutcome = coordinator.execute(
+                plan: plan,
+                cancellation: cancellation
+            ) { event in
+                DispatchQueue.main.async {
+                    currentProgressEvents.append(event)
+                }
+            }
+            let elapsedMS = Int(Date().timeIntervalSince(startedAt) * 1_000)
+
+            DispatchQueue.main.async {
+                if cancellation.isCancelled {
+                    runStateMachine.finishCancelled(runID: runID)
+                    outcome = .failed(
+                        BenchmarkExecutionFailure(
+                            message: "Game ping cancelled.",
+                            failedStep: .measuringConnection,
+                            debugLog: "Cancelled by user."
+                        )
+                    )
+                } else {
+                    switch completedOutcome {
+                    case .completed:
+                        runStateMachine.finishCompleted(runID: runID)
+                    case .failed(let failure):
+                        runStateMachine.finishFailed(runID: runID, message: failure.message)
+                    }
+                    outcome = completedOutcome
+                }
+                completedElapsedMS = elapsedMS
+                currentStartedAt = nil
+                currentCancellation = nil
+            }
+        }
+    }
+
+    private func cancelGamePing() {
+        guard let currentCancellation else {
+            return
+        }
+        if case .running(let runID) = runStateMachine.state {
+            runStateMachine.requestCancel(runID: runID)
+        }
+        currentCancellation.cancel()
+    }
+}
+
+private struct GamePingResultPanel: View {
+    let viewModel: BenchmarkResultViewModel
+    let elapsedMS: Int?
+    let setupText: String
+
+    var body: some View {
+        BenchmarkSection(title: "Result") {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                HStack(spacing: DNSPilotDesign.Spacing.panel) {
+                    Label(viewModel.healthLabel, systemImage: "waveform.path.ecg")
+                    Label(viewModel.scopeLabel, systemImage: "point.3.connected.trianglepath.dotted")
+                    Label(viewModel.confidenceLabel, systemImage: "gauge.with.dots.needle.67percent")
+                    if let elapsedMS {
+                        Label("Completed in \(BenchmarkElapsedTimeFormatter.label(milliseconds: elapsedMS))", systemImage: "timer")
+                    }
+                }
+                .foregroundStyle(.secondary)
+
+                Text(viewModel.recommendationLabel)
+                    .font(.title3.weight(.semibold))
+
+                ScrollView(.horizontal) {
+                    Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
+                        GridRow {
+                            Text("Status").font(.headline)
+                            Text("Profile").font(.headline)
+                            Text("Resolver").font(.headline)
+                            Text("Median DNS").font(.headline)
+                            Text("Median TCP").font(.headline)
+                            Text("Failure").font(.headline)
+                            Text("Diagnosis").font(.headline)
+                        }
+
+                        ForEach(viewModel.rows) { row in
+                            GridRow {
+                                HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                                    BenchmarkProgressStatusIcon(status: row.status)
+                                    Text(row.status.displayLabel)
+                                }
+                                Text(row.name)
+                                Text(row.resolver).font(.body.monospaced())
+                                Text(row.medianDNSLatencyLabel)
+                                Text(row.medianConnectLatencyLabel)
+                                Text(row.failureRateLabel)
+                                Text(row.diagnosisLabel)
+                            }
+                        }
+                    }
+                    .frame(minWidth: 900, alignment: .leading)
+                }
+
+                ForEach(viewModel.notes, id: \.self) { note in
+                    Label(note, systemImage: "info.circle")
+                        .foregroundStyle(.secondary)
+                }
+
+                if !viewModel.warning.isEmpty {
+                    Text(viewModel.warning)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    copyToPasteboard(
+                        [
+                            setupText,
+                            "",
+                            viewModel.resultReportText(elapsedMS: elapsedMS, includeNextStep: false),
+                        ].joined(separator: "\n")
+                    )
+                } label: {
+                    Label("Copy Game Ping Report", systemImage: "doc.on.doc")
+                }
+            }
         }
     }
 }

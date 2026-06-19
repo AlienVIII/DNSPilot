@@ -254,6 +254,34 @@ public struct PreviewCatalogBridge: DNSPilotCatalogBridge {
                     domains: ["vnexpress.net", "shopee.vn", "tiki.vn", "zalo.me", "google.com", "youtube.com"],
                     tags: ["vietnam", "daily"]
                 ),
+                Self.suite(
+                    id: "gaming-steam-valve",
+                    name: "Gaming / Steam + Valve",
+                    description: "Steam, Valve services, and CDN reachability checks. This is a DNS/TCP latency preset, not ICMP game-server ping.",
+                    domains: ["steampowered.com", "steamcommunity.com", "steamcontent.com", "api.steampowered.com", "valvesoftware.com"],
+                    tags: ["gaming", "steam", "valve"]
+                ),
+                Self.suite(
+                    id: "gaming-dota2-sea",
+                    name: "Gaming / Dota 2 SEA",
+                    description: "Dota 2 and Steam service reachability for Southeast Asia-oriented checks. Actual match servers can differ by session.",
+                    domains: ["dota2.com", "steamcommunity.com", "steampowered.com", "steamcontent.com", "api.steampowered.com"],
+                    tags: ["gaming", "steam", "valve", "dota2", "sea"]
+                ),
+                Self.suite(
+                    id: "gaming-cs2",
+                    name: "Gaming / CS2",
+                    description: "Counter-Strike 2 and Steam service reachability checks. This estimates DNS/TCP path behavior, not in-match UDP latency.",
+                    domains: ["counter-strike.net", "steamcommunity.com", "steampowered.com", "steamcontent.com", "api.steampowered.com"],
+                    tags: ["gaming", "steam", "valve", "cs2"]
+                ),
+                Self.suite(
+                    id: "gaming-riot-lol",
+                    name: "Gaming / Riot + LoL",
+                    description: "Riot, League of Legends, and Riot CDN reachability checks. Region routing can vary by account and session.",
+                    domains: ["riotgames.com", "leagueoflegends.com", "lolesports.com", "riotcdn.net", "valorant.com"],
+                    tags: ["gaming", "riot", "league-of-legends"]
+                ),
             ]
         )
     }

@@ -1076,6 +1076,58 @@ pub fn built_in_test_suites() -> Vec<TestSuite> {
             ],
             &["vietnam", "daily"],
         ),
+        suite(
+            "gaming-steam-valve",
+            "Gaming / Steam + Valve",
+            "Steam, Valve services, and CDN reachability checks. This is a DNS/TCP latency preset, not ICMP game-server ping.",
+            &[
+                "steampowered.com",
+                "steamcommunity.com",
+                "steamcontent.com",
+                "api.steampowered.com",
+                "valvesoftware.com",
+            ],
+            &["gaming", "steam", "valve"],
+        ),
+        suite(
+            "gaming-dota2-sea",
+            "Gaming / Dota 2 SEA",
+            "Dota 2 and Steam service reachability for Southeast Asia-oriented checks. Actual match servers can differ by session.",
+            &[
+                "dota2.com",
+                "steamcommunity.com",
+                "steampowered.com",
+                "steamcontent.com",
+                "api.steampowered.com",
+            ],
+            &["gaming", "steam", "valve", "dota2", "sea"],
+        ),
+        suite(
+            "gaming-cs2",
+            "Gaming / CS2",
+            "Counter-Strike 2 and Steam service reachability checks. This estimates DNS/TCP path behavior, not in-match UDP latency.",
+            &[
+                "counter-strike.net",
+                "steamcommunity.com",
+                "steampowered.com",
+                "steamcontent.com",
+                "api.steampowered.com",
+            ],
+            &["gaming", "steam", "valve", "cs2"],
+        ),
+        suite(
+            "gaming-riot-lol",
+            "Gaming / Riot + LoL",
+            "Riot, League of Legends, and Riot CDN reachability checks. Region routing can vary by account and session.",
+            &[
+                "riotgames.com",
+                "leagueoflegends.com",
+                "lolesports.com",
+                "riotcdn.net",
+                "valorant.com",
+            ],
+            &["gaming", "riot", "league-of-legends"],
+        ),
     ]
 }
 

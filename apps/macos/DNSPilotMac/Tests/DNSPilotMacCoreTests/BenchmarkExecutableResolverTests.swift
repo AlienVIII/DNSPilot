@@ -13,6 +13,7 @@ final class BenchmarkExecutableResolverTests: XCTestCase {
         )
 
         XCTAssertEqual(resolver.resolve(), .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")))
+        XCTAssertTrue(resolver.resolve().isReady)
     }
 
     func testResolverReturnsUnavailableWhenLocatedPathIsMissing() {
@@ -25,6 +26,7 @@ final class BenchmarkExecutableResolverTests: XCTestCase {
             resolver.resolve(),
             .unavailable("DNS Pilot CLI executable was not found at /tmp/missing-cli.")
         )
+        XCTAssertFalse(resolver.resolve().isReady)
     }
 
     func testResolverReturnsUnavailableWhenLocatedPathIsDirectory() {

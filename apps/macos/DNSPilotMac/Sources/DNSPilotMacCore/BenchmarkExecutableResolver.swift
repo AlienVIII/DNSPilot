@@ -14,6 +14,13 @@ public protocol BenchmarkExecutableFileSystem {
 public enum BenchmarkExecutableAvailability: Equatable {
     case ready(URL)
     case unavailable(String)
+
+    public var isReady: Bool {
+        if case .ready = self {
+            return true
+        }
+        return false
+    }
 }
 
 public struct BenchmarkExecutableResolver {

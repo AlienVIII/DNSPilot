@@ -13,7 +13,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - Built-in Vietnam ISP DNS profiles for FPT Telecom, VNPT, and Viettel
   benchmarking presets.
 - Built-in test suites for General, Developer, Azure/Microsoft,
-  Google/Firebase, and Vietnam/Daily use cases.
+  Google/Firebase, Vietnam/Daily, and gaming presets for Steam/Valve,
+  Dota 2 SEA, CS2, and Riot/LoL use cases.
 - Versioned core-owned shell payload contracts for catalog and capability
   matrix JSON.
 - Recommendation scoring for connection-path estimates.
@@ -198,6 +199,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   DNS profiles.
 - macOS Benchmark saved-suite management for editing/deleting custom domain
   suites.
+- macOS Game Ping screen for gaming DNS/TCP path checks with selectable
+  built-in gaming presets and DNS candidates. It reports connection-path
+  estimates, not ICMP or in-match UDP latency.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom

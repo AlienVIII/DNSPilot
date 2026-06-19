@@ -117,6 +117,8 @@ DNS handling, and platform capability reporting.
 - [x] [106] v0.1 path family health — reduce IPv4/IPv6 path health when probed TCP/TLS family paths fail.
 - [x] [107] v0.1 macOS result family failure label — show weak IPv4/IPv6 family in failure cells.
 - [x] [108] v0.1 macOS sidebar width — prevent platform names from truncating in default window.
+- [x] [109] v0.1 gaming suites — add Steam/Valve, Dota 2 SEA, CS2, and Riot/LoL DNS/TCP presets.
+- [x] [110] v0.1 macOS Game Ping — add gaming preset screen backed by path-compare.
 
 ---
 
