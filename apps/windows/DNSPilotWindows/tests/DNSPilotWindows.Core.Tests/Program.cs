@@ -25,6 +25,7 @@ internal sealed class WindowsCoreTestSuite
         Run("CLI contract runners invoke catalog, capabilities, apply-plan, profile, and history commands", CliContractRunnersInvokeCommands);
         Run("Profile and history list decoders map persisted rows for management UI", ProfileAndHistoryListDecodersMapRows);
         Run("Windows shell can hydrate from CLI payloads for catalog, policy, apply, profiles, and history", WindowsShellHydratesFromCliPayloads);
+        Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -436,6 +437,30 @@ internal sealed class WindowsCoreTestSuite
         Assert.Equal("Lab DNS", shell.ProfileRows.Last().Name);
         Assert.Equal("Recommended: Cloudflare", shell.HistoryRows.Single().RecommendationLabel);
     }
+
+    private static void BenchmarkResultDecoderBuildsApplyPlanRequest()
+    {
+        var result = BenchmarkResultJsonDecoder.Decode(SampleJson.BenchmarkResult);
+
+        Assert.Equal("dns-tcp", result.Summary.MeasurementScope);
+        Assert.Equal("healthy", result.Summary.Health);
+        Assert.True(result.Summary.CanRecommend, "Benchmark should be recommendable.");
+        Assert.Equal("cloudflare", result.Summary.RecommendedProfileId);
+        Assert.Equal("cloudflare", result.Recommendation?.ProfileId);
+        Assert.Equal("1.1.1.1:53", result.Runs.Single(run => run.ProfileId == "cloudflare").Resolver);
+        Assert.Equal(12.5, result.Runs.Single(run => run.ProfileId == "cloudflare").Metrics.MedianDnsLatencyMs);
+
+        var request = BenchmarkApplyPlanRequestFactory.MakeRequest(result);
+        Assert.SequenceEqual(
+            new[] { "apply-plan", "windows-store", "--confidence", "high", "--gate-health", "healthy", "--profile-id", "cloudflare", "--tested-resolver", "1.1.1.1:53" },
+            request.CommandArguments);
+
+        var shell = WindowsShellViewModel
+            .CreateDefault("profiles.sqlite")
+            .WithApplyPlan(ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan));
+
+        Assert.Contains("2606:4700:4700::1001", shell.ApplyGuidance.CopyableDnsServers);
+    }
 }
 
 internal static class TestData
@@ -634,6 +659,71 @@ internal static class SampleJson
           "notes": ["Saved by compare CLI."]
         }
       ]
+    }
+    """;
+
+    public const string BenchmarkResult = """
+    {
+      "summary": {
+        "measurement_scope": "dns-tcp",
+        "mode": "best-overall",
+        "health": "healthy",
+        "primary_issue": "none",
+        "can_recommend": true,
+        "safety_notes": [],
+        "resolver_count": 2,
+        "domain_count": 1,
+        "attempts_per_record": 1,
+        "dns_timeout_ms": 500,
+        "connect_timeout_ms": 500,
+        "connect_port": 443,
+        "max_connect_targets_per_domain": 2,
+        "recommended_profile_id": "cloudflare"
+      },
+      "runs": [
+        {
+          "profile_id": "google",
+          "resolver": "8.8.8.8:53",
+          "metrics": {
+            "profile_id": "google",
+            "median_dns_latency_ms": 18.0,
+            "p95_dns_latency_ms": 22.0,
+            "failure_rate": 0.0,
+            "timeout_rate": 0.0,
+            "median_connect_latency_ms": 44.0,
+            "ipv4_health": 1.0,
+            "ipv6_health": 1.0,
+            "priority_fit": 1.0
+          },
+          "caveats": []
+        },
+        {
+          "profile_id": "cloudflare",
+          "resolver": "1.1.1.1:53",
+          "metrics": {
+            "profile_id": "cloudflare",
+            "median_dns_latency_ms": 12.5,
+            "p95_dns_latency_ms": 16.0,
+            "failure_rate": 0.0,
+            "timeout_rate": 0.0,
+            "median_connect_latency_ms": 31.0,
+            "ipv4_health": 1.0,
+            "ipv6_health": 1.0,
+            "priority_fit": 1.0
+          },
+          "caveats": []
+        }
+      ],
+      "recommendation": {
+        "decision": { "apply-profile": "cloudflare" },
+        "profile_id": "cloudflare",
+        "score": 0.98,
+        "confidence": "high",
+        "reasons": ["Best overall path."],
+        "caveats": []
+      },
+      "saved_history_id": "windows-run-1",
+      "warning": "Path comparison estimates DNS plus TCP connect timing only."
     }
     """;
 }

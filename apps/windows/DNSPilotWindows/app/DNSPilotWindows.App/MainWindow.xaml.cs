@@ -174,11 +174,13 @@ public sealed partial class MainWindow : Window
 
             if (result.Succeeded)
             {
+                var applyPlanMessage = await TryRefreshApplyGuidanceFromBenchmarkAsync(result.StandardOutput);
                 RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: history is not null);
                 _lastDiagnostics = string.Join(
                     Environment.NewLine,
                     "Benchmark succeeded",
                     $"Command: {FormatCommand(result.CommandArguments)}",
+                    applyPlanMessage,
                     string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim(),
                     string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
                 DiagnosticsBox.Text = _lastDiagnostics;
@@ -268,6 +270,25 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             ShowDiagnostics("CLI contract load failed", ex);
+        }
+    }
+
+    private async Task<string> TryRefreshApplyGuidanceFromBenchmarkAsync(string standardOutput)
+    {
+        try
+        {
+            var result = BenchmarkResultJsonDecoder.Decode(standardOutput);
+            var request = BenchmarkApplyPlanRequestFactory.MakeRequest(result);
+            var applyPlan = await Task.Run(() => new ApplyPlanRunner(DefaultCliPath()).Load(request));
+            ViewModel = ViewModel.WithApplyPlan(applyPlan);
+            RenderStaticState();
+            return result.Summary.CanRecommend
+                ? $"Apply-plan refreshed for {request.profileId ?? "current DNS"}."
+                : "Apply-plan refreshed with protection guidance; benchmark did not produce a recommendation.";
+        }
+        catch (Exception ex)
+        {
+            return "Apply-plan refresh skipped: " + ex.Message;
         }
     }
 

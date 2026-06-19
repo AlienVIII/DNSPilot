@@ -177,6 +177,21 @@ public sealed class WindowsShellViewModel
             new BenchmarkHistoryViewModel(history, catalog).Rows);
     }
 
+    public WindowsShellViewModel WithApplyPlan(ApplyPlan applyPlan)
+    {
+        return new WindowsShellViewModel(
+            DatabasePath,
+            Catalog,
+            BenchmarkPlan,
+            SystemDnsValidationPlan,
+            ApplyGuidanceViewModel.FromPlan(applyPlan),
+            TrayQuickActions,
+            StorePlatformCapability,
+            PowerPlatformCapability,
+            ProfileRows,
+            HistoryRows);
+    }
+
     private static PlatformCapability DefaultStoreCapability()
     {
         return new PlatformCapability(

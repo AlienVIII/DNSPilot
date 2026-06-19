@@ -4,7 +4,7 @@
 - `dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, profile-list, history-list, profile mutations, history mutations, and hydrated shell state.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, profile-list, history-list, profile mutations, history mutations, hydrated shell state, and apply-plan request generation from recommendations.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -14,6 +14,7 @@
 ## Manual Windows UI Flow
 - Launch DNS Pilot.
 - Run `Quick benchmark`; expected: command preview uses `path-compare`, process rows move to running, diagnostics show success or a copyable failure report.
+- After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
 - Run `Validate DNS`; expected: command preview uses `system-benchmark --platform windows-store`.
 - Change `Record family` to `A only` and `AAAA only`; expected: command preview uses `--ip-family ipv4-only` or `--ip-family ipv6-only`.
 - Change `Resolver address` to `IPv4` and `IPv6`; expected: resolver args use matching DNS server families.
@@ -33,5 +34,5 @@
 
 ## Known Risks
 - Real Windows UI layout, tray behavior, MSIX packaging, Store policy, and signing are not validated from macOS.
-- Core result JSON parsing into detailed recommendation cards is still lighter than macOS; Windows currently captures process diagnostics and refreshes apply/profile/history contracts.
+- Detailed recommendation cards are still lighter than macOS; Windows now parses benchmark result JSON enough to refresh apply guidance from the recommended profile and tested resolver.
 - Power edition admin/service apply remains a separate future lane.
