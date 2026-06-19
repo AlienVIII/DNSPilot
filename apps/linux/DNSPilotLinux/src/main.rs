@@ -9,7 +9,9 @@ use dnspilot_linux_shell::capabilities::{
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
 use dnspilot_linux_shell::process::LinuxBenchmarkProcessViewModel;
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
-use dnspilot_linux_shell::settings::{DnsRecordFamily, ResolverAddressFamily};
+use dnspilot_linux_shell::settings::{
+    native_power_path_plan, DnsRecordFamily, ResolverAddressFamily,
+};
 use dnspilot_linux_shell::storage::FileProfileRepository;
 use dnspilot_linux_shell::suites::default_suite_catalog;
 use std::env;
@@ -33,6 +35,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
         Some("profile-delete") => run_profile_delete(args.into_iter().skip(1)),
         Some("plan") => run_plan(args.into_iter().skip(1)),
         Some("run") => run_execute(args.into_iter().skip(1)),
+        Some("guide") => run_guide(args.into_iter().skip(1)),
         _ => run_legacy_report(args),
     }
 }
@@ -148,6 +151,51 @@ fn run_execute(args: impl IntoIterator<Item = String>) -> Result<String, CliErro
         return Err(CliError::new(2, format!("{output}\n\nRun error: {error}")));
     }
     Ok(output)
+}
+
+fn run_guide(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let config = PlanConfig::parse(args)?;
+    let repo = FileProfileRepository::new(config.store.clone());
+    let profiles = repo
+        .load_profiles()
+        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let capability = capability_view_model(config.to_probe());
+
+    if capability.guided_settings_only {
+        let profile_id = config
+            .profile_ids
+            .first()
+            .ok_or_else(|| CliError::new(2, "--profile-id is required for guided settings"))?;
+        let profile = profiles
+            .iter()
+            .find(|profile| profile.id == *profile_id)
+            .ok_or_else(|| CliError::new(2, format!("Profile {profile_id} not found")))?;
+        let servers = profile
+            .ipv4_servers
+            .iter()
+            .chain(profile.ipv6_servers.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+        return Ok(format!(
+            "Guided settings\nPackage: {}\nThis does not change DNS automatically.\nCopy DNS servers: {}\nSteps:\n1. Copy the DNS servers.\n2. Open your desktop network settings.\n3. Paste the DNS servers into the active connection.\n4. Retest with current/system resolver validation when supported.",
+            capability.package_kind.label(),
+            servers.join(", ")
+        ));
+    }
+
+    if capability.can_apply_real_dns {
+        let plan = native_power_path_plan();
+        let mut lines = vec![plan.title.to_string()];
+        for (index, step) in plan.steps.iter().enumerate() {
+            lines.push(format!("{}. {step}", index + 1));
+        }
+        return Ok(lines.join("\n"));
+    }
+
+    Ok(format!(
+        "Diagnostics only\nPackage: {}\nReal DNS apply is unavailable until NetworkManager or systemd-resolved plus polkit is detected.",
+        capability.package_kind.label()
+    ))
 }
 
 fn build_plan_from_config(

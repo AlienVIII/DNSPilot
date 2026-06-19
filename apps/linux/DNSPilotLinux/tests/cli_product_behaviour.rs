@@ -206,6 +206,74 @@ fn cli_run_executes_supplied_core_cli_and_renders_debug_report() {
     assert!(stdout.contains("\"ok\":true"));
 }
 
+#[test]
+fn cli_guide_for_store_build_outputs_copyable_manual_dns_steps() {
+    let store = temp_path("guide-store");
+    let add = binary()
+        .args([
+            "profile-add",
+            "--store",
+            store.to_str().unwrap(),
+            "--id",
+            "local",
+            "--name",
+            "Local DNS",
+            "--ipv4",
+            "1.1.1.1",
+            "--ipv6",
+            "2606:4700:4700::1111",
+        ])
+        .output()
+        .unwrap();
+    assert!(add.status.success());
+
+    let output = binary()
+        .args([
+            "guide",
+            "--store",
+            store.to_str().unwrap(),
+            "--package",
+            "flatpak",
+            "--profile-id",
+            "local",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Guided settings"));
+    assert!(stdout.contains("does not change DNS"));
+    assert!(stdout.contains("Copy DNS servers: 1.1.1.1, 2606:4700:4700::1111"));
+    assert!(stdout.contains("Retest with current/system resolver validation when supported"));
+}
+
+#[test]
+fn cli_guide_for_native_power_outputs_native_plan_without_fake_guidance() {
+    let store = temp_path("guide-native");
+
+    let output = binary()
+        .args([
+            "guide",
+            "--store",
+            store.to_str().unwrap(),
+            "--package",
+            "deb",
+            "--network-manager",
+            "--polkit",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Native Linux DNS apply path"));
+    assert!(stdout.contains("NetworkManager D-Bus"));
+    assert!(stdout.contains("systemd-resolved"));
+    assert!(stdout.contains("polkit"));
+    assert!(!stdout.contains("Copy DNS servers:"));
+}
+
 #[cfg(unix)]
 fn make_executable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;
