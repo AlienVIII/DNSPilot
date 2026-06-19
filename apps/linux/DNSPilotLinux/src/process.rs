@@ -96,15 +96,9 @@ impl LinuxBenchmarkProcessViewModel {
             .map(|step| step.status)
             .chain(self.resolvers.iter().map(|resolver| resolver.status));
         let statuses: Vec<ProcessStatus> = statuses.collect();
-        if statuses
-            .iter()
-            .any(|status| *status == ProcessStatus::Failed)
-        {
+        if statuses.contains(&ProcessStatus::Failed) {
             ProcessStatus::Failed
-        } else if statuses
-            .iter()
-            .any(|status| *status == ProcessStatus::Running)
-        {
+        } else if statuses.contains(&ProcessStatus::Running) {
             ProcessStatus::Running
         } else if statuses
             .iter()
