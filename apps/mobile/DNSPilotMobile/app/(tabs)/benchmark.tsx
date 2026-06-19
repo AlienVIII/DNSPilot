@@ -29,6 +29,7 @@ import {
 
 type Mode = 'compare' | 'pathCompare' | 'benchmark' | 'pathEstimate' | 'systemBenchmark';
 type IpFamily = 'both' | 'ipv4-only' | 'ipv6-only';
+type MobilePlatform = 'ios' | 'android-play';
 
 const modeOptions: { label: string; value: Mode }[] = [
   { label: 'DNS Compare', value: 'compare' },
@@ -44,9 +45,15 @@ const familyOptions: { label: string; value: IpFamily }[] = [
   { label: 'AAAA only', value: 'ipv6-only' },
 ];
 
+const platformOptions: { label: string; value: MobilePlatform }[] = [
+  { label: 'iOS', value: 'ios' },
+  { label: 'Android', value: 'android-play' },
+];
+
 export default function BenchmarkScreen() {
   const { profiles, suites, error, refreshAll, runAction } = useDNSPilot();
   const [mode, setMode] = useState<Mode>('pathCompare');
+  const [benchmarkPlatform, setBenchmarkPlatform] = useState<MobilePlatform>('ios');
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [suiteId, setSuiteId] = useState<string>('');
   const [domains, setDomains] = useState('github.com\nexpo.dev\nmicrosoft.com');
@@ -96,7 +103,7 @@ export default function BenchmarkScreen() {
         connectTimeoutMs: Number(connectTimeoutMs),
         maxConnectTargetsPerDomain: Number(maxTargets),
         tlsHandshakeTimeoutMs: tlsEnabled ? Number(connectTimeoutMs) : undefined,
-        platform: 'ios',
+        platform: benchmarkPlatform,
         saveHistory,
       };
       const next = await runAction(mode, payload);
@@ -124,10 +131,17 @@ export default function BenchmarkScreen() {
     <Screen>
       <Section title="Run" subtitle="Foreground only. Long worst-case plans will hold the app on this screen until CLI returns.">
         <Segmented options={modeOptions} value={mode} onChange={setMode} />
+        {mode === 'systemBenchmark' ? <Segmented options={platformOptions} value={benchmarkPlatform} onChange={setBenchmarkPlatform} /> : null}
         <Segmented options={familyOptions} value={ipFamily} onChange={setIpFamily} />
+        <View style={{ backgroundColor: palette.blueSoft, borderColor: '#bfdbfe', borderRadius: 8, borderWidth: 1, gap: 4, padding: 10 }}>
+          <Text selectable style={{ color: palette.slate, fontSize: 12, lineHeight: 17 }}>
+            A + AAAA tests IPv4 and IPv6 answers. Use A only when IPv6 looks broken on the current network. Use AAAA only to isolate IPv6 resolver behavior.
+          </Text>
+        </View>
         <Row>
           <Metric label="Selected" value={mode === 'systemBenchmark' ? 'system' : selectedProfiles.length} tone="blue" />
           <Metric label="Domains" value={lines(domains).length + (suiteId ? 1 : 0)} tone="green" />
+          <Metric label="Platform" value={mode === 'systemBenchmark' ? benchmarkPlatform : 'direct'} tone="amber" />
           <Metric label="History" value={saveHistory ? 'on' : 'off'} tone={saveHistory ? 'amber' : 'neutral'} />
         </Row>
         <TextField label="Domains" value={domains} onChangeText={setDomains} multiline placeholder="github.com&#10;expo.dev" />

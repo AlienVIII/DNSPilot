@@ -14,6 +14,8 @@
   Android, including protected-network suppression.
 - Added adaptive phone/tablet/expanded layout helpers and applied two-column
   tablet layouts to key Overview, Storage, and Policy flows.
+- Added System DNS validation platform selector plus A/AAAA help text for
+  IPv4/IPv6 troubleshooting.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge.
