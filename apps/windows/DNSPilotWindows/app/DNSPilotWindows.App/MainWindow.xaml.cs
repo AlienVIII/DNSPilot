@@ -444,8 +444,7 @@ public sealed partial class MainWindow : Window
 
     private static string DefaultCliPath()
     {
-        return Environment.GetEnvironmentVariable("DNSPILOT_CLI_PATH")
-            ?? Path.Combine(AppContext.BaseDirectory, "dnspilot-cli.exe");
+        return CliExecutableLocator.LocateFromCurrentProcess();
     }
 
     private static string DefaultDatabasePath()

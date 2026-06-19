@@ -7,8 +7,7 @@
 ## Technical Risks
 - Adapter enumeration and DNS settings require careful permissions.
 - WinUI app build and NotifyIcon host are not validated on Windows in this macOS lane.
-- `DNSPILOT_CLI_PATH` or bundled helper placement must be confirmed before live UI benchmark runs.
-- Runtime launch currently depends on `dnspilot-cli.exe` availability for hydrated catalog/profile/history/apply-plan state; fallback defaults still render if CLI load fails.
+- CLI lookup now supports env override, bundled helper, and repo target fallback; packaging still must ensure the helper is bundled for Store builds.
 
 ## Platform Risks
 - Store packaging and admin-service split.

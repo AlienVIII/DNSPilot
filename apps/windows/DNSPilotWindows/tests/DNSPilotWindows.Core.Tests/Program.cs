@@ -27,6 +27,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows shell can hydrate from CLI payloads for catalog, policy, apply, profiles, and history", WindowsShellHydratesFromCliPayloads);
         Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
+        Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -481,6 +482,44 @@ internal sealed class WindowsCoreTestSuite
         var historyRows = new BenchmarkHistoryViewModel(history, TestData.Catalog).Rows;
         Assert.Equal("compare-run-1", historyRows.Single().Id);
         Assert.Equal("DNS only: Recommended: Cloudflare", historyRows.Single().ToString());
+    }
+
+    private static void CliExecutableLocatorFindsRuntime()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "dnspilot-windows-locator-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var appBase = Path.Combine(root, "apps", "windows", "DNSPilotWindows", "app", "bin");
+            var release = Path.Combine(root, "target", "release");
+            var debug = Path.Combine(root, "target", "debug");
+            Directory.CreateDirectory(appBase);
+            Directory.CreateDirectory(release);
+            Directory.CreateDirectory(debug);
+
+            var envCli = Path.Combine(root, "env", "dnspilot-cli.exe");
+            Directory.CreateDirectory(Path.GetDirectoryName(envCli)!);
+            File.WriteAllText(envCli, "");
+            var bundledCli = Path.Combine(appBase, "dnspilot-cli.exe");
+            File.WriteAllText(bundledCli, "");
+            var releaseCli = Path.Combine(release, "dnspilot-cli.exe");
+            File.WriteAllText(releaseCli, "");
+            var debugCli = Path.Combine(debug, "dnspilot-cli.exe");
+            File.WriteAllText(debugCli, "");
+
+            Assert.Equal(envCli, CliExecutableLocator.Locate(appBase, envCli));
+            Assert.Equal(bundledCli, CliExecutableLocator.Locate(appBase, null));
+            File.Delete(bundledCli);
+            Assert.Equal(releaseCli, CliExecutableLocator.Locate(appBase, null));
+            File.Delete(releaseCli);
+            Assert.Equal(debugCli, CliExecutableLocator.Locate(appBase, ""));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
     }
 }
 

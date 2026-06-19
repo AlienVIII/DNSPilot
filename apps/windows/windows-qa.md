@@ -9,10 +9,11 @@
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
 - From repo root, run `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx`.
-- Set `DNSPILOT_CLI_PATH` to a built `dnspilot-cli.exe`, or place `dnspilot-cli.exe` beside the app output.
+- Set `DNSPILOT_CLI_PATH` to a built `dnspilot-cli.exe`, place `dnspilot-cli.exe` beside the app output, or run from a repo layout with `target/release/dnspilot-cli.exe` or `target/debug/dnspilot-cli.exe`.
 
 ## Manual Windows UI Flow
 - Launch DNS Pilot.
+- Confirm diagnostics do not report CLI contract load failure; expected: locator finds env, bundled, release, or debug CLI path.
 - Run `Quick benchmark`; expected: command preview uses `path-compare`, process rows move to running, diagnostics show success or a copyable failure report.
 - After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
 - Run `Validate DNS`; expected: command preview uses `system-benchmark --platform windows-store`.
