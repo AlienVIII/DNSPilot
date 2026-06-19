@@ -9,7 +9,8 @@
 ## Engineering
 - Rust workspace tests pass.
 - macOS Swift tests pass.
-- Bundle verification passes.
+- Local bundle verification passes: `./script/validate_macos_bundle.sh`.
+- Distribution bundle verification passes: `./script/validate_macos_bundle.sh dist/DNSPilotMac.app --distribution`.
 - No debug-only entitlements in release signing.
 - App Store copy avoids unsupported claims.
 
@@ -22,4 +23,3 @@
 - Platform coordination files updated.
 - Core CLI backlog current.
 - Release notes include limitations.
-

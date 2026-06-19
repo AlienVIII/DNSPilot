@@ -2,12 +2,40 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_BUNDLE="${1:-"$ROOT_DIR/dist/DNSPilotMac.app"}"
+APP_BUNDLE="$ROOT_DIR/dist/DNSPilotMac.app"
 APP_NAME="DNSPilotMac"
 CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
 ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
 HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
+DISTRIBUTION=0
+
+usage() {
+  cat >&2 <<USAGE
+usage: $0 [APP_BUNDLE] [--distribution]
+
+  --distribution  Treat debug-only signing warnings as release-blocking failures.
+USAGE
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --distribution)
+      DISTRIBUTION=1
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    -*)
+      usage
+      exit 2
+      ;;
+    *)
+      APP_BUNDLE="$arg"
+      ;;
+  esac
+done
 
 INFO_PLIST="$APP_BUNDLE/Contents/Info.plist"
 APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
@@ -27,6 +55,14 @@ fail() {
 
 warn() {
   printf "WARN %s\n" "$1" >&2
+}
+
+warn_or_fail_distribution() {
+  if (( DISTRIBUTION )); then
+    fail "$1"
+  else
+    warn "$1"
+  fi
 }
 
 plist_value() {
@@ -123,38 +159,50 @@ else
   pass "helper entitlements avoid extra App Sandbox rights"
 fi
 
+if codesign --verify --strict "$APP_BUNDLE" >/dev/null 2>&1; then
+  pass "app bundle code signature verifies"
+else
+  fail "app bundle code signature does not verify"
+fi
+
+if codesign --verify --strict "$HELPER_BINARY" >/dev/null 2>&1; then
+  pass "CLI helper code signature verifies"
+else
+  fail "CLI helper code signature does not verify"
+fi
+
 app_signing_report="$(codesign -dvvv --entitlements :- "$APP_BUNDLE" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$app_signing_report"; then
-  warn "app bundle is ad-hoc signed; expected for local debug, not distribution-ready"
+  warn_or_fail_distribution "app bundle is ad-hoc signed; expected for local debug, not distribution-ready"
 elif grep -q "Authority=" <<<"$app_signing_report"; then
   pass "app bundle has a certificate-backed signature"
 else
-  warn "app bundle signing state could not be classified"
+  warn_or_fail_distribution "app bundle signing state could not be classified"
 fi
 
 if grep -q "com.apple.security.app-sandbox" <<<"$app_signing_report"; then
   pass "signed app entitlements include App Sandbox"
 else
-  warn "signed app entitlements do not include App Sandbox; release signing must use Packaging/DNSPilotMac.entitlements"
+  warn_or_fail_distribution "signed app entitlements do not include App Sandbox; release signing must use Packaging/DNSPilotMac.entitlements"
 fi
 
 if grep -q "com.apple.security.get-task-allow" <<<"$app_signing_report"; then
-  warn "signed app entitlements include get-task-allow; acceptable for debug only"
+  warn_or_fail_distribution "signed app entitlements include get-task-allow; acceptable for debug only"
 fi
 
 helper_signing_report="$(codesign -dvvv --entitlements :- "$HELPER_BINARY" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$helper_signing_report"; then
-  warn "CLI helper is ad-hoc signed; release packaging must sign helper with Packaging/DNSPilotHelper.entitlements"
+  warn_or_fail_distribution "CLI helper is ad-hoc signed; release packaging must sign helper with Packaging/DNSPilotHelper.entitlements"
 elif grep -q "Authority=" <<<"$helper_signing_report"; then
   pass "CLI helper has a certificate-backed signature"
 else
-  warn "CLI helper signing state could not be classified"
+  warn_or_fail_distribution "CLI helper signing state could not be classified"
 fi
 
 if grep -q "com.apple.security.inherit" <<<"$helper_signing_report"; then
   pass "signed CLI helper entitlements include sandbox inheritance"
 else
-  warn "signed CLI helper entitlements do not include sandbox inheritance; release signing must use Packaging/DNSPilotHelper.entitlements"
+  warn_or_fail_distribution "signed CLI helper entitlements do not include sandbox inheritance; release signing must use Packaging/DNSPilotHelper.entitlements"
 fi
 
 if (( failures > 0 )); then
