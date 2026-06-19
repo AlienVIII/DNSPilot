@@ -11,7 +11,7 @@
 - Guided apply sequence after recommendations: copy DNS, open Network Settings, paste active service, flush/reconnect, validate System DNS.
 - Apply-plan failure now falls back to local next-step guidance instead of hiding copy/open-settings actions.
 - Bundle validator has distribution mode that fails debug/ad-hoc signing and missing release entitlements instead of warning only.
-- Menu bar can reuse the last actionable guided apply plan: copy last DNS or copy+open Network Settings, without silent system DNS mutation.
+- Menu bar can reuse the last actionable guided apply plan for up to 24h: copy last DNS or copy+open Network Settings, without silent system DNS mutation.
 
 ## Current Work
 - macOS remains UX lead lane.

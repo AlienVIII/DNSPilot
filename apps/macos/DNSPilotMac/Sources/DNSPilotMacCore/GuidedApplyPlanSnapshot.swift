@@ -49,6 +49,10 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
         dnsServers.joined(separator: "\n")
     }
 
+    public func isFresh(now: Date = Date(), maxAge: TimeInterval = 86_400) -> Bool {
+        now.timeIntervalSince(createdAt) <= maxAge
+    }
+
     public var copyText: String {
         var lines = [
             "DNS Pilot guided apply",
@@ -76,15 +80,21 @@ public struct GuidedApplyPlanSnapshot: Codable, Equatable, Sendable {
 public final class GuidedApplyPlanStore {
     private let userDefaults: UserDefaults
     private let key: String
+    private let maxAge: TimeInterval
+    private let now: () -> Date
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
     public init(
         userDefaults: UserDefaults = .standard,
-        key: String = "DNSPilot.lastGuidedApplyPlan"
+        key: String = "DNSPilot.lastGuidedApplyPlan",
+        maxAge: TimeInterval = 86_400,
+        now: @escaping () -> Date = Date.init
     ) {
         self.userDefaults = userDefaults
         self.key = key
+        self.maxAge = maxAge
+        self.now = now
     }
 
     public func load() -> GuidedApplyPlanSnapshot? {
@@ -92,7 +102,12 @@ public final class GuidedApplyPlanStore {
             return nil
         }
         do {
-            return try decoder.decode(GuidedApplyPlanSnapshot.self, from: data)
+            let snapshot = try decoder.decode(GuidedApplyPlanSnapshot.self, from: data)
+            guard snapshot.isFresh(now: now(), maxAge: maxAge) else {
+                clear()
+                return nil
+            }
+            return snapshot
         } catch {
             clear()
             return nil

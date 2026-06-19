@@ -67,7 +67,11 @@ final class GuidedApplyPlanSnapshotTests: XCTestCase {
         defer {
             defaults.removePersistentDomain(forName: suiteName)
         }
-        let store = GuidedApplyPlanStore(userDefaults: defaults, key: "last-plan")
+        let store = GuidedApplyPlanStore(
+            userDefaults: defaults,
+            key: "last-plan",
+            now: { Date(timeIntervalSince1970: 20) }
+        )
         let snapshot = GuidedApplyPlanSnapshot(
             profileID: "cloudflare",
             profileName: "Cloudflare",
@@ -92,6 +96,33 @@ final class GuidedApplyPlanSnapshotTests: XCTestCase {
         }
         defaults.set(Data("not-json".utf8), forKey: "last-plan")
         let store = GuidedApplyPlanStore(userDefaults: defaults, key: "last-plan")
+
+        XCTAssertNil(store.load())
+        XCTAssertNil(defaults.data(forKey: "last-plan"))
+    }
+
+    func testStoreClearsStaleSnapshot() {
+        let suiteName = "DNSPilotGuidedApplyPlanSnapshotTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+        let store = GuidedApplyPlanStore(
+            userDefaults: defaults,
+            key: "last-plan",
+            maxAge: 60,
+            now: { Date(timeIntervalSince1970: 200) }
+        )
+        let snapshot = GuidedApplyPlanSnapshot(
+            profileID: "cloudflare",
+            profileName: "Cloudflare",
+            testedResolver: "1.1.1.1:53",
+            dnsServers: ["1.1.1.1"],
+            notes: [],
+            createdAt: Date(timeIntervalSince1970: 100)
+        )
+
+        store.save(snapshot)
 
         XCTAssertNil(store.load())
         XCTAssertNil(defaults.data(forKey: "last-plan"))
