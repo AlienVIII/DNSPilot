@@ -119,6 +119,7 @@ DNS handling, and platform capability reporting.
 - [x] [108] v0.1 macOS sidebar width — prevent platform names from truncating in default window.
 - [x] [109] v0.1 gaming suites — add Steam/Valve, Dota 2 SEA, CS2, and Riot/LoL DNS/TCP presets.
 - [x] [110] v0.1 macOS Game Ping — add gaming preset screen backed by path-compare.
+- [x] [111] v0.1 macOS confirmed apply and flush guidance — confirm copy/open apply and store-safe flush checklist actions.
 
 ---
 
@@ -5058,6 +5059,25 @@ Result: 180 passed, 0 failed
 
 ./script/build_and_run.sh --verify
 Result: macOS bundle structural validation passed
+```
+
+---
+
+## Chunk 111: v0.1 macOS Confirmed Apply and Flush Guidance
+
+**Status:** Complete
+
+Store-safe guided apply actions now require confirmation before copying DNS
+servers and opening macOS Network Settings. Menu bar `Apply Last DNS` opens the
+app and confirms before reuse. `Flush DNS...` is available from the menu bar and
+System DNS validation mode; it confirms and copies the macOS flush checklist
+instead of running sudo/admin commands.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter "BenchmarkResultViewModelTests/testNextStepGuidanceAllowsManualSettingsOnlyForStrongRecommendation|StoreSafeDNSActionViewModelTests|MenuBarQuickActionsViewModelTests"
+Result: 10 passed, 0 failed
 ```
 
 ---

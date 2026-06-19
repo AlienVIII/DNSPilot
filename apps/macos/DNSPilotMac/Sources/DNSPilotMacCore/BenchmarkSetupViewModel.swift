@@ -84,15 +84,7 @@ public struct BenchmarkSetupViewModel: Equatable {
         guard mode == .systemDNSValidation else {
             return nil
         }
-        return """
-        System DNS validation checklist
-        1. Apply DNS manually in macOS Network Settings.
-        2. If allowed, flush local DNS cache before validating:
-           sudo dscacheutil -flushcache
-           sudo killall -HUP mDNSResponder
-        3. Run System DNS validation in DNS Pilot.
-        4. Treat browser Secure DNS, VPN, MDM, captive portal, and app caches as possible distortions.
-        """
+        return StoreSafeDNSFlushGuidanceViewModel().checklistText
     }
 
     public var estimatedDurationWarning: String? {

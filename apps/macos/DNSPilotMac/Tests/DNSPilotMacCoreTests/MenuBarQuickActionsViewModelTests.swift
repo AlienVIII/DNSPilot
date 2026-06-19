@@ -12,7 +12,7 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
             return nil
         }
 
-        XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .systemDNSValidation, .history, .networkSettings])
+        XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .flushDNS, .systemDNSValidation, .history, .networkSettings])
     }
 
     func testQuickActionsExposeStoreSafeLastDNSActionsWhenAvailable() {
@@ -40,6 +40,7 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
             .quickBenchmark,
             .guidedApplyLastDNS,
             .copyLastDNS,
+            .flushDNS,
             .systemDNSValidation,
             .history,
             .networkSettings,
@@ -52,6 +53,16 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
         let viewModel = MenuBarQuickActionsViewModel()
 
         XCTAssertTrue(viewModel.actions.allSatisfy { $0.title.count <= 30 })
+    }
+
+    func testQuickActionsExposeFlushDNSGuidance() {
+        let viewModel = MenuBarQuickActionsViewModel()
+
+        let action = viewModel.actions.first { $0.id == "flush-dns" }
+
+        XCTAssertEqual(action?.title, "Flush DNS...")
+        XCTAssertEqual(action?.systemImage, "arrow.triangle.2.circlepath")
+        XCTAssertEqual(action?.kind, .destination(.flushDNS))
     }
 
     func testQuickActionsExposeStoreSafeSettingsFallback() {

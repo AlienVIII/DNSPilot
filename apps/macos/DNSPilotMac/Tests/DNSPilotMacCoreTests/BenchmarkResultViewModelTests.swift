@@ -136,7 +136,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         let guidance = BenchmarkResultNextStepViewModel(result: resultViewModel)
 
         XCTAssertEqual(guidance.title, "Next step: Apply recommended DNS manually")
-        XCTAssertEqual(guidance.actionLabel, "Open Network Settings")
+        XCTAssertEqual(guidance.actionLabel, "Copy DNS + Open Settings")
         XCTAssertTrue(guidance.canOpenNetworkSettings)
         XCTAssertTrue(guidance.canValidateSystemDNSAfterApply)
         XCTAssertEqual(guidance.dnsSettings?.serverListText, "1.1.1.1\n1.0.0.1\n2606:4700:4700::1111")

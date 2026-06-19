@@ -97,8 +97,12 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   tested resolver and copyable DNS servers.
 - macOS Benchmark apply-policy UI offers one guided primary action that copies
   measured DNS servers and opens Network Settings without mutating DNS itself.
+- macOS guided apply actions require confirmation before copying DNS/opening
+  Network Settings, including last-plan menu bar reuse.
 - macOS Benchmark apply-policy UI offers a copyable guided apply/retest
   checklist for store-safe manual DNS changes.
+- macOS menu bar and System DNS validation mode expose store-safe `Flush DNS...`
+  guidance with confirmation before copying macOS flush commands.
 - macOS Benchmark result surface treats apply-policy as authoritative when it is
   loading or available, avoiding conflicting legacy next-step apply guidance.
 - macOS policy guidance ViewModel for flush/apply labels and protected-network

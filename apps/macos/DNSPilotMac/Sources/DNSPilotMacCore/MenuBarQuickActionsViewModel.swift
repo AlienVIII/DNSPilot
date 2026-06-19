@@ -11,6 +11,7 @@ public enum MenuBarQuickDestination: String, Equatable {
     case quickBenchmark
     case guidedApplyLastDNS
     case copyLastDNS
+    case flushDNS
     case systemDNSValidation
     case history
     case networkSettings
@@ -78,6 +79,12 @@ public struct MenuBarQuickActionsViewModel: Equatable {
         }
 
         actions += [
+            MenuBarQuickAction(
+                id: "flush-dns",
+                title: StoreSafeDNSFlushGuidanceViewModel().buttonLabel,
+                systemImage: "arrow.triangle.2.circlepath",
+                kind: .destination(.flushDNS)
+            ),
             MenuBarQuickAction(
                 id: "validate-system-dns",
                 title: "Validate System DNS",

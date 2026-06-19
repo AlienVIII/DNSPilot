@@ -559,7 +559,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
     public init(result: BenchmarkResultViewModel) {
         if result.hasActionableRecommendation, let recommendedProfileName = result.recommendedProfileName {
             title = "Next step: Apply recommended DNS manually"
-            actionLabel = "Open Network Settings"
+            actionLabel = "Copy DNS + Open Settings"
             canOpenNetworkSettings = true
             canValidateSystemDNSAfterApply = true
             dnsSettings = result.recommendedDNSSettings

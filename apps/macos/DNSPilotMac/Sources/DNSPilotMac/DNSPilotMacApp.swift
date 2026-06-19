@@ -34,12 +34,44 @@ private enum SidebarSelection: Hashable {
     case catalog
 }
 
+private struct StoreSafeFlushConfirmationModifier: ViewModifier {
+    @Binding var isPresented: Bool
+    private let guidance = StoreSafeDNSFlushGuidanceViewModel()
+
+    func body(content: Content) -> some View {
+        content
+            .confirmationDialog(
+                guidance.confirmation.title,
+                isPresented: $isPresented,
+                titleVisibility: .visible
+            ) {
+                Button(guidance.confirmation.confirmLabel) {
+                    copyToPasteboard(guidance.checklistText)
+                    isPresented = false
+                }
+                Button(guidance.confirmation.cancelLabel, role: .cancel) {
+                    isPresented = false
+                }
+            } message: {
+                Text(guidance.confirmation.message)
+            }
+    }
+}
+
+private extension View {
+    func storeSafeFlushConfirmation(isPresented: Binding<Bool>) -> some View {
+        modifier(StoreSafeFlushConfirmationModifier(isPresented: isPresented))
+    }
+}
+
 @MainActor
 private final class DNSPilotNavigationModel: ObservableObject {
     @Published var selection: SidebarSelection? = .capabilities
     @Published var quickBenchmarkRequestID = 0
     @Published var systemDNSValidationRequestID = 0
     @Published var lastGuidedApplyPlan: GuidedApplyPlanSnapshot?
+    @Published var pendingGuidedApplyPlanConfirmation: GuidedApplyPlanSnapshot?
+    @Published var isShowingFlushDNSConfirmation = false
 
     private let guidedApplyPlanStore: GuidedApplyPlanStore
 
@@ -65,6 +97,18 @@ private final class DNSPilotNavigationModel: ObservableObject {
         } else {
             guidedApplyPlanStore.clear()
         }
+    }
+
+    func requestGuidedApplyConfirmation(_ snapshot: GuidedApplyPlanSnapshot) {
+        pendingGuidedApplyPlanConfirmation = snapshot
+    }
+
+    func clearGuidedApplyConfirmation() {
+        pendingGuidedApplyPlanConfirmation = nil
+    }
+
+    func requestFlushDNSConfirmation() {
+        isShowingFlushDNSConfirmation = true
     }
 }
 
@@ -108,9 +152,11 @@ private struct DNSPilotMenuBarView: View {
             guard let plan = navigation.lastGuidedApplyPlan else {
                 return
             }
-            copyToPasteboard(plan.dnsServerText)
-            openNetworkSettings()
-            return
+            navigation.requestGuidedApplyConfirmation(plan)
+            navigation.selection = .benchmark
+        case .flushDNS:
+            navigation.requestFlushDNSConfirmation()
+            navigation.selection = .benchmark
         case .copyLastDNS:
             guard let plan = navigation.lastGuidedApplyPlan else {
                 return
@@ -292,6 +338,32 @@ private struct DNSPilotShellView: View {
             hasRequestedStorageCatalogRefresh = true
             refreshCatalogFromStorage()
         }
+        .confirmationDialog(
+            guidedApplyConfirmationTitle,
+            isPresented: Binding(
+                get: { navigation.pendingGuidedApplyPlanConfirmation != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        navigation.clearGuidedApplyConfirmation()
+                    }
+                }
+            ),
+            titleVisibility: .visible,
+            presenting: navigation.pendingGuidedApplyPlanConfirmation
+        ) { snapshot in
+            let confirmation = guidedApplyConfirmation(for: snapshot)
+            Button(confirmation.confirmLabel) {
+                copyToPasteboard(snapshot.dnsServerText)
+                openNetworkSettings()
+                navigation.clearGuidedApplyConfirmation()
+            }
+            Button(confirmation.cancelLabel, role: .cancel) {
+                navigation.clearGuidedApplyConfirmation()
+            }
+        } message: { snapshot in
+            Text(guidedApplyConfirmation(for: snapshot).message)
+        }
+        .storeSafeFlushConfirmation(isPresented: $navigation.isShowingFlushDNSConfirmation)
     }
 
     private func refreshCatalogFromStorage() {
@@ -319,6 +391,21 @@ private struct DNSPilotShellView: View {
         case .unavailable:
             catalogViewModel = CatalogViewModel()
         }
+    }
+
+    private var guidedApplyConfirmationTitle: String {
+        if let snapshot = navigation.pendingGuidedApplyPlanConfirmation {
+            return guidedApplyConfirmation(for: snapshot).title
+        }
+        return "Confirm guided DNS apply"
+    }
+
+    private func guidedApplyConfirmation(for snapshot: GuidedApplyPlanSnapshot) -> StoreSafeDNSActionConfirmationViewModel {
+        StoreSafeDNSActionConfirmationViewModel.guidedApply(
+            profileName: snapshot.profileName ?? snapshot.profileID,
+            dnsServers: snapshot.dnsServers,
+            hasRestoreDNS: !snapshot.restoreDNSServers.isEmpty
+        )
     }
 }
 
@@ -1591,6 +1678,7 @@ private struct BenchmarkDetailView: View {
     @State private var isLoadingApplyPlan = false
     @State private var currentApplyPlanRunID: BenchmarkRunID?
     @State private var currentDNSBeforeApplySnapshot = SystemDNSResolverSnapshot.unavailable
+    @State private var isShowingFlushDNSConfirmation = false
     @State private var handledQuickBenchmarkRequestID = 0
     @State private var handledSystemDNSValidationRequestID = 0
     @State private var outcome: BenchmarkExecutionOutcome?
@@ -1719,15 +1807,15 @@ private struct BenchmarkDetailView: View {
                 Label(setupViewModel.flushPolicySummary, systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if let flushChecklistText = setupViewModel.systemDNSFlushChecklistText {
+                if setupViewModel.systemDNSFlushChecklistText != nil {
                     Button {
-                        copyToPasteboard(flushChecklistText)
+                        isShowingFlushDNSConfirmation = true
                     } label: {
-                        Label("Copy Flush Checklist", systemImage: "checklist")
+                        Label(StoreSafeDNSFlushGuidanceViewModel().buttonLabel, systemImage: "arrow.triangle.2.circlepath")
                     }
                     .disabled(isBenchmarkActive)
                     .accessibilityIdentifier("benchmark-copy-flush-checklist-button")
-                    .help("Copy manual cache flush and validation steps for System DNS mode.")
+                    .help("Confirm and copy manual cache flush and validation steps for System DNS mode.")
                 }
                 if let estimatedDurationWarning = setupViewModel.estimatedDurationWarning {
                     Label(estimatedDurationWarning, systemImage: "hourglass")
@@ -2106,6 +2194,7 @@ private struct BenchmarkDetailView: View {
             handleQuickBenchmarkRequest(quickBenchmarkRequestID)
             handleSystemDNSValidationRequest(systemDNSValidationRequestID)
         }
+        .storeSafeFlushConfirmation(isPresented: $isShowingFlushDNSConfirmation)
         .alert(
             "Delete Custom Suite?",
             isPresented: $isDeleteSuiteConfirmationPresented,
@@ -3179,10 +3268,17 @@ private struct BenchmarkResultPanel: View {
     }
 }
 
+private struct PendingGuidedApplyConfirmation {
+    let copyText: String
+    let opensNetworkSettings: Bool
+    let confirmation: StoreSafeDNSActionConfirmationViewModel
+}
+
 private struct BenchmarkApplyPlanStatusPanel: View {
     let outcome: BenchmarkApplyPlanLoadOutcome?
     let isLoading: Bool
     let currentDNSBeforeApplySnapshot: SystemDNSResolverSnapshot
+    @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -3218,6 +3314,32 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                     EmptyView()
                 }
             }
+        }
+        .confirmationDialog(
+            pendingGuidedApplyConfirmation?.confirmation.title ?? "Confirm guided DNS apply",
+            isPresented: Binding(
+                get: { pendingGuidedApplyConfirmation != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingGuidedApplyConfirmation = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingGuidedApplyConfirmation
+        ) { pending in
+            Button(pending.confirmation.confirmLabel) {
+                copyToPasteboard(pending.copyText)
+                if pending.opensNetworkSettings {
+                    openNetworkSettings()
+                }
+                pendingGuidedApplyConfirmation = nil
+            }
+            Button(pending.confirmation.cancelLabel, role: .cancel) {
+                pendingGuidedApplyConfirmation = nil
+            }
+        } message: { pending in
+            Text(pending.confirmation.message)
         }
     }
 
@@ -3311,10 +3433,15 @@ private struct BenchmarkApplyPlanStatusPanel: View {
             if let primaryActionLabel = viewModel.guidedPrimaryActionLabel,
                let primaryCopyText = viewModel.guidedPrimaryActionCopyText {
                 Button {
-                    copyToPasteboard(primaryCopyText)
-                    if viewModel.opensNetworkSettingsAfterGuidedPrimaryAction {
-                        openNetworkSettings()
-                    }
+                    pendingGuidedApplyConfirmation = PendingGuidedApplyConfirmation(
+                        copyText: primaryCopyText,
+                        opensNetworkSettings: viewModel.opensNetworkSettingsAfterGuidedPrimaryAction,
+                        confirmation: StoreSafeDNSActionConfirmationViewModel.guidedApply(
+                            profileName: viewModel.plan.profileName ?? viewModel.plan.profileID,
+                            dnsServers: viewModel.plan.dnsServers,
+                            hasRestoreDNS: restoreViewModel.hasRestorableDNS
+                        )
+                    )
                 } label: {
                     Label(primaryActionLabel, systemImage: "gearshape")
                 }
@@ -3378,6 +3505,7 @@ private struct BenchmarkApplyPlanStatusPanel: View {
 
 private struct BenchmarkResultNextStepPanel: View {
     let viewModel: BenchmarkResultNextStepViewModel
+    @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -3426,7 +3554,19 @@ private struct BenchmarkResultNextStepPanel: View {
 
                 if viewModel.canOpenNetworkSettings {
                     Button {
-                        openNetworkSettings()
+                        if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
+                            pendingGuidedApplyConfirmation = PendingGuidedApplyConfirmation(
+                                copyText: dnsSettings.serverListText,
+                                opensNetworkSettings: true,
+                                confirmation: StoreSafeDNSActionConfirmationViewModel.guidedApply(
+                                    profileName: dnsSettings.profileName,
+                                    dnsServers: dnsSettings.allServers,
+                                    hasRestoreDNS: false
+                                )
+                            )
+                        } else {
+                            openNetworkSettings()
+                        }
                     } label: {
                         Label(viewModel.actionLabel, systemImage: "gearshape")
                     }
@@ -3440,6 +3580,32 @@ private struct BenchmarkResultNextStepPanel: View {
                 }
                 .accessibilityIdentifier("benchmark-copy-next-step-button")
             }
+        }
+        .confirmationDialog(
+            pendingGuidedApplyConfirmation?.confirmation.title ?? "Confirm guided DNS apply",
+            isPresented: Binding(
+                get: { pendingGuidedApplyConfirmation != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingGuidedApplyConfirmation = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingGuidedApplyConfirmation
+        ) { pending in
+            Button(pending.confirmation.confirmLabel) {
+                copyToPasteboard(pending.copyText)
+                if pending.opensNetworkSettings {
+                    openNetworkSettings()
+                }
+                pendingGuidedApplyConfirmation = nil
+            }
+            Button(pending.confirmation.cancelLabel, role: .cancel) {
+                pendingGuidedApplyConfirmation = nil
+            }
+        } message: { pending in
+            Text(pending.confirmation.message)
         }
     }
 }
