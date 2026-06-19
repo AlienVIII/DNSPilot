@@ -22,6 +22,9 @@
   recommendation, with iOS/Android selector and protected-network flags.
 - Storage forms now validate local profile/suite payloads before bridge calls
   and preserve `custom` tags so saved items stay visible in the custom lists.
+- Benchmark setup now builds a validated payload before bridge calls, reports
+  real suite-domain counts, and exposes Default/Vietnam quick-picks when the
+  core catalog supports them.
 - Policy UI now derives store-safe guided flows from apply-plan payloads:
   iOS/iPadOS DNS Settings profile guidance, Android settings/Private DNS
   guidance, and protect-current-dns suppression.

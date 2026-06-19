@@ -22,6 +22,8 @@
   protected-network flags, core apply-plan payload, and store-safe steps.
 - Added storage form validation for custom DNS profiles and domain suites,
   including protocol-specific fields and preserved `custom` tags.
+- Added benchmark plan validation and catalog-aware Default/Vietnam suite
+  quick-picks before foreground jobs are started.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge, with

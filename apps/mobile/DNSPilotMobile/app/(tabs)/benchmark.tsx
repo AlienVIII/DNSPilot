@@ -19,8 +19,9 @@ import {
   palette,
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
-import { compactList, lines } from '@/src/utils/forms';
+import { compactList } from '@/src/utils/forms';
 import { buildApplyPlanRequest, type ApplyPlanRequest } from '@/src/view-models/benchmark-guidance';
+import { buildBenchmarkPlan, suggestedSuites } from '@/src/view-models/benchmark-plan';
 import {
   buildBenchmarkDiagnostics,
   type BenchmarkDiagnostics,
@@ -99,6 +100,26 @@ export default function BenchmarkScreen() {
       }),
     [guidancePlatform, profiles, protectedEnvironment, result]
   );
+  const benchmarkPlan = useMemo(
+    () =>
+      buildBenchmarkPlan({
+        mode,
+        selectedProfiles,
+        suites,
+        suiteId,
+        domains,
+        attempts,
+        ipFamily,
+        timeoutMs,
+        connectTimeoutMs,
+        maxTargets,
+        tlsEnabled,
+        benchmarkPlatform,
+        saveHistory,
+      }),
+    [attempts, benchmarkPlatform, connectTimeoutMs, domains, ipFamily, maxTargets, mode, saveHistory, selectedProfiles, suiteId, suites, timeoutMs, tlsEnabled]
+  );
+  const suiteSuggestions = useMemo(() => suggestedSuites(suites), [suites]);
 
   useEffect(() => {
     if (plainProfiles.length > 0 && selectedProfiles.length === 0) {
@@ -125,25 +146,10 @@ export default function BenchmarkScreen() {
     setResult(null);
     setGuidance(null);
     setGuidancePayload(null);
-    setCopyStatus(null);
-    setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, startedAtMs }));
+      setCopyStatus(null);
+      setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, startedAtMs }));
     try {
-      const payload = {
-        profileIds: selectedProfiles,
-        profileId: selectedProfiles[0] ?? 'cloudflare',
-        suiteId: suiteId || undefined,
-        domains: lines(domains),
-        attempts: Number(attempts),
-        ipFamily,
-        timeoutMs: Number(timeoutMs),
-        dnsTimeoutMs: Number(timeoutMs),
-        connectTimeoutMs: Number(connectTimeoutMs),
-        maxConnectTargetsPerDomain: Number(maxTargets),
-        tlsHandshakeTimeoutMs: tlsEnabled ? Number(connectTimeoutMs) : undefined,
-        platform: benchmarkPlatform,
-        saveHistory,
-      };
-      let job = await startJob(runMode, payload);
+      let job = await startJob(runMode, benchmarkPlan.payload);
       setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs));
       while (job.status === 'running') {
         await sleep(500);
@@ -203,9 +209,9 @@ export default function BenchmarkScreen() {
         </View>
         <Row>
           <Metric label="Selected" value={mode === 'systemBenchmark' ? 'system' : selectedProfiles.length} tone="blue" />
-          <Metric label="Domains" value={lines(domains).length + (suiteId ? 1 : 0)} tone="green" />
+          <Metric label="Domains" value={benchmarkPlan.domainCount} tone="green" />
           <Metric label="Platform" value={mode === 'systemBenchmark' ? benchmarkPlatform : 'direct'} tone="amber" />
-          <Metric label="History" value={saveHistory ? 'on' : 'off'} tone={saveHistory ? 'amber' : 'neutral'} />
+          <Metric label="History" value={benchmarkPlan.historyEnabled ? 'on' : 'off'} tone={benchmarkPlan.historyEnabled ? 'amber' : 'neutral'} />
         </Row>
         <TextField label="Domains" value={domains} onChangeText={setDomains} multiline placeholder="github.com&#10;expo.dev" />
         <Row>
@@ -222,7 +228,8 @@ export default function BenchmarkScreen() {
           </>
         ) : null}
         <ToggleRow label="Save history" value={saveHistory} onValueChange={setSaveHistory} subtitle="Available for compare/path-compare/benchmark." />
-        <Button label="Run benchmark" onPress={runBenchmark} loading={running} disabled={selectedProfiles.length === 0 && mode !== 'systemBenchmark'} />
+        <ErrorBanner message={benchmarkPlan.errors.join('\n')} />
+        <Button label="Run benchmark" onPress={runBenchmark} loading={running} disabled={!benchmarkPlan.canRun} />
         <ErrorBanner message={error} />
       </Section>
 
@@ -285,10 +292,21 @@ export default function BenchmarkScreen() {
       <Section title="Suites" subtitle="Optional. Domains above are added to suite domains.">
         <Row>
           <Pill label="No suite" selected={!suiteId} onPress={() => setSuiteId('')} />
+          {suiteSuggestions.defaultSuiteId ? (
+            <Pill label="Default" selected={suiteId === suiteSuggestions.defaultSuiteId} onPress={() => setSuiteId(suiteSuggestions.defaultSuiteId ?? '')} tone="blue" />
+          ) : null}
+          {suiteSuggestions.vietnamSuiteId ? (
+            <Pill label="Vietnam" selected={suiteId === suiteSuggestions.vietnamSuiteId} onPress={() => setSuiteId(suiteSuggestions.vietnamSuiteId ?? '')} tone="amber" />
+          ) : null}
           {suites.map((suite) => (
             <Pill key={suite.id} label={suite.name} selected={suiteId === suite.id} onPress={() => setSuiteId(suite.id)} tone="green" />
           ))}
         </Row>
+        {benchmarkPlan.selectedSuite ? (
+          <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+            Selected suite adds {benchmarkPlan.selectedSuite.domains.length} domains: {compactList(benchmarkPlan.selectedSuite.domains)}
+          </Text>
+        ) : null}
       </Section>
 
       <Section title="Result" subtitle={result ? `CLI: ${result.args.join(' ')}` : 'Run a benchmark to see parsed JSON.'}>
