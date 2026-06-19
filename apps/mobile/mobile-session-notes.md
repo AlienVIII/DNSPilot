@@ -25,6 +25,8 @@
 - Benchmark setup now builds a validated payload before bridge calls, reports
   real suite-domain counts, and exposes Default/Vietnam quick-picks when the
   core catalog supports them.
+- `mobile-readiness.md` is the durable summary for main-goal coverage,
+  critique, remaining blockers, and manual validation flows.
 - Policy UI now derives store-safe guided flows from apply-plan payloads:
   iOS/iPadOS DNS Settings profile guidance, Android settings/Private DNS
   guidance, and protect-current-dns suppression.

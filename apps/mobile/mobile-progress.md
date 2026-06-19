@@ -24,6 +24,8 @@
   including protocol-specific fields and preserved `custom` tags.
 - Added benchmark plan validation and catalog-aware Default/Vietnam suite
   quick-picks before foreground jobs are started.
+- Added `mobile-readiness.md` with main-goal checklist, critique, blockers, and
+  manual validation flow.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge, with
