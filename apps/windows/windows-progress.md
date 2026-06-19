@@ -19,6 +19,7 @@
 - Added profile/history management row models so UI can distinguish custom editable profiles from built-in protected profiles and delete selected history rows.
 - Added CLI executable locator: `DNSPILOT_CLI_PATH`, bundled `dnspilot-cli.exe`, then development `target/release` or `target/debug`.
 - Added lane validation script for core tests, core build, store-safe static checks, and Windows App SDK build probe.
+- Added self-review/counterargument summary for Windows lane release risk and scope discipline.
 
 ## Current Work
 - Windows lane code-complete for store-safe shell behavior that can be validated on macOS; Windows-only UI compile/runtime validation remains pending.
