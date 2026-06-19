@@ -4,6 +4,7 @@
 - `dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, profile-list, history-list, profile mutations, history mutations, and hydrated shell state.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -20,6 +21,9 @@
 - Use `Open settings`; expected: Windows opens Network & internet advanced settings, or Network status fallback.
 - Use `Copy checklist`; expected: clipboard text states no silent DNS mutation.
 - Preview a custom DNS profile save; expected: valid profiles produce `profile-add`, invalid IPv4/IPv6 show validation errors.
+- Add/update/delete a custom DNS profile; expected: no UAC prompt, profile list refreshes, built-in profiles are not mutated by the app.
+- Refresh storage; expected: saved profiles and history rows reload from the CLI-backed SQLite store.
+- Clear history; expected: history rows empty after refresh.
 - Open tray icon menu; expected: Quick benchmark, Validate current DNS, and Open Network Settings actions route to the same shell behavior.
 
 ## Store-Safe Checks
@@ -29,5 +33,5 @@
 
 ## Known Risks
 - Real Windows UI layout, tray behavior, MSIX packaging, Store policy, and signing are not validated from macOS.
-- Core result JSON parsing into recommendation detail is not implemented in the Windows shell yet; process diagnostics and apply guidance are present.
+- Core result JSON parsing into detailed recommendation cards is still lighter than macOS; Windows currently captures process diagnostics and refreshes apply/profile/history contracts.
 - Power edition admin/service apply remains a separate future lane.

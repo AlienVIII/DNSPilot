@@ -46,3 +46,43 @@ public sealed class ProfileListRunner
         return ProfileListJsonDecoder.Decode(output.StandardOutput);
     }
 }
+
+public sealed class CustomDnsProfileRunner
+{
+    private readonly string _executablePath;
+    private readonly ICliProcessRunner _processRunner;
+
+    public CustomDnsProfileRunner(string executablePath, ICliProcessRunner? processRunner = null)
+    {
+        _executablePath = executablePath;
+        _processRunner = processRunner ?? new SystemCliProcessRunner();
+    }
+
+    public void Add(string databasePath, CustomDnsProfileFormViewModel form)
+    {
+        EnsureValid(form);
+        var output = _processRunner.Run(_executablePath, form.AddCommandArguments(databasePath), progressHandler: null);
+        CliContractRunnerErrors.EnsureSuccess("Profile add", output);
+    }
+
+    public void Update(string databasePath, string profileId, CustomDnsProfileFormViewModel form)
+    {
+        EnsureValid(form);
+        var output = _processRunner.Run(_executablePath, form.UpdateCommandArguments(databasePath, profileId), progressHandler: null);
+        CliContractRunnerErrors.EnsureSuccess("Profile update", output);
+    }
+
+    public void Delete(string databasePath, string profileId)
+    {
+        var output = _processRunner.Run(_executablePath, ProfileManagementCommands.Delete(databasePath, profileId), progressHandler: null);
+        CliContractRunnerErrors.EnsureSuccess("Profile delete", output);
+    }
+
+    private static void EnsureValid(CustomDnsProfileFormViewModel form)
+    {
+        if (!form.Validation.CanSave)
+        {
+            throw new InvalidOperationException("Invalid custom DNS profile: " + string.Join("; ", form.Validation.Issues));
+        }
+    }
+}

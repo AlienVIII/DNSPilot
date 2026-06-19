@@ -12,6 +12,10 @@
 - System DNS validation is consumed through `system-benchmark --platform windows-store`.
 - DNS-only benchmark is consumed through `compare`.
 - DNS + TCP benchmark is consumed through `path-compare`.
+- Catalog is consumed through `catalog`.
+- Capability matrix is consumed through `capabilities`.
+- Profile management is consumed through `profile-add`, `profile-update`, `profile-delete`, and `profile-list`.
+- History management is consumed through `history-list`, `history-delete --id`, and `history-clear`.
 
 ## Required Logging
 - Process errors should include command, exit code, and safe stderr summary.

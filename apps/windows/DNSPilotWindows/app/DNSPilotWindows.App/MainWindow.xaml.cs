@@ -18,9 +18,10 @@ public sealed partial class MainWindow : Window
         RenderStaticState();
         RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
         CommandPreviewBox.Text = FormatCommand(ViewModel.BenchmarkPlan.CommandArguments);
+        _ = LoadRuntimeContractsAsync();
     }
 
-    public WindowsShellViewModel ViewModel { get; }
+    public WindowsShellViewModel ViewModel { get; private set; }
 
     public void HandleTrayAction(TrayActionKind action)
     {
@@ -78,10 +79,7 @@ public sealed partial class MainWindow : Window
 
     private void PreviewProfileSave_Click(object sender, RoutedEventArgs e)
     {
-        var form = new CustomDnsProfileFormViewModel(
-            ProfileNameBox.Text,
-            Ipv4Box.Text,
-            Ipv6Box.Text);
+        var form = BuildProfileForm();
 
         if (!form.Validation.CanSave)
         {
@@ -90,6 +88,44 @@ public sealed partial class MainWindow : Window
         }
 
         DiagnosticsBox.Text = FormatCommand(form.AddCommandArguments(ViewModel.DatabasePath));
+    }
+
+    private async void SaveProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var form = BuildProfileForm();
+        await MutateProfileAsync("Profile add", runner => runner.Add(ViewModel.DatabasePath, form));
+    }
+
+    private async void UpdateProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var form = BuildProfileForm();
+        var profileId = ProfileIdOrDefault(form);
+        await MutateProfileAsync("Profile update", runner => runner.Update(ViewModel.DatabasePath, profileId, form));
+    }
+
+    private async void DeleteProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var form = BuildProfileForm();
+        var profileId = ProfileIdOrDefault(form);
+        await MutateProfileAsync("Profile delete", runner => runner.Delete(ViewModel.DatabasePath, profileId));
+    }
+
+    private async void RefreshStorage_Click(object sender, RoutedEventArgs e)
+    {
+        await LoadRuntimeContractsAsync();
+    }
+
+    private async void ClearHistory_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await Task.Run(() => new BenchmarkHistoryRunner(DefaultCliPath()).Clear(ViewModel.DatabasePath));
+            await LoadRuntimeContractsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowDiagnostics("Clear history failed", ex);
+        }
     }
 
     private void SectionNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -146,6 +182,7 @@ public sealed partial class MainWindow : Window
                     string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim(),
                     string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
                 DiagnosticsBox.Text = _lastDiagnostics;
+                _ = LoadRuntimeContractsAsync();
                 return;
             }
 
@@ -171,6 +208,12 @@ public sealed partial class MainWindow : Window
     {
         DnsServersBox.Text = ViewModel.ApplyGuidance.CopyableDnsServers;
         ChecklistBox.Text = ViewModel.ApplyGuidance.CopyableChecklist;
+        ProfilesList.ItemsSource = ViewModel.ProfileRows
+            .Select(profile => $"{profile.Name} ({profile.Id}) - {string.Join(", ", profile.Ipv4Servers.Concat(profile.Ipv6Servers))}")
+            .ToArray();
+        HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
+            ? new[] { "No saved benchmark history" }
+            : ViewModel.HistoryRows.Select(row => $"{row.Title}: {row.RecommendationLabel} - {row.ApplyGuidanceLabel}").ToArray();
         DiagnosticsBox.Text = string.Join(
             Environment.NewLine,
             "Profile list:",
@@ -180,8 +223,91 @@ public sealed partial class MainWindow : Window
             FormatCommand(ViewModel.HistoryListCommand),
             "",
             "Store policy:",
-            ViewModel.StorePolicy.Notes);
+            ViewModel.StorePlatformCapability.Notes.FirstOrDefault() ?? ViewModel.StorePolicy.Notes,
+            "",
+            "Power edition:",
+            ViewModel.PowerPlatformCapability.Notes.FirstOrDefault() ?? ViewModel.PowerPolicy.Notes);
         _lastDiagnostics = DiagnosticsBox.Text;
+    }
+
+    private async Task LoadRuntimeContractsAsync()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ViewModel.DatabasePath) ?? ".");
+            var loaded = await Task.Run(() =>
+            {
+                var executablePath = DefaultCliPath();
+                var catalog = new CatalogRunner(executablePath).Load();
+                var capabilities = new CapabilityMatrixRunner(executablePath).Load();
+                var profiles = new ProfileListRunner(executablePath).Load(ViewModel.DatabasePath);
+                var history = new BenchmarkHistoryRunner(executablePath).Load(ViewModel.DatabasePath);
+                var firstProfile = catalog.Profiles.FirstOrDefault(profile => profile.Protocol == DnsProtocol.Plain);
+                var testedResolver = firstProfile?.Ipv4Servers.FirstOrDefault() is { } ipv4 ? $"{ipv4}:53" : null;
+                var applyPlan = new ApplyPlanRunner(executablePath).Load(
+                    new ApplyPlanRequest(
+                        firstProfile?.Id,
+                        testedResolver,
+                        ApplyPlanConfidence.High,
+                        ApplyPlanGateHealth.Healthy));
+
+                return WindowsShellViewModel.CreateLoaded(
+                    ViewModel.DatabasePath,
+                    catalog,
+                    capabilities,
+                    applyPlan,
+                    profiles,
+                    history);
+            });
+
+            ViewModel = loaded;
+            RenderStaticState();
+            RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
+            CommandPreviewBox.Text = FormatCommand(ViewModel.BenchmarkPlan.CommandArguments);
+        }
+        catch (Exception ex)
+        {
+            ShowDiagnostics("CLI contract load failed", ex);
+        }
+    }
+
+    private async Task MutateProfileAsync(string title, Action<CustomDnsProfileRunner> mutate)
+    {
+        try
+        {
+            await Task.Run(() => mutate(new CustomDnsProfileRunner(DefaultCliPath())));
+            await LoadRuntimeContractsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowDiagnostics(title + " failed", ex);
+        }
+    }
+
+    private CustomDnsProfileFormViewModel BuildProfileForm()
+    {
+        return new CustomDnsProfileFormViewModel(
+            ProfileNameBox.Text,
+            Ipv4Box.Text,
+            Ipv6Box.Text);
+    }
+
+    private string ProfileIdOrDefault(CustomDnsProfileFormViewModel form)
+    {
+        return string.IsNullOrWhiteSpace(ProfileIdBox.Text)
+            ? form.ProfileId
+            : ProfileIdBox.Text.Trim();
+    }
+
+    private void ShowDiagnostics(string title, Exception ex)
+    {
+        _lastDiagnostics = string.Join(
+            Environment.NewLine,
+            title,
+            ex.Message,
+            "",
+            ex.ToString());
+        DiagnosticsBox.Text = _lastDiagnostics;
     }
 
     private void RenderProgress(

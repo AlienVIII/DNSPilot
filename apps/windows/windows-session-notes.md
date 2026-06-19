@@ -13,6 +13,8 @@
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
 - WinUI project uses `requestedExecutionLevel level="asInvoker"` and no admin/service path.
 - CLI runtime path is `DNSPILOT_CLI_PATH` when set, otherwise `dnspilot-cli.exe` next to the app.
+- Windows shell now has decoders/runners for catalog, capabilities, apply-plan, profile list, and history list.
+- Custom DNS profile add/update/delete and history delete/clear run through the same CLI process boundary as benchmarks.
 
 ## Open Questions
 - Store packaging assets, signing, and MSIX submission metadata are not validated yet.
@@ -22,3 +24,4 @@
 - Keep lane changes in `apps/windows/**`.
 - Record Core CLI needs in `windows-core-cli-request.md`.
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
+- `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.

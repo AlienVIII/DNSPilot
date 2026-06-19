@@ -368,6 +368,27 @@ internal sealed class WindowsCoreTestSuite
         var history = new BenchmarkHistoryRunner("dnspilot-cli", historyRunnerProcess).Load("profiles.sqlite");
         Assert.Equal(1, history.BenchmarkHistoryCount);
         Assert.SequenceEqual(new[] { "history-list", "--db", "profiles.sqlite" }, historyRunnerProcess.LastArguments);
+
+        var historyDeleteProcess = new RecordingProcessRunner(new CliProcessOutput(0, "{\"deleted\":true}", ""));
+        new BenchmarkHistoryRunner("dnspilot-cli", historyDeleteProcess).Delete("profiles.sqlite", "compare-run-1");
+        Assert.SequenceEqual(new[] { "history-delete", "--db", "profiles.sqlite", "--id", "compare-run-1" }, historyDeleteProcess.LastArguments);
+
+        var historyClearProcess = new RecordingProcessRunner(new CliProcessOutput(0, "{\"cleared\":true}", ""));
+        new BenchmarkHistoryRunner("dnspilot-cli", historyClearProcess).Clear("profiles.sqlite");
+        Assert.SequenceEqual(new[] { "history-clear", "--db", "profiles.sqlite" }, historyClearProcess.LastArguments);
+
+        var form = new CustomDnsProfileFormViewModel("Lab DNS", "1.1.1.1", "2606:4700:4700::1111");
+        var profileAddProcess = new RecordingProcessRunner(new CliProcessOutput(0, "{\"saved\":true}", ""));
+        new CustomDnsProfileRunner("dnspilot-cli", profileAddProcess).Add("profiles.sqlite", form);
+        Assert.SequenceEqual(form.AddCommandArguments("profiles.sqlite"), profileAddProcess.LastArguments);
+
+        var profileUpdateProcess = new RecordingProcessRunner(new CliProcessOutput(0, "{\"saved\":true}", ""));
+        new CustomDnsProfileRunner("dnspilot-cli", profileUpdateProcess).Update("profiles.sqlite", "lab-dns", form);
+        Assert.SequenceEqual(form.UpdateCommandArguments("profiles.sqlite", "lab-dns"), profileUpdateProcess.LastArguments);
+
+        var profileDeleteProcess = new RecordingProcessRunner(new CliProcessOutput(0, "{\"deleted\":true}", ""));
+        new CustomDnsProfileRunner("dnspilot-cli", profileDeleteProcess).Delete("profiles.sqlite", "lab-dns");
+        Assert.SequenceEqual(ProfileManagementCommands.Delete("profiles.sqlite", "lab-dns"), profileDeleteProcess.LastArguments);
     }
 
     private static void ProfileAndHistoryListDecodersMapRows()
