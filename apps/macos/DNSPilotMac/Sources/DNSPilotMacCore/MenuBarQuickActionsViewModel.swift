@@ -9,6 +9,8 @@ public enum MenuBarQuickDestination: String, Equatable {
     case openApp
     case benchmark
     case quickBenchmark
+    case guidedApplyLastDNS
+    case copyLastDNS
     case systemDNSValidation
     case history
     case networkSettings
@@ -36,8 +38,8 @@ public struct MenuBarQuickAction: Equatable, Identifiable {
 public struct MenuBarQuickActionsViewModel: Equatable {
     public let actions: [MenuBarQuickAction]
 
-    public init() {
-        actions = [
+    public init(lastGuidedApplyPlan: GuidedApplyPlanSnapshot? = nil) {
+        var actions = [
             MenuBarQuickAction(
                 id: "open-app",
                 title: "Open DNS Pilot",
@@ -56,6 +58,26 @@ public struct MenuBarQuickActionsViewModel: Equatable {
                 systemImage: "play.fill",
                 kind: .destination(.quickBenchmark)
             ),
+        ]
+
+        if lastGuidedApplyPlan != nil {
+            actions += [
+                MenuBarQuickAction(
+                    id: "guided-apply-last-dns",
+                    title: "Apply Last DNS",
+                    systemImage: "gearshape",
+                    kind: .destination(.guidedApplyLastDNS)
+                ),
+                MenuBarQuickAction(
+                    id: "copy-last-dns",
+                    title: "Copy Last DNS",
+                    systemImage: "doc.on.doc",
+                    kind: .destination(.copyLastDNS)
+                ),
+            ]
+        }
+
+        actions += [
             MenuBarQuickAction(
                 id: "validate-system-dns",
                 title: "Validate System DNS",
@@ -81,5 +103,6 @@ public struct MenuBarQuickActionsViewModel: Equatable {
                 kind: .quit
             ),
         ]
+        self.actions = actions
     }
 }

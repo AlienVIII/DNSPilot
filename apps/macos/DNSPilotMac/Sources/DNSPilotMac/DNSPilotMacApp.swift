@@ -37,6 +37,14 @@ private final class DNSPilotNavigationModel: ObservableObject {
     @Published var selection: SidebarSelection? = .capabilities
     @Published var quickBenchmarkRequestID = 0
     @Published var systemDNSValidationRequestID = 0
+    @Published var lastGuidedApplyPlan: GuidedApplyPlanSnapshot?
+
+    private let guidedApplyPlanStore: GuidedApplyPlanStore
+
+    init(guidedApplyPlanStore: GuidedApplyPlanStore = GuidedApplyPlanStore()) {
+        self.guidedApplyPlanStore = guidedApplyPlanStore
+        lastGuidedApplyPlan = guidedApplyPlanStore.load()
+    }
 
     func requestQuickBenchmark() {
         selection = .benchmark
@@ -47,13 +55,24 @@ private final class DNSPilotNavigationModel: ObservableObject {
         selection = .benchmark
         systemDNSValidationRequestID += 1
     }
+
+    func setLastGuidedApplyPlan(_ snapshot: GuidedApplyPlanSnapshot?) {
+        lastGuidedApplyPlan = snapshot
+        if let snapshot {
+            guidedApplyPlanStore.save(snapshot)
+        } else {
+            guidedApplyPlanStore.clear()
+        }
+    }
 }
 
 private struct DNSPilotMenuBarView: View {
     @ObservedObject var navigation: DNSPilotNavigationModel
     @Environment(\.openWindow) private var openWindow
 
-    private let viewModel = MenuBarQuickActionsViewModel()
+    private var viewModel: MenuBarQuickActionsViewModel {
+        MenuBarQuickActionsViewModel(lastGuidedApplyPlan: navigation.lastGuidedApplyPlan)
+    }
 
     var body: some View {
         ForEach(viewModel.actions) { action in
@@ -83,6 +102,19 @@ private struct DNSPilotMenuBarView: View {
             navigation.selection = .benchmark
         case .quickBenchmark:
             navigation.requestQuickBenchmark()
+        case .guidedApplyLastDNS:
+            guard let plan = navigation.lastGuidedApplyPlan else {
+                return
+            }
+            copyToPasteboard(plan.dnsServerText)
+            openNetworkSettings()
+            return
+        case .copyLastDNS:
+            guard let plan = navigation.lastGuidedApplyPlan else {
+                return
+            }
+            copyToPasteboard(plan.dnsServerText)
+            return
         case .systemDNSValidation:
             navigation.requestSystemDNSValidation()
         case .history:
@@ -233,7 +265,8 @@ private struct DNSPilotShellView: View {
                     catalogViewModel: catalogViewModel,
                     quickBenchmarkRequestID: navigation.quickBenchmarkRequestID,
                     systemDNSValidationRequestID: navigation.systemDNSValidationRequestID,
-                    onCatalogChanged: refreshCatalogFromStorage
+                    onCatalogChanged: refreshCatalogFromStorage,
+                    onGuidedApplyPlanChanged: navigation.setLastGuidedApplyPlan
                 )
             case .customDNS:
                 CustomDNSDetailHostView(
@@ -871,6 +904,7 @@ private struct BenchmarkDetailHostView: View {
     let quickBenchmarkRequestID: Int
     let systemDNSValidationRequestID: Int
     let onCatalogChanged: () -> Void
+    let onGuidedApplyPlanChanged: (GuidedApplyPlanSnapshot?) -> Void
 
     var body: some View {
         if let loadErrorMessage = catalogViewModel.loadErrorMessage {
@@ -881,7 +915,8 @@ private struct BenchmarkDetailHostView: View {
                 executableAvailability: BenchmarkExecutableResolver().resolve(),
                 quickBenchmarkRequestID: quickBenchmarkRequestID,
                 systemDNSValidationRequestID: systemDNSValidationRequestID,
-                onCatalogChanged: onCatalogChanged
+                onCatalogChanged: onCatalogChanged,
+                onGuidedApplyPlanChanged: onGuidedApplyPlanChanged
             )
         } else {
             BenchmarkUnavailableView(message: "Catalog unavailable.")
@@ -1160,6 +1195,7 @@ private struct BenchmarkDetailView: View {
     let quickBenchmarkRequestID: Int
     let systemDNSValidationRequestID: Int
     let onCatalogChanged: () -> Void
+    let onGuidedApplyPlanChanged: (GuidedApplyPlanSnapshot?) -> Void
 
     @State private var selectedProfileIDs: [String]
     @State private var selectedSuiteID: String?
@@ -1253,13 +1289,15 @@ private struct BenchmarkDetailView: View {
         executableAvailability: BenchmarkExecutableAvailability,
         quickBenchmarkRequestID: Int,
         systemDNSValidationRequestID: Int,
-        onCatalogChanged: @escaping () -> Void
+        onCatalogChanged: @escaping () -> Void,
+        onGuidedApplyPlanChanged: @escaping (GuidedApplyPlanSnapshot?) -> Void
     ) {
         self.catalog = catalog
         self.executableAvailability = executableAvailability
         self.quickBenchmarkRequestID = quickBenchmarkRequestID
         self.systemDNSValidationRequestID = systemDNSValidationRequestID
         self.onCatalogChanged = onCatalogChanged
+        self.onGuidedApplyPlanChanged = onGuidedApplyPlanChanged
         let defaults = BenchmarkSetupViewModel(
             catalog: catalog,
             executableAvailability: executableAvailability
@@ -2054,6 +2092,7 @@ private struct BenchmarkDetailView: View {
         let runID = runStateMachine.start()
         let cancellation = BenchmarkRunCancellation()
         currentCancellation = cancellation
+        onGuidedApplyPlanChanged(nil)
         outcome = nil
         applyPlanOutcome = nil
         isLoadingApplyPlan = false
@@ -2167,6 +2206,12 @@ private struct BenchmarkDetailView: View {
                 }
                 isLoadingApplyPlan = false
                 applyPlanOutcome = loadedOutcome
+                switch loadedOutcome {
+                case .loaded(let viewModel):
+                    onGuidedApplyPlanChanged(GuidedApplyPlanSnapshot.make(from: viewModel))
+                case .failed:
+                    onGuidedApplyPlanChanged(nil)
+                }
             }
         }
     }

@@ -15,6 +15,39 @@ final class MenuBarQuickActionsViewModelTests: XCTestCase {
         XCTAssertEqual(destinations, [.openApp, .benchmark, .quickBenchmark, .systemDNSValidation, .history, .networkSettings])
     }
 
+    func testQuickActionsExposeStoreSafeLastDNSActionsWhenAvailable() {
+        let viewModel = MenuBarQuickActionsViewModel(
+            lastGuidedApplyPlan: GuidedApplyPlanSnapshot(
+                profileID: "cloudflare",
+                profileName: "Cloudflare",
+                testedResolver: "1.1.1.1:53",
+                dnsServers: ["1.1.1.1", "1.0.0.1"],
+                notes: [],
+                createdAt: Date(timeIntervalSince1970: 1)
+            )
+        )
+
+        let destinations = viewModel.actions.compactMap { action -> MenuBarQuickDestination? in
+            if case .destination(let destination) = action.kind {
+                return destination
+            }
+            return nil
+        }
+
+        XCTAssertEqual(destinations, [
+            .openApp,
+            .benchmark,
+            .quickBenchmark,
+            .guidedApplyLastDNS,
+            .copyLastDNS,
+            .systemDNSValidation,
+            .history,
+            .networkSettings,
+        ])
+        XCTAssertEqual(viewModel.actions.first { $0.id == "guided-apply-last-dns" }?.title, "Apply Last DNS")
+        XCTAssertEqual(viewModel.actions.first { $0.id == "copy-last-dns" }?.title, "Copy Last DNS")
+    }
+
     func testQuickActionTitlesStayShortForMenuBar() {
         let viewModel = MenuBarQuickActionsViewModel()
 
