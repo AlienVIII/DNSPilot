@@ -24,8 +24,19 @@ Notes:
   Snap lane must not promise DNS apply.
 - deb/rpm without NetworkManager or systemd-resolved plus polkit is
   diagnostics-only for apply.
-- Capability detection is mocked in the current Linux shell package so CI can
-  validate behavior without distro mutation.
+- Capability detection has a non-mutating runtime path plus mocked snapshot
+  inputs for deterministic CI and later QA.
+
+CLI detection example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- detect
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- detect \
+  --mock-env FLATPAK_ID=com.example.DNSPilot \
+  --mock-command nmcli \
+  --mock-command pkcheck
+```
 
 ## Benchmark Modes
 

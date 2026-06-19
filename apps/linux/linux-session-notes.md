@@ -23,3 +23,4 @@
 - Record Core CLI needs in `linux-core-cli-request.md`.
 - Run `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`.
 - CLI examples are documented in `linux-ux-spec.md`.
+- Current critique/risk summary is documented in `linux-self-review.md`.

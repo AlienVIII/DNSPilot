@@ -15,6 +15,8 @@
 - Added Linux app/session workflow for mode/profile/suite/domain readiness and benchmark plan construction.
 - Added file-backed custom profile repository with schema versioning.
 - Added CLI product commands for profile add/list/delete, benchmark plan generation, executable run, and guided apply/native-plan output.
+- Added non-mutating Linux capability auto-detection plus mocked snapshot detection for deterministic QA.
+- Added self-review and counterargument summary in `linux-self-review.md`.
 
 ## Current Work
 - Linux lane UX/spec/code is implemented for scoped benchmark, profile, diagnostics, guidance, and native-power planning behavior.
@@ -26,3 +28,4 @@
 ## Next Actions
 - Wire a native GUI shell to the Linux app/session package when GTK/libadwaita or Qt is selected.
 - Later QA: Flatpak, Snap, deb, and rpm package-specific verification.
+- Use `linux-self-review.md` as the current critique/risk summary before starting GUI/native-helper work.
