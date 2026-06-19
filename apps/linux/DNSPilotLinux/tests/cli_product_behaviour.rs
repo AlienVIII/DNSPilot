@@ -274,6 +274,29 @@ fn cli_guide_for_native_power_outputs_native_plan_without_fake_guidance() {
     assert!(!stdout.contains("Copy DNS servers:"));
 }
 
+#[test]
+fn cli_detect_renders_capability_report_from_mocked_snapshot() {
+    let output = binary()
+        .args([
+            "detect",
+            "--mock-env",
+            "FLATPAK_ID=com.example.DNSPilot",
+            "--mock-command",
+            "nmcli",
+            "--mock-command",
+            "pkcheck",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("DNS Pilot Linux Debug Report"));
+    assert!(stdout.contains("Package: Flatpak"));
+    assert!(stdout.contains("Apply path: Guided settings"));
+    assert!(stdout.contains("Real DNS apply: not available"));
+}
+
 #[cfg(unix)]
 fn make_executable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;

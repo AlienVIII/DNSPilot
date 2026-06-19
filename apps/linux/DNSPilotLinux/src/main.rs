@@ -6,6 +6,9 @@ use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxEnvironmentProbe,
     LinuxPackageKind,
 };
+use dnspilot_linux_shell::detect::{
+    detect_linux_environment, detect_linux_environment_from_snapshot, LinuxDetectionSnapshot,
+};
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
 use dnspilot_linux_shell::process::LinuxBenchmarkProcessViewModel;
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
@@ -36,6 +39,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
         Some("plan") => run_plan(args.into_iter().skip(1)),
         Some("run") => run_execute(args.into_iter().skip(1)),
         Some("guide") => run_guide(args.into_iter().skip(1)),
+        Some("detect") => run_detect(args.into_iter().skip(1)),
         _ => run_legacy_report(args),
     }
 }
@@ -198,6 +202,18 @@ fn run_guide(args: impl IntoIterator<Item = String>) -> Result<String, CliError>
     ))
 }
 
+fn run_detect(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let config = DetectConfig::parse(args)?;
+    let probe = if config.has_mock_inputs {
+        detect_linux_environment_from_snapshot(&config.snapshot)
+    } else {
+        detect_linux_environment()
+    };
+    let capability = capability_view_model(probe);
+    let process = completed_mock_process(BenchmarkMode::DnsOnly);
+    Ok(LinuxDiagnosticReport::new("detected-linux", capability, process).to_copyable_text())
+}
+
 fn build_plan_from_config(
     config: &PlanConfig,
 ) -> Result<
@@ -342,6 +358,45 @@ struct PlanConfig {
     systemd_resolved_available: bool,
     polkit_available: bool,
     system_resolver_probe_available: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DetectConfig {
+    snapshot: LinuxDetectionSnapshot,
+    has_mock_inputs: bool,
+}
+
+impl DetectConfig {
+    fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, CliError> {
+        let mut snapshot = LinuxDetectionSnapshot::empty();
+        let mut has_mock_inputs = false;
+        let mut args = args.into_iter();
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--mock-env" => {
+                    let pair = next_arg(&mut args, "--mock-env")?;
+                    let (key, value) = pair
+                        .split_once('=')
+                        .ok_or_else(|| CliError::new(2, "--mock-env must use KEY=VALUE"))?;
+                    snapshot = snapshot.with_env(key, value);
+                    has_mock_inputs = true;
+                }
+                "--mock-path" => {
+                    snapshot = snapshot.with_path(next_arg(&mut args, "--mock-path")?);
+                    has_mock_inputs = true;
+                }
+                "--mock-command" => {
+                    snapshot = snapshot.with_command(next_arg(&mut args, "--mock-command")?);
+                    has_mock_inputs = true;
+                }
+                _ => return Err(CliError::new(2, format!("unknown argument: {arg}"))),
+            }
+        }
+        Ok(Self {
+            snapshot,
+            has_mock_inputs,
+        })
+    }
 }
 
 impl PlanConfig {

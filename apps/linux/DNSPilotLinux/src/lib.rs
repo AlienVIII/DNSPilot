@@ -1,6 +1,7 @@
 pub mod app;
 pub mod benchmark;
 pub mod capabilities;
+pub mod detect;
 pub mod diagnostics;
 pub mod process;
 pub mod profiles;
