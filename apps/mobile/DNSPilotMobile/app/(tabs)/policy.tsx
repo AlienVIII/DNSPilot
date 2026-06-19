@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { BridgeResult, compactJson, PlatformId, profileServers } from '@/src/api/dnspilot';
+import { BridgeResult, compactJson, profileServers } from '@/src/api/dnspilot';
 import {
   Button,
   CodeBlock,
@@ -18,6 +18,7 @@ import {
   palette,
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
+import { buildSettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type MobilePlatform = 'ios' | 'android-play';
 type GateHealth = 'healthy' | 'degraded' | 'failed' | 'inconclusive';
@@ -59,6 +60,9 @@ export default function PolicyScreen() {
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
   const selectedProfile = plainProfiles.find((profile) => profile.id === profileId);
   const capability = capabilities.find((item) => item.platform === platform);
+  const guidance = results.applyPlan
+    ? buildSettingsGuidance({ platform, applyPlan: results.applyPlan.data })
+    : null;
 
   useEffect(() => {
     if (!profileId && plainProfiles.length > 0) {
@@ -145,6 +149,37 @@ export default function PolicyScreen() {
         <ToggleRow label="Corporate DNS detected" value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
         <ToggleRow label="Captive portal detected" value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
         <Button label="Load policy payloads" onPress={runPolicy} loading={working} />
+      </Section>
+
+      <Section title="Guided Flow" subtitle="Capability-based OS flow. The app does not silently mutate system DNS.">
+        {guidance ? (
+          <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 10, padding: 12 }}>
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
+              <Text selectable style={{ color: palette.text, flex: 1, fontSize: 16, fontWeight: '800' }}>
+                {guidance.title}
+              </Text>
+              <Pill label={guidance.mode} tone={guidance.mode === 'protect' ? 'red' : 'blue'} />
+            </View>
+            <Row>
+              <Metric label="Mutates DNS" value={guidance.canMutateSystemDns ? 'yes' : 'no'} tone={guidance.canMutateSystemDns ? 'red' : 'green'} />
+              <Metric label="Steps" value={guidance.steps.length} tone="amber" />
+            </Row>
+            <View style={{ gap: 8 }}>
+              {guidance.steps.map((step, index) => (
+                <View key={`${index}-${step}`} style={{ backgroundColor: palette.background, borderColor: palette.border, borderRadius: 8, borderWidth: 1, padding: 10 }}>
+                  <Text selectable style={{ color: palette.text, fontSize: 13, lineHeight: 18 }}>
+                    {index + 1}. {step}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+              {guidance.claims.join(' ')}
+            </Text>
+          </View>
+        ) : (
+          <EmptyState text="Load policy payloads to generate the OS guidance flow." />
+        )}
       </Section>
 
       <Section title="Payloads" subtitle="Raw core/CLI JSON is selectable for issue reports.">

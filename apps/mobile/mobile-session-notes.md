@@ -14,6 +14,9 @@
 - Benchmark UI now builds diagnostics from CLI result/progress payloads:
   process steps, resolver rows, failed step/reason, debug command, and report
   copy via `expo-clipboard`.
+- Policy UI now derives store-safe guided flows from apply-plan payloads:
+  iOS/iPadOS DNS Settings profile guidance, Android settings/Private DNS
+  guidance, and protect-current-dns suppression.
 
 ## Open Questions
 - Release path: direct Rust native module/FFI versus separate SwiftUI/Kotlin

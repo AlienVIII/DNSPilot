@@ -10,6 +10,8 @@
   and recommendation sample flows.
 - Added benchmark process diagnostics: per-step status, resolver status rows,
   elapsed time, failed step/reason, debug log, and copyable report.
+- Added capability-based guided DNS settings/profile flow for iOS/iPadOS and
+  Android, including protected-network suppression.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge.
