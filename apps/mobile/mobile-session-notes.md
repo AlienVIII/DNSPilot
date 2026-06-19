@@ -18,6 +18,8 @@
   copy via `expo-clipboard`.
 - Benchmark runs now start bridge jobs and poll while foregrounded, so partial
   resolver progress appears before the final parsed JSON result.
+- Benchmark results can now request a core apply-plan directly from the
+  recommendation, with iOS/Android selector and protected-network flags.
 - Policy UI now derives store-safe guided flows from apply-plan payloads:
   iOS/iPadOS DNS Settings profile guidance, Android settings/Private DNS
   guidance, and protect-current-dns suppression.

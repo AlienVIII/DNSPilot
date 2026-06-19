@@ -20,12 +20,14 @@ import {
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 import { compactList, lines } from '@/src/utils/forms';
+import { buildApplyPlanRequest, type ApplyPlanRequest } from '@/src/view-models/benchmark-guidance';
 import {
   buildBenchmarkDiagnostics,
   type BenchmarkDiagnostics,
   type BenchmarkStepStatus,
   type ResolverDiagnostic,
 } from '@/src/view-models/benchmark-diagnostics';
+import { buildSettingsGuidance, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type Mode = 'compare' | 'pathCompare' | 'benchmark' | 'pathEstimate' | 'systemBenchmark';
 type IpFamily = 'both' | 'ipv4-only' | 'ipv6-only';
@@ -51,9 +53,10 @@ const platformOptions: { label: string; value: MobilePlatform }[] = [
 ];
 
 export default function BenchmarkScreen() {
-  const { profiles, suites, error, refreshAll, startJob, getJob } = useDNSPilot();
+  const { profiles, suites, error, refreshAll, runAction, startJob, getJob } = useDNSPilot();
   const [mode, setMode] = useState<Mode>('pathCompare');
   const [benchmarkPlatform, setBenchmarkPlatform] = useState<MobilePlatform>('ios');
+  const [guidancePlatform, setGuidancePlatform] = useState<MobilePlatform>('ios');
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [suiteId, setSuiteId] = useState<string>('');
   const [domains, setDomains] = useState('github.com\nexpo.dev\nmicrosoft.com');
@@ -67,9 +70,35 @@ export default function BenchmarkScreen() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<BridgeResult | null>(null);
   const [diagnostics, setDiagnostics] = useState<BenchmarkDiagnostics | null>(null);
+  const [guidance, setGuidance] = useState<SettingsGuidance | null>(null);
+  const [guidancePayload, setGuidancePayload] = useState<BridgeResult | null>(null);
+  const [guidanceWorking, setGuidanceWorking] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [vpnActive, setVpnActive] = useState(false);
+  const [mdmProfileActive, setMdmProfileActive] = useState(false);
+  const [corporateDnsDetected, setCorporateDnsDetected] = useState(false);
+  const [captivePortalDetected, setCaptivePortalDetected] = useState(false);
 
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
+  const protectedEnvironment = useMemo(
+    () => ({
+      vpnActive,
+      mdmProfileActive,
+      corporateDnsDetected,
+      captivePortalDetected,
+    }),
+    [captivePortalDetected, corporateDnsDetected, mdmProfileActive, vpnActive]
+  );
+  const applyPlanRequest = useMemo(
+    () =>
+      buildApplyPlanRequest({
+        platform: guidancePlatform,
+        result,
+        profiles,
+        environment: protectedEnvironment,
+      }),
+    [guidancePlatform, profiles, protectedEnvironment, result]
+  );
 
   useEffect(() => {
     if (plainProfiles.length > 0 && selectedProfiles.length === 0) {
@@ -77,6 +106,11 @@ export default function BenchmarkScreen() {
       setSelectedProfiles(preferred.length > 0 ? preferred : plainProfiles.slice(0, 3).map((profile) => profile.id));
     }
   }, [plainProfiles, selectedProfiles.length]);
+
+  useEffect(() => {
+    setGuidance(null);
+    setGuidancePayload(null);
+  }, [captivePortalDetected, corporateDnsDetected, guidancePlatform, mdmProfileActive, result, vpnActive]);
 
   function toggleProfile(profile: DNSProfile) {
     setSelectedProfiles((current) =>
@@ -89,6 +123,8 @@ export default function BenchmarkScreen() {
     const runMode = mode;
     setRunning(true);
     setResult(null);
+    setGuidance(null);
+    setGuidancePayload(null);
     setCopyStatus(null);
     setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, startedAtMs }));
     try {
@@ -135,6 +171,19 @@ export default function BenchmarkScreen() {
     if (!diagnostics) return;
     await Clipboard.setStringAsync(diagnostics.report);
     setCopyStatus('Report copied.');
+  }
+
+  async function loadGuidedPlan() {
+    if (!applyPlanRequest) return;
+    setGuidanceWorking(true);
+    try {
+      const payload = applyPlanPayload(applyPlanRequest);
+      const next = await runAction('applyPlan', payload);
+      setGuidancePayload(next);
+      setGuidance(buildSettingsGuidance({ platform: guidancePlatform, applyPlan: next.data }));
+    } finally {
+      setGuidanceWorking(false);
+    }
   }
 
   const resultData = result?.data as Record<string, unknown> | undefined;
@@ -263,8 +312,76 @@ export default function BenchmarkScreen() {
           <EmptyState text="No benchmark result yet." />
         )}
       </Section>
+
+      <Section title="Guided DNS Settings" subtitle="Store-safe next step from the benchmark recommendation. No silent system DNS mutation.">
+        {result ? (
+          <>
+            <Segmented options={platformOptions} value={guidancePlatform} onChange={setGuidancePlatform} />
+            <Row>
+              <ToggleRow label="VPN active" value={vpnActive} onValueChange={setVpnActive} />
+              <ToggleRow label="MDM active" value={mdmProfileActive} onValueChange={setMdmProfileActive} />
+            </Row>
+            <Row>
+              <ToggleRow label="Corporate DNS" value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
+              <ToggleRow label="Captive portal" value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
+            </Row>
+            {applyPlanRequest ? (
+              <>
+                <Row>
+                  <Metric label="Recommended" value={applyPlanRequest.profileName} tone="green" />
+                  <Metric label="Health" value={applyPlanRequest.gateHealth} tone={applyPlanRequest.gateHealth === 'healthy' ? 'green' : 'amber'} />
+                  <Metric label="Confidence" value={applyPlanRequest.confidence} tone="blue" />
+                </Row>
+                <Button label="Load guided settings plan" onPress={loadGuidedPlan} loading={guidanceWorking} variant="secondary" />
+              </>
+            ) : (
+              <EmptyState text="No guided settings plan is available because the benchmark did not return a recommendation." />
+            )}
+            {guidance ? (
+              <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 10, padding: 12 }}>
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
+                  <Text selectable style={{ color: palette.text, flex: 1, fontSize: 16, fontWeight: '800' }}>
+                    {guidance.title}
+                  </Text>
+                  <Pill label={guidance.mode} tone={guidance.mode === 'protect' ? 'red' : 'blue'} />
+                </View>
+                <Row>
+                  <Metric label="Mutates DNS" value={guidance.canMutateSystemDns ? 'yes' : 'no'} tone={guidance.canMutateSystemDns ? 'red' : 'green'} />
+                  <Metric label="Steps" value={guidance.steps.length} tone="amber" />
+                </Row>
+                <View style={{ gap: 8 }}>
+                  {guidance.steps.map((step, index) => (
+                    <View key={`${index}-${step}`} style={{ backgroundColor: palette.background, borderColor: palette.border, borderRadius: 8, borderWidth: 1, padding: 10 }}>
+                      <Text selectable style={{ color: palette.text, fontSize: 13, lineHeight: 18 }}>
+                        {index + 1}. {step}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+                  {guidance.claims.join(' ')}
+                </Text>
+                {guidancePayload ? <CodeBlock text={compactJson(guidancePayload.data, 2200)} /> : null}
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <EmptyState text="Run a benchmark first." />
+        )}
+      </Section>
     </Screen>
   );
+}
+
+function applyPlanPayload(request: ApplyPlanRequest) {
+  return {
+    platform: request.platform,
+    profileId: request.profileId,
+    testedResolver: request.testedResolver,
+    confidence: request.confidence,
+    gateHealth: request.gateHealth,
+    environment: request.environment,
+  };
 }
 
 function diagnosticsForJob(mode: Mode, job: BridgeJob, startedAtMs: number) {

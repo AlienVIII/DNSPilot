@@ -18,6 +18,8 @@
   tablet layouts to key Overview, Storage, and Policy flows.
 - Added System DNS validation platform selector plus A/AAAA help text for
   IPv4/IPv6 troubleshooting.
+- Added benchmark-result guided settings plan: recommended profile, OS selector,
+  protected-network flags, core apply-plan payload, and store-safe steps.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge, with
