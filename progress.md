@@ -123,6 +123,7 @@ DNS handling, and platform capability reporting.
 - [x] [112] v0.1 macOS fastest vs balanced result labels — separate raw fastest DNS from safety-gated recommendation.
 - [x] [113] v0.1 macOS selected profile guided apply — apply selected plain DNS profiles from Catalog with confirmation.
 - [x] [114] v0.1 saved-domain suites — add YouTube, GitHub, and ChatGPT/OpenAI presets.
+- [x] [115] v0.1 macOS product goal readiness — show support level and caveats for main goals.
 
 ---
 
@@ -5880,4 +5881,40 @@ Result: 197 passed, 0 failed
 
 ./script/build_and_run.sh --verify
 Result: macOS bundle structural validation passed
+```
+
+---
+
+## Chunk 115: v0.1 macOS Product Goal Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The macOS Capabilities screen now includes a Product Goals readiness section.
+It shows the current support level for fastest DNS, balanced DNS, selected DNS
+apply, DNS flush, saved domain suites, and game server checks.
+
+### Edge Cases / Caveats
+
+- Apply and flush are intentionally marked as Store-safe guided, not silent
+  system mutation.
+- Game checks are marked as estimates because they use DNS + TCP path probes,
+  not ICMP ping or in-match UDP latency.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter ProductGoalReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 229 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
 ```

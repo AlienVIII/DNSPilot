@@ -25,6 +25,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   issue decisions before UI/apply prompts.
 - Apply-prompt safety policy that protects VPN, MDM, corporate DNS, and captive
   portal networks.
+- macOS Product Goals readiness panel summarizing supported, store-safe guided,
+  and estimate-only features with explicit caveats.
 - Versioned storage snapshot contract for profiles, test suites, and benchmark
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.
@@ -211,6 +213,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Game Ping screen for gaming DNS/TCP path checks with selectable
   built-in gaming presets and DNS candidates. It reports connection-path
   estimates, not ICMP or in-match UDP latency.
+- macOS Capabilities screen includes Product Goals readiness, making fastest
+  DNS, balanced recommendation, guided apply, guided flush, saved domains, and
+  game checks visible with their current product limits.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom

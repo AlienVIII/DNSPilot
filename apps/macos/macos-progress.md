@@ -21,6 +21,7 @@
 - Game Ping sidebar screen runs DNS/TCP path checks for gaming presets with selectable DNS candidates, progress, result grid, and copyable report; it is explicit that this is not ICMP or in-match UDP latency.
 - Benchmark and Game Ping results show fastest observed DNS separately from the balanced recommendation.
 - Catalog provider rows can start confirmed store-safe apply for selected plain DNS profiles.
+- Capabilities screen includes Product Goals readiness with current support level and caveats for fastest DNS, balanced DNS, guided apply, guided flush, saved domains, and game checks.
 
 ## Current Work
 - macOS remains UX lead lane.

@@ -1310,41 +1310,94 @@ private struct CustomDNSSaveStatusView: View {
 
 private struct CapabilityMatrixDetailView: View {
     let viewModel: CapabilityMatrixViewModel
+    private let productGoalReadiness = ProductGoalReadinessViewModel()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
-            Text("Capability Matrix")
-                .font(.title2.weight(.semibold))
+        ScrollView {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                Text("Capability Matrix")
+                    .font(.title2.weight(.semibold))
 
-            if let loadErrorMessage = viewModel.loadErrorMessage {
-                Label(loadErrorMessage, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.secondary)
-            } else {
-                Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: DNSPilotDesign.Spacing.row) {
-                    GridRow {
-                        Text("Platform").font(.headline)
-                        Text("Benchmark").font(.headline)
-                        Text("Apply").font(.headline)
-                        Text("Flush").font(.headline)
-                    }
+                ProductGoalReadinessSection(viewModel: productGoalReadiness)
 
-                    ForEach(viewModel.rows) { row in
+                if let loadErrorMessage = viewModel.loadErrorMessage {
+                    Label(loadErrorMessage, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: DNSPilotDesign.Spacing.row) {
                         GridRow {
-                            Text(row.platformName)
-                            Image(systemName: row.canBenchmark ? "speedometer" : "minus.circle")
-                                .help(row.canBenchmark ? "Can benchmark" : "Cannot benchmark")
-                            Text(row.applyLabel)
-                            Text(row.flushLabel)
+                            Text("Platform").font(.headline)
+                            Text("Benchmark").font(.headline)
+                            Text("Apply").font(.headline)
+                            Text("Flush").font(.headline)
+                        }
+
+                        ForEach(viewModel.rows) { row in
+                            GridRow {
+                                Text(row.platformName)
+                                Image(systemName: row.canBenchmark ? "speedometer" : "minus.circle")
+                                    .help(row.canBenchmark ? "Can benchmark" : "Cannot benchmark")
+                                Text(row.applyLabel)
+                                Text(row.flushLabel)
+                            }
                         }
                     }
                 }
             }
-
-            Spacer()
+            .padding(DNSPilotDesign.Spacing.panel)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(DNSPilotDesign.Spacing.panel)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(DNSPilotDesign.Palette.background)
+    }
+}
+
+private struct ProductGoalReadinessSection: View {
+    let viewModel: ProductGoalReadinessViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+            Text("Product Goals")
+                .font(.headline)
+
+            ForEach(viewModel.rows) { row in
+                ProductGoalReadinessRowView(row: row)
+            }
+        }
+    }
+}
+
+private struct ProductGoalReadinessRowView: View {
+    let row: ProductGoalReadinessRow
+
+    var body: some View {
+        Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.row, verticalSpacing: 2) {
+            GridRow {
+                Label(row.statusLabel, systemImage: row.systemImage)
+                    .foregroundStyle(statusColor)
+                    .frame(width: 150, alignment: .leading)
+                    .help(row.caveat)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.title)
+                        .font(.subheadline.weight(.semibold))
+                    Text(row.summary)
+                        .foregroundStyle(.secondary)
+                    Text(row.caveat)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .font(.subheadline)
+    }
+
+    private var statusColor: Color {
+        switch row.status {
+        case .supported:
+            DNSPilotDesign.Palette.success
+        case .storeSafeGuided, .estimated:
+            DNSPilotDesign.Palette.warning
+        }
     }
 }
 
