@@ -5,4 +5,5 @@ pub mod diagnostics;
 pub mod process;
 pub mod profiles;
 pub mod settings;
+pub mod storage;
 pub mod suites;
