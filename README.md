@@ -226,6 +226,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Benchmark/Catalog Power buttons can apply selected DNS with explicit
   confirmation when `DNSPILOT_ENABLE_POWER_ACTIONS=1`; Flush DNS dialogs can
   run an administrator flush or copy the store-safe checklist.
+- macOS Capabilities/Product Goals surfaces include the macOS Power path so
+  store-safe and direct-install behavior stay visibly separated.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom

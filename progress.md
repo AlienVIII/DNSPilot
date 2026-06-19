@@ -126,6 +126,7 @@ DNS handling, and platform capability reporting.
 - [x] [115] v0.1 macOS product goal readiness — show support level and caveats for main goals.
 - [x] [116] v0.1 macOS power DNS action runner — add disabled-by-default admin apply/flush adapter.
 - [x] [117] v0.1 macOS power apply/flush UI — expose admin actions only behind explicit Power flag.
+- [x] [118] v0.1 macOS power capability alignment — reflect Power path in readiness and capability matrix.
 
 ---
 
@@ -5913,6 +5914,40 @@ Result: 3 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 229 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 118: v0.1 macOS Power Capability Alignment
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CapabilityMatrixViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CapabilityMatrixViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The Swift preview capability matrix now includes `macos-power`, matching the
+Rust core capability model. Product Goals caveats now explicitly mention the
+`DNSPILOT_ENABLE_POWER_ACTIONS` path for admin apply/flush.
+
+### Edge Cases / Caveats
+
+- macOS Store remains the default store-safe product path.
+- macOS Power is direct-install only and not App Store-safe.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CapabilityMatrixViewModelTests/testDefaultMatrixIncludesPlatformFlushAndApplyPolicy --filter ProductGoalReadinessViewModelTests/testApplyAndFlushStayHonestAboutStoreSafeLimits
+Result: 2 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 237 passed, 0 failed
 
 git diff --check
 Result: passed

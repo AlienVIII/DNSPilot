@@ -24,6 +24,7 @@
 - Capabilities screen includes Product Goals readiness with current support level and caveats for fastest DNS, balanced DNS, guided apply, guided flush, saved domains, and game checks.
 - Power DNS action runner exists for direct-install builds, disabled by default and gated behind `DNSPILOT_ENABLE_POWER_ACTIONS`.
 - Power apply/flush UI appears only when `DNSPILOT_ENABLE_POWER_ACTIONS=1`; default store-safe builds keep copy/open-settings guidance.
+- Capability matrix now includes macOS Power so direct-install admin apply/flush is not confused with macOS Store behavior.
 
 ## Current Work
 - macOS remains UX lead lane.

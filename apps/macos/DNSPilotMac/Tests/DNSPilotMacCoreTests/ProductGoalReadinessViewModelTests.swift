@@ -24,9 +24,11 @@ final class ProductGoalReadinessViewModelTests: XCTestCase {
         XCTAssertEqual(apply?.status, .storeSafeGuided)
         XCTAssertEqual(apply?.statusLabel, "Store-safe guided")
         XCTAssertTrue(apply?.caveat.contains("Power edition") == true)
+        XCTAssertTrue(apply?.caveat.contains("DNSPILOT_ENABLE_POWER_ACTIONS") == true)
 
         XCTAssertEqual(flush?.status, .storeSafeGuided)
         XCTAssertTrue(flush?.caveat.contains("admin") == true)
+        XCTAssertTrue(flush?.caveat.contains("DNSPILOT_ENABLE_POWER_ACTIONS") == true)
     }
 
     func testGameChecksArePresentedAsEstimates() {
