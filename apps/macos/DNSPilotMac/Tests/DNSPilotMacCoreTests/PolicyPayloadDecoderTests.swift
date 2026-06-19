@@ -218,12 +218,20 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         let report = BenchmarkApplyPlanReportFormatter.appendApplyPlan(
             outcome: .loaded(plan),
             isLoading: false,
+            restoreSnapshot: SystemDNSResolverSnapshot(
+                servers: ["192.168.1.1"],
+                searchDomains: [],
+                supplementalResolverCount: 0,
+                loadedAt: Date(timeIntervalSince1970: 42)
+            ),
             to: "Benchmark result"
         )
 
         XCTAssertTrue(report.contains("Apply policy"))
         XCTAssertTrue(report.contains("Apply plan: Guided"))
         XCTAssertTrue(report.contains("DNS servers:\n1.1.1.1"))
+        XCTAssertTrue(report.contains("DNS Pilot restore checklist"))
+        XCTAssertTrue(report.contains("Current DNS before apply:\n192.168.1.1"))
     }
 
     func testApplyPlanReportFormatterAppendsFailureAndLoadingStates() {

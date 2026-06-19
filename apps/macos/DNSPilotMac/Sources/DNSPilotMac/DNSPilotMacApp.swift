@@ -2739,6 +2739,7 @@ private struct BenchmarkResultPanel: View {
                         BenchmarkApplyPlanReportFormatter.appendApplyPlan(
                             outcome: applyPlanOutcome,
                             isLoading: isLoadingApplyPlan,
+                            restoreSnapshot: currentDNSBeforeApplySnapshot,
                             to: viewModel.resultReportText(
                                 elapsedMS: elapsedMS,
                                 includeNextStep: applyPlanPresentation.reportIncludesLocalNextStep

@@ -14,6 +14,7 @@
 - Menu bar can reuse the last actionable guided apply plan for up to 24h: copy last DNS or copy+open Network Settings, without silent system DNS mutation.
 - System DNS validation mode shows current macOS DNS servers/search domains when SystemConfiguration exposes them, with refresh and copy fallback.
 - Guided apply now captures current macOS DNS before apply, shows restore guidance, and stores restore DNS in the last-plan menu bar action when available.
+- Copied benchmark result reports include captured restore DNS context when apply guidance is available.
 
 ## Current Work
 - macOS remains UX lead lane.

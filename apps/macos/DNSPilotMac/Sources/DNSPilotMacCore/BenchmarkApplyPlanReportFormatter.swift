@@ -2,6 +2,7 @@ public enum BenchmarkApplyPlanReportFormatter {
     public static func appendApplyPlan(
         outcome: BenchmarkApplyPlanLoadOutcome?,
         isLoading: Bool,
+        restoreSnapshot: SystemDNSResolverSnapshot? = nil,
         to report: String
     ) -> String {
         if isLoading {
@@ -15,12 +16,19 @@ public enum BenchmarkApplyPlanReportFormatter {
 
         switch outcome {
         case .loaded(let viewModel):
-            return [
+            var lines = [
                 report,
                 "",
                 "Apply policy",
                 viewModel.copyText,
-            ].joined(separator: "\n")
+            ]
+            if let restoreSnapshot {
+                lines += [
+                    "",
+                    GuidedApplyRestoreViewModel(snapshot: restoreSnapshot).copyText,
+                ]
+            }
+            return lines.joined(separator: "\n")
         case .failed(let message):
             return [
                 report,
