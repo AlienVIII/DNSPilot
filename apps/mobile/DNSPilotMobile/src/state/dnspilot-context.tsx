@@ -2,16 +2,19 @@ import Constants from 'expo-constants';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import {
+  BridgeJob,
   BridgeResult,
   callBridge,
   bridgeHealth,
   Capability,
   DNSProfile,
+  getBridgeJob,
   HistoryRecord,
   normalizeCapabilities,
   normalizeHistory,
   normalizeProfiles,
   normalizeSuites,
+  startBridgeJob,
   TestSuite,
 } from '@/src/api/dnspilot';
 
@@ -27,6 +30,8 @@ type DNSPilotContextValue = {
   error: string | null;
   refreshAll: () => Promise<void>;
   runAction: <T = unknown>(action: string, payload?: Record<string, unknown>) => Promise<BridgeResult<T>>;
+  startJob: <T = unknown>(action: string, payload?: Record<string, unknown>) => Promise<BridgeJob<T>>;
+  getJob: <T = unknown>(id: string) => Promise<BridgeJob<T>>;
 };
 
 const DNSPilotContext = createContext<DNSPilotContextValue | null>(null);
@@ -51,6 +56,33 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       try {
         return await callBridge(bridgeUrl, action, payload);
+      } catch (caught) {
+        const message = caught instanceof Error ? caught.message : String(caught);
+        setError(message);
+        throw caught;
+      }
+    },
+    [bridgeUrl]
+  );
+
+  const startJob = useCallback<DNSPilotContextValue['startJob']>(
+    async (action, payload = {}) => {
+      setError(null);
+      try {
+        return await startBridgeJob(bridgeUrl, action, payload);
+      } catch (caught) {
+        const message = caught instanceof Error ? caught.message : String(caught);
+        setError(message);
+        throw caught;
+      }
+    },
+    [bridgeUrl]
+  );
+
+  const getJob = useCallback<DNSPilotContextValue['getJob']>(
+    async (id) => {
+      try {
+        return await getBridgeJob(bridgeUrl, id);
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : String(caught);
         setError(message);
@@ -100,8 +132,10 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       error,
       refreshAll,
       runAction,
+      startJob,
+      getJob,
     }),
-    [bridgeUrl, health, profiles, suites, capabilities, history, loading, error, refreshAll, runAction]
+    [bridgeUrl, health, profiles, suites, capabilities, history, loading, error, refreshAll, runAction, startJob, getJob]
   );
 
   return <DNSPilotContext.Provider value={value}>{children}</DNSPilotContext.Provider>;

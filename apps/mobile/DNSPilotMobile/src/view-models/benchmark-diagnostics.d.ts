@@ -10,7 +10,7 @@ export type BenchmarkStep = {
 export type ResolverDiagnostic = {
   profileId: string;
   resolver?: string;
-  status: 'success' | 'degraded' | 'failed';
+  status: 'running' | 'success' | 'degraded' | 'failed';
   elapsedMs?: number;
   failureRate?: number;
   timeoutRate?: number;

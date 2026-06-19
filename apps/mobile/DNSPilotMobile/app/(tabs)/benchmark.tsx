@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { BridgeResult, compactJson, DNSProfile, profileServers } from '@/src/api/dnspilot';
+import { BridgeJob, BridgeResult, compactJson, DNSProfile, profileServers } from '@/src/api/dnspilot';
 import {
   Button,
   CodeBlock,
@@ -51,7 +51,7 @@ const platformOptions: { label: string; value: MobilePlatform }[] = [
 ];
 
 export default function BenchmarkScreen() {
-  const { profiles, suites, error, refreshAll, runAction } = useDNSPilot();
+  const { profiles, suites, error, refreshAll, startJob, getJob } = useDNSPilot();
   const [mode, setMode] = useState<Mode>('pathCompare');
   const [benchmarkPlatform, setBenchmarkPlatform] = useState<MobilePlatform>('ios');
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
@@ -86,10 +86,11 @@ export default function BenchmarkScreen() {
 
   async function runBenchmark() {
     const startedAtMs = Date.now();
+    const runMode = mode;
     setRunning(true);
     setResult(null);
     setCopyStatus(null);
-    setDiagnostics(buildBenchmarkDiagnostics({ mode, startedAtMs }));
+    setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, startedAtMs }));
     try {
       const payload = {
         profileIds: selectedProfiles,
@@ -106,12 +107,25 @@ export default function BenchmarkScreen() {
         platform: benchmarkPlatform,
         saveHistory,
       };
-      const next = await runAction(mode, payload);
+      let job = await startJob(runMode, payload);
+      setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs));
+      while (job.status === 'running') {
+        await sleep(500);
+        job = await getJob(job.id);
+        setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs));
+      }
+      if (job.status === 'failed') {
+        throw new Error(job.error?.message ?? 'Bridge benchmark job failed.');
+      }
+      const next = job.result;
+      if (!next) {
+        throw new Error('Bridge benchmark job finished without a result payload.');
+      }
       setResult(next);
-      setDiagnostics(buildBenchmarkDiagnostics({ mode, result: next, startedAtMs, endedAtMs: Date.now() }));
+      setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, result: next, startedAtMs, endedAtMs: Date.now() }));
       await refreshAll();
     } catch (caught) {
-      setDiagnostics(buildBenchmarkDiagnostics({ mode, error: caught, startedAtMs, endedAtMs: Date.now() }));
+      setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, error: caught, startedAtMs, endedAtMs: Date.now() }));
     } finally {
       setRunning(false);
     }
@@ -251,6 +265,35 @@ export default function BenchmarkScreen() {
       </Section>
     </Screen>
   );
+}
+
+function diagnosticsForJob(mode: Mode, job: BridgeJob, startedAtMs: number) {
+  if (job.status === 'failed') {
+    return buildBenchmarkDiagnostics({
+      mode,
+      error: new Error(job.error?.message ?? 'Bridge benchmark job failed.'),
+      startedAtMs,
+      endedAtMs: Date.now(),
+    });
+  }
+  return buildBenchmarkDiagnostics({
+    mode,
+    result:
+      job.result ??
+      ({
+        ok: true,
+        action: job.action,
+        args: [],
+        data: {},
+        progress: job.progress,
+      } satisfies BridgeResult),
+    startedAtMs,
+    endedAtMs: Date.now(),
+  });
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function StatusPill({ status }: { status: BenchmarkStepStatus }) {

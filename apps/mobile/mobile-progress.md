@@ -10,6 +10,8 @@
   and recommendation sample flows.
 - Added benchmark process diagnostics: per-step status, resolver status rows,
   elapsed time, failed step/reason, debug log, and copyable report.
+- Added foreground benchmark job polling through the local bridge so resolver
+  progress can update before the CLI process exits.
 - Added capability-based guided DNS settings/profile flow for iOS/iPadOS and
   Android, including protected-network suppression.
 - Added adaptive phone/tablet/expanded layout helpers and applied two-column
@@ -18,7 +20,8 @@
   IPv4/IPv6 troubleshooting.
 
 ## Current Work
-- Test shell is ready for local Expo Go/web validation through the bridge.
+- Test shell is ready for local Expo Go/web validation through the bridge, with
+  live benchmark progress when the bridge can stream CLI JSONL events.
 
 ## Blockers
 - Expo Go cannot spawn or link the Rust CLI inside the app process.

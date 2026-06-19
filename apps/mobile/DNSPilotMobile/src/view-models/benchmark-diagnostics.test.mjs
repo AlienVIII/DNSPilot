@@ -139,3 +139,68 @@ test("diagnostics keep later steps running or idle while process is active", () 
   );
   assert.equal(diagnostics.reason, "Benchmark is running.");
 });
+
+test("diagnostics show resolver progress before final runs exist", () => {
+  const diagnostics = buildBenchmarkDiagnostics({
+    mode: "pathCompare",
+    result: {
+      ok: true,
+      action: "pathCompare",
+      args: ["path-compare", "--profile-id", "cloudflare", "--profile-id", "quad9"],
+      data: {},
+      progress: [
+        {
+          type: "resolver_started",
+          measurement_scope: "dns-tcp",
+          profile_id: "cloudflare",
+          resolver: "1.1.1.1:53",
+          index: 1,
+          total: 2,
+        },
+        {
+          type: "resolver_finished",
+          measurement_scope: "dns-tcp",
+          profile_id: "cloudflare",
+          resolver: "1.1.1.1:53",
+          index: 1,
+          total: 2,
+          status: "success",
+          elapsed_ms: 41.5,
+          failure_rate: 0,
+          timeout_rate: 0,
+        },
+        {
+          type: "resolver_started",
+          measurement_scope: "dns-tcp",
+          profile_id: "quad9",
+          resolver: "9.9.9.9:53",
+          index: 2,
+          total: 2,
+        },
+      ],
+    },
+    startedAtMs: 5_000,
+    endedAtMs: 5_300,
+  });
+
+  assert.equal(diagnostics.status, "running");
+  assert.equal(diagnostics.reason, "Benchmark is running.");
+  assert.deepEqual(
+    diagnostics.steps.map((step) => [step.id, step.status]),
+    [
+      ["prepare", "success"],
+      ["dns", "success"],
+      ["connect", "running"],
+      ["tls", "idle"],
+      ["save", "idle"],
+    ]
+  );
+  assert.deepEqual(
+    diagnostics.resolvers.map((resolver) => [resolver.profileId, resolver.status, resolver.elapsedMs]),
+    [
+      ["cloudflare", "success", 41.5],
+      ["quad9", "running", undefined],
+    ]
+  );
+  assert.match(diagnostics.report, /Progress events: 3/);
+});

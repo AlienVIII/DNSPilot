@@ -5,6 +5,8 @@
 - Use settings/profile guidance before any VPN/proxy design.
 - Use Expo SDK 56 for the first shared mobile test shell.
 - Bind to existing core/CLI through a local Node bridge for Expo Go testing.
+- Stream foreground benchmark progress through bridge jobs; keep this as a dev
+  bridge capability until native Rust/platform adapters are chosen.
 
 ## Context
 - `apps/mobile/DNSPilotMobile` contains the mobile shell.
@@ -14,6 +16,8 @@
 - Benchmark UI now builds diagnostics from CLI result/progress payloads:
   process steps, resolver rows, failed step/reason, debug command, and report
   copy via `expo-clipboard`.
+- Benchmark runs now start bridge jobs and poll while foregrounded, so partial
+  resolver progress appears before the final parsed JSON result.
 - Policy UI now derives store-safe guided flows from apply-plan payloads:
   iOS/iPadOS DNS Settings profile guidance, Android settings/Private DNS
   guidance, and protect-current-dns suppression.
@@ -24,9 +28,8 @@
 ## Open Questions
 - Release path: direct Rust native module/FFI versus separate SwiftUI/Kotlin
   shells.
-- Whether benchmark progress needs streaming events before CLI process exit.
-  Current UI displays running state during foreground execution and detailed
-  progress after process completion.
+- How much of the bridge job contract should become a native module contract
+  once release-grade mobile builds start.
 
 ## Handoff
 - Keep lane changes in `apps/mobile/**`.

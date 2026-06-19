@@ -288,23 +288,51 @@ function parseProgress(stderr) {
     .filter(Boolean);
 }
 
-export async function runCli(action, payload = {}, dbPath = defaultDbPath) {
+function parseProgressLine(line) {
+  try {
+    return JSON.parse(line);
+  } catch {
+    return undefined;
+  }
+}
+
+export async function runCliJob(action, payload = {}, dbPath = defaultDbPath, { onProgress } = {}) {
   await mkdir(path.dirname(dbPath), { recursive: true });
   const cliArgs = buildCliArgs(action, payload, dbPath);
   const childArgs = ["run", "--quiet", "--package", "dnspilot-cli", "--", ...cliArgs];
+  const progress = [];
 
   const { stdout, stderr, code } = await new Promise((resolve, reject) => {
     const child = spawn("cargo", childArgs, { cwd: repoRoot });
     let stdout = "";
     let stderr = "";
+    let stderrLineBuffer = "";
     child.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });
     child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
+      const text = chunk.toString();
+      stderr += text;
+      stderrLineBuffer += text;
+      const lines = stderrLineBuffer.split(/\r?\n/);
+      stderrLineBuffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const event = parseProgressLine(line.trim());
+        if (event) {
+          progress.push(event);
+          onProgress?.(event);
+        }
+      }
     });
     child.on("error", reject);
-    child.on("close", (code) => resolve({ stdout, stderr, code }));
+    child.on("close", (code) => {
+      const event = parseProgressLine(stderrLineBuffer.trim());
+      if (event) {
+        progress.push(event);
+        onProgress?.(event);
+      }
+      resolve({ stdout, stderr, code });
+    });
   });
 
   if (code !== 0) {
@@ -325,7 +353,75 @@ export async function runCli(action, payload = {}, dbPath = defaultDbPath) {
     action,
     args: cliArgs,
     data,
-    progress: parseProgress(stderr),
+    progress: progress.length > 0 ? progress : parseProgress(stderr),
+  };
+}
+
+export async function runCli(action, payload = {}, dbPath = defaultDbPath) {
+  return runCliJob(action, payload, dbPath);
+}
+
+export function createJobStore({ runCommand = runCliJob } = {}) {
+  let nextId = 1;
+  const jobs = new Map();
+
+  function snapshot(job) {
+    return {
+      id: job.id,
+      action: job.action,
+      status: job.status,
+      started_at: job.started_at,
+      ended_at: job.ended_at,
+      progress: [...job.progress],
+      result: job.result,
+      error: job.error,
+    };
+  }
+
+  return {
+    start(action, payload = {}, dbPath = defaultDbPath) {
+      const id = `job-${Date.now()}-${nextId++}`;
+      const job = {
+        id,
+        action,
+        status: "running",
+        started_at: new Date().toISOString(),
+        ended_at: null,
+        progress: [],
+        result: null,
+        error: null,
+      };
+      jobs.set(id, job);
+      const done = runCommand(action, payload, dbPath, {
+        onProgress(event) {
+          job.progress.push(event);
+        },
+      })
+        .then((result) => {
+          job.status = "success";
+          job.ended_at = new Date().toISOString();
+          job.result = {
+            ...result,
+            progress: result.progress?.length ? result.progress : [...job.progress],
+          };
+          return job.result;
+        })
+        .catch((error) => {
+          job.status = "failed";
+          job.ended_at = new Date().toISOString();
+          job.error = {
+            message: error.message ?? String(error),
+            details: error.details,
+          };
+          throw error;
+        });
+      done.catch(() => {});
+      return { ...snapshot(job), done };
+    },
+    get(id) {
+      const job = jobs.get(id);
+      return job ? snapshot(job) : null;
+    },
   };
 }
 
@@ -353,7 +449,7 @@ function send(response, statusCode, body) {
   response.end(JSON.stringify(body, null, 2));
 }
 
-export function createBridgeServer() {
+export function createBridgeServer(jobStore = createJobStore()) {
   return createServer(async (request, response) => {
     try {
       if (request.method === "OPTIONS") {
@@ -376,6 +472,24 @@ export function createBridgeServer() {
         const body = await readBody(request);
         const result = await runCli(body.action, body.payload ?? {}, body.dbPath ?? defaultDbPath);
         send(response, 200, result);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/jobs") {
+        const body = await readBody(request);
+        const started = jobStore.start(body.action, body.payload ?? {}, body.dbPath ?? defaultDbPath);
+        send(response, 202, { ok: true, job: jobStore.get(started.id) });
+        return;
+      }
+
+      const jobMatch = url.pathname.match(/^\/api\/jobs\/([^/]+)$/);
+      if (request.method === "GET" && jobMatch) {
+        const job = jobStore.get(jobMatch[1]);
+        if (!job) {
+          send(response, 404, { ok: false, error: "Job not found" });
+          return;
+        }
+        send(response, 200, { ok: true, job });
         return;
       }
 
