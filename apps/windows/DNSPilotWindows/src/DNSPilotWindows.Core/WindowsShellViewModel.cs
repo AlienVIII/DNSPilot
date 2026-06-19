@@ -8,7 +8,11 @@ public sealed class WindowsShellViewModel
         BenchmarkPlanViewModel benchmarkPlan,
         BenchmarkPlanViewModel systemDnsValidationPlan,
         ApplyGuidanceViewModel applyGuidance,
-        TrayQuickActionsViewModel trayQuickActions)
+        TrayQuickActionsViewModel trayQuickActions,
+        PlatformCapability storePlatformCapability,
+        PlatformCapability powerPlatformCapability,
+        IReadOnlyList<CatalogProfile> profileRows,
+        IReadOnlyList<BenchmarkHistoryRow> historyRows)
     {
         DatabasePath = databasePath;
         Catalog = catalog;
@@ -16,6 +20,10 @@ public sealed class WindowsShellViewModel
         SystemDnsValidationPlan = systemDnsValidationPlan;
         ApplyGuidance = applyGuidance;
         TrayQuickActions = trayQuickActions;
+        StorePlatformCapability = storePlatformCapability;
+        PowerPlatformCapability = powerPlatformCapability;
+        ProfileRows = profileRows;
+        HistoryRows = historyRows;
     }
 
     public string DatabasePath { get; }
@@ -24,6 +32,10 @@ public sealed class WindowsShellViewModel
     public BenchmarkPlanViewModel SystemDnsValidationPlan { get; }
     public ApplyGuidanceViewModel ApplyGuidance { get; }
     public TrayQuickActionsViewModel TrayQuickActions { get; }
+    public PlatformCapability StorePlatformCapability { get; }
+    public PlatformCapability PowerPlatformCapability { get; }
+    public IReadOnlyList<CatalogProfile> ProfileRows { get; }
+    public IReadOnlyList<BenchmarkHistoryRow> HistoryRows { get; }
 
     public IReadOnlyList<BenchmarkMode> AvailableBenchmarkModes { get; } = new[]
     {
@@ -106,7 +118,85 @@ public sealed class WindowsShellViewModel
             benchmarkPlan,
             systemDnsValidationPlan,
             applyGuidance,
-            TrayQuickActionsViewModel.CreateDefault(catalog));
+            TrayQuickActionsViewModel.CreateDefault(catalog),
+            DefaultStoreCapability(),
+            DefaultPowerCapability(),
+            catalog.Profiles,
+            Array.Empty<BenchmarkHistoryRow>());
+    }
+
+    public static WindowsShellViewModel CreateLoaded(
+        string databasePath,
+        CatalogSnapshot catalog,
+        CapabilityMatrix capabilities,
+        ApplyPlan applyPlan,
+        ProfileListPayload profileList,
+        BenchmarkHistoryPayload history)
+    {
+        var selectedProfiles = catalog.Profiles
+            .Where(profile => profile.Protocol == DnsProtocol.Plain && profile.Ipv4Servers.Count > 0)
+            .Take(3)
+            .Select(profile => profile.Id)
+            .ToArray();
+        var selectedSuiteId = catalog.TestSuites.FirstOrDefault()?.Id;
+        var benchmarkPlan = new BenchmarkPlanViewModel(
+            catalog,
+            selectedProfiles,
+            selectedSuiteId,
+            customDomains: Array.Empty<string>(),
+            attempts: 2,
+            dnsTimeoutMs: 800,
+            connectTimeoutMs: 1_000,
+            maxConnectTargetsPerDomain: 4,
+            recordFamily: DnsRecordFamily.Both,
+            resolverAddressFamily: ResolverAddressFamily.Automatic,
+            mode: BenchmarkMode.DnsAndTcp);
+        var systemDnsValidationPlan = new BenchmarkPlanViewModel(
+            catalog,
+            selectedProfileIds: Array.Empty<string>(),
+            selectedSuiteId: selectedSuiteId,
+            customDomains: Array.Empty<string>(),
+            attempts: 2,
+            dnsTimeoutMs: 800,
+            connectTimeoutMs: 1_000,
+            maxConnectTargetsPerDomain: 4,
+            recordFamily: DnsRecordFamily.Both,
+            resolverAddressFamily: ResolverAddressFamily.Automatic,
+            mode: BenchmarkMode.SystemDnsValidation);
+
+        return new WindowsShellViewModel(
+            databasePath,
+            catalog,
+            benchmarkPlan,
+            systemDnsValidationPlan,
+            ApplyGuidanceViewModel.FromPlan(applyPlan),
+            TrayQuickActionsViewModel.CreateDefault(catalog),
+            capabilities.RequirePlatform(BenchmarkPlanViewModel.WindowsStorePlatformId),
+            capabilities.RequirePlatform("windows-power"),
+            profileList.Profiles,
+            new BenchmarkHistoryViewModel(history, catalog).Rows);
+    }
+
+    private static PlatformCapability DefaultStoreCapability()
+    {
+        return new PlatformCapability(
+            BenchmarkPlanViewModel.WindowsStorePlatformId,
+            CanBenchmark: true,
+            Apply: "guided-settings",
+            Flush: "guided-user-action",
+            StoreSafe: true,
+            Notes: new[] { WindowsCapabilityPolicy.StoreSafe.Notes });
+    }
+
+    private static PlatformCapability DefaultPowerCapability()
+    {
+        return new PlatformCapability(
+            "windows-power",
+            CanBenchmark: true,
+            Apply: "desktop-admin-service",
+            Flush: "desktop-admin-service",
+            StoreSafe: false,
+            Notes: new[] { WindowsCapabilityPolicy.PowerEdition.Notes });
     }
 }
 

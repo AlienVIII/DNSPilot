@@ -20,7 +20,15 @@ public sealed record ApplyPlan(
     string ProfileName,
     IReadOnlyList<string> DnsServers,
     string? TestedResolver,
-    string Guidance);
+    string Guidance)
+{
+    public string PlatformId { get; init; } = BenchmarkPlanViewModel.WindowsStorePlatformId;
+    public string ApplyCapability { get; init; } = "guided-settings";
+    public string Disposition { get; init; } = "guide-only";
+    public string? ProfileId { get; init; }
+    public bool CanApply { get; init; }
+    public IReadOnlyList<string> Notes { get; init; } = Array.Empty<string>();
+}
 
 public sealed record WindowsSettingsUri(string PrimaryUri, string FallbackUri)
 {

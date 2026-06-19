@@ -21,6 +21,10 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows capability policy separates Store-safe shell from Power edition", WindowsCapabilityPolicySeparatesStoreAndPower);
         Run("Windows shell state exposes benchmark, apply, profile, history, and tray surfaces", WindowsShellStateExposesStoreSafeSurfaces);
         Run("Benchmark runner validates plan, appends progress and history args, and reports process failure", BenchmarkRunnerBuildsProcessBoundary);
+        Run("CLI payload decoders map catalog, capabilities, and apply-plan contracts", CliPayloadDecodersMapCoreContracts);
+        Run("CLI contract runners invoke catalog, capabilities, apply-plan, profile, and history commands", CliContractRunnersInvokeCommands);
+        Run("Profile and history list decoders map persisted rows for management UI", ProfileAndHistoryListDecodersMapRows);
+        Run("Windows shell can hydrate from CLI payloads for catalog, policy, apply, profiles, and history", WindowsShellHydratesFromCliPayloads);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -230,7 +234,7 @@ internal sealed class WindowsCoreTestSuite
 
         Assert.SequenceEqual(new[] { "--save-db", "profiles.sqlite", "--history-id", "win-run-001" }, save.CommandArguments);
         Assert.SequenceEqual(new[] { "history-list", "--db", "profiles.sqlite" }, HistoryManagementCommands.List("profiles.sqlite"));
-        Assert.SequenceEqual(new[] { "history-delete", "--db", "profiles.sqlite", "--history-id", "win-run-001" }, HistoryManagementCommands.Delete("profiles.sqlite", "win-run-001"));
+        Assert.SequenceEqual(new[] { "history-delete", "--db", "profiles.sqlite", "--id", "win-run-001" }, HistoryManagementCommands.Delete("profiles.sqlite", "win-run-001"));
         Assert.SequenceEqual(new[] { "history-clear", "--db", "profiles.sqlite" }, HistoryManagementCommands.Clear("profiles.sqlite"));
     }
 
@@ -294,6 +298,123 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("path-compare", failure.DebugLog);
         Assert.Contains("Elapsed: 404 ms", failure.CopyableReport("DNS + TCP"));
     }
+
+    private static void CliPayloadDecodersMapCoreContracts()
+    {
+        var catalog = CatalogJsonDecoder.Decode(SampleJson.Catalog);
+        var profile = catalog.Profiles.Single(profile => profile.Id == "cloudflare");
+        var suite = catalog.TestSuites.Single(suite => suite.Id == "developer");
+
+        Assert.Equal("Cloudflare", profile.Name);
+        Assert.Equal(DnsProtocol.Plain, profile.Protocol);
+        Assert.SequenceEqual(new[] { "1.1.1.1", "1.0.0.1" }, profile.Ipv4Servers);
+        Assert.SequenceEqual(new[] { "github.com", "microsoft.com" }, suite.Domains);
+
+        var capabilities = CapabilityMatrixJsonDecoder.Decode(SampleJson.Capabilities);
+        var store = capabilities.RequirePlatform("windows-store");
+        var power = capabilities.RequirePlatform("windows-power");
+
+        Assert.True(store.CanBenchmark, "Windows Store should benchmark.");
+        Assert.True(store.StoreSafe, "Windows Store capability should be store-safe.");
+        Assert.Equal("guided-settings", store.Apply);
+        Assert.False(power.StoreSafe, "Power edition should not be store-safe.");
+        Assert.Equal("desktop-admin-service", power.Apply);
+
+        var applyPlan = ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan);
+        Assert.Equal(ApplyDecision.Guide, applyPlan.Decision);
+        Assert.Equal("windows-store", applyPlan.PlatformId);
+        Assert.Equal("guided-settings", applyPlan.ApplyCapability);
+        Assert.Equal("Cloudflare", applyPlan.ProfileName);
+        Assert.Equal("1.1.1.1:53", applyPlan.TestedResolver);
+        Assert.False(applyPlan.CanApply, "Store apply-plan must not allow direct mutation.");
+        Assert.SequenceEqual(
+            new[] { "1.1.1.1", "1.0.0.1", "2606:4700:4700::1111" },
+            applyPlan.DnsServers.Take(3));
+
+        Assert.Throws<InvalidOperationException>(() => CatalogJsonDecoder.Decode("{\"schema_version\":2,\"profiles\":[],\"testSuites\":[]}"));
+    }
+
+    private static void CliContractRunnersInvokeCommands()
+    {
+        var catalogRunnerProcess = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.Catalog, ""));
+        var catalog = new CatalogRunner("dnspilot-cli", catalogRunnerProcess).Load();
+        Assert.Equal("cloudflare", catalog.Profiles.First().Id);
+        Assert.SequenceEqual(new[] { "catalog" }, catalogRunnerProcess.LastArguments);
+
+        var capabilityRunnerProcess = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.Capabilities, ""));
+        var capabilities = new CapabilityMatrixRunner("dnspilot-cli", capabilityRunnerProcess).Load();
+        Assert.Equal("windows-store", capabilities.RequirePlatform("windows-store").Platform);
+        Assert.SequenceEqual(new[] { "capabilities" }, capabilityRunnerProcess.LastArguments);
+
+        var applyRunnerProcess = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.ApplyPlan, ""));
+        var applyPlan = new ApplyPlanRunner("dnspilot-cli", applyRunnerProcess).Load(
+            new ApplyPlanRequest(
+                profileId: "cloudflare",
+                testedResolver: "1.1.1.1:53",
+                confidence: ApplyPlanConfidence.High,
+                gateHealth: ApplyPlanGateHealth.Healthy));
+
+        Assert.Equal("Cloudflare", applyPlan.ProfileName);
+        Assert.SequenceEqual(
+            new[] { "apply-plan", "windows-store", "--confidence", "high", "--gate-health", "healthy", "--profile-id", "cloudflare", "--tested-resolver", "1.1.1.1:53" },
+            applyRunnerProcess.LastArguments);
+
+        var profileRunnerProcess = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.ProfileList, ""));
+        var profiles = new ProfileListRunner("dnspilot-cli", profileRunnerProcess).Load("profiles.sqlite");
+        Assert.Equal(2, profiles.ProfileCount);
+        Assert.SequenceEqual(new[] { "profile-list", "--db", "profiles.sqlite" }, profileRunnerProcess.LastArguments);
+
+        var historyRunnerProcess = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.HistoryList, ""));
+        var history = new BenchmarkHistoryRunner("dnspilot-cli", historyRunnerProcess).Load("profiles.sqlite");
+        Assert.Equal(1, history.BenchmarkHistoryCount);
+        Assert.SequenceEqual(new[] { "history-list", "--db", "profiles.sqlite" }, historyRunnerProcess.LastArguments);
+    }
+
+    private static void ProfileAndHistoryListDecodersMapRows()
+    {
+        var profiles = ProfileListJsonDecoder.Decode(SampleJson.ProfileList);
+        var custom = profiles.Profiles.Single(profile => profile.Id == "lab-dns");
+
+        Assert.Equal(2, profiles.ProfileCount);
+        Assert.Equal("Lab DNS", custom.Name);
+        Assert.SequenceEqual(new[] { "1.1.1.1" }, custom.Ipv4Servers);
+        Assert.SequenceEqual(new[] { "2606:4700:4700::1111" }, custom.Ipv6Servers);
+
+        var history = BenchmarkHistoryJsonDecoder.Decode(SampleJson.HistoryList);
+        var record = history.Records.Single();
+        var rows = new BenchmarkHistoryViewModel(history, TestData.Catalog).Rows;
+
+        Assert.Equal("compare-run-1", record.Id);
+        Assert.Equal("dns-only", record.Scope);
+        Assert.Equal("cloudflare", record.RecommendationProfileId);
+        Assert.Equal("Recommended: Cloudflare", rows.Single().RecommendationLabel);
+        Assert.Equal("Retest before applying saved recommendation", rows.Single().ApplyGuidanceLabel);
+    }
+
+    private static void WindowsShellHydratesFromCliPayloads()
+    {
+        var catalog = CatalogJsonDecoder.Decode(SampleJson.Catalog);
+        var capabilities = CapabilityMatrixJsonDecoder.Decode(SampleJson.Capabilities);
+        var applyPlan = ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan);
+        var profiles = ProfileListJsonDecoder.Decode(SampleJson.ProfileList);
+        var history = BenchmarkHistoryJsonDecoder.Decode(SampleJson.HistoryList);
+
+        var shell = WindowsShellViewModel.CreateLoaded(
+            "profiles.sqlite",
+            catalog,
+            capabilities,
+            applyPlan,
+            profiles,
+            history);
+
+        Assert.Equal("Cloudflare", shell.Catalog.Profiles.Single().Name);
+        Assert.Equal("guided-settings", shell.StorePlatformCapability.Apply);
+        Assert.Equal("desktop-admin-service", shell.PowerPlatformCapability.Apply);
+        Assert.Equal("1.1.1.1\r\n1.0.0.1\r\n2606:4700:4700::1111\r\n2606:4700:4700::1001", shell.ApplyGuidance.CopyableDnsServers);
+        Assert.Equal(2, shell.ProfileRows.Count);
+        Assert.Equal("Lab DNS", shell.ProfileRows.Last().Name);
+        Assert.Equal("Recommended: Cloudflare", shell.HistoryRows.Single().RecommendationLabel);
+    }
 }
 
 internal static class TestData
@@ -332,6 +453,168 @@ internal static class TestData
             resolverAddressFamily: resolverAddressFamily ?? ResolverAddressFamily.Automatic,
             mode: mode);
     }
+}
+
+internal static class SampleJson
+{
+    public const string Catalog = """
+    {
+      "schema_version": 1,
+      "profiles": [
+        {
+          "id": "cloudflare",
+          "name": "Cloudflare",
+          "description": "Fast unfiltered public DNS.",
+          "ipv4_servers": ["1.1.1.1", "1.0.0.1"],
+          "ipv6_servers": ["2606:4700:4700::1111", "2606:4700:4700::1001"],
+          "protocol": "plain",
+          "doh_url": null,
+          "dot_hostname": null,
+          "tags": ["general", "unfiltered"],
+          "use_case": "performance",
+          "filtering_type": "none",
+          "security_notes": [],
+          "provider_metadata": {},
+          "created_at": null,
+          "updated_at": null
+        }
+      ],
+      "testSuites": [
+        {
+          "id": "developer",
+          "name": "Developer",
+          "description": "Developer workflow checks.",
+          "domains": ["github.com", "microsoft.com"],
+          "tags": ["developer"]
+        }
+      ]
+    }
+    """;
+
+    public const string Capabilities = """
+    {
+      "schema_version": 1,
+      "capabilities": [
+        {
+          "platform": "windows-store",
+          "can_benchmark": true,
+          "apply": "guided-settings",
+          "flush": "guided-user-action",
+          "store_safe": true,
+          "notes": ["Store builds must not depend on administrator elevation."]
+        },
+        {
+          "platform": "windows-power",
+          "can_benchmark": true,
+          "apply": "desktop-admin-service",
+          "flush": "desktop-admin-service",
+          "store_safe": false,
+          "notes": ["Power edition is separate from store-safe builds."]
+        }
+      ]
+    }
+    """;
+
+    public const string ApplyPlan = """
+    {
+      "schema_version": 1,
+      "platform": "windows-store",
+      "apply_capability": "guided-settings",
+      "disposition": "guide-only",
+      "profile_id": "cloudflare",
+      "profile_name": "Cloudflare",
+      "tested_resolver": "1.1.1.1:53",
+      "dns_servers": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
+      "can_apply": false,
+      "notes": [
+        "Platform requires guided settings; do not perform hidden DNS changes.",
+        "Store-safe build must guide plain DNS changes through OS settings."
+      ]
+    }
+    """;
+
+    public const string ProfileList = """
+    {
+      "db": "/tmp/dnspilot.sqlite",
+      "profile_count": 2,
+      "schema_version": 1,
+      "profiles": [
+        {
+          "id": "cloudflare",
+          "name": "Cloudflare",
+          "description": "Fast unfiltered public DNS.",
+          "ipv4_servers": ["1.1.1.1", "1.0.0.1"],
+          "ipv6_servers": ["2606:4700:4700::1111"],
+          "protocol": "plain",
+          "doh_url": null,
+          "dot_hostname": null,
+          "tags": ["general"],
+          "use_case": "performance",
+          "filtering_type": "none",
+          "security_notes": [],
+          "provider_metadata": {},
+          "created_at": null,
+          "updated_at": null
+        },
+        {
+          "id": "lab-dns",
+          "name": "Lab DNS",
+          "description": "Custom DNS profile.",
+          "ipv4_servers": ["1.1.1.1"],
+          "ipv6_servers": ["2606:4700:4700::1111"],
+          "protocol": "plain",
+          "doh_url": null,
+          "dot_hostname": null,
+          "tags": [],
+          "use_case": "custom",
+          "filtering_type": "none",
+          "security_notes": [],
+          "provider_metadata": {},
+          "created_at": null,
+          "updated_at": null
+        }
+      ]
+    }
+    """;
+
+    public const string HistoryList = """
+    {
+      "db": "/tmp/dnspilot.sqlite",
+      "schema_version": 1,
+      "benchmark_history_count": 1,
+      "benchmark_history": [
+        {
+          "id": "compare-run-1",
+          "started_at": "started-1",
+          "scope": "dns-only",
+          "mode": "fastest-raw-dns",
+          "domains": ["github.com", "azure.microsoft.com"],
+          "resolver_profile_ids": ["cloudflare", "google"],
+          "metrics": [
+            {
+              "profile_id": "cloudflare",
+              "median_dns_latency_ms": 12.0,
+              "p95_dns_latency_ms": 20.0,
+              "failure_rate": 0.0,
+              "timeout_rate": 0.0,
+              "median_connect_latency_ms": 0.0,
+              "ipv4_health": 1.0,
+              "ipv6_health": 1.0,
+              "priority_fit": 1.0
+            }
+          ],
+          "gate": {
+            "can_recommend": true,
+            "health": "healthy",
+            "primary_issue": "none",
+            "notes": []
+          },
+          "recommendation_profile_id": "cloudflare",
+          "notes": ["Saved by compare CLI."]
+        }
+      ]
+    }
+    """;
 }
 
 internal static class Assert
@@ -385,6 +668,21 @@ internal static class Assert
             throw new InvalidOperationException(
                 "Expected sequence:\n" + string.Join("\n", expectedArray) + "\nActual sequence:\n" + string.Join("\n", actualArray));
         }
+    }
+
+    public static void Throws<TException>(Action action)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException($"Expected exception {typeof(TException).Name}.");
     }
 }
 

@@ -20,7 +20,7 @@ public static class HistoryManagementCommands
 
     public static IReadOnlyList<string> Delete(string databasePath, string historyId)
     {
-        return new[] { "history-delete", "--db", databasePath, "--history-id", historyId };
+        return new[] { "history-delete", "--db", databasePath, "--id", historyId };
     }
 
     public static IReadOnlyList<string> Clear(string databasePath)
