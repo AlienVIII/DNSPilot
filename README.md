@@ -27,6 +27,8 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   portal networks.
 - macOS Product Goals readiness panel summarizing supported, store-safe guided,
   and estimate-only features with explicit caveats.
+- macOS Power DNS action runner for future direct-install builds, disabled by
+  default and gated behind `DNSPILOT_ENABLE_POWER_ACTIONS`.
 - Versioned storage snapshot contract for profiles, test suites, and benchmark
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.
@@ -216,6 +218,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Capabilities screen includes Product Goals readiness, making fastest
   DNS, balanced recommendation, guided apply, guided flush, saved domains, and
   game checks visible with their current product limits.
+- macOS Power DNS action runner can apply plain DNS to the active network
+  service and flush DNS through an administrator AppleScript prompt when
+  explicitly enabled; store-safe UI remains guided by default.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom

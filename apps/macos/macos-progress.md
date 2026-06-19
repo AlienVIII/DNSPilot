@@ -22,6 +22,7 @@
 - Benchmark and Game Ping results show fastest observed DNS separately from the balanced recommendation.
 - Catalog provider rows can start confirmed store-safe apply for selected plain DNS profiles.
 - Capabilities screen includes Product Goals readiness with current support level and caveats for fastest DNS, balanced DNS, guided apply, guided flush, saved domains, and game checks.
+- Power DNS action runner exists for direct-install builds, disabled by default and gated behind `DNSPILOT_ENABLE_POWER_ACTIONS`.
 
 ## Current Work
 - macOS remains UX lead lane.

@@ -124,6 +124,7 @@ DNS handling, and platform capability reporting.
 - [x] [113] v0.1 macOS selected profile guided apply — apply selected plain DNS profiles from Catalog with confirmation.
 - [x] [114] v0.1 saved-domain suites — add YouTube, GitHub, and ChatGPT/OpenAI presets.
 - [x] [115] v0.1 macOS product goal readiness — show support level and caveats for main goals.
+- [x] [116] v0.1 macOS power DNS action runner — add disabled-by-default admin apply/flush adapter.
 
 ---
 
@@ -5911,6 +5912,44 @@ Result: 3 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 229 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 116: v0.1 macOS Power DNS Action Runner
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added a disabled-by-default macOS Power DNS action runner for future
+direct-install builds. When explicitly enabled, it builds an administrator
+AppleScript prompt to apply plain DNS servers to the active macOS network
+service and flush local DNS cache.
+
+### Edge Cases / Caveats
+
+- Store-safe builds keep using guided copy/open-settings flows.
+- The runner validates DNS server strings before prompting for administrator
+  rights.
+- Active service detection can still fail on unusual routing/VPN/enterprise
+  network setups; the process error is returned to the UI layer.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSPowerDNSActionRunnerTests
+Result: 6 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 235 passed, 0 failed
 
 git diff --check
 Result: passed
