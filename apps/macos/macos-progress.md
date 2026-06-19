@@ -15,6 +15,7 @@
 - System DNS validation mode shows current macOS DNS servers/search domains when SystemConfiguration exposes them, with refresh and copy fallback.
 - Guided apply now captures current macOS DNS before apply, shows restore guidance, and stores restore DNS in the last-plan menu bar action when available.
 - Copied benchmark result reports include captured restore DNS context when apply guidance is available.
+- macOS local CI harness runs Rust tests, Swift tests, sandbox bundle verification, and live DNS smoke tests; distribution verification activates when a signed bundle path is provided.
 
 ## Current Work
 - macOS remains UX lead lane.
@@ -25,5 +26,4 @@
 - Power-edition helper is out of scope for store build.
 
 ## Next Actions
-- Add CI/release wiring around distribution bundle validation once signing credentials exist.
 - Keep all Core CLI gaps in `macos-core-cli-request.md`.
