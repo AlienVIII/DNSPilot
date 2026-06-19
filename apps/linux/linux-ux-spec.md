@@ -78,10 +78,57 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- \
   --package deb --network-manager --polkit --system-resolver-probe --mode system-resolver
 ```
 
+## Core CLI Runner Boundary
+
+Linux shell planning now builds core CLI commands without duplicating benchmark
+logic:
+
+- DNS only uses `compare`.
+- DNS + TCP uses `path-compare`.
+- Current/system resolver uses `system-benchmark`.
+- Direct benchmark modes request `--progress-jsonl` and parse resolver progress
+  from stderr.
+- Unsupported modes are rejected before the runner is invoked.
+- The concrete process runner captures stdout, stderr, and exit code from a
+  caller-supplied core CLI path.
+
+CLI plan example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- plan \
+  --store /tmp/dnspilot-linux-profiles.json \
+  --package snap \
+  --profile-id local \
+  --resolver-family ipv4 \
+  --record-family a \
+  --suite-id vietnam-daily \
+  --domain login.microsoftonline.com
+```
+
+CLI run example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- run \
+  --core-cli /path/to/dnspilot-cli \
+  --store /tmp/dnspilot-linux-profiles.json \
+  --package flatpak \
+  --profile-id local \
+  --domain github.com
+```
+
 ## Settings And Apply
 
 Flatpak and Snap expose guided settings only. Guided actions copy values and
 open OS guidance; they do not mutate DNS.
+
+CLI guide example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- guide \
+  --store /tmp/dnspilot-linux-profiles.json \
+  --package flatpak \
+  --profile-id local
+```
 
 Native power package plan:
 
@@ -103,6 +150,24 @@ profiles:
 - IPv6 server validation,
 - duplicate server rejection,
 - duplicate profile ID rejection.
+
+Profiles can be persisted in a Linux shell JSON store with schema version 1:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- profile-add \
+  --store /tmp/dnspilot-linux-profiles.json \
+  --id local \
+  --name "Local DNS" \
+  --ipv4 1.1.1.1 \
+  --ipv6 2606:4700:4700::1111
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- profile-list \
+  --store /tmp/dnspilot-linux-profiles.json
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- profile-delete \
+  --store /tmp/dnspilot-linux-profiles.json \
+  --id local
+```
 
 Encrypted DNS profile apply is out of scope for this lane until the core
 contract exposes a Linux-safe apply strategy.

@@ -11,14 +11,18 @@
 - Added store-safe guided settings actions and native power package plan.
 - Added default suites with Vietnam daily gated by catalog support.
 - Added CLI validation harness with mocked capability inputs and no DNS mutation.
+- Added core CLI runner boundary for `compare`, `path-compare`, and `system-benchmark`.
+- Added Linux app/session workflow for mode/profile/suite/domain readiness and benchmark plan construction.
+- Added file-backed custom profile repository with schema versioning.
+- Added CLI product commands for profile add/list/delete, benchmark plan generation, executable run, and guided apply/native-plan output.
 
 ## Current Work
-- Linux lane UX/spec/code is implemented for scoped store-safe and native-power planning behavior.
+- Linux lane UX/spec/code is implemented for scoped benchmark, profile, diagnostics, guidance, and native-power planning behavior.
 
 ## Blockers
 - No blocker for scoped code-complete lane.
 - Real package verification still requires later distro/package QA.
 
 ## Next Actions
-- Wire the Linux shell view-model package to the shared core CLI payloads when Linux core contracts are available.
+- Wire a native GUI shell to the Linux app/session package when GTK/libadwaita or Qt is selected.
 - Later QA: Flatpak, Snap, deb, and rpm package-specific verification.

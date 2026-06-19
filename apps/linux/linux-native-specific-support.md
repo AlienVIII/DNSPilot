@@ -19,3 +19,4 @@
 - Native package can expose richer power features.
 - Capability detection can be a differentiator.
 - Copyable debug reports can make later distro QA repeatable.
+- CLI runner and plan surfaces can be reused by a future GTK/libadwaita or Qt shell.

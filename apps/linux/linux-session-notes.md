@@ -9,13 +9,14 @@
 
 ## Context
 - Linux shell package lives at `apps/linux/DNSPilotLinux`.
-- Current implementation is view-model/CLI validation only; it does not mutate system DNS.
-- Capability detection is mocked so automated tests can run without Linux distro/package access.
+- Current implementation includes view-models, storage, CLI profile management, CLI plan/run/guide surfaces, and runner boundary.
+- It does not mutate system DNS by itself; real DNS apply remains native power package work behind NetworkManager/systemd-resolved plus polkit.
+- Capability detection can be mocked so automated tests can run without Linux distro/package access.
 
 ## Open Questions
 - GTK4/libadwaita or Qt?
 - Exact native UI stack remains open.
-- Exact core CLI Linux payload shape remains open.
+- Exact Linux native apply helper contract remains open.
 
 ## Handoff
 - Keep lane changes in `apps/linux/**`.
