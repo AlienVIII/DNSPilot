@@ -8,6 +8,8 @@
 - Exposed catalog, capability, preflight, apply-policy/apply-plan, benchmark,
   compare, path-estimate/path-compare, custom profile/suite storage, history,
   and recommendation sample flows.
+- Added benchmark process diagnostics: per-step status, resolver status rows,
+  elapsed time, failed step/reason, debug log, and copyable report.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge.

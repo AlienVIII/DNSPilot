@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -19,6 +20,12 @@ import {
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 import { compactList, lines } from '@/src/utils/forms';
+import {
+  buildBenchmarkDiagnostics,
+  type BenchmarkDiagnostics,
+  type BenchmarkStepStatus,
+  type ResolverDiagnostic,
+} from '@/src/view-models/benchmark-diagnostics';
 
 type Mode = 'compare' | 'pathCompare' | 'benchmark' | 'pathEstimate' | 'systemBenchmark';
 type IpFamily = 'both' | 'ipv4-only' | 'ipv6-only';
@@ -52,6 +59,8 @@ export default function BenchmarkScreen() {
   const [saveHistory, setSaveHistory] = useState(true);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<BridgeResult | null>(null);
+  const [diagnostics, setDiagnostics] = useState<BenchmarkDiagnostics | null>(null);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
 
@@ -69,7 +78,11 @@ export default function BenchmarkScreen() {
   }
 
   async function runBenchmark() {
+    const startedAtMs = Date.now();
     setRunning(true);
+    setResult(null);
+    setCopyStatus(null);
+    setDiagnostics(buildBenchmarkDiagnostics({ mode, startedAtMs }));
     try {
       const payload = {
         profileIds: selectedProfiles,
@@ -88,10 +101,19 @@ export default function BenchmarkScreen() {
       };
       const next = await runAction(mode, payload);
       setResult(next);
+      setDiagnostics(buildBenchmarkDiagnostics({ mode, result: next, startedAtMs, endedAtMs: Date.now() }));
       await refreshAll();
+    } catch (caught) {
+      setDiagnostics(buildBenchmarkDiagnostics({ mode, error: caught, startedAtMs, endedAtMs: Date.now() }));
     } finally {
       setRunning(false);
     }
+  }
+
+  async function copyReport() {
+    if (!diagnostics) return;
+    await Clipboard.setStringAsync(diagnostics.report);
+    setCopyStatus('Report copied.');
   }
 
   const resultData = result?.data as Record<string, unknown> | undefined;
@@ -144,6 +166,45 @@ export default function BenchmarkScreen() {
         </Section>
       ) : null}
 
+      <Section
+        title="Process"
+        subtitle={diagnostics ? `${diagnostics.status} | ${diagnostics.reason}` : 'Run a benchmark to populate process diagnostics.'}>
+        {diagnostics ? (
+          <>
+            <Row>
+              <Metric label="Status" value={diagnostics.status} tone={statusTone(diagnostics.status)} />
+              <Metric label="Failed step" value={diagnostics.failedStepId ?? 'none'} tone={diagnostics.failedStepId ? 'red' : 'green'} />
+              <Metric label="Elapsed" value={formatMs(diagnostics.elapsedMs)} tone="blue" />
+            </Row>
+            <View style={{ gap: 8 }}>
+              {diagnostics.steps.map((step) => (
+                <View key={step.id} style={{ alignItems: 'center', backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 10, justifyContent: 'space-between', padding: 12 }}>
+                  <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
+                    {step.label}
+                  </Text>
+                  <StatusPill status={step.status} />
+                </View>
+              ))}
+            </View>
+            {diagnostics.resolvers.length > 0 ? (
+              <View style={{ gap: 8 }}>
+                {diagnostics.resolvers.map((resolver) => (
+                  <ResolverRow key={`${resolver.profileId}-${resolver.resolver ?? ''}`} resolver={resolver} />
+                ))}
+              </View>
+            ) : null}
+            <Row>
+              <Button label="Copy report" onPress={copyReport} variant="secondary" />
+              {copyStatus ? <Pill label={copyStatus} tone="green" /> : null}
+            </Row>
+            <CodeBlock text={diagnostics.report} />
+            {diagnostics.debugLog ? <CodeBlock text={diagnostics.debugLog} /> : null}
+          </>
+        ) : (
+          <EmptyState text="No process diagnostics yet." />
+        )}
+      </Section>
+
       <Section title="Suites" subtitle="Optional. Domains above are added to suite domains.">
         <Row>
           <Pill label="No suite" selected={!suiteId} onPress={() => setSuiteId('')} />
@@ -176,4 +237,42 @@ export default function BenchmarkScreen() {
       </Section>
     </Screen>
   );
+}
+
+function StatusPill({ status }: { status: BenchmarkStepStatus }) {
+  return <Pill label={status} tone={statusTone(status)} />;
+}
+
+function ResolverRow({ resolver }: { resolver: ResolverDiagnostic }) {
+  return (
+    <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 6, padding: 12 }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
+        <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
+          {resolver.profileId}
+        </Text>
+        <Pill label={resolver.status} tone={statusTone(resolver.status)} />
+      </View>
+      <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+        {resolver.resolver ?? 'resolver unknown'} | elapsed {formatMs(resolver.elapsedMs)} | failure {formatRate(resolver.failureRate)} | timeout {formatRate(resolver.timeoutRate)}
+      </Text>
+      <Text selectable style={{ color: palette.slate, fontSize: 12, lineHeight: 17 }}>
+        {resolver.diagnosis}
+      </Text>
+    </View>
+  );
+}
+
+function statusTone(status: string) {
+  if (status === 'success') return 'green';
+  if (status === 'running' || status === 'degraded') return 'amber';
+  if (status === 'failed') return 'red';
+  return 'neutral';
+}
+
+function formatMs(value?: number) {
+  return value === undefined ? 'n/a' : `${Math.round(value)}ms`;
+}
+
+function formatRate(value?: number) {
+  return value === undefined ? 'n/a' : `${Math.round(value * 100)}%`;
 }

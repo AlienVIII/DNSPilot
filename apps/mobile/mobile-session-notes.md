@@ -11,11 +11,16 @@
 - `server/dev-server.mjs` whitelists CLI actions and calls `cargo run -p
   dnspilot-cli`.
 - Dev SQLite storage is `.dnspilot/dnspilot.sqlite` under the app folder.
+- Benchmark UI now builds diagnostics from CLI result/progress payloads:
+  process steps, resolver rows, failed step/reason, debug command, and report
+  copy via `expo-clipboard`.
 
 ## Open Questions
 - Release path: direct Rust native module/FFI versus separate SwiftUI/Kotlin
   shells.
 - Whether benchmark progress needs streaming events before CLI process exit.
+  Current UI displays running state during foreground execution and detailed
+  progress after process completion.
 
 ## Handoff
 - Keep lane changes in `apps/mobile/**`.
