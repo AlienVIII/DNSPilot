@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/app/">
+    <Project Path="app/DNSPilotWindows.App/DNSPilotWindows.App.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/DNSPilotWindows.Core/DNSPilotWindows.Core.csproj" />
+  </Folder>
+</Solution>

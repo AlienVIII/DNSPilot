@@ -63,6 +63,7 @@ public sealed class BenchmarkPlanViewModel
     public DnsRecordFamily RecordFamily { get; }
     public ResolverAddressFamily ResolverAddressFamily { get; }
     public BenchmarkMode Mode { get; }
+    public bool SupportsHistoryPersistence => Mode != BenchmarkMode.SystemDnsValidation;
 
     public IReadOnlyList<string> Domains
     {

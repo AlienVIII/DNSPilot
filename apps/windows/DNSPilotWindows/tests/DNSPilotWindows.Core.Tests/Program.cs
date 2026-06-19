@@ -19,6 +19,8 @@ internal sealed class WindowsCoreTestSuite
         Run("Tray quick actions expose quick benchmark, system validation, and settings handoff", TrayQuickActionsExposeStoreSafeCommands);
         Run("History persistence appends save args and exposes management commands", HistoryPersistenceBuildsSaveAndManagementCommands);
         Run("Windows capability policy separates Store-safe shell from Power edition", WindowsCapabilityPolicySeparatesStoreAndPower);
+        Run("Windows shell state exposes benchmark, apply, profile, history, and tray surfaces", WindowsShellStateExposesStoreSafeSurfaces);
+        Run("Benchmark runner validates plan, appends progress and history args, and reports process failure", BenchmarkRunnerBuildsProcessBoundary);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -244,6 +246,54 @@ internal sealed class WindowsCoreTestSuite
         Assert.True(power.CanMutateSystemDns, "Power edition can plan admin DNS mutation separately.");
         Assert.True(power.RequiresAdministrator, "Power edition must be explicit about admin requirement.");
     }
+
+    private static void WindowsShellStateExposesStoreSafeSurfaces()
+    {
+        var shell = WindowsShellViewModel.CreateDefault(@"C:\Users\aart\AppData\Local\DNSPilot\dnspilot.sqlite");
+
+        Assert.SequenceEqual(
+            new[] { "DNS only", "DNS + TCP", "System DNS validation" },
+            shell.AvailableBenchmarkModes.Select(mode => mode.DisplayLabel));
+        Assert.Equal(BenchmarkMode.DnsAndTcp, shell.BenchmarkPlan.Mode);
+        Assert.Equal("path-compare", shell.BenchmarkPlan.CommandArguments.First());
+        Assert.Equal("system-benchmark", shell.SystemDnsValidationPlan.CommandArguments.First());
+        Assert.True(shell.BenchmarkPlan.SupportsHistoryPersistence, "DNS + TCP should support history persistence.");
+        Assert.False(shell.SystemDnsValidationPlan.SupportsHistoryPersistence, "System DNS validation does not support CLI history save args yet.");
+        Assert.Equal("ms-settings:network-advancedsettings", shell.ApplyGuidance.OpenSettingsUri.PrimaryUri);
+        Assert.DoesNotContain(ApplyActionKind.MutateSystemDns.ToString(), string.Join(" ", shell.ApplyGuidance.Actions.Select(action => action.Kind)));
+        Assert.SequenceEqual(new[] { "profile-list", "--db", @"C:\Users\aart\AppData\Local\DNSPilot\dnspilot.sqlite" }, shell.ProfileListCommand);
+        Assert.SequenceEqual(new[] { "history-list", "--db", @"C:\Users\aart\AppData\Local\DNSPilot\dnspilot.sqlite" }, shell.HistoryListCommand);
+        Assert.Equal(TrayActionKind.QuickBenchmark, shell.TrayQuickActions.Actions.First().Kind);
+        Assert.Contains("A + AAAA", shell.BenchmarkControlHelpText);
+        Assert.Contains("IPv4", shell.BenchmarkControlHelpText);
+    }
+
+    private static void BenchmarkRunnerBuildsProcessBoundary()
+    {
+        var processRunner = new RecordingProcessRunner(new CliProcessOutput(0, "{\"ok\":true}", ""));
+        var runner = new BenchmarkRunner(@"C:\Program Files\DNSPilot\dnspilot-cli.exe", processRunner);
+        var result = runner.Run(
+            TestData.Plan(mode: BenchmarkMode.DnsOnly),
+            new BenchmarkHistoryPersistence("profiles.sqlite", "win-run-001"),
+            progressHandler: _ => { });
+
+        Assert.True(result.Succeeded, "Expected successful process result.");
+        Assert.SequenceEqual(
+            TestData.Plan(mode: BenchmarkMode.DnsOnly).CommandArguments
+                .Concat(new[] { "--progress-jsonl", "--save-db", "profiles.sqlite", "--history-id", "win-run-001" }),
+            processRunner.LastArguments);
+        Assert.Equal(@"C:\Program Files\DNSPilot\dnspilot-cli.exe", processRunner.LastExecutablePath);
+
+        var failingRunner = new BenchmarkRunner("dnspilot-cli", new RecordingProcessRunner(new CliProcessOutput(2, "", "network timeout")));
+        var failedResult = failingRunner.Run(TestData.Plan(mode: BenchmarkMode.DnsAndTcp));
+        var failure = failedResult.ToFailure(BenchmarkFailureStep.MeasuringConnection, TimeSpan.FromMilliseconds(404));
+
+        Assert.False(failedResult.Succeeded, "Expected failed process result.");
+        Assert.Contains("exit code 2", failure.DebugLog);
+        Assert.Contains("network timeout", failure.DebugLog);
+        Assert.Contains("path-compare", failure.DebugLog);
+        Assert.Contains("Elapsed: 404 ms", failure.CopyableReport("DNS + TCP"));
+    }
 }
 
 internal static class TestData
@@ -335,5 +385,26 @@ internal static class Assert
             throw new InvalidOperationException(
                 "Expected sequence:\n" + string.Join("\n", expectedArray) + "\nActual sequence:\n" + string.Join("\n", actualArray));
         }
+    }
+}
+
+internal sealed class RecordingProcessRunner : ICliProcessRunner
+{
+    private readonly CliProcessOutput _output;
+
+    public RecordingProcessRunner(CliProcessOutput output)
+    {
+        _output = output;
+    }
+
+    public string LastExecutablePath { get; private set; } = "";
+    public IReadOnlyList<string> LastArguments { get; private set; } = Array.Empty<string>();
+
+    public CliProcessOutput Run(string executablePath, IReadOnlyList<string> arguments, Action<BenchmarkProgressEvent>? progressHandler)
+    {
+        LastExecutablePath = executablePath;
+        LastArguments = arguments.ToArray();
+        progressHandler?.Invoke(new BenchmarkProgressEvent(ProgressEventType.ResolverStarted, "cloudflare", "1.1.1.1:53", 1, 1));
+        return _output;
     }
 }
