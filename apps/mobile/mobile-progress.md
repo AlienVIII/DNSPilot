@@ -12,6 +12,8 @@
   elapsed time, failed step/reason, debug log, and copyable report.
 - Added capability-based guided DNS settings/profile flow for iOS/iPadOS and
   Android, including protected-network suppression.
+- Added adaptive phone/tablet/expanded layout helpers and applied two-column
+  tablet layouts to key Overview, Storage, and Policy flows.
 
 ## Current Work
 - Test shell is ready for local Expo Go/web validation through the bridge.

@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { BridgeResult, compactJson, profileServers } from '@/src/api/dnspilot';
 import {
+  AdaptiveColumns,
   Button,
   CodeBlock,
   EmptyState,
@@ -123,33 +124,35 @@ export default function PolicyScreen() {
         <ErrorBanner message={error} />
       </Section>
 
-      <Section title="Recommendation Input" subtitle="Simulates the completed benchmark result passed into apply-plan.">
-        <Segmented options={healthOptions} value={gateHealth} onChange={setGateHealth} />
-        <Segmented options={confidenceOptions} value={confidence} onChange={setConfidence} />
-        <TextField label="Tested resolver" value={testedResolver} onChangeText={setTestedResolver} placeholder="1.1.1.1" />
-        <Row>
-          {plainProfiles.map((profile) => (
-            <Pill
-              key={profile.id}
-              label={profile.name}
-              selected={profileId === profile.id}
-              onPress={() => {
-                setProfileId(profile.id);
-                setTestedResolver(profileServers(profile)[0] ?? '');
-              }}
-              tone={profile.tags?.includes('custom') ? 'amber' : 'neutral'}
-            />
-          ))}
-        </Row>
-      </Section>
+      <AdaptiveColumns>
+        <Section title="Recommendation Input" subtitle="Simulates the completed benchmark result passed into apply-plan.">
+          <Segmented options={healthOptions} value={gateHealth} onChange={setGateHealth} />
+          <Segmented options={confidenceOptions} value={confidence} onChange={setConfidence} />
+          <TextField label="Tested resolver" value={testedResolver} onChangeText={setTestedResolver} placeholder="1.1.1.1" />
+          <Row>
+            {plainProfiles.map((profile) => (
+              <Pill
+                key={profile.id}
+                label={profile.name}
+                selected={profileId === profile.id}
+                onPress={() => {
+                  setProfileId(profile.id);
+                  setTestedResolver(profileServers(profile)[0] ?? '');
+                }}
+                tone={profile.tags?.includes('custom') ? 'amber' : 'neutral'}
+              />
+            ))}
+          </Row>
+        </Section>
 
-      <Section title="Protected Network Signals" subtitle="These flags should force protect-current-dns or remove apply prompts when needed.">
-        <ToggleRow label="VPN active" value={vpnActive} onValueChange={setVpnActive} />
-        <ToggleRow label="MDM profile active" value={mdmProfileActive} onValueChange={setMdmProfileActive} />
-        <ToggleRow label="Corporate DNS detected" value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
-        <ToggleRow label="Captive portal detected" value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
-        <Button label="Load policy payloads" onPress={runPolicy} loading={working} />
-      </Section>
+        <Section title="Protected Network Signals" subtitle="These flags should force protect-current-dns or remove apply prompts when needed.">
+          <ToggleRow label="VPN active" value={vpnActive} onValueChange={setVpnActive} />
+          <ToggleRow label="MDM profile active" value={mdmProfileActive} onValueChange={setMdmProfileActive} />
+          <ToggleRow label="Corporate DNS detected" value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
+          <ToggleRow label="Captive portal detected" value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
+          <Button label="Load policy payloads" onPress={runPolicy} loading={working} />
+        </Section>
+      </AdaptiveColumns>
 
       <Section title="Guided Flow" subtitle="Capability-based OS flow. The app does not silently mutate system DNS.">
         {guidance ? (

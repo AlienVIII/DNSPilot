@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { compactJson } from '@/src/api/dnspilot';
-import { Button, CodeBlock, ErrorBanner, Metric, Row, Screen, Section, TextField, palette } from '@/src/components/ui';
+import { AdaptiveColumns, Button, CodeBlock, ErrorBanner, Metric, Row, Screen, Section, TextField, palette } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 
 export default function OverviewScreen() {
@@ -67,20 +67,22 @@ export default function OverviewScreen() {
         <ErrorBanner message={error} />
       </Section>
 
-      <Section title="Status" subtitle={health?.dbPath ? `SQLite: ${health.dbPath}` : 'Start npm run bridge before testing.'}>
-        <Row>
-          <Metric label="Bridge" value={health?.ok ? 'up' : 'down'} tone={health?.ok ? 'green' : 'amber'} />
-          <Metric label="Profiles" value={profiles.length} tone="blue" />
-          <Metric label="Suites" value={suites.length} tone="green" />
-          <Metric label="Capabilities" value={capabilities.length} tone="amber" />
-          <Metric label="History" value={history.length} tone="neutral" />
-        </Row>
-      </Section>
+      <AdaptiveColumns>
+        <Section title="Status" subtitle={health?.dbPath ? `SQLite: ${health.dbPath}` : 'Start npm run bridge before testing.'}>
+          <Row>
+            <Metric label="Bridge" value={health?.ok ? 'up' : 'down'} tone={health?.ok ? 'green' : 'amber'} />
+            <Metric label="Profiles" value={profiles.length} tone="blue" />
+            <Metric label="Suites" value={suites.length} tone="green" />
+            <Metric label="Capabilities" value={capabilities.length} tone="amber" />
+            <Metric label="History" value={history.length} tone="neutral" />
+          </Row>
+        </Section>
 
-      <Section title="Smoke Sample" subtitle="Uses dnspilot-cli recommend-sample, not mobile-side scoring.">
-        <Button label="Run sample recommendation" onPress={loadSample} loading={working} />
-        {sample ? <CodeBlock text={compactJson(sample, 2400)} /> : null}
-      </Section>
+        <Section title="Smoke Sample" subtitle="Uses dnspilot-cli recommend-sample, not mobile-side scoring.">
+          <Button label="Run sample recommendation" onPress={loadSample} loading={working} />
+          {sample ? <CodeBlock text={compactJson(sample, 2400)} /> : null}
+        </Section>
+      </AdaptiveColumns>
 
       <Section title="Test Boundary" subtitle="This app is an Expo Go test shell. Release-grade direct Rust binding is a later native bridge task.">
         <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 6, padding: 12 }}>

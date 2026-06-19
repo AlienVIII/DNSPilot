@@ -1,4 +1,5 @@
 import React from 'react';
+import type { DimensionValue } from 'react-native';
 import {
   ActivityIndicator,
   Pressable,
@@ -7,8 +8,11 @@ import {
   Switch,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
+
+import { layoutForWidth } from '@/src/view-models/adaptive-layout';
 
 export const palette = {
   background: '#f8fafc',
@@ -28,14 +32,40 @@ export const palette = {
 };
 
 export function Screen({ children }: { children: React.ReactNode }) {
+  const { width } = useWindowDimensions();
+  const layout = layoutForWidth(width);
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       style={styles.screen}
-      contentContainerStyle={styles.screenContent}>
+      contentContainerStyle={[
+        styles.screenContent,
+        {
+          gap: layout.gap,
+          maxWidth: layout.maxContentWidth,
+          width: '100%',
+        },
+      ]}>
       {children}
     </ScrollView>
+  );
+}
+
+export function AdaptiveColumns({ children }: { children: React.ReactNode }) {
+  const { width } = useWindowDimensions();
+  const layout = layoutForWidth(width);
+  const childWidth = (layout.columns === 1 ? '100%' : `${(100 - layout.gap / 10) / 2}%`) as DimensionValue;
+  const childMinWidth = (layout.columns === 1 ? '100%' : 320) as DimensionValue;
+
+  return (
+    <View style={[styles.adaptiveColumns, { gap: layout.gap }]}>
+      {React.Children.map(children, (child, index) => (
+        <View key={index} style={{ flexGrow: 1, minWidth: childMinWidth, width: childWidth }}>
+          {child}
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -277,9 +307,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   screenContent: {
+    alignSelf: 'center',
     gap: 14,
     padding: 16,
     paddingBottom: 32,
+  },
+  adaptiveColumns: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   section: {
     gap: 12,

@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { compactJson, isCustomProfile, isCustomSuite } from '@/src/api/dnspilot';
 import {
+  AdaptiveColumns,
   Button,
   CodeBlock,
   EmptyState,
@@ -122,52 +123,54 @@ export default function StorageScreen() {
         <ErrorBanner message={error} />
       </Section>
 
-      <Section title="Custom DNS Profile" subtitle="Plain profiles can be benchmarked. DoH/DoT profiles are saved for catalog/apply guidance.">
-        <Row>
-          <TextField label="ID" value={profileId} onChangeText={setProfileId} placeholder="office-dns" />
-          <TextField label="Name" value={profileName} onChangeText={setProfileName} placeholder="Office DNS" />
-        </Row>
-        <Segmented options={protocolOptions} value={protocol} onChange={setProtocol} />
-        {protocol === 'plain' ? (
+      <AdaptiveColumns>
+        <Section title="Custom DNS Profile" subtitle="Plain profiles can be benchmarked. DoH/DoT profiles are saved for catalog/apply guidance.">
           <Row>
-            <TextField label="IPv4 servers" value={ipv4} onChangeText={setIpv4} multiline placeholder="1.1.1.1" />
-            <TextField label="IPv6 servers" value={ipv6} onChangeText={setIpv6} multiline placeholder="2606:4700:4700::1111" />
+            <TextField label="ID" value={profileId} onChangeText={setProfileId} placeholder="office-dns" />
+            <TextField label="Name" value={profileName} onChangeText={setProfileName} placeholder="Office DNS" />
           </Row>
-        ) : null}
-        {protocol === 'doh' ? <TextField label="DoH URL" value={dohUrl} onChangeText={setDohUrl} placeholder="https://dns.example/dns-query" /> : null}
-        {protocol === 'dot' ? <TextField label="DoT hostname" value={dotHostname} onChangeText={setDotHostname} placeholder="dns.example.com" /> : null}
-        <Segmented options={filteringOptions} value={filtering} onChange={setFiltering} />
-        <TextField label="Tags" value={profileTags} onChangeText={setProfileTags} placeholder="custom, office" />
-        <Row>
-          <Button label="Add" onPress={() => execute('profileAdd', profilePayload)} loading={working} />
-          <Button label="Update" onPress={() => execute('profileUpdate', profilePayload)} variant="secondary" loading={working} />
-          <Button label="Delete" onPress={() => execute('profileDelete', { id: profilePayload.id })} variant="danger" loading={working} />
-        </Row>
-        <Row>
-          {customProfiles.map((profile) => (
-            <Pill key={profile.id} label={profile.name} onPress={() => fillProfile(profile.id)} tone="amber" />
-          ))}
-        </Row>
-      </Section>
+          <Segmented options={protocolOptions} value={protocol} onChange={setProtocol} />
+          {protocol === 'plain' ? (
+            <Row>
+              <TextField label="IPv4 servers" value={ipv4} onChangeText={setIpv4} multiline placeholder="1.1.1.1" />
+              <TextField label="IPv6 servers" value={ipv6} onChangeText={setIpv6} multiline placeholder="2606:4700:4700::1111" />
+            </Row>
+          ) : null}
+          {protocol === 'doh' ? <TextField label="DoH URL" value={dohUrl} onChangeText={setDohUrl} placeholder="https://dns.example/dns-query" /> : null}
+          {protocol === 'dot' ? <TextField label="DoT hostname" value={dotHostname} onChangeText={setDotHostname} placeholder="dns.example.com" /> : null}
+          <Segmented options={filteringOptions} value={filtering} onChange={setFiltering} />
+          <TextField label="Tags" value={profileTags} onChangeText={setProfileTags} placeholder="custom, office" />
+          <Row>
+            <Button label="Add" onPress={() => execute('profileAdd', profilePayload)} loading={working} />
+            <Button label="Update" onPress={() => execute('profileUpdate', profilePayload)} variant="secondary" loading={working} />
+            <Button label="Delete" onPress={() => execute('profileDelete', { id: profilePayload.id })} variant="danger" loading={working} />
+          </Row>
+          <Row>
+            {customProfiles.map((profile) => (
+              <Pill key={profile.id} label={profile.name} onPress={() => fillProfile(profile.id)} tone="amber" />
+            ))}
+          </Row>
+        </Section>
 
-      <Section title="Custom Domain Suite" subtitle="Suites plug into benchmark, compare, path-estimate, and path-compare.">
-        <Row>
-          <TextField label="ID" value={suiteId} onChangeText={setSuiteId} placeholder="work-stack" />
-          <TextField label="Name" value={suiteName} onChangeText={setSuiteName} placeholder="Work Stack" />
-        </Row>
-        <TextField label="Domains" value={suiteDomains} onChangeText={setSuiteDomains} multiline placeholder="github.com&#10;registry.npmjs.org" />
-        <TextField label="Tags" value={suiteTags} onChangeText={setSuiteTags} placeholder="custom, work" />
-        <Row>
-          <Button label="Add suite" onPress={() => execute('suiteAdd', suitePayload)} loading={working} />
-          <Button label="Update suite" onPress={() => execute('suiteUpdate', suitePayload)} variant="secondary" loading={working} />
-          <Button label="Delete suite" onPress={() => execute('suiteDelete', { id: suitePayload.id })} variant="danger" loading={working} />
-        </Row>
-        <Row>
-          {customSuites.map((suite) => (
-            <Pill key={suite.id} label={suite.name} onPress={() => fillSuite(suite.id)} tone="green" />
-          ))}
-        </Row>
-      </Section>
+        <Section title="Custom Domain Suite" subtitle="Suites plug into benchmark, compare, path-estimate, and path-compare.">
+          <Row>
+            <TextField label="ID" value={suiteId} onChangeText={setSuiteId} placeholder="work-stack" />
+            <TextField label="Name" value={suiteName} onChangeText={setSuiteName} placeholder="Work Stack" />
+          </Row>
+          <TextField label="Domains" value={suiteDomains} onChangeText={setSuiteDomains} multiline placeholder="github.com&#10;registry.npmjs.org" />
+          <TextField label="Tags" value={suiteTags} onChangeText={setSuiteTags} placeholder="custom, work" />
+          <Row>
+            <Button label="Add suite" onPress={() => execute('suiteAdd', suitePayload)} loading={working} />
+            <Button label="Update suite" onPress={() => execute('suiteUpdate', suitePayload)} variant="secondary" loading={working} />
+            <Button label="Delete suite" onPress={() => execute('suiteDelete', { id: suitePayload.id })} variant="danger" loading={working} />
+          </Row>
+          <Row>
+            {customSuites.map((suite) => (
+              <Pill key={suite.id} label={suite.name} onPress={() => fillSuite(suite.id)} tone="green" />
+            ))}
+          </Row>
+        </Section>
+      </AdaptiveColumns>
 
       <Section title="History" subtitle="Saved by benchmark commands with Save history enabled.">
         <Row>
