@@ -8,7 +8,7 @@ final class CatalogViewModelTests: XCTestCase {
 
         XCTAssertNil(viewModel.loadErrorMessage)
         XCTAssertEqual(viewModel.profileCount, 12)
-        XCTAssertEqual(viewModel.testSuiteCount, 9)
+        XCTAssertEqual(viewModel.testSuiteCount, 12)
         XCTAssertEqual(viewModel.filteredProfileCount, 6)
         XCTAssertTrue(viewModel.hasAzureSuite)
         XCTAssertEqual(viewModel.catalog?.profiles.map(\.id).suffix(3), ["fpt-telecom-dns", "vnpt-dns", "viettel-dns"])
@@ -21,6 +21,18 @@ final class CatalogViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.catalog?.testSuites.first { $0.id == "gaming-dota2-sea" }?.domains,
             ["dota2.com", "steamcommunity.com", "steampowered.com", "steamcontent.com", "api.steampowered.com"]
+        )
+        XCTAssertEqual(
+            viewModel.catalog?.testSuites.first { $0.id == "chatgpt-openai" }?.domains,
+            ["chatgpt.com", "openai.com", "api.openai.com", "auth.openai.com", "oaistatic.com", "oaiusercontent.com"]
+        )
+        XCTAssertEqual(
+            viewModel.catalog?.testSuites.first { $0.id == "youtube-google-video" }?.domains.first,
+            "youtube.com"
+        )
+        XCTAssertEqual(
+            viewModel.catalog?.testSuites.first { $0.id == "github-developer" }?.domains.first,
+            "github.com"
         )
         let cloudflare = viewModel.profileSummaries.first { $0.id == "cloudflare" }
         XCTAssertTrue(cloudflare?.canGuideApply == true)

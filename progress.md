@@ -122,6 +122,7 @@ DNS handling, and platform capability reporting.
 - [x] [111] v0.1 macOS confirmed apply and flush guidance — confirm copy/open apply and store-safe flush checklist actions.
 - [x] [112] v0.1 macOS fastest vs balanced result labels — separate raw fastest DNS from safety-gated recommendation.
 - [x] [113] v0.1 macOS selected profile guided apply — apply selected plain DNS profiles from Catalog with confirmation.
+- [x] [114] v0.1 saved-domain suites — add YouTube, GitHub, and ChatGPT/OpenAI presets.
 
 ---
 
@@ -5115,6 +5116,26 @@ the guided apply button.
 ```text
 swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests
 Result: 8 passed, 0 failed
+```
+
+---
+
+## Chunk 114: v0.1 Saved-Domain Suites
+
+**Status:** Complete
+
+The built-in catalog now includes dedicated YouTube/Google Video, GitHub, and
+ChatGPT/OpenAI suites in both the Rust core and macOS preview catalog. Custom
+company API domains remain covered through saved custom suites.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test core_behaviour built_in_catalog_contains_required_profiles_and_suites
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests/testDefaultCatalogViewModelProvidesPreviewSummary
+Result: 1 passed, 0 failed
 ```
 
 ---

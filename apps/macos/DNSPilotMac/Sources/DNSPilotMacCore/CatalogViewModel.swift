@@ -243,6 +243,27 @@ public struct PreviewCatalogBridge: DNSPilotCatalogBridge {
                     tags: ["developer", "cloud", "microsoft"]
                 ),
                 Self.suite(
+                    id: "youtube-google-video",
+                    name: "YouTube / Google Video",
+                    description: "YouTube player, short links, video CDN, thumbnails, and client API checks.",
+                    domains: ["youtube.com", "www.youtube.com", "youtu.be", "googlevideo.com", "ytimg.com", "youtubei.googleapis.com"],
+                    tags: ["video", "google", "youtube"]
+                ),
+                Self.suite(
+                    id: "github-developer",
+                    name: "GitHub",
+                    description: "GitHub web, API, source download, raw content, and asset CDN checks.",
+                    domains: ["github.com", "api.github.com", "raw.githubusercontent.com", "codeload.github.com", "githubusercontent.com", "github.githubassets.com"],
+                    tags: ["developer", "github"]
+                ),
+                Self.suite(
+                    id: "chatgpt-openai",
+                    name: "ChatGPT / OpenAI",
+                    description: "ChatGPT, OpenAI API, auth, static asset, and user-content domain checks.",
+                    domains: ["chatgpt.com", "openai.com", "api.openai.com", "auth.openai.com", "oaistatic.com", "oaiusercontent.com"],
+                    tags: ["ai", "chatgpt", "openai"]
+                ),
+                Self.suite(
                     id: "google-firebase",
                     name: "Google / Firebase",
                     description: "Firebase and Google API checks.",

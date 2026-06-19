@@ -13,8 +13,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - Built-in Vietnam ISP DNS profiles for FPT Telecom, VNPT, and Viettel
   benchmarking presets.
 - Built-in test suites for General, Developer, Azure/Microsoft,
-  Google/Firebase, Vietnam/Daily, and gaming presets for Steam/Valve,
-  Dota 2 SEA, CS2, and Riot/LoL use cases.
+  YouTube/Google Video, GitHub, ChatGPT/OpenAI, Google/Firebase,
+  Vietnam/Daily, and gaming presets for Steam/Valve, Dota 2 SEA, CS2,
+  and Riot/LoL use cases.
 - Versioned core-owned shell payload contracts for catalog and capability
   matrix JSON.
 - Recommendation scoring for connection-path estimates.
