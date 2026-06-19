@@ -2531,8 +2531,11 @@ private struct BenchmarkResultPanel: View {
     let isLoadingApplyPlan: Bool
     let onStartSystemDNSValidation: () -> Void
 
-    private var hasApplyPlanState: Bool {
-        isLoadingApplyPlan || applyPlanOutcome != nil
+    private var applyPlanPresentation: BenchmarkApplyPlanPresentation {
+        BenchmarkApplyPlanPresentation(
+            outcome: applyPlanOutcome,
+            isLoading: isLoadingApplyPlan
+        )
     }
 
     private var nextStepViewModel: BenchmarkResultNextStepViewModel {
@@ -2561,13 +2564,13 @@ private struct BenchmarkResultPanel: View {
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
 
-                if !hasApplyPlanState {
+                if applyPlanPresentation.showsLocalNextStep {
                     BenchmarkResultNextStepPanel(
                         viewModel: nextStepViewModel
                     )
                 }
 
-                if hasApplyPlanState {
+                if applyPlanPresentation.showsApplyPlanState {
                     BenchmarkApplyPlanStatusPanel(
                         outcome: applyPlanOutcome,
                         isLoading: isLoadingApplyPlan
@@ -2589,7 +2592,7 @@ private struct BenchmarkResultPanel: View {
                             isLoading: isLoadingApplyPlan,
                             to: viewModel.resultReportText(
                                 elapsedMS: elapsedMS,
-                                includeNextStep: !hasApplyPlanState
+                                includeNextStep: applyPlanPresentation.reportIncludesLocalNextStep
                             )
                         )
                     )
@@ -2727,6 +2730,29 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                 ForEach(viewModel.plan.dnsServers, id: \.self) { server in
                     Label(server, systemImage: "number")
                         .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
+        }
+
+        if !viewModel.guidedApplySteps.isEmpty {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                Label("Guided apply sequence", systemImage: "checklist")
+                    .font(.subheadline.weight(.semibold))
+                ForEach(viewModel.guidedApplySteps) { step in
+                    HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.controlGap) {
+                        Image(systemName: step.systemImage)
+                            .foregroundStyle(DNSPilotDesign.Palette.accent)
+                            .frame(width: 18)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(step.title)
+                                .font(.body.weight(.semibold))
+                            Text(step.detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
             }
             .padding(.vertical, DNSPilotDesign.Spacing.controlGap)

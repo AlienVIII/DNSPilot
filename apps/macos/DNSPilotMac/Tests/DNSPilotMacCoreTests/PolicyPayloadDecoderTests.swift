@@ -75,8 +75,18 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertEqual(viewModel.guidedPrimaryActionLabel, "Copy DNS + Open Settings")
         XCTAssertEqual(viewModel.guidedPrimaryActionCopyText, "1.1.1.1\n1.0.0.1")
         XCTAssertTrue(viewModel.opensNetworkSettingsAfterGuidedPrimaryAction)
+        XCTAssertEqual(viewModel.guidedApplySteps.map(\.id), [
+            "copy-dns",
+            "open-network-settings",
+            "paste-active-service",
+            "flush-cache",
+            "validate-system-dns",
+        ])
+        XCTAssertTrue(viewModel.guidedApplySteps.first?.detail.contains("1.1.1.1") == true)
         XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("DNS Pilot has not changed system DNS.") == true)
         XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("1.1.1.1\n1.0.0.1") == true)
+        XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("sudo dscacheutil -flushcache") == true)
+        XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("Run System DNS validation") == true)
         XCTAssertTrue(viewModel.guidedApplyChecklistText?.contains("Retest DNS Pilot after applying DNS.") == true)
     }
 
@@ -100,9 +110,55 @@ final class PolicyPayloadDecoderTests: XCTestCase {
         XCTAssertFalse(viewModel.canOfferPrimaryAction)
         XCTAssertNil(viewModel.guidedPrimaryActionLabel)
         XCTAssertNil(viewModel.guidedPrimaryActionCopyText)
+        XCTAssertTrue(viewModel.guidedApplySteps.isEmpty)
         XCTAssertNil(viewModel.guidedApplyChecklistText)
         XCTAssertFalse(viewModel.opensNetworkSettingsAfterGuidedPrimaryAction)
         XCTAssertTrue(viewModel.copyText.contains("VPN is active"))
+    }
+
+    func testApplyPlanPresentationFallsBackToLocalNextStepWhenApplyPlanFails() {
+        let failed = BenchmarkApplyPlanPresentation(
+            outcome: .failed("apply plan failed"),
+            isLoading: false
+        )
+        let loading = BenchmarkApplyPlanPresentation(
+            outcome: nil,
+            isLoading: true
+        )
+        let loaded = BenchmarkApplyPlanPresentation(
+            outcome: .loaded(
+                ApplyPlanViewModel(
+                    plan: ApplyPlan(
+                        platformID: "macos-store",
+                        applyCapability: .appleNetworkExtensionDNSSettings,
+                        disposition: .guideOnly,
+                        profileID: "cloudflare",
+                        profileName: "Cloudflare",
+                        dnsServers: ["1.1.1.1"],
+                        canApply: false,
+                        notes: []
+                    )
+                )
+            ),
+            isLoading: false
+        )
+        let unavailable = BenchmarkApplyPlanPresentation(
+            outcome: nil,
+            isLoading: false
+        )
+
+        XCTAssertTrue(failed.showsApplyPlanState)
+        XCTAssertTrue(failed.showsLocalNextStep)
+        XCTAssertTrue(failed.reportIncludesLocalNextStep)
+        XCTAssertTrue(loading.showsApplyPlanState)
+        XCTAssertFalse(loading.showsLocalNextStep)
+        XCTAssertFalse(loading.reportIncludesLocalNextStep)
+        XCTAssertTrue(loaded.showsApplyPlanState)
+        XCTAssertFalse(loaded.showsLocalNextStep)
+        XCTAssertFalse(loaded.reportIncludesLocalNextStep)
+        XCTAssertFalse(unavailable.showsApplyPlanState)
+        XCTAssertTrue(unavailable.showsLocalNextStep)
+        XCTAssertTrue(unavailable.reportIncludesLocalNextStep)
     }
 
     func testApplyPlanReportFormatterAppendsLoadedPlan() {
