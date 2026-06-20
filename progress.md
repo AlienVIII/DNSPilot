@@ -129,6 +129,7 @@ DNS handling, and platform capability reporting.
 - [x] [118] v0.1 macOS power capability alignment — reflect Power path in readiness and capability matrix.
 - [x] [119] v0.1 macOS permission/publish readiness — add native screens and copyable checklists.
 - [x] [120] v0.1 macOS localization foundation — add English/Vietnamese top-level language support.
+- [x] [121] v0.1 macOS publishing source-of-truth — document App Store and Power edition release steps.
 
 ---
 
@@ -5991,6 +5992,34 @@ Result: passed
 
 ./script/build_and_run.sh --sandbox-verify
 Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 121: v0.1 macOS Publishing Source of Truth
+
+**Status:** Complete
+**Files changed:** `apps/macos/PUBLISHING.md`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added the macOS publishing source-of-truth with App Store and Power edition
+tracks, local release gate commands, signing/entitlement checks, App Store
+manual submission steps, Power manual QA steps, and current blockers.
+
+### Edge Cases / Caveats
+
+- App Store edition must keep Power apply/flush disabled and use guided flows.
+- Power edition can request administrator approval, but needs real manual QA
+  because it can change system DNS and flush DNS cache.
+- Release signing, provisioning, App Store Connect metadata, screenshots, and
+  final upload remain publisher-owned manual steps.
+
+### Verification
+
+```text
+git diff --check
+Result: passed
 ```
 
 ---

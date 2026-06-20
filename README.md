@@ -6,6 +6,7 @@ This repository currently implements the reusable Rust core and a smoke CLI.
 Native platform shells are expected to bind to this core instead of duplicating
 benchmark scoring, provider catalogs, test suites, and capability rules.
 The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
+macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 
 ## Current Scope
 

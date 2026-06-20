@@ -27,6 +27,7 @@
 - Capability matrix now includes macOS Power so direct-install admin apply/flush is not confused with macOS Store behavior.
 - Sidebar includes Permissions and Publish readiness screens with copyable checklists.
 - Native Settings includes language selection; English and Vietnamese are wired for top-level navigation and readiness surfaces.
+- Publishing source-of-truth lives in `apps/macos/PUBLISHING.md`, including App Store and Power edition manual steps.
 
 ## Current Work
 - macOS remains UX lead lane.
