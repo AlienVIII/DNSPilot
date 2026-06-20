@@ -78,6 +78,7 @@ Expected:
 - `LSMinimumSystemVersion` is `14.0`.
 
 6. Prepare App Store metadata.
+   - Start from `apps/macos/AppStoreConnect/README.md`.
    - Explain DNS benchmarking and connection-path estimates.
    - State that the app does not claim full internet speed improvement.
    - State that store builds do not silently change system DNS.

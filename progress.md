@@ -131,6 +131,7 @@ DNS handling, and platform capability reporting.
 - [x] [120] v0.1 macOS localization foundation — add English/Vietnamese top-level language support.
 - [x] [121] v0.1 macOS publishing source-of-truth — document App Store and Power edition release steps.
 - [x] [122] v0.1 macOS native localization pass — localize primary app surfaces and split large SwiftUI benchmark body.
+- [x] [123] v0.1 macOS App Store metadata template — add review notes, privacy notes, and screenshot checklist.
 
 ---
 
@@ -6057,6 +6058,33 @@ Result: passed
 
 ./script/build_and_run.sh --sandbox-verify
 Result: macOS bundle structural validation passed
+```
+
+---
+
+## Chunk 123: v0.1 macOS App Store Metadata Template
+
+**Status:** Complete
+**Files changed:** `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added an App Store Connect source-of-truth covering product identity, subtitle,
+description, keywords, review notes, privacy notes, screenshot checklist, and
+manual release blockers.
+
+### Edge Cases / Caveats
+
+- Support URL, marketing URL, final privacy answers, and screenshots remain
+  manual publisher inputs.
+- Metadata assumes the current store-safe build; update it if telemetry, sync,
+  accounts, remote catalog updates, or Power edition distribution are added.
+
+### Verification
+
+```text
+git diff --check
+Result: passed
 ```
 
 ---
