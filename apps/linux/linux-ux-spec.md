@@ -38,6 +38,60 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- detect \
   --mock-command pkcheck
 ```
 
+## Native App Surface
+
+The Linux shell exposes a native app view-model for the eventual GTK/libadwaita
+or Qt adapter. The main app surface is the primary UX; tray integration is
+optional and never required for GNOME/Wayland.
+
+CLI app-model example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- app-model \
+  --package deb \
+  --network-manager \
+  --polkit \
+  --system-resolver-probe \
+  --lang vi
+```
+
+The view-model includes:
+
+- benchmark,
+- profile management,
+- settings/apply path,
+- diagnostics/debug report,
+- permissions.
+
+English and Vietnamese are supported for the Linux shell's primary app and
+permission surfaces.
+
+## Permissions
+
+Permission UX is package-specific:
+
+- Flatpak requests outbound network and desktop-window permissions for
+  benchmark/guidance. It does not request system DNS mutation.
+- Snap requests strict outbound network and desktop-window permissions. It does
+  not include the privileged `network-manager` plug in the store-safe build.
+- deb/rpm native power packages require polkit plus NetworkManager D-Bus or
+  systemd-resolved before real DNS apply is offered.
+
+CLI permission example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- permissions \
+  --package snap \
+  --lang en
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- permissions \
+  --package deb \
+  --network-manager \
+  --polkit \
+  --system-resolver-probe \
+  --lang vi
+```
+
 ## Benchmark Modes
 
 - `DNS only`: direct DNS lookup benchmark.
@@ -217,3 +271,5 @@ Do not block Linux lane completion on manual distro/package testing. Later QA
 should verify real Flatpak/Snap/deb/rpm packaging behavior, portal/settings
 handoff, NetworkManager D-Bus writes, systemd-resolved writes, polkit prompts,
 and distro resolver-stack differences.
+
+Publish and manual real-device steps live in `linux-publish-checklist.md`.

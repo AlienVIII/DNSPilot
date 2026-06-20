@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.dnspilot.DNSPilot</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>DNS Pilot</name>
+  <summary>Benchmark DNS resolvers and guide safe resolver changes</summary>
+  <summary xml:lang="vi">Đo kiểm DNS resolver và hướng dẫn đổi resolver an toàn</summary>
+  <developer id="io.dnspilot">
+    <name>DNS Pilot Maintainers</name>
+  </developer>
+  <description>
+    <p>DNS Pilot benchmarks resolver latency, validates supported resolver paths, manages custom DNS profiles, and produces copyable diagnostics.</p>
+    <p xml:lang="vi">DNS Pilot đo độ trễ resolver, xác thực đường resolver được hỗ trợ, quản lý hồ sơ DNS tùy chỉnh, và tạo báo cáo chẩn đoán có thể sao chép.</p>
+  </description>
+  <launchable type="desktop-id">io.dnspilot.DNSPilot.desktop</launchable>
+  <categories>
+    <category>Network</category>
+    <category>Utility</category>
+  </categories>
+  <provides>
+    <binary>dnspilot-linux-shell</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-06-21" />
+  </releases>
+  <url type="homepage">https://dnspilot.io</url>
+  <url type="bugtracker">https://dnspilot.io/support</url>
+</component>

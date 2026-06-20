@@ -17,16 +17,19 @@
 | Result diagnostics and copyable debug report | Covered | `diagnostics.rs`, CLI/report tests |
 | Guided settings only for store/sandbox builds | Covered | settings/guide tests |
 | Native power path plan | Covered as plan, not mutation | `settings.rs`, `guide` CLI |
-| Tray optional | Covered as invariant | capability/report output says tray optional |
+| Tray optional | Covered as invariant | capability/report output and native app model say tray optional |
 | Custom DNS profile add/edit/delete | Covered | in-memory store plus file-backed CLI commands |
 | IPv4/IPv6 and A/AAAA controls | Covered | settings/app/session tests |
 | Vietnam/default suites | Covered | suite catalog tests |
 | Capability detection without real DNS mutation | Covered | detector snapshot/runtime path, CLI `detect` |
+| Native app permission model | Covered as view-model/CLI | `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
+| English/Vietnamese localization | Covered for Linux shell surface | `i18n.rs`, i18n behavior tests |
+| Packaging/publish readiness | Covered as policy templates/checklist | `packaging/**`, packaging policy tests, `linux-publish-checklist.md` |
 
 ## Counterarguments And Resolution
 
 1. **Counterargument: A CLI harness is not a finished Linux GUI.**  
-   Valid. The lane now has product-grade app/session models, persistence, runner boundary, and CLI surfaces, but no GTK/libadwaita or Qt shell. This is an accepted next-phase boundary because native UI stack selection is still open.
+   Valid. The lane now has product-grade app/session models, localized native app view-models, persistence, runner boundary, desktop metadata, and CLI surfaces, but no GTK/libadwaita or Qt rendering adapter. This remains the largest product gap before a real end-user GUI can be called complete.
 
 2. **Counterargument: Capability detection can be wrong on some distros.**  
    Valid. Detection is intentionally conservative and non-mutating. It checks sandbox markers, resolver-stack tools, paths, and polkit availability. Later distro QA must validate real packaging behavior.
@@ -43,12 +46,18 @@
 6. **Counterargument: Store-safe builds can only guide, not apply.**  
    Correct. The product message must remain benchmark/guidance first for Flatpak and Snap.
 
+7. **Counterargument: Packaging templates are not real store validation.**  
+   Valid. The tests assert policy invariants and file presence, but Flatpak Builder, appstreamcli, desktop-file-validate, snapcraft, debuild, and rpmbuild still need to run on Linux.
+
+8. **Counterargument: Vietnamese coverage is not app-wide translation.**  
+   Partially valid. The Linux shell now supports English/Vietnamese strings for primary native app, permission, and CLI surfaces. Full GUI copy coverage should expand when the GTK/Qt adapter lands.
+
 ## Remaining Risks
 
-- Real Flatpak/Snap/deb/rpm package manifests are not validated in this lane.
+- Real Flatpak/Snap/deb/rpm builds are not validated in this lane.
 - NetworkManager D-Bus and systemd-resolved writes are not implemented.
 - Polkit helper signing/install/authorization flow is not implemented.
-- Native GUI stack remains undecided.
+- Native GUI stack/rendering adapter remains undecided.
 - Distro-specific settings handoff text may need UX refinement after QA.
 
 ## Recommended Next Phase

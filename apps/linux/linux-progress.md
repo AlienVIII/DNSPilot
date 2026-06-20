@@ -17,9 +17,13 @@
 - Added CLI product commands for profile add/list/delete, benchmark plan generation, executable run, and guided apply/native-plan output.
 - Added non-mutating Linux capability auto-detection plus mocked snapshot detection for deterministic QA.
 - Added self-review and counterargument summary in `linux-self-review.md`.
+- Added localized English/Vietnamese native app view-models and CLI surfaces for permission/app-model inspection.
+- Added package-specific permission plans for Flatpak, Snap, deb, and rpm.
+- Added store-safe Flatpak/Snap packaging templates, deb/rpm native-power templates, shared desktop/AppStream metadata, icon, and polkit policy.
+- Added packaging policy tests and Linux publish/manual-QA checklist.
 
 ## Current Work
-- Linux lane UX/spec/code is implemented for scoped benchmark, profile, diagnostics, guidance, and native-power planning behavior.
+- Linux lane UX/spec/code is implemented for scoped benchmark, profile, diagnostics, guidance, permission, packaging-policy, and native-power planning behavior.
 
 ## Blockers
 - No blocker for scoped code-complete lane.
@@ -27,5 +31,6 @@
 
 ## Next Actions
 - Wire a native GUI shell to the Linux app/session package when GTK/libadwaita or Qt is selected.
+- Implement native DNS write helper behind the deb/rpm power package path.
 - Later QA: Flatpak, Snap, deb, and rpm package-specific verification.
 - Use `linux-self-review.md` as the current critique/risk summary before starting GUI/native-helper work.
