@@ -10,6 +10,9 @@ use dnspilot_linux_shell::detect::{
     detect_linux_environment, detect_linux_environment_from_snapshot, LinuxDetectionSnapshot,
 };
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
+use dnspilot_linux_shell::i18n::Language;
+use dnspilot_linux_shell::native_app::{build_native_app_model, render_native_app_model};
+use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
 use dnspilot_linux_shell::process::LinuxBenchmarkProcessViewModel;
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
 use dnspilot_linux_shell::settings::{
@@ -40,6 +43,8 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
         Some("run") => run_execute(args.into_iter().skip(1)),
         Some("guide") => run_guide(args.into_iter().skip(1)),
         Some("detect") => run_detect(args.into_iter().skip(1)),
+        Some("permissions") => run_permissions(args.into_iter().skip(1)),
+        Some("app-model") => run_app_model(args.into_iter().skip(1)),
         _ => run_legacy_report(args),
     }
 }
@@ -214,6 +219,20 @@ fn run_detect(args: impl IntoIterator<Item = String>) -> Result<String, CliError
     Ok(LinuxDiagnosticReport::new("detected-linux", capability, process).to_copyable_text())
 }
 
+fn run_permissions(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let config = SurfaceConfig::parse(args)?;
+    let capability = capability_view_model(config.to_probe());
+    let plan = permission_plan(&capability, config.language);
+    Ok(render_permission_plan(&plan))
+}
+
+fn run_app_model(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let config = SurfaceConfig::parse(args)?;
+    let capability = capability_view_model(config.to_probe());
+    let model = build_native_app_model(&capability, config.language);
+    Ok(render_native_app_model(&model))
+}
+
 fn build_plan_from_config(
     config: &PlanConfig,
 ) -> Result<
@@ -366,6 +385,16 @@ struct DetectConfig {
     has_mock_inputs: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SurfaceConfig {
+    package_kind: LinuxPackageKind,
+    network_manager_available: bool,
+    systemd_resolved_available: bool,
+    polkit_available: bool,
+    system_resolver_probe_available: bool,
+    language: Language,
+}
+
 impl DetectConfig {
     fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, CliError> {
         let mut snapshot = LinuxDetectionSnapshot::empty();
@@ -396,6 +425,48 @@ impl DetectConfig {
             snapshot,
             has_mock_inputs,
         })
+    }
+}
+
+impl SurfaceConfig {
+    fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, CliError> {
+        let mut config = Self {
+            package_kind: LinuxPackageKind::Flatpak,
+            network_manager_available: false,
+            systemd_resolved_available: false,
+            polkit_available: false,
+            system_resolver_probe_available: false,
+            language: Language::English,
+        };
+        let mut args = args.into_iter();
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--package" => {
+                    config.package_kind = parse_package_kind(&next_arg(&mut args, "--package")?)?
+                }
+                "--network-manager" => config.network_manager_available = true,
+                "--systemd-resolved" => config.systemd_resolved_available = true,
+                "--polkit" => config.polkit_available = true,
+                "--system-resolver-probe" => config.system_resolver_probe_available = true,
+                "--lang" => {
+                    let value = next_arg(&mut args, "--lang")?;
+                    config.language = Language::parse(&value)
+                        .ok_or_else(|| CliError::new(2, format!("unknown language: {value}")))?;
+                }
+                _ => return Err(CliError::new(2, format!("unknown argument: {arg}"))),
+            }
+        }
+        Ok(config)
+    }
+
+    fn to_probe(&self) -> LinuxEnvironmentProbe {
+        LinuxEnvironmentProbe {
+            package_kind: self.package_kind,
+            network_manager_available: self.network_manager_available,
+            systemd_resolved_available: self.systemd_resolved_available,
+            polkit_available: self.polkit_available,
+            system_resolver_probe_available: self.system_resolver_probe_available,
+        }
     }
 }
 

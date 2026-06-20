@@ -297,6 +297,48 @@ fn cli_detect_renders_capability_report_from_mocked_snapshot() {
     assert!(stdout.contains("Real DNS apply: not available"));
 }
 
+#[test]
+fn cli_permissions_renders_localized_package_permission_plan() {
+    let output = binary()
+        .args(["permissions", "--package", "flatpak", "--lang", "vi"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Quyền"));
+    assert!(stdout.contains("Package: Flatpak"));
+    assert!(stdout.contains("network [required]"));
+    assert!(stdout.contains("system DNS mutation [not requested]"));
+    assert!(stdout.contains("does not change DNS automatically"));
+}
+
+#[test]
+fn cli_app_model_renders_main_window_sections_without_tray_requirement() {
+    let output = binary()
+        .args([
+            "app-model",
+            "--package",
+            "deb",
+            "--network-manager",
+            "--polkit",
+            "--system-resolver-probe",
+            "--lang",
+            "en",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("DNS Pilot"));
+    assert!(stdout.contains("Tray: optional"));
+    assert!(stdout.contains("Benchmark"));
+    assert!(stdout.contains("Profiles"));
+    assert!(stdout.contains("Diagnostics"));
+    assert!(stdout.contains("Apply with native helper [enabled]"));
+}
+
 #[cfg(unix)]
 fn make_executable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;
