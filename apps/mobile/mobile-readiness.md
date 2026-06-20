@@ -20,11 +20,16 @@
   help text.
 - Vietnam/default suites: covered when the core catalog exposes
   `general-browsing` and `vietnam-daily`.
+- Multilingual UX: covered for primary app chrome and workflows with system
+  locale detection plus manual English/Tiếng Việt override.
+- Native build metadata: covered for iOS bundle ID/build number, Android package
+  ID/version code, EN/VI supported locales, iOS Local Network permission text,
+  Android normal network permissions, and EAS build profiles.
 
 ## Critique
 - Expo plus local Node bridge is the fastest store-safe test shell, but it is
-  not a release architecture. Expo Go cannot spawn or link Rust CLI inside the
-  app process.
+  not the final public-store architecture if the app must work without a
+  developer Mac. Expo Go cannot spawn or link Rust CLI inside the app process.
 - The current app is honest about mobile OS limits. It does not silently mutate
   system DNS, does not use Android VpnService, and does not offer iOS
   DNSJumper-style plain DNS switching.
@@ -36,32 +41,39 @@
 - Live progress is implemented as foreground polling. This avoids background
   scheduler risk, but long worst-case benchmarks still need the app to stay
   open.
+- Real-device testing is now easier because the bridge prints private LAN URLs,
+  but iOS Local Network permission, Android device networking, signing, and
+  store account flows are still inherently manual.
 
 ## Remaining Blockers
-- iOS/iPadOS: Simulator/device validation is blocked until the user accepts the
-  system "Open in Expo Go?" prompt and manually verifies OS settings/profile
-  flows.
-- Android: emulator/device validation is blocked until an Android target is
-  attached.
-- Both: release builds require a native Rust/platform adapter decision,
-  packaging, signing/provisioning, and store-policy review.
+- iOS/iPadOS: real-device validation, Local Network prompt behavior, Apple
+  signing/provisioning, and App Store Connect setup are manual.
+- Android: real-device validation, Play Console setup, first manual upload if
+  required by Play, and Private DNS settings validation are manual.
+- Both: a public store build that must work without a developer Mac requires a
+  native Rust adapter or approved backend/bridge decision.
 
 ## Manual Test Flow
 1. Run `npm run bridge` from `apps/mobile/DNSPilotMobile`.
-2. Run `npm start` or `npx expo start --ios --port 8082`.
-3. Use `http://localhost:8787` on web/iOS Simulator. Use the Mac LAN URL for a
+2. Copy the printed `Bridge URL: http://<mac-lan-ip>:8787` for physical device
+   testing.
+3. Run `npm start` or `npx expo start --lan --port 8082`.
+4. Use `http://localhost:8787` on web/iOS Simulator. Use the Mac LAN URL for a
    physical phone. Use `http://10.0.2.2:8787` for Android emulator if needed.
-4. Overview: refresh bridge, confirm profiles, suites, capabilities, and
-   history load.
-5. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare
+5. Overview: switch Auto/English/Tiếng Việt, refresh bridge, confirm profiles,
+   suites, capabilities, and history load.
+6. If iOS asks for Local Network, allow it for bridge testing.
+7. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare
    and Path Compare, confirm live progress rows, final result, copy report, and
    guided settings plan.
-6. Benchmark System DNS: choose iOS or Android, run with a suite/domain, confirm
+8. Benchmark System DNS: choose iOS or Android, run with a suite/domain, confirm
    system validation result and diagnostics.
-7. Storage: add/update/delete plain, DoH, DoT profiles and domain suites; confirm
+9. Storage: add/update/delete plain, DoH, DoT profiles and domain suites; confirm
    invalid forms are disabled before bridge calls.
-8. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
+10. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
    switches to protect-current-dns when required.
+11. Tablet: validate iPad and Android tablet layouts are multi-column, not
+   stretched phone views.
 
 ## Validation Commands
 - `npm test`

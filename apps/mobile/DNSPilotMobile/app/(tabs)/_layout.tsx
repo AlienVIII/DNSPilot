@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { useDNSPilot } from '@/src/state/dnspilot-context';
 
 const icons = {
   index: { ios: 'speedometer', android: 'speed', web: 'speed' },
@@ -19,6 +20,7 @@ function TabIcon({ name, color }: { name: keyof typeof icons; color: string }) {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { t } = useDNSPilot();
 
   return (
     <Tabs
@@ -33,35 +35,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Overview',
+          title: t('tabs.overview'),
           tabBarIcon: ({ color }) => <TabIcon name="index" color={String(color)} />,
         }}
       />
       <Tabs.Screen
         name="benchmark"
         options={{
-          title: 'Benchmark',
+          title: t('tabs.benchmark'),
           tabBarIcon: ({ color }) => <TabIcon name="benchmark" color={String(color)} />,
         }}
       />
       <Tabs.Screen
         name="catalog"
         options={{
-          title: 'Catalog',
+          title: t('tabs.catalog'),
           tabBarIcon: ({ color }) => <TabIcon name="catalog" color={String(color)} />,
         }}
       />
       <Tabs.Screen
         name="storage"
         options={{
-          title: 'Storage',
+          title: t('tabs.storage'),
           tabBarIcon: ({ color }) => <TabIcon name="storage" color={String(color)} />,
         }}
       />
       <Tabs.Screen
         name="policy"
         options={{
-          title: 'Policy',
+          title: t('tabs.policy'),
           tabBarIcon: ({ color }) => <TabIcon name="policy" color={String(color)} />,
         }}
       />

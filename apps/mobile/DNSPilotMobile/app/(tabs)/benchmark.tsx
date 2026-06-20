@@ -28,6 +28,7 @@ import {
   type BenchmarkStepStatus,
   type ResolverDiagnostic,
 } from '@/src/view-models/benchmark-diagnostics';
+import { translateKnownError } from '@/src/view-models/localization';
 import { buildSettingsGuidance, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type Mode = 'compare' | 'pathCompare' | 'benchmark' | 'pathEstimate' | 'systemBenchmark';
@@ -54,7 +55,7 @@ const platformOptions: { label: string; value: MobilePlatform }[] = [
 ];
 
 export default function BenchmarkScreen() {
-  const { profiles, suites, error, refreshAll, runAction, startJob, getJob } = useDNSPilot();
+  const { profiles, suites, error, refreshAll, runAction, startJob, getJob, locale, t } = useDNSPilot();
   const [mode, setMode] = useState<Mode>('pathCompare');
   const [benchmarkPlatform, setBenchmarkPlatform] = useState<MobilePlatform>('ios');
   const [guidancePlatform, setGuidancePlatform] = useState<MobilePlatform>('ios');
@@ -146,8 +147,8 @@ export default function BenchmarkScreen() {
     setResult(null);
     setGuidance(null);
     setGuidancePayload(null);
-      setCopyStatus(null);
-      setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, startedAtMs }));
+    setCopyStatus(null);
+    setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, startedAtMs }));
     try {
       let job = await startJob(runMode, benchmarkPlan.payload);
       setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs));
@@ -176,7 +177,7 @@ export default function BenchmarkScreen() {
   async function copyReport() {
     if (!diagnostics) return;
     await Clipboard.setStringAsync(diagnostics.report);
-    setCopyStatus('Report copied.');
+    setCopyStatus(t('benchmark.reportCopied'));
   }
 
   async function loadGuidedPlan() {
@@ -195,47 +196,48 @@ export default function BenchmarkScreen() {
   const resultData = result?.data as Record<string, unknown> | undefined;
   const summary = resultData?.summary ?? resultData?.metrics ?? resultData;
   const recommendation = resultData?.recommendation;
+  const benchmarkErrors = benchmarkPlan.errors.map((item) => translateKnownError(locale, item)).join('\n');
 
   return (
     <Screen>
-      <Section title="Run" subtitle="Foreground only. Long worst-case plans will hold the app on this screen until CLI returns.">
+      <Section title={t('benchmark.run.title')} subtitle={t('benchmark.run.subtitle')}>
         <Segmented options={modeOptions} value={mode} onChange={setMode} />
         {mode === 'systemBenchmark' ? <Segmented options={platformOptions} value={benchmarkPlatform} onChange={setBenchmarkPlatform} /> : null}
         <Segmented options={familyOptions} value={ipFamily} onChange={setIpFamily} />
         <View style={{ backgroundColor: palette.blueSoft, borderColor: '#bfdbfe', borderRadius: 8, borderWidth: 1, gap: 4, padding: 10 }}>
           <Text selectable style={{ color: palette.slate, fontSize: 12, lineHeight: 17 }}>
-            A + AAAA tests IPv4 and IPv6 answers. Use A only when IPv6 looks broken on the current network. Use AAAA only to isolate IPv6 resolver behavior.
+            {t('benchmark.help.family')}
           </Text>
         </View>
         <Row>
-          <Metric label="Selected" value={mode === 'systemBenchmark' ? 'system' : selectedProfiles.length} tone="blue" />
-          <Metric label="Domains" value={benchmarkPlan.domainCount} tone="green" />
-          <Metric label="Platform" value={mode === 'systemBenchmark' ? benchmarkPlatform : 'direct'} tone="amber" />
-          <Metric label="History" value={benchmarkPlan.historyEnabled ? 'on' : 'off'} tone={benchmarkPlan.historyEnabled ? 'amber' : 'neutral'} />
+          <Metric label={t('benchmark.metric.selected')} value={mode === 'systemBenchmark' ? t('common.system') : selectedProfiles.length} tone="blue" />
+          <Metric label={t('benchmark.metric.domains')} value={benchmarkPlan.domainCount} tone="green" />
+          <Metric label={t('benchmark.metric.platform')} value={mode === 'systemBenchmark' ? benchmarkPlatform : t('common.direct')} tone="amber" />
+          <Metric label={t('benchmark.metric.history')} value={benchmarkPlan.historyEnabled ? t('common.enabled') : t('common.disabled')} tone={benchmarkPlan.historyEnabled ? 'amber' : 'neutral'} />
         </Row>
-        <TextField label="Domains" value={domains} onChangeText={setDomains} multiline placeholder="github.com&#10;expo.dev" />
+        <TextField label={t('benchmark.domains')} value={domains} onChangeText={setDomains} multiline placeholder="github.com&#10;expo.dev" />
         <Row>
-          <TextField label="Attempts" value={attempts} onChangeText={setAttempts} keyboardType="numeric" />
-          <TextField label="DNS timeout ms" value={timeoutMs} onChangeText={setTimeoutMs} keyboardType="numeric" />
+          <TextField label={t('benchmark.attempts')} value={attempts} onChangeText={setAttempts} keyboardType="numeric" />
+          <TextField label={t('benchmark.dnsTimeout')} value={timeoutMs} onChangeText={setTimeoutMs} keyboardType="numeric" />
         </Row>
         {(mode === 'pathCompare' || mode === 'pathEstimate') ? (
           <>
             <Row>
-              <TextField label="TCP timeout ms" value={connectTimeoutMs} onChangeText={setConnectTimeoutMs} keyboardType="numeric" />
-              <TextField label="Max targets/domain" value={maxTargets} onChangeText={setMaxTargets} keyboardType="numeric" />
+              <TextField label={t('benchmark.tcpTimeout')} value={connectTimeoutMs} onChangeText={setConnectTimeoutMs} keyboardType="numeric" />
+              <TextField label={t('benchmark.maxTargets')} value={maxTargets} onChangeText={setMaxTargets} keyboardType="numeric" />
             </Row>
-            <ToggleRow label="TLS/SNI timing" value={tlsEnabled} onValueChange={setTlsEnabled} subtitle="Adds TLS handshake samples where supported." />
+            <ToggleRow label={t('benchmark.tlsTiming')} value={tlsEnabled} onValueChange={setTlsEnabled} subtitle={t('benchmark.tlsTimingHelp')} />
           </>
         ) : null}
-        <ToggleRow label="Save history" value={saveHistory} onValueChange={setSaveHistory} subtitle="Available for compare/path-compare/benchmark." />
-        <ErrorBanner message={benchmarkPlan.errors.join('\n')} />
-        <Button label="Run benchmark" onPress={runBenchmark} loading={running} disabled={!benchmarkPlan.canRun} />
+        <ToggleRow label={t('benchmark.saveHistory')} value={saveHistory} onValueChange={setSaveHistory} subtitle={t('benchmark.saveHistoryHelp')} />
+        <ErrorBanner message={benchmarkErrors} />
+        <Button label={t('benchmark.runButton')} onPress={runBenchmark} loading={running} disabled={!benchmarkPlan.canRun} />
         <ErrorBanner message={error} />
       </Section>
 
       {mode !== 'systemBenchmark' ? (
-        <Section title="Profiles" subtitle="Plain DNS profiles only. Custom profiles saved in Storage appear here.">
-          {plainProfiles.length === 0 ? <EmptyState text="Refresh Overview or start the bridge to load profiles." /> : null}
+        <Section title={t('benchmark.profiles.title')} subtitle={t('benchmark.profiles.subtitle')}>
+          {plainProfiles.length === 0 ? <EmptyState text={t('benchmark.profiles.empty')} /> : null}
           <Row>
             {plainProfiles.map((profile) => (
               <Pill
@@ -251,14 +253,14 @@ export default function BenchmarkScreen() {
       ) : null}
 
       <Section
-        title="Process"
-        subtitle={diagnostics ? `${diagnostics.status} | ${diagnostics.reason}` : 'Run a benchmark to populate process diagnostics.'}>
+        title={t('benchmark.process.title')}
+        subtitle={diagnostics ? t('benchmark.process.subtitleReady', { status: diagnostics.status, reason: diagnostics.reason }) : t('benchmark.process.subtitleEmpty')}>
         {diagnostics ? (
           <>
             <Row>
-              <Metric label="Status" value={diagnostics.status} tone={statusTone(diagnostics.status)} />
-              <Metric label="Failed step" value={diagnostics.failedStepId ?? 'none'} tone={diagnostics.failedStepId ? 'red' : 'green'} />
-              <Metric label="Elapsed" value={formatMs(diagnostics.elapsedMs)} tone="blue" />
+              <Metric label={t('benchmark.metric.status')} value={diagnostics.status} tone={statusTone(diagnostics.status)} />
+              <Metric label={t('benchmark.metric.failedStep')} value={diagnostics.failedStepId ?? t('benchmark.failedStepNone')} tone={diagnostics.failedStepId ? 'red' : 'green'} />
+              <Metric label={t('benchmark.metric.elapsed')} value={formatMs(diagnostics.elapsedMs)} tone="blue" />
             </Row>
             <View style={{ gap: 8 }}>
               {diagnostics.steps.map((step) => (
@@ -278,25 +280,25 @@ export default function BenchmarkScreen() {
               </View>
             ) : null}
             <Row>
-              <Button label="Copy report" onPress={copyReport} variant="secondary" />
+              <Button label={t('benchmark.copyReport')} onPress={copyReport} variant="secondary" />
               {copyStatus ? <Pill label={copyStatus} tone="green" /> : null}
             </Row>
             <CodeBlock text={diagnostics.report} />
             {diagnostics.debugLog ? <CodeBlock text={diagnostics.debugLog} /> : null}
           </>
         ) : (
-          <EmptyState text="No process diagnostics yet." />
+          <EmptyState text={t('benchmark.noDiagnostics')} />
         )}
       </Section>
 
-      <Section title="Suites" subtitle="Optional. Domains above are added to suite domains.">
+      <Section title={t('benchmark.suites.title')} subtitle={t('benchmark.suites.subtitle')}>
         <Row>
-          <Pill label="No suite" selected={!suiteId} onPress={() => setSuiteId('')} />
+          <Pill label={t('benchmark.noSuite')} selected={!suiteId} onPress={() => setSuiteId('')} />
           {suiteSuggestions.defaultSuiteId ? (
-            <Pill label="Default" selected={suiteId === suiteSuggestions.defaultSuiteId} onPress={() => setSuiteId(suiteSuggestions.defaultSuiteId ?? '')} tone="blue" />
+            <Pill label={t('common.default')} selected={suiteId === suiteSuggestions.defaultSuiteId} onPress={() => setSuiteId(suiteSuggestions.defaultSuiteId ?? '')} tone="blue" />
           ) : null}
           {suiteSuggestions.vietnamSuiteId ? (
-            <Pill label="Vietnam" selected={suiteId === suiteSuggestions.vietnamSuiteId} onPress={() => setSuiteId(suiteSuggestions.vietnamSuiteId ?? '')} tone="amber" />
+            <Pill label={t('common.vietnam')} selected={suiteId === suiteSuggestions.vietnamSuiteId} onPress={() => setSuiteId(suiteSuggestions.vietnamSuiteId ?? '')} tone="amber" />
           ) : null}
           {suites.map((suite) => (
             <Pill key={suite.id} label={suite.name} selected={suiteId === suite.id} onPress={() => setSuiteId(suite.id)} tone="green" />
@@ -304,22 +306,25 @@ export default function BenchmarkScreen() {
         </Row>
         {benchmarkPlan.selectedSuite ? (
           <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
-            Selected suite adds {benchmarkPlan.selectedSuite.domains.length} domains: {compactList(benchmarkPlan.selectedSuite.domains)}
+            {t('benchmark.suiteAdds', {
+              count: benchmarkPlan.selectedSuite.domains.length,
+              domains: compactList(benchmarkPlan.selectedSuite.domains),
+            })}
           </Text>
         ) : null}
       </Section>
 
-      <Section title="Result" subtitle={result ? `CLI: ${result.args.join(' ')}` : 'Run a benchmark to see parsed JSON.'}>
+      <Section title={t('benchmark.result.title')} subtitle={result ? t('benchmark.result.subtitleReady', { args: result.args.join(' ') }) : t('benchmark.result.subtitleEmpty')}>
         {result ? (
           <>
             <Row>
-              <Metric label="Progress events" value={result.progress?.length ?? 0} tone="blue" />
-              <Metric label="Action" value={result.action} tone="green" />
+              <Metric label={t('benchmark.metric.progressEvents')} value={result.progress?.length ?? 0} tone="blue" />
+              <Metric label={t('benchmark.metric.action')} value={result.action} tone="green" />
             </Row>
             {recommendation ? (
               <View style={{ backgroundColor: palette.greenSoft, borderColor: '#bbf7d0', borderRadius: 8, borderWidth: 1, padding: 12 }}>
                 <Text selectable style={{ color: palette.green, fontSize: 14, fontWeight: '800' }}>
-                  Recommendation
+                  {t('benchmark.recommendation')}
                 </Text>
                 <CodeBlock text={compactJson(recommendation, 1800)} />
               </View>
@@ -327,33 +332,33 @@ export default function BenchmarkScreen() {
             <CodeBlock text={compactJson(summary, 3200)} />
           </>
         ) : (
-          <EmptyState text="No benchmark result yet." />
+          <EmptyState text={t('benchmark.noResult')} />
         )}
       </Section>
 
-      <Section title="Guided DNS Settings" subtitle="Store-safe next step from the benchmark recommendation. No silent system DNS mutation.">
+      <Section title={t('benchmark.guided.title')} subtitle={t('benchmark.guided.subtitle')}>
         {result ? (
           <>
             <Segmented options={platformOptions} value={guidancePlatform} onChange={setGuidancePlatform} />
             <Row>
-              <ToggleRow label="VPN active" value={vpnActive} onValueChange={setVpnActive} />
-              <ToggleRow label="MDM active" value={mdmProfileActive} onValueChange={setMdmProfileActive} />
+              <ToggleRow label={t('benchmark.toggle.vpn')} value={vpnActive} onValueChange={setVpnActive} />
+              <ToggleRow label={t('benchmark.toggle.mdm')} value={mdmProfileActive} onValueChange={setMdmProfileActive} />
             </Row>
             <Row>
-              <ToggleRow label="Corporate DNS" value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
-              <ToggleRow label="Captive portal" value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
+              <ToggleRow label={t('benchmark.toggle.corporateDns')} value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
+              <ToggleRow label={t('benchmark.toggle.captivePortal')} value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
             </Row>
             {applyPlanRequest ? (
               <>
                 <Row>
-                  <Metric label="Recommended" value={applyPlanRequest.profileName} tone="green" />
-                  <Metric label="Health" value={applyPlanRequest.gateHealth} tone={applyPlanRequest.gateHealth === 'healthy' ? 'green' : 'amber'} />
-                  <Metric label="Confidence" value={applyPlanRequest.confidence} tone="blue" />
+                  <Metric label={t('benchmark.metric.recommended')} value={applyPlanRequest.profileName} tone="green" />
+                  <Metric label={t('benchmark.metric.health')} value={applyPlanRequest.gateHealth} tone={applyPlanRequest.gateHealth === 'healthy' ? 'green' : 'amber'} />
+                  <Metric label={t('benchmark.metric.confidence')} value={applyPlanRequest.confidence} tone="blue" />
                 </Row>
-                <Button label="Load guided settings plan" onPress={loadGuidedPlan} loading={guidanceWorking} variant="secondary" />
+                <Button label={t('benchmark.loadGuidedPlan')} onPress={loadGuidedPlan} loading={guidanceWorking} variant="secondary" />
               </>
             ) : (
-              <EmptyState text="No guided settings plan is available because the benchmark did not return a recommendation." />
+              <EmptyState text={t('benchmark.noGuidedPlan')} />
             )}
             {guidance ? (
               <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 10, padding: 12 }}>
@@ -364,8 +369,8 @@ export default function BenchmarkScreen() {
                   <Pill label={guidance.mode} tone={guidance.mode === 'protect' ? 'red' : 'blue'} />
                 </View>
                 <Row>
-                  <Metric label="Mutates DNS" value={guidance.canMutateSystemDns ? 'yes' : 'no'} tone={guidance.canMutateSystemDns ? 'red' : 'green'} />
-                  <Metric label="Steps" value={guidance.steps.length} tone="amber" />
+                  <Metric label={t('policy.metric.mutatesDns')} value={guidance.canMutateSystemDns ? t('common.yes') : t('common.no')} tone={guidance.canMutateSystemDns ? 'red' : 'green'} />
+                  <Metric label={t('policy.metric.steps')} value={guidance.steps.length} tone="amber" />
                 </Row>
                 <View style={{ gap: 8 }}>
                   {guidance.steps.map((step, index) => (
@@ -384,7 +389,7 @@ export default function BenchmarkScreen() {
             ) : null}
           </>
         ) : (
-          <EmptyState text="Run a benchmark first." />
+          <EmptyState text={t('benchmark.result.subtitleEmpty')} />
         )}
       </Section>
     </Screen>

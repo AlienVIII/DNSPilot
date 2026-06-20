@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
-import { DNSPilotProvider } from '@/src/state/dnspilot-context';
+import { DNSPilotProvider, useDNSPilot } from '@/src/state/dnspilot-context';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -40,20 +40,23 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <DNSPilotProvider>
+      <RootLayoutNav />
+    </DNSPilotProvider>
+  );
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const { t } = useDNSPilot();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <DNSPilotProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-        </Stack>
-      </DNSPilotProvider>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" options={{ title: t('nav.notFound') }} />
+      </Stack>
     </ThemeProvider>
   );
 }

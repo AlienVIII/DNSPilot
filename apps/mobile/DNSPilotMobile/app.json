@@ -7,10 +7,29 @@
     "icon": "./assets/images/icon.png",
     "scheme": "dnspilot",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "en": "./languages/en.json",
+      "vi": "./languages/vi.json"
+    },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.dnspilot.mobile",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "NSLocalNetworkUsageDescription": "DNSPilot uses the local network only to connect to your selected DNSPilot bridge or LAN diagnostic endpoint during testing."
+      }
     },
     "android": {
+      "package": "com.dnspilot.mobile",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -27,6 +46,21 @@
     "plugins": [
       "expo-router",
       [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "en",
+              "vi"
+            ],
+            "android": [
+              "en",
+              "vi"
+            ]
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
@@ -36,7 +70,12 @@
       ]
     ],
     "extra": {
-      "dnspilotBridgeUrl": "http://localhost:8787"
+      "dnspilotBridgeUrl": "http://localhost:8787",
+      "supportedLocales": [
+        "en",
+        "vi"
+      ],
+      "supportsRTL": false
     },
     "experiments": {
       "typedRoutes": true

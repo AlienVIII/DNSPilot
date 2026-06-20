@@ -18,6 +18,7 @@ import {
   palette,
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
+import { translateKnownError } from '@/src/view-models/localization';
 import { buildProfileForm, buildSuiteForm } from '@/src/view-models/storage-forms';
 
 type Protocol = 'plain' | 'doh' | 'dot';
@@ -38,7 +39,7 @@ const filteringOptions: { label: string; value: Filtering }[] = [
 ];
 
 export default function StorageScreen() {
-  const { profiles, suites, history, error, refreshAll, runAction } = useDNSPilot();
+  const { profiles, suites, history, error, refreshAll, runAction, locale, t } = useDNSPilot();
   const [profileId, setProfileId] = useState('');
   const [profileName, setProfileName] = useState('');
   const [protocol, setProtocol] = useState<Protocol>('plain');
@@ -82,6 +83,8 @@ export default function StorageScreen() {
       }),
     [suiteDomains, suiteId, suiteName, suiteTags]
   );
+  const profileErrors = profileForm.errors.map((item) => translateKnownError(locale, item)).join('\n');
+  const suiteErrors = suiteForm.errors.map((item) => translateKnownError(locale, item)).join('\n');
 
   function fillProfile(id: string) {
     const profile = customProfiles.find((item) => item.id === id);
@@ -119,38 +122,38 @@ export default function StorageScreen() {
 
   return (
     <Screen>
-      <Section title="Storage" subtitle="SQLite-backed custom DNS profiles, domain suites, and benchmark history.">
+      <Section title={t('storage.title')} subtitle={t('storage.subtitle')}>
         <Row>
-          <Metric label="Custom profiles" value={customProfiles.length} tone="blue" />
-          <Metric label="Custom suites" value={customSuites.length} tone="green" />
-          <Metric label="History" value={history.length} tone="amber" />
+          <Metric label={t('storage.metric.customProfiles')} value={customProfiles.length} tone="blue" />
+          <Metric label={t('storage.metric.customSuites')} value={customSuites.length} tone="green" />
+          <Metric label={t('overview.metric.history')} value={history.length} tone="amber" />
         </Row>
-        <Button label="Refresh storage" onPress={() => refreshAll().catch(() => undefined)} variant="secondary" />
+        <Button label={t('storage.refresh')} onPress={() => refreshAll().catch(() => undefined)} variant="secondary" />
         <ErrorBanner message={error} />
       </Section>
 
       <AdaptiveColumns>
-        <Section title="Custom DNS Profile" subtitle="Plain profiles can be benchmarked. DoH/DoT profiles are saved for catalog/apply guidance.">
+        <Section title={t('storage.profile.title')} subtitle={t('storage.profile.subtitle')}>
           <Row>
-            <TextField label="ID" value={profileId} onChangeText={setProfileId} placeholder="office-dns" />
-            <TextField label="Name" value={profileName} onChangeText={setProfileName} placeholder="Office DNS" />
+            <TextField label={t('storage.profile.id')} value={profileId} onChangeText={setProfileId} placeholder="office-dns" />
+            <TextField label={t('storage.profile.name')} value={profileName} onChangeText={setProfileName} placeholder="Office DNS" />
           </Row>
           <Segmented options={protocolOptions} value={protocol} onChange={setProtocol} />
           {protocol === 'plain' ? (
             <Row>
-              <TextField label="IPv4 servers" value={ipv4} onChangeText={setIpv4} multiline placeholder="1.1.1.1" />
-              <TextField label="IPv6 servers" value={ipv6} onChangeText={setIpv6} multiline placeholder="2606:4700:4700::1111" />
+              <TextField label={t('storage.profile.ipv4')} value={ipv4} onChangeText={setIpv4} multiline placeholder="1.1.1.1" />
+              <TextField label={t('storage.profile.ipv6')} value={ipv6} onChangeText={setIpv6} multiline placeholder="2606:4700:4700::1111" />
             </Row>
           ) : null}
-          {protocol === 'doh' ? <TextField label="DoH URL" value={dohUrl} onChangeText={setDohUrl} placeholder="https://dns.example/dns-query" /> : null}
-          {protocol === 'dot' ? <TextField label="DoT hostname" value={dotHostname} onChangeText={setDotHostname} placeholder="dns.example.com" /> : null}
+          {protocol === 'doh' ? <TextField label={t('storage.profile.doh')} value={dohUrl} onChangeText={setDohUrl} placeholder="https://dns.example/dns-query" /> : null}
+          {protocol === 'dot' ? <TextField label={t('storage.profile.dot')} value={dotHostname} onChangeText={setDotHostname} placeholder="dns.example.com" /> : null}
           <Segmented options={filteringOptions} value={filtering} onChange={setFiltering} />
-          <TextField label="Tags" value={profileTags} onChangeText={setProfileTags} placeholder="custom, office" />
-          <ErrorBanner message={profileForm.errors.join('\n')} />
+          <TextField label={t('storage.profile.tags')} value={profileTags} onChangeText={setProfileTags} placeholder="custom, office" />
+          <ErrorBanner message={profileErrors} />
           <Row>
-            <Button label="Add" onPress={() => execute('profileAdd', profileForm.payload)} loading={working} disabled={!profileForm.canSubmit} />
-            <Button label="Update" onPress={() => execute('profileUpdate', profileForm.payload)} variant="secondary" loading={working} disabled={!profileForm.canSubmit} />
-            <Button label="Delete" onPress={() => execute('profileDelete', { id: profileForm.payload.id })} variant="danger" loading={working} disabled={!profileForm.canDelete} />
+            <Button label={t('common.add')} onPress={() => execute('profileAdd', profileForm.payload)} loading={working} disabled={!profileForm.canSubmit} />
+            <Button label={t('common.update')} onPress={() => execute('profileUpdate', profileForm.payload)} variant="secondary" loading={working} disabled={!profileForm.canSubmit} />
+            <Button label={t('common.delete')} onPress={() => execute('profileDelete', { id: profileForm.payload.id })} variant="danger" loading={working} disabled={!profileForm.canDelete} />
           </Row>
           <Row>
             {customProfiles.map((profile) => (
@@ -159,18 +162,18 @@ export default function StorageScreen() {
           </Row>
         </Section>
 
-        <Section title="Custom Domain Suite" subtitle="Suites plug into benchmark, compare, path-estimate, and path-compare.">
+        <Section title={t('storage.suite.title')} subtitle={t('storage.suite.subtitle')}>
           <Row>
-            <TextField label="ID" value={suiteId} onChangeText={setSuiteId} placeholder="work-stack" />
-            <TextField label="Name" value={suiteName} onChangeText={setSuiteName} placeholder="Work Stack" />
+            <TextField label={t('storage.suite.id')} value={suiteId} onChangeText={setSuiteId} placeholder="work-stack" />
+            <TextField label={t('storage.suite.name')} value={suiteName} onChangeText={setSuiteName} placeholder="Work Stack" />
           </Row>
-          <TextField label="Domains" value={suiteDomains} onChangeText={setSuiteDomains} multiline placeholder="github.com&#10;registry.npmjs.org" />
-          <TextField label="Tags" value={suiteTags} onChangeText={setSuiteTags} placeholder="custom, work" />
-          <ErrorBanner message={suiteForm.errors.join('\n')} />
+          <TextField label={t('storage.suite.domains')} value={suiteDomains} onChangeText={setSuiteDomains} multiline placeholder="github.com&#10;registry.npmjs.org" />
+          <TextField label={t('storage.suite.tags')} value={suiteTags} onChangeText={setSuiteTags} placeholder="custom, work" />
+          <ErrorBanner message={suiteErrors} />
           <Row>
-            <Button label="Add suite" onPress={() => execute('suiteAdd', suiteForm.payload)} loading={working} disabled={!suiteForm.canSubmit} />
-            <Button label="Update suite" onPress={() => execute('suiteUpdate', suiteForm.payload)} variant="secondary" loading={working} disabled={!suiteForm.canSubmit} />
-            <Button label="Delete suite" onPress={() => execute('suiteDelete', { id: suiteForm.payload.id })} variant="danger" loading={working} disabled={!suiteForm.canDelete} />
+            <Button label={t('storage.suite.add')} onPress={() => execute('suiteAdd', suiteForm.payload)} loading={working} disabled={!suiteForm.canSubmit} />
+            <Button label={t('storage.suite.update')} onPress={() => execute('suiteUpdate', suiteForm.payload)} variant="secondary" loading={working} disabled={!suiteForm.canSubmit} />
+            <Button label={t('storage.suite.delete')} onPress={() => execute('suiteDelete', { id: suiteForm.payload.id })} variant="danger" loading={working} disabled={!suiteForm.canDelete} />
           </Row>
           <Row>
             {customSuites.map((suite) => (
@@ -180,29 +183,33 @@ export default function StorageScreen() {
         </Section>
       </AdaptiveColumns>
 
-      <Section title="History" subtitle="Saved by benchmark commands with Save history enabled.">
+      <Section title={t('storage.history.title')} subtitle={t('storage.history.subtitle')}>
         <Row>
-          <Button label="Clear history" onPress={() => execute('historyClear', {})} variant="danger" loading={working} />
+          <Button label={t('storage.history.clear')} onPress={() => execute('historyClear', {})} variant="danger" loading={working} />
         </Row>
-        {history.length === 0 ? <EmptyState text="No saved benchmark history." /> : null}
+        {history.length === 0 ? <EmptyState text={t('storage.history.empty')} /> : null}
         {history.map((record) => (
           <View key={record.id} style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 8, padding: 12 }}>
             <Text selectable style={{ color: palette.text, fontSize: 15, fontWeight: '800' }}>
               {record.id}
             </Text>
             <Text selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>
-              {record.scope} | {record.mode} | recommended {record.recommendation_profile_id ?? 'none'}
+              {t('storage.history.record', {
+                scope: record.scope ?? t('common.unknown'),
+                mode: record.mode ?? t('common.unknown'),
+                recommendation: record.recommendation_profile_id ?? t('common.none'),
+              })}
             </Text>
             <Text selectable style={{ color: palette.slate, fontSize: 12, lineHeight: 17 }}>
               {(record.domains ?? []).join(', ')}
             </Text>
-            <Button label="Delete record" onPress={() => execute('historyDelete', { id: record.id })} variant="danger" loading={working} />
+            <Button label={t('storage.history.delete')} onPress={() => execute('historyDelete', { id: record.id })} variant="danger" loading={working} />
           </View>
         ))}
       </Section>
 
-      <Section title="Last CLI Result">
-        {lastResult ? <CodeBlock text={compactJson(lastResult, 2600)} /> : <EmptyState text="No storage action result yet." />}
+      <Section title={t('storage.lastResult.title')}>
+        {lastResult ? <CodeBlock text={compactJson(lastResult, 2600)} /> : <EmptyState text={t('storage.lastResult.empty')} />}
       </Section>
     </Screen>
   );

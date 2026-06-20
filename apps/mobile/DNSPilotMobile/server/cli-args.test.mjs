@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildCliArgs } from "./dev-server.mjs";
+import { buildCliArgs, bridgeUrls } from "./dev-server.mjs";
 
 const dbPath = "/tmp/dnspilot-mobile-test.sqlite";
 
@@ -89,4 +89,20 @@ test("profile add maps custom DNS metadata", () => {
 
 test("unknown action is rejected before spawning a process", () => {
   assert.throws(() => buildCliArgs("rm", {}, dbPath), /Unsupported action/);
+});
+
+test("bridge URL helper includes localhost and private LAN IPv4 URLs", () => {
+  const urls = bridgeUrls(8787, {
+    lo0: [{ address: "127.0.0.1", family: "IPv4", internal: true }],
+    en0: [{ address: "192.168.1.20", family: "IPv4", internal: false }],
+    utun: [{ address: "10.8.0.5", family: "IPv4", internal: false }],
+    public: [{ address: "203.0.113.7", family: "IPv4", internal: false }],
+    v6: [{ address: "fe80::1", family: "IPv6", internal: false }],
+  });
+
+  assert.deepEqual(urls, [
+    "http://localhost:8787",
+    "http://192.168.1.20:8787",
+    "http://10.8.0.5:8787",
+  ]);
 });

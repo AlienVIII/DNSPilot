@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "DNSPilot",
+    "NSLocalNetworkUsageDescription": "DNSPilot chỉ dùng mạng cục bộ để kết nối tới DNSPilot bridge hoặc điểm diagnostic LAN do bạn chọn khi test."
+  },
+  "android": {
+    "app_name": "DNSPilot"
+  }
+}

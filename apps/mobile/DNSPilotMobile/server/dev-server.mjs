@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { mkdir } from "node:fs/promises";
+import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -27,6 +28,33 @@ const filteringTypes = new Set(["none", "malware", "family", "ads", "security"])
 const ipFamilies = new Set(["both", "ipv4-only", "ipv6-only"]);
 const confidenceValues = new Set(["high", "medium", "low", "inconclusive"]);
 const gateHealthValues = new Set(["healthy", "degraded", "failed", "inconclusive"]);
+
+export function bridgeUrls(portValue = port, interfaces = networkInterfaces()) {
+  const urls = new Set([`http://localhost:${portValue}`]);
+  for (const entries of Object.values(interfaces)) {
+    for (const entry of entries ?? []) {
+      if (!entry?.internal && isPrivateIpv4(entry.address, entry.family)) {
+        urls.add(`http://${entry.address}:${portValue}`);
+      }
+    }
+  }
+  return [...urls];
+}
+
+function isPrivateIpv4(address, family) {
+  if (family !== "IPv4" && family !== 4) {
+    return false;
+  }
+  const octets = String(address ?? "").split(".").map(Number);
+  if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
+    return false;
+  }
+  return (
+    octets[0] === 10 ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168)
+  );
+}
 
 function enumValue(value, allowed, fallback) {
   const normalized = String(value ?? fallback).trim();
@@ -507,7 +535,10 @@ export function createBridgeServer(jobStore = createJobStore()) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await mkdir(dataDir, { recursive: true });
   createBridgeServer().listen(port, "0.0.0.0", () => {
-    console.log(`DNSPilot mobile bridge listening on http://localhost:${port}`);
+    console.log(`DNSPilot mobile bridge listening on 0.0.0.0:${port}`);
+    for (const url of bridgeUrls(port)) {
+      console.log(`Bridge URL: ${url}`);
+    }
     console.log(`SQLite DB: ${defaultDbPath}`);
   });
 }

@@ -1,5 +1,7 @@
 import Constants from 'expo-constants';
+import * as Localization from 'expo-localization';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 
 import {
   BridgeJob,
@@ -17,10 +19,23 @@ import {
   startBridgeJob,
   TestSuite,
 } from '@/src/api/dnspilot';
+import {
+  createTranslator,
+  languageOptions,
+  resolveLocale,
+  type LanguagePreference,
+  type SupportedLocale,
+  type Translator,
+} from '@/src/view-models/localization';
 
 type DNSPilotContextValue = {
   bridgeUrl: string;
   setBridgeUrl: (value: string) => void;
+  locale: SupportedLocale;
+  languagePreference: LanguagePreference;
+  setLanguagePreference: (value: LanguagePreference) => void;
+  languageOptions: typeof languageOptions;
+  t: Translator;
   health: { ok: boolean; dbPath?: string; repoRoot?: string } | null;
   profiles: DNSProfile[];
   suites: TestSuite[];
@@ -41,8 +56,17 @@ const defaultBridgeUrl =
   (Constants.expoConfig?.extra?.dnspilotBridgeUrl as string | undefined) ??
   'http://localhost:8787';
 
+function readDeviceLocales() {
+  return Localization.getLocales().map((locale) => ({
+    languageCode: locale.languageCode,
+    languageTag: locale.languageTag,
+  }));
+}
+
 export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
   const [bridgeUrl, setBridgeUrl] = useState(defaultBridgeUrl);
+  const [languagePreference, setLanguagePreference] = useState<LanguagePreference>('system');
+  const [deviceLocales, setDeviceLocales] = useState(readDeviceLocales);
   const [health, setHealth] = useState<DNSPilotContextValue['health']>(null);
   const [profiles, setProfiles] = useState<DNSProfile[]>([]);
   const [suites, setSuites] = useState<TestSuite[]>([]);
@@ -50,6 +74,17 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const locale = useMemo(() => resolveLocale({ preference: languagePreference, deviceLocales }), [deviceLocales, languagePreference]);
+  const t = useMemo(() => createTranslator(locale), [locale]);
+
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setDeviceLocales(readDeviceLocales());
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   const runAction = useCallback<DNSPilotContextValue['runAction']>(
     async (action, payload = {}) => {
@@ -123,6 +158,11 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
     () => ({
       bridgeUrl,
       setBridgeUrl,
+      locale,
+      languagePreference,
+      setLanguagePreference,
+      languageOptions,
+      t,
       health,
       profiles,
       suites,
@@ -135,7 +175,23 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       startJob,
       getJob,
     }),
-    [bridgeUrl, health, profiles, suites, capabilities, history, loading, error, refreshAll, runAction, startJob, getJob]
+    [
+      bridgeUrl,
+      locale,
+      languagePreference,
+      t,
+      health,
+      profiles,
+      suites,
+      capabilities,
+      history,
+      loading,
+      error,
+      refreshAll,
+      runAction,
+      startJob,
+      getJob,
+    ]
   );
 
   return <DNSPilotContext.Provider value={value}>{children}</DNSPilotContext.Provider>;

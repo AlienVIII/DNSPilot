@@ -8,6 +8,9 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
 - Local Node bridge at `server/dev-server.mjs`.
 - Rust remains source of truth through `cargo run -p dnspilot-cli`.
 - Dev SQLite lives at `.dnspilot/dnspilot.sqlite`.
+- English/Vietnamese UI via `expo-localization`.
+- Native build metadata is configured in `app.json`; EAS profiles are in
+  `eas.json`.
 
 ## Run
 
@@ -24,8 +27,19 @@ npm start
 ```
 
 Use `http://localhost:8787` for web and iOS Simulator. For a physical phone,
-replace the Bridge URL in the Overview tab with the Mac LAN URL, for example
-`http://192.168.1.20:8787`.
+replace the Bridge URL in the Overview tab with the printed Mac LAN URL, for
+example `http://192.168.1.20:8787`.
+
+## Real Device Notes
+
+- iOS/iPadOS may ask for Local Network permission when connecting to the local
+  bridge. Allow it for LAN bridge testing.
+- Android should not show dangerous runtime permission prompts for normal
+  network access.
+- The app does not silently mutate system DNS and does not use Android
+  `VpnService`.
+- Publish and store-review steps are tracked in
+  `../mobile-publish-checklist.md`.
 
 ## Covered CLI Surface
 

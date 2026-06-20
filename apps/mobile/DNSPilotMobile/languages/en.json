@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "DNSPilot",
+    "NSLocalNetworkUsageDescription": "DNSPilot uses the local network only to connect to your selected DNSPilot bridge or LAN diagnostic endpoint during testing."
+  },
+  "android": {
+    "app_name": "DNSPilot"
+  }
+}

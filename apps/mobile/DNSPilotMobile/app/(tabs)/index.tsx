@@ -18,6 +18,10 @@ export default function OverviewScreen() {
     error,
     refreshAll,
     runAction,
+    languagePreference,
+    setLanguagePreference,
+    languageOptions,
+    t,
   } = useDNSPilot();
   const [urlDraft, setUrlDraft] = useState(bridgeUrl);
   const [sample, setSample] = useState<unknown>(null);
@@ -50,47 +54,78 @@ export default function OverviewScreen() {
   return (
     <Screen>
       <Section
-        title="DNSPilot Mobile"
-        subtitle="Expo shell for testing the Rust core and CLI contracts through a local bridge. No mobile DNS mutation is performed.">
-        <TextField label="Bridge URL" value={urlDraft} onChangeText={setUrlDraft} placeholder="http://localhost:8787" />
+        title={t('overview.title')}
+        subtitle={t('overview.subtitle')}>
+        <Section title={t('language.title')} subtitle={t('language.subtitle')}>
+          <Row>
+            {languageOptions.map((option) => (
+              <Button
+                key={option.value}
+                label={option.value === 'system' ? t('language.auto') : option.label}
+                onPress={() => setLanguagePreference(option.value)}
+                variant={languagePreference === option.value ? 'primary' : 'secondary'}
+              />
+            ))}
+          </Row>
+        </Section>
+        <TextField label={t('overview.bridgeUrl')} value={urlDraft} onChangeText={setUrlDraft} placeholder="http://localhost:8787" />
         <Row>
           <Button
-            label="Use URL"
+            label={t('overview.useUrl')}
             onPress={() => {
               setBridgeUrl(urlDraft.trim());
             }}
             variant="secondary"
           />
-          <Button label="Refresh" onPress={() => refreshAll().catch(() => undefined)} loading={loading} />
-          <Button label="Init DB" onPress={initializeStorage} variant="secondary" loading={working} />
+          <Button label={t('common.refresh')} onPress={() => refreshAll().catch(() => undefined)} loading={loading} />
+          <Button label={t('overview.initDb')} onPress={initializeStorage} variant="secondary" loading={working} />
         </Row>
         <ErrorBanner message={error} />
       </Section>
 
       <AdaptiveColumns>
-        <Section title="Status" subtitle={health?.dbPath ? `SQLite: ${health.dbPath}` : 'Start npm run bridge before testing.'}>
+        <Section
+          title={t('overview.status.title')}
+          subtitle={health?.dbPath ? t('overview.status.subtitleReady', { path: health.dbPath }) : t('overview.status.subtitleMissing')}>
           <Row>
-            <Metric label="Bridge" value={health?.ok ? 'up' : 'down'} tone={health?.ok ? 'green' : 'amber'} />
-            <Metric label="Profiles" value={profiles.length} tone="blue" />
-            <Metric label="Suites" value={suites.length} tone="green" />
-            <Metric label="Capabilities" value={capabilities.length} tone="amber" />
-            <Metric label="History" value={history.length} tone="neutral" />
+            <Metric label={t('overview.metric.bridge')} value={health?.ok ? t('common.up') : t('common.down')} tone={health?.ok ? 'green' : 'amber'} />
+            <Metric label={t('overview.metric.profiles')} value={profiles.length} tone="blue" />
+            <Metric label={t('overview.metric.suites')} value={suites.length} tone="green" />
+            <Metric label={t('overview.metric.capabilities')} value={capabilities.length} tone="amber" />
+            <Metric label={t('overview.metric.history')} value={history.length} tone="neutral" />
           </Row>
         </Section>
 
-        <Section title="Smoke Sample" subtitle="Uses dnspilot-cli recommend-sample, not mobile-side scoring.">
-          <Button label="Run sample recommendation" onPress={loadSample} loading={working} />
+        <Section title={t('overview.smoke.title')} subtitle={t('overview.smoke.subtitle')}>
+          <Button label={t('overview.smoke.run')} onPress={loadSample} loading={working} />
           {sample ? <CodeBlock text={compactJson(sample, 2400)} /> : null}
         </Section>
       </AdaptiveColumns>
 
-      <Section title="Test Boundary" subtitle="This app is an Expo Go test shell. Release-grade direct Rust binding is a later native bridge task.">
+      <Section title={t('overview.boundary.title')} subtitle={t('overview.boundary.subtitle')}>
         <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 6, padding: 12 }}>
           <Text selectable style={{ color: palette.text, fontSize: 14, fontWeight: '700' }}>
-            Covered CLI surface
+            {t('overview.boundary.coveredTitle')}
           </Text>
           <Text selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>
-            Catalog, capabilities, preflight, apply policy, apply plan, benchmark, system benchmark, compare, path estimate, path compare, profile storage, suite storage, history, and sample recommendation.
+            {t('overview.boundary.coveredBody')}
+          </Text>
+        </View>
+      </Section>
+
+      <Section title={t('overview.native.title')} subtitle={t('overview.native.subtitle')}>
+        <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 8, padding: 12 }}>
+          <Text selectable style={{ color: palette.text, fontSize: 14, fontWeight: '800' }}>
+            iOS/iPadOS
+          </Text>
+          <Text selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>
+            {t('overview.native.ios')}
+          </Text>
+          <Text selectable style={{ color: palette.text, fontSize: 14, fontWeight: '800' }}>
+            Android
+          </Text>
+          <Text selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>
+            {t('overview.native.android')}
           </Text>
         </View>
       </Section>

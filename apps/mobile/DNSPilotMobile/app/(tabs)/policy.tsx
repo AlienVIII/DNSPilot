@@ -30,22 +30,8 @@ const platformOptions: { label: string; value: MobilePlatform }[] = [
   { label: 'Android', value: 'android-play' },
 ];
 
-const healthOptions: { label: string; value: GateHealth }[] = [
-  { label: 'Healthy', value: 'healthy' },
-  { label: 'Degraded', value: 'degraded' },
-  { label: 'Failed', value: 'failed' },
-  { label: 'Inconclusive', value: 'inconclusive' },
-];
-
-const confidenceOptions: { label: string; value: Confidence }[] = [
-  { label: 'High', value: 'high' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Low', value: 'low' },
-  { label: 'Inconclusive', value: 'inconclusive' },
-];
-
 export default function PolicyScreen() {
-  const { profiles, capabilities, error, runAction } = useDNSPilot();
+  const { profiles, capabilities, error, runAction, t } = useDNSPilot();
   const [platform, setPlatform] = useState<MobilePlatform>('ios');
   const [profileId, setProfileId] = useState('');
   const [testedResolver, setTestedResolver] = useState('');
@@ -64,6 +50,24 @@ export default function PolicyScreen() {
   const guidance = results.applyPlan
     ? buildSettingsGuidance({ platform, applyPlan: results.applyPlan.data })
     : null;
+  const healthOptions = useMemo(
+    () => [
+      { label: t('policy.option.healthy'), value: 'healthy' as const },
+      { label: t('policy.option.degraded'), value: 'degraded' as const },
+      { label: t('policy.option.failed'), value: 'failed' as const },
+      { label: t('policy.option.inconclusive'), value: 'inconclusive' as const },
+    ],
+    [t]
+  );
+  const confidenceOptions = useMemo(
+    () => [
+      { label: t('policy.option.high'), value: 'high' as const },
+      { label: t('policy.option.medium'), value: 'medium' as const },
+      { label: t('policy.option.low'), value: 'low' as const },
+      { label: t('policy.option.inconclusive'), value: 'inconclusive' as const },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     if (!profileId && plainProfiles.length > 0) {
@@ -114,21 +118,21 @@ export default function PolicyScreen() {
 
   return (
     <Screen>
-      <Section title="Policy" subtitle="Mobile store-safe apply guidance. Protected-network signals should suppress risky apply prompts.">
+      <Section title={t('policy.title')} subtitle={t('policy.subtitle')}>
         <Segmented options={platformOptions} value={platform} onChange={setPlatform} />
         <Row>
-          <Metric label="Apply" value={capability?.apply ?? 'unknown'} tone="blue" />
-          <Metric label="Flush" value={capability?.flush ?? 'unknown'} tone="amber" />
-          <Metric label="Store safe" value={capability?.store_safe ? 'yes' : 'no'} tone={capability?.store_safe ? 'green' : 'red'} />
+          <Metric label={t('policy.metric.apply')} value={capability?.apply ?? t('common.unknown')} tone="blue" />
+          <Metric label={t('policy.metric.flush')} value={capability?.flush ?? t('common.unknown')} tone="amber" />
+          <Metric label={t('policy.metric.storeSafe')} value={capability?.store_safe ? t('common.yes') : t('common.no')} tone={capability?.store_safe ? 'green' : 'red'} />
         </Row>
         <ErrorBanner message={error} />
       </Section>
 
       <AdaptiveColumns>
-        <Section title="Recommendation Input" subtitle="Simulates the completed benchmark result passed into apply-plan.">
+        <Section title={t('policy.input.title')} subtitle={t('policy.input.subtitle')}>
           <Segmented options={healthOptions} value={gateHealth} onChange={setGateHealth} />
           <Segmented options={confidenceOptions} value={confidence} onChange={setConfidence} />
-          <TextField label="Tested resolver" value={testedResolver} onChangeText={setTestedResolver} placeholder="1.1.1.1" />
+          <TextField label={t('policy.testedResolver')} value={testedResolver} onChangeText={setTestedResolver} placeholder="1.1.1.1" />
           <Row>
             {plainProfiles.map((profile) => (
               <Pill
@@ -145,16 +149,16 @@ export default function PolicyScreen() {
           </Row>
         </Section>
 
-        <Section title="Protected Network Signals" subtitle="These flags should force protect-current-dns or remove apply prompts when needed.">
-          <ToggleRow label="VPN active" value={vpnActive} onValueChange={setVpnActive} />
-          <ToggleRow label="MDM profile active" value={mdmProfileActive} onValueChange={setMdmProfileActive} />
-          <ToggleRow label="Corporate DNS detected" value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
-          <ToggleRow label="Captive portal detected" value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
-          <Button label="Load policy payloads" onPress={runPolicy} loading={working} />
+        <Section title={t('policy.protected.title')} subtitle={t('policy.protected.subtitle')}>
+          <ToggleRow label={t('benchmark.toggle.vpn')} value={vpnActive} onValueChange={setVpnActive} />
+          <ToggleRow label={t('benchmark.toggle.mdm')} value={mdmProfileActive} onValueChange={setMdmProfileActive} />
+          <ToggleRow label={t('benchmark.toggle.corporateDns')} value={corporateDnsDetected} onValueChange={setCorporateDnsDetected} />
+          <ToggleRow label={t('benchmark.toggle.captivePortal')} value={captivePortalDetected} onValueChange={setCaptivePortalDetected} />
+          <Button label={t('policy.loadPayloads')} onPress={runPolicy} loading={working} />
         </Section>
       </AdaptiveColumns>
 
-      <Section title="Guided Flow" subtitle="Capability-based OS flow. The app does not silently mutate system DNS.">
+      <Section title={t('policy.guided.title')} subtitle={t('policy.guided.subtitle')}>
         {guidance ? (
           <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 10, padding: 12 }}>
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
@@ -164,8 +168,8 @@ export default function PolicyScreen() {
               <Pill label={guidance.mode} tone={guidance.mode === 'protect' ? 'red' : 'blue'} />
             </View>
             <Row>
-              <Metric label="Mutates DNS" value={guidance.canMutateSystemDns ? 'yes' : 'no'} tone={guidance.canMutateSystemDns ? 'red' : 'green'} />
-              <Metric label="Steps" value={guidance.steps.length} tone="amber" />
+              <Metric label={t('policy.metric.mutatesDns')} value={guidance.canMutateSystemDns ? t('common.yes') : t('common.no')} tone={guidance.canMutateSystemDns ? 'red' : 'green'} />
+              <Metric label={t('policy.metric.steps')} value={guidance.steps.length} tone="amber" />
             </Row>
             <View style={{ gap: 8 }}>
               {guidance.steps.map((step, index) => (
@@ -181,12 +185,12 @@ export default function PolicyScreen() {
             </Text>
           </View>
         ) : (
-          <EmptyState text="Load policy payloads to generate the OS guidance flow." />
+          <EmptyState text={t('policy.guided.empty')} />
         )}
       </Section>
 
-      <Section title="Payloads" subtitle="Raw core/CLI JSON is selectable for issue reports.">
-        {Object.keys(results).length === 0 ? <EmptyState text="No policy payload loaded yet." /> : null}
+      <Section title={t('policy.payloads.title')} subtitle={t('policy.payloads.subtitle')}>
+        {Object.keys(results).length === 0 ? <EmptyState text={t('policy.payloads.empty')} /> : null}
         {Object.entries(results).map(([name, result]) => (
           <View key={name} style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 8, padding: 12 }}>
             <Text selectable style={{ color: palette.text, fontSize: 15, fontWeight: '800' }}>
