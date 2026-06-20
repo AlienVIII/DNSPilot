@@ -228,6 +228,10 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   run an administrator flush or copy the store-safe checklist.
 - macOS Capabilities/Product Goals surfaces include the macOS Power path so
   store-safe and direct-install behavior stay visibly separated.
+- macOS Permissions and Publish readiness screens explain ask-as-needed
+  authorization, App Store-safe review work, and Power edition separation.
+- Localization foundation supports English and Vietnamese for top-level
+  navigation, Settings, and new readiness surfaces.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom

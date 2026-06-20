@@ -25,6 +25,8 @@
 - Power DNS action runner exists for direct-install builds, disabled by default and gated behind `DNSPILOT_ENABLE_POWER_ACTIONS`.
 - Power apply/flush UI appears only when `DNSPILOT_ENABLE_POWER_ACTIONS=1`; default store-safe builds keep copy/open-settings guidance.
 - Capability matrix now includes macOS Power so direct-install admin apply/flush is not confused with macOS Store behavior.
+- Sidebar includes Permissions and Publish readiness screens with copyable checklists.
+- Native Settings includes language selection; English and Vietnamese are wired for top-level navigation and readiness surfaces.
 
 ## Current Work
 - macOS remains UX lead lane.

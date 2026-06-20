@@ -18,6 +18,10 @@ struct DNSPilotMacApp: App {
         MenuBarExtra("DNS Pilot", systemImage: "network") {
             DNSPilotMenuBarView(navigation: navigation)
         }
+
+        Settings {
+            DNSPilotSettingsView()
+        }
     }
 }
 
@@ -25,8 +29,52 @@ private enum DNSPilotWindowID {
     static let main = "main"
 }
 
+private struct DNSPilotSettingsView: View {
+    @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
+
+    private var localizer: DNSPilotLocalizer {
+        DNSPilotLocalizer(languageCode: languageCode)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(localizer.text(.language), selection: $languageCode) {
+                    ForEach(DNSPilotLanguage.allCases) { language in
+                        Text(language.displayName)
+                            .tag(language.rawValue)
+                    }
+                }
+                Text(localizer.text(.languageSubtitle))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(localizer.text(.settingsTitle))
+            }
+
+            Section {
+                Label(powerActionsLabel, systemImage: MacOSPowerDNSActionConfiguration.isEnabled() ? "bolt.shield" : "lock.shield")
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(localizer.text(.powerActions))
+            }
+        }
+        .formStyle(.grouped)
+        .padding(DNSPilotDesign.Spacing.panel)
+        .frame(width: 460)
+    }
+
+    private var powerActionsLabel: String {
+        MacOSPowerDNSActionConfiguration.isEnabled()
+            ? localizer.text(.powerActionsEnabled)
+            : localizer.text(.powerActionsDisabled)
+    }
+}
+
 private enum SidebarSelection: Hashable {
     case capabilities
+    case permissions
+    case publish
     case benchmark
     case gamePing
     case customDNS
@@ -441,30 +489,38 @@ private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate
 
 private struct DNSPilotShellView: View {
     @ObservedObject var navigation: DNSPilotNavigationModel
+    @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
     @State private var catalogViewModel = CatalogViewModel()
     @State private var hasRequestedStorageCatalogRefresh = false
 
     private let capabilityViewModel = CapabilityMatrixViewModel()
+    private var localizer: DNSPilotLocalizer {
+        DNSPilotLocalizer(languageCode: languageCode)
+    }
 
     var body: some View {
         NavigationSplitView {
             List(selection: $navigation.selection) {
-                Section("Overview") {
-                    Label("Capabilities", systemImage: "checkmark.seal")
+                Section(localizer.text(.overview)) {
+                    Label(localizer.text(.capabilities), systemImage: "checkmark.seal")
                         .tag(SidebarSelection.capabilities)
-                    Label("Benchmark", systemImage: "speedometer")
+                    Label(localizer.text(.permissions), systemImage: "lock.shield")
+                        .tag(SidebarSelection.permissions)
+                    Label(localizer.text(.publish), systemImage: "shippingbox")
+                        .tag(SidebarSelection.publish)
+                    Label(localizer.text(.benchmark), systemImage: "speedometer")
                         .tag(SidebarSelection.benchmark)
-                    Label("Game Ping", systemImage: "gamecontroller")
+                    Label(localizer.text(.gamePing), systemImage: "gamecontroller")
                         .tag(SidebarSelection.gamePing)
-                    Label("Custom DNS", systemImage: "plus.circle")
+                    Label(localizer.text(.customDNS), systemImage: "plus.circle")
                         .tag(SidebarSelection.customDNS)
-                    Label("History", systemImage: "clock.arrow.circlepath")
+                    Label(localizer.text(.history), systemImage: "clock.arrow.circlepath")
                         .tag(SidebarSelection.history)
-                    Label("Catalog", systemImage: "server.rack")
+                    Label(localizer.text(.catalog), systemImage: "server.rack")
                         .tag(SidebarSelection.catalog)
                 }
 
-                Section("Platforms") {
+                Section(localizer.text(.platforms)) {
                     ForEach(capabilityViewModel.rows) { row in
                         Label(row.platformName, systemImage: row.storeSafe ? "checkmark.seal" : "bolt.badge.clock")
                     }
@@ -476,6 +532,10 @@ private struct DNSPilotShellView: View {
             switch navigation.selection ?? .capabilities {
             case .capabilities:
                 CapabilityMatrixDetailView(viewModel: capabilityViewModel)
+            case .permissions:
+                PermissionReadinessDetailView(localizer: localizer)
+            case .publish:
+                PublishReadinessDetailView(localizer: localizer)
             case .benchmark:
                 BenchmarkDetailHostView(
                     catalogViewModel: catalogViewModel,
@@ -1519,6 +1579,126 @@ private struct ProductGoalReadinessRowView: View {
             DNSPilotDesign.Palette.success
         case .storeSafeGuided, .estimated:
             DNSPilotDesign.Palette.warning
+        }
+    }
+}
+
+private struct PermissionReadinessDetailView: View {
+    let localizer: DNSPilotLocalizer
+    private let viewModel = MacOSPermissionReadinessViewModel(
+        isPowerActionsEnabled: MacOSPowerDNSActionConfiguration.isEnabled()
+    )
+
+    var body: some View {
+        MacOSReadinessDetailView(
+            title: localizer.text(.permissions),
+            subtitle: localizer.text(.permissionsSubtitle),
+            rows: viewModel.rows,
+            copyText: viewModel.copyText,
+            primaryActionLabel: localizer.text(.openNetworkSettings),
+            primaryActionSystemImage: "gearshape",
+            primaryAction: openNetworkSettings,
+            copyLabel: localizer.text(.copyChecklist)
+        )
+    }
+}
+
+private struct PublishReadinessDetailView: View {
+    let localizer: DNSPilotLocalizer
+    private let viewModel = MacOSPublishReadinessViewModel()
+
+    var body: some View {
+        MacOSReadinessDetailView(
+            title: localizer.text(.publish),
+            subtitle: localizer.text(.publishSubtitle),
+            rows: viewModel.rows,
+            copyText: viewModel.copyText,
+            primaryActionLabel: nil,
+            primaryActionSystemImage: nil,
+            primaryAction: nil,
+            copyLabel: localizer.text(.copyChecklist)
+        )
+    }
+}
+
+private struct MacOSReadinessDetailView: View {
+    let title: String
+    let subtitle: String
+    let rows: [MacOSReadinessRow]
+    let copyText: String
+    let primaryActionLabel: String?
+    let primaryActionSystemImage: String?
+    let primaryAction: (() -> Void)?
+    let copyLabel: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Text(title)
+                        .font(.title2.weight(.semibold))
+                    Text(subtitle)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                    ForEach(rows) { row in
+                        MacOSReadinessRowView(row: row)
+                    }
+                }
+
+                HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                    if let primaryActionLabel,
+                       let primaryActionSystemImage,
+                       let primaryAction {
+                        Button(action: primaryAction) {
+                            Label(primaryActionLabel, systemImage: primaryActionSystemImage)
+                        }
+                    }
+
+                    Button {
+                        copyToPasteboard(copyText)
+                    } label: {
+                        Label(copyLabel, systemImage: "doc.on.doc")
+                    }
+                }
+            }
+            .padding(DNSPilotDesign.Spacing.panel)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(DNSPilotDesign.Palette.background)
+    }
+}
+
+private struct MacOSReadinessRowView: View {
+    let row: MacOSReadinessRow
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.row) {
+            Label(row.statusLabel, systemImage: row.systemImage)
+                .foregroundStyle(statusColor)
+                .frame(width: 120, alignment: .leading)
+                .help(row.statusLabel)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.title)
+                    .font(.subheadline.weight(.semibold))
+                Text(row.detail)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .font(.subheadline)
+    }
+
+    private var statusColor: Color {
+        switch row.status {
+        case .ready:
+            DNSPilotDesign.Palette.success
+        case .manual:
+            DNSPilotDesign.Palette.warning
+        case .blocked:
+            Color.red
         }
     }
 }

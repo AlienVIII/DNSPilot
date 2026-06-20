@@ -127,6 +127,8 @@ DNS handling, and platform capability reporting.
 - [x] [116] v0.1 macOS power DNS action runner — add disabled-by-default admin apply/flush adapter.
 - [x] [117] v0.1 macOS power apply/flush UI — expose admin actions only behind explicit Power flag.
 - [x] [118] v0.1 macOS power capability alignment — reflect Power path in readiness and capability matrix.
+- [x] [119] v0.1 macOS permission/publish readiness — add native screens and copyable checklists.
+- [x] [120] v0.1 macOS localization foundation — add English/Vietnamese top-level language support.
 
 ---
 
@@ -5914,6 +5916,75 @@ Result: 3 passed, 0 failed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 229 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 119: v0.1 macOS Permission and Publish Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added native sidebar screens for Permissions and Publish. Permissions explains
+ask-as-needed authorization, including Network Settings handoff and admin
+approval only when Power apply/flush is pressed. Publish separates App Store
+edition requirements from Power edition distribution.
+
+### Edge Cases / Caveats
+
+- macOS does not provide a normal pre-grant permission for plain DNS edits.
+- Release signing, provisioning, App Store entitlement approval, and review
+  metadata remain manual publisher steps.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 244 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 120: v0.1 macOS Localization Foundation
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/DNSPilotLocalization.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/DNSPilotLocalizationTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added English/Vietnamese language options and a native Settings scene. Top-level
+navigation, Settings, and the new readiness surfaces use the localizer.
+
+### Edge Cases / Caveats
+
+- Existing deep benchmark/result strings remain English until the next
+  localization pass.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter DNSPilotLocalizationTests --filter MacOSReadinessViewModelTests
+Result: 7 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 244 passed, 0 failed
 
 git diff --check
 Result: passed
