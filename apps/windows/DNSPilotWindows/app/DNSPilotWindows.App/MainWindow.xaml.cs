@@ -93,7 +93,7 @@ public sealed partial class MainWindow : Window
     private async void SaveProfile_Click(object sender, RoutedEventArgs e)
     {
         var form = BuildProfileForm();
-        await MutateProfileAsync("Profile add", runner => runner.Add(ViewModel.DatabasePath, form));
+        await MutateProfileAsync(WindowsDisplayText.Text("Profile add", "Thêm hồ sơ"), runner => runner.Add(ViewModel.DatabasePath, form));
     }
 
     private async void UpdateProfile_Click(object sender, RoutedEventArgs e)
@@ -101,13 +101,17 @@ public sealed partial class MainWindow : Window
         var selected = ProfilesList.SelectedItem as ProfileManagementRow;
         if (selected is { CanEdit: false })
         {
-            ShowDiagnostics("Profile update blocked", new InvalidOperationException("Built-in profiles cannot be edited from the Store-safe shell."));
+            ShowDiagnostics(
+                WindowsDisplayText.Text("Profile update blocked", "Đã chặn cập nhật hồ sơ"),
+                new InvalidOperationException(WindowsDisplayText.Text(
+                    "Built-in profiles cannot be edited from the Store-safe shell.",
+                    "Không thể sửa hồ sơ built-in từ Store-safe shell.")));
             return;
         }
 
         var form = BuildProfileForm();
         var profileId = selected?.Id ?? ProfileIdOrDefault(form);
-        await MutateProfileAsync("Profile update", runner => runner.Update(ViewModel.DatabasePath, profileId, form));
+        await MutateProfileAsync(WindowsDisplayText.Text("Profile update", "Cập nhật hồ sơ"), runner => runner.Update(ViewModel.DatabasePath, profileId, form));
     }
 
     private async void DeleteProfile_Click(object sender, RoutedEventArgs e)
@@ -117,10 +121,14 @@ public sealed partial class MainWindow : Window
         var profileId = selected?.Id ?? ProfileIdOrDefault(form);
         if (selected is { CanDelete: false })
         {
-            ShowDiagnostics("Profile delete blocked", new InvalidOperationException("Built-in profiles cannot be deleted from the Store-safe shell."));
+            ShowDiagnostics(
+                WindowsDisplayText.Text("Profile delete blocked", "Đã chặn xóa hồ sơ"),
+                new InvalidOperationException(WindowsDisplayText.Text(
+                    "Built-in profiles cannot be deleted from the Store-safe shell.",
+                    "Không thể xóa hồ sơ built-in từ Store-safe shell.")));
             return;
         }
-        await MutateProfileAsync("Profile delete", runner => runner.Delete(ViewModel.DatabasePath, profileId));
+        await MutateProfileAsync(WindowsDisplayText.Text("Profile delete", "Xóa hồ sơ"), runner => runner.Delete(ViewModel.DatabasePath, profileId));
     }
 
     private async void RefreshStorage_Click(object sender, RoutedEventArgs e)
@@ -137,7 +145,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            ShowDiagnostics("Clear history failed", ex);
+            ShowDiagnostics(WindowsDisplayText.Text("Clear history failed", "Xóa lịch sử thất bại"), ex);
         }
     }
 
@@ -145,7 +153,11 @@ public sealed partial class MainWindow : Window
     {
         if (HistoryList.SelectedItem is not BenchmarkHistoryRow row)
         {
-            ShowDiagnostics("Delete history skipped", new InvalidOperationException("Select a history row first."));
+            ShowDiagnostics(
+                WindowsDisplayText.Text("Delete history skipped", "Bỏ qua xóa lịch sử"),
+                new InvalidOperationException(WindowsDisplayText.Text(
+                    "Select a history row first.",
+                    "Chọn một dòng lịch sử trước.")));
             return;
         }
 
@@ -156,7 +168,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            ShowDiagnostics("Delete history failed", ex);
+            ShowDiagnostics(WindowsDisplayText.Text("Delete history failed", "Xóa lịch sử thất bại"), ex);
         }
     }
 
@@ -223,8 +235,8 @@ public sealed partial class MainWindow : Window
                 RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: history is not null);
                 _lastDiagnostics = string.Join(
                     Environment.NewLine,
-                    "Benchmark succeeded",
-                    $"Command: {FormatCommand(result.CommandArguments)}",
+                    WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
+                    $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
                     applyPlanMessage,
                     string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim(),
                     string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
@@ -235,7 +247,7 @@ public sealed partial class MainWindow : Window
 
             var failure = result.ToFailure(FailureStepFor(plan.Mode), DateTimeOffset.UtcNow - startedAt);
             RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, failure: failure);
-            _lastDiagnostics = failure.CopyableReport(plan.Mode.DisplayLabel);
+            _lastDiagnostics = failure.CopyableReport(WindowsDisplayText.ModeLabel(plan.Mode));
             DiagnosticsBox.Text = _lastDiagnostics;
         }
         catch (Exception ex)
@@ -246,7 +258,7 @@ public sealed partial class MainWindow : Window
                 DateTimeOffset.UtcNow - startedAt,
                 ex.ToString());
             RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, failure: failure);
-            _lastDiagnostics = failure.CopyableReport(plan.Mode.DisplayLabel);
+            _lastDiagnostics = failure.CopyableReport(WindowsDisplayText.ModeLabel(plan.Mode));
             DiagnosticsBox.Text = _lastDiagnostics;
         }
     }
@@ -261,16 +273,16 @@ public sealed partial class MainWindow : Window
             : ViewModel.HistoryRows;
         DiagnosticsBox.Text = string.Join(
             Environment.NewLine,
-            "Profile list:",
+            WindowsDisplayText.Text("Profile list:", "Danh sách hồ sơ:"),
             FormatCommand(ViewModel.ProfileListCommand),
             "",
-            "History list:",
+            WindowsDisplayText.Text("History list:", "Danh sách lịch sử:"),
             FormatCommand(ViewModel.HistoryListCommand),
             "",
-            "Store policy:",
+            WindowsDisplayText.Text("Store policy:", "Chính sách Store:"),
             ViewModel.StorePlatformCapability.Notes.FirstOrDefault() ?? ViewModel.StorePolicy.Notes,
             "",
-            "Power edition:",
+            WindowsDisplayText.Text("Power edition:", "Bản Power:"),
             ViewModel.PowerPlatformCapability.Notes.FirstOrDefault() ?? ViewModel.PowerPolicy.Notes);
         _lastDiagnostics = DiagnosticsBox.Text;
     }
@@ -312,7 +324,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            ShowDiagnostics("CLI contract load failed", ex);
+            ShowDiagnostics(WindowsDisplayText.Text("CLI contract load failed", "Tải contract CLI thất bại"), ex);
         }
     }
 
@@ -326,12 +338,16 @@ public sealed partial class MainWindow : Window
             ViewModel = ViewModel.WithApplyPlan(applyPlan);
             RenderStaticState();
             return result.Summary.CanRecommend
-                ? $"Apply-plan refreshed for {request.profileId ?? "current DNS"}."
-                : "Apply-plan refreshed with protection guidance; benchmark did not produce a recommendation.";
+                ? WindowsDisplayText.Text(
+                    $"Apply-plan refreshed for {request.profileId ?? "current DNS"}.",
+                    $"Apply-plan đã cập nhật cho {request.profileId ?? "DNS hiện tại"}.")
+                : WindowsDisplayText.Text(
+                    "Apply-plan refreshed with protection guidance; benchmark did not produce a recommendation.",
+                    "Apply-plan đã cập nhật với hướng dẫn bảo vệ; benchmark không tạo khuyến nghị.");
         }
         catch (Exception ex)
         {
-            return "Apply-plan refresh skipped: " + ex.Message;
+            return WindowsDisplayText.Text("Apply-plan refresh skipped: ", "Bỏ qua cập nhật apply-plan: ") + ex.Message;
         }
     }
 
@@ -344,7 +360,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            ShowDiagnostics(title + " failed", ex);
+            ShowDiagnostics(title + WindowsDisplayText.Text(" failed", " thất bại"), ex);
         }
     }
 
@@ -390,11 +406,11 @@ public sealed partial class MainWindow : Window
             historySaved);
 
         StepsList.ItemsSource = progress.Steps
-            .Select(step => $"{step.Title}: {step.Status}")
+            .Select(step => $"{step.Title}: {WindowsDisplayText.StatusLabel(step.Status)}")
             .ToArray();
         ResolversList.ItemsSource = progress.ResolverStatuses.Count == 0
-            ? summary.ResolverTargets.Select(target => $"{target.Name} ({target.Resolver}): idle").ToArray()
-            : progress.ResolverStatuses.Select(row => $"{row.Name} ({row.Resolver}): {row.Status} - {row.Detail}").ToArray();
+            ? summary.ResolverTargets.Select(target => $"{target.Name} ({target.Resolver}): {WindowsDisplayText.StatusLabel(ProgressStatus.Idle)}").ToArray()
+            : progress.ResolverStatuses.Select(row => $"{row.Name} ({row.Resolver}): {WindowsDisplayText.StatusLabel(row.Status)} - {row.Detail}").ToArray();
     }
 
     private BenchmarkPlanViewModel BuildSelectedBenchmarkPlan()

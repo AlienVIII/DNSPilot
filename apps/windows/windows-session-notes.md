@@ -9,6 +9,7 @@
 - Store apply uses `ms-settings:network-advancedsettings` with `ms-settings:network-status` fallback and never mutates DNS.
 - Tray quick actions are modeled in core and hosted in the WinUI app through a NotifyIcon context menu.
 - Native shell localization uses WinUI `.resw` resources in `Strings/en-US` and `Strings/vi-VN` with `x:Uid` hooks in `MainWindow.xaml`.
+- Dynamic Windows shell text follows `CurrentUICulture` for progress, validation, failure reports, apply checklist, history rows, and tray labels.
 - Store packaging readiness is documented through `Packaging/Package.Store.appxmanifest.template`; the live package manifest still needs Partner Center identity and real assets.
 - Packaged helper path is explicit: copy `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj`; the app project copies it to output when present.
 
@@ -25,7 +26,7 @@
 ## Open Questions
 - Store packaging assets, signing, and MSIX submission metadata are not validated yet.
 - Partner Center must approve/accept `runFullTrust` for the packaged desktop shell/helper/tray model.
-- Dynamic progress/diagnostic strings are not fully localized because the shared Windows core layer still emits English text.
+- CLI-returned free-text notes/errors may still be English until CLI payloads expose stable message IDs or localized display fields.
 - Confirm NotifyIcon behavior in packaged Store context during Windows QA.
 
 ## Handoff

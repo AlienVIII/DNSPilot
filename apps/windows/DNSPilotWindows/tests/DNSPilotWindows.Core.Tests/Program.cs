@@ -1,4 +1,5 @@
 using DNSPilotWindows.Core;
+using System.Globalization;
 using System.Xml.Linq;
 
 var tests = new WindowsCoreTestSuite();
@@ -30,6 +31,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
+        Run("Windows dynamic shell text follows current UI culture", WindowsDynamicShellTextFollowsCurrentUiCulture);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -705,6 +707,71 @@ internal sealed class WindowsCoreTestSuite
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
             .ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static void WindowsDynamicShellTextFollowsCurrentUiCulture()
+    {
+        using var culture = new CultureScope("vi-VN");
+
+        var failure = new BenchmarkExecutionFailure(
+            BenchmarkFailureStep.MeasuringConnection,
+            "TCP timeout",
+            TimeSpan.FromMilliseconds(250),
+            "debug log");
+        var report = failure.CopyableReport(WindowsDisplayText.ModeLabel(BenchmarkMode.DnsAndTcp));
+        Assert.Contains("Benchmark thất bại", report);
+        Assert.Contains("Chế độ: DNS + TCP", report);
+        Assert.Contains("Bước lỗi: Đo TCP", report);
+        Assert.Contains("Gợi ý:", report);
+
+        var progress = BenchmarkProgressViewModel.From(
+            BenchmarkMode.DnsAndTcp,
+            BenchmarkRunState.Running,
+            TestData.Plan(mode: BenchmarkMode.DnsAndTcp).ProgressSummary);
+        Assert.Contains("Đang phân giải DNS", string.Join("\n", progress.CurrentStepLines));
+        Assert.Contains("Đang chạy", progress.ResolverStatuses.First().Detail);
+
+        var guidance = ApplyGuidanceViewModel.FromPlan(new ApplyPlan(
+            ApplyDecision.Guide,
+            "Cloudflare",
+            new[] { "1.1.1.1" },
+            "1.1.1.1:53",
+            "copy"));
+        Assert.Equal("Sao chép DNS server", guidance.Actions.First().Label);
+        Assert.Contains("Không có thay đổi DNS âm thầm", guidance.CopyableChecklist);
+
+        var invalidProfile = new CustomDnsProfileFormViewModel("", "999.1.1.1", "not:ipv6");
+        Assert.Contains("Tên hồ sơ là bắt buộc.", string.Join("\n", invalidProfile.Validation.Issues));
+        Assert.Contains("DNS server IPv4 không hợp lệ: 999.1.1.1", string.Join("\n", invalidProfile.Validation.Issues));
+
+        var history = new BenchmarkHistoryViewModel(BenchmarkHistoryJsonDecoder.Decode(SampleJson.HistoryList), TestData.Catalog);
+        Assert.Equal("Khuyến nghị: Cloudflare", history.Rows.Single().RecommendationLabel);
+        Assert.Equal("Kiểm tra lại trước khi áp dụng khuyến nghị đã lưu", history.Rows.Single().ApplyGuidanceLabel);
+
+        var tray = TrayQuickActionsViewModel.CreateDefault(TestData.Catalog);
+        Assert.Equal("Benchmark nhanh", tray.Actions.First().Label);
+        Assert.Equal("Kiểm tra DNS hiện tại", tray.Actions.Skip(1).First().Label);
+    }
+
+    private sealed class CultureScope : IDisposable
+    {
+        private readonly CultureInfo _currentCulture;
+        private readonly CultureInfo _currentUiCulture;
+
+        public CultureScope(string cultureName)
+        {
+            _currentCulture = CultureInfo.CurrentCulture;
+            _currentUiCulture = CultureInfo.CurrentUICulture;
+            var culture = new CultureInfo(cultureName);
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+        }
+
+        public void Dispose()
+        {
+            CultureInfo.CurrentCulture = _currentCulture;
+            CultureInfo.CurrentUICulture = _currentUiCulture;
+        }
     }
 }
 

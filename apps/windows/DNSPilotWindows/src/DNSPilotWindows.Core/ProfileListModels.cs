@@ -119,7 +119,9 @@ public sealed class CustomDnsProfileRunner
     {
         if (!form.Validation.CanSave)
         {
-            throw new InvalidOperationException("Invalid custom DNS profile: " + string.Join("; ", form.Validation.Issues));
+            throw new InvalidOperationException(
+                WindowsDisplayText.Text("Invalid custom DNS profile: ", "Hồ sơ DNS tùy chỉnh không hợp lệ: ")
+                + string.Join("; ", form.Validation.Issues));
         }
     }
 }

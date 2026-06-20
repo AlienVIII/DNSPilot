@@ -98,27 +98,35 @@ public sealed class CustomDnsProfileFormViewModel
         var issues = new List<string>();
         if (Name.Length == 0)
         {
-            issues.Add("Profile name is required.");
+            issues.Add(WindowsDisplayText.Text("Profile name is required.", "Tên hồ sơ là bắt buộc."));
         }
 
         if (Ipv4Servers.Count == 0 && Ipv6Servers.Count == 0)
         {
-            issues.Add("Add at least one IPv4 or IPv6 DNS server.");
+            issues.Add(WindowsDisplayText.Text(
+                "Add at least one IPv4 or IPv6 DNS server.",
+                "Thêm ít nhất một DNS server IPv4 hoặc IPv6."));
         }
 
         foreach (var ipv4 in Ipv4Servers.Where(ipv4 => !IsAddressFamily(ipv4, AddressFamily.InterNetwork)))
         {
-            issues.Add($"Invalid IPv4 DNS server: {ipv4}");
+            issues.Add(WindowsDisplayText.Text(
+                $"Invalid IPv4 DNS server: {ipv4}",
+                $"DNS server IPv4 không hợp lệ: {ipv4}"));
         }
 
         foreach (var ipv6 in Ipv6Servers.Where(ipv6 => !IsAddressFamily(ipv6, AddressFamily.InterNetworkV6)))
         {
-            issues.Add($"Invalid IPv6 DNS server: {ipv6}");
+            issues.Add(WindowsDisplayText.Text(
+                $"Invalid IPv6 DNS server: {ipv6}",
+                $"DNS server IPv6 không hợp lệ: {ipv6}"));
         }
 
         foreach (var duplicate in Ipv4Servers.Concat(Ipv6Servers).GroupBy(value => value, StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1).Select(group => group.Key))
         {
-            issues.Add($"Duplicate DNS server: {duplicate}");
+            issues.Add(WindowsDisplayText.Text(
+                $"Duplicate DNS server: {duplicate}",
+                $"DNS server bị trùng: {duplicate}"));
         }
 
         return new ProfileFormValidation(issues);

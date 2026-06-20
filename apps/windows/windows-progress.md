@@ -22,6 +22,7 @@
 - Added self-review/counterargument summary for Windows lane release risk and scope discipline.
 - Added native WinUI localization hooks with `x:Uid` and `Strings/en-US` plus `Strings/vi-VN` `.resw` resources.
 - Added Store MSIX manifest template with localized `ms-resource` display strings and explicit `internetClient` plus `runFullTrust` capability declarations.
+- Added culture-aware dynamic Windows shell text for progress, validation, failure reports, apply checklist, history rows, and tray labels.
 - Added conditional app project packaging rule to copy bundled `dnspilot-cli.exe` when present beside the WinUI project.
 - Added Windows PowerShell validation script for real Windows build/test runs.
 - Added Windows publish runbook covering helper bundling, validation, manual QA, MSIX assets, Partner Center capability justification, and Store-safe copy/settings positioning.
@@ -32,7 +33,7 @@
 
 ## Blockers
 - Real Windows UI, tray, MSIX, Store, and signing validation still require a Windows machine and store/signing access.
-- Dynamic diagnostic/status strings from the shared Windows core layer remain English until a broader localization contract is added without touching core from this lane.
+- CLI-returned free-text notes/errors may still be English until the CLI exposes stable message IDs or localized display fields.
 
 ## Next Actions
 - Follow `apps/windows/windows-publish.md` on a Windows device.

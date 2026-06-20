@@ -22,6 +22,6 @@
 - Windows core runner now records command, exit code, stdout/stderr summary, failed step, elapsed time, and copyable report text.
 
 ## Localization Requests
-- Add a core/app localization contract for dynamic strings emitted by shared view models: progress step labels, validation issues, failure suggestions, copyable reports, profile/history row labels, and apply-plan safety text.
-- Prefer stable message IDs plus structured fields over pre-localized free text so Windows, macOS, Linux, and mobile can render localized UI without forking core behavior.
+- Add a CLI payload localization contract for notes/errors/safety guidance currently returned as free text.
+- Prefer stable message IDs plus structured fields over pre-localized free text so Windows, macOS, Linux, and mobile can render localized UI consistently.
 - Keep CLI JSON payloads machine-readable and locale-neutral by default; localized display strings can be optional fields or app-side resources.

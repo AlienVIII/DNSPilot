@@ -69,9 +69,18 @@ public sealed class TrayQuickActionsViewModel
         return new TrayQuickActionsViewModel(
             new[]
             {
-                new TrayActionDescriptor(TrayActionKind.QuickBenchmark, "Quick benchmark", "Run the default DNS + TCP benchmark."),
-                new TrayActionDescriptor(TrayActionKind.ValidateSystemDns, "Validate current DNS", "Benchmark the current Windows resolver path."),
-                new TrayActionDescriptor(TrayActionKind.OpenSettings, "Open Network Settings", "Open Windows Network & internet settings."),
+                new TrayActionDescriptor(
+                    TrayActionKind.QuickBenchmark,
+                    WindowsDisplayText.Text("Quick benchmark", "Benchmark nhanh"),
+                    WindowsDisplayText.Text("Run the default DNS + TCP benchmark.", "Chạy benchmark DNS + TCP mặc định.")),
+                new TrayActionDescriptor(
+                    TrayActionKind.ValidateSystemDns,
+                    WindowsDisplayText.Text("Validate current DNS", "Kiểm tra DNS hiện tại"),
+                    WindowsDisplayText.Text("Benchmark the current Windows resolver path.", "Benchmark đường DNS hiện tại của Windows.")),
+                new TrayActionDescriptor(
+                    TrayActionKind.OpenSettings,
+                    WindowsDisplayText.Text("Open Network Settings", "Mở cài đặt mạng"),
+                    WindowsDisplayText.Text("Open Windows Network & internet settings.", "Mở Windows Network & internet settings.")),
             },
             quickBenchmarkPlan,
             validateSystemDnsPlan,

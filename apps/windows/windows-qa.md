@@ -5,7 +5,7 @@
 - `dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, profile-list, history-list, profile mutations, history mutations, hydrated shell state, apply-plan request generation from recommendations, CLI helper lookup, localization resource hooks, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, profile-list, history-list, profile mutations, history mutations, hydrated shell state, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -47,5 +47,5 @@
 ## Known Risks
 - Real Windows UI layout, tray behavior, MSIX packaging, Store policy, and signing are not validated from macOS.
 - Detailed recommendation cards are still lighter than macOS; Windows now parses benchmark result JSON enough to refresh apply guidance from the recommended profile and tested resolver.
-- Dynamic status/report text from the shared Windows core layer remains English until core/app-wide localization contracts are added.
+- Free-text notes/errors returned by the CLI may still be English until CLI payloads expose localized display strings or stable message IDs.
 - Power edition admin/service apply remains a separate future lane.

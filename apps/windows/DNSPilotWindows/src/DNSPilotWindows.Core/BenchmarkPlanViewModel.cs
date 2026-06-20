@@ -126,39 +126,55 @@ public sealed class BenchmarkPlanViewModel
 
             if (Mode != BenchmarkMode.SystemDnsValidation && PlainResolvers.Count == 0)
             {
-                issues.Add(ResolverAddressFamily.SummaryLabel is { } summaryLabel
-                    ? $"Select at least one plain DNS profile with {summaryLabel}."
-                    : "Select at least one plain DNS profile.");
+                issues.Add(ResolverAddressFamily.SummaryLabel is { }
+                    ? WindowsDisplayText.Text(
+                        $"Select at least one plain DNS profile with {ResolverAddressFamily.SummaryLabel}.",
+                        $"Chọn ít nhất một hồ sơ DNS plain có {WindowsDisplayText.ResolverSummaryLabel(ResolverAddressFamily)}.")
+                    : WindowsDisplayText.Text(
+                        "Select at least one plain DNS profile.",
+                        "Chọn ít nhất một hồ sơ DNS plain."));
             }
 
             if (Domains.Count == 0)
             {
-                issues.Add("Select a test suite or add custom domains.");
+                issues.Add(WindowsDisplayText.Text(
+                    "Select a test suite or add custom domains.",
+                    "Chọn test suite hoặc thêm domain tùy chỉnh."));
             }
 
             if (Attempts < 1)
             {
-                issues.Add("Attempts must be at least 1.");
+                issues.Add(WindowsDisplayText.Text(
+                    "Attempts must be at least 1.",
+                    "Số lần thử phải ít nhất là 1."));
             }
 
             if (DnsTimeoutMs < 1)
             {
-                issues.Add("DNS timeout must be at least 1 ms.");
+                issues.Add(WindowsDisplayText.Text(
+                    "DNS timeout must be at least 1 ms.",
+                    "DNS timeout phải ít nhất là 1 ms."));
             }
 
             if (Mode == BenchmarkMode.DnsAndTcp && ConnectTimeoutMs < 1)
             {
-                issues.Add("TCP timeout must be at least 1 ms.");
+                issues.Add(WindowsDisplayText.Text(
+                    "TCP timeout must be at least 1 ms.",
+                    "TCP timeout phải ít nhất là 1 ms."));
             }
 
             if (Mode == BenchmarkMode.DnsAndTcp && MaxConnectTargetsPerDomain < 1)
             {
-                issues.Add("Max TCP targets per domain must be at least 1.");
+                issues.Add(WindowsDisplayText.Text(
+                    "Max TCP targets per domain must be at least 1.",
+                    "Số TCP target tối đa mỗi domain phải ít nhất là 1."));
             }
 
             foreach (var domain in SanitizedCustomDomains.Where(domain => !DomainNameValidator.IsValid(domain)))
             {
-                issues.Add($"Invalid custom domain: {domain}");
+                issues.Add(WindowsDisplayText.Text(
+                    $"Invalid custom domain: {domain}",
+                    $"Domain tùy chỉnh không hợp lệ: {domain}"));
             }
 
             return issues.Count == 0 ? BenchmarkValidation.Valid : new BenchmarkValidation(issues);

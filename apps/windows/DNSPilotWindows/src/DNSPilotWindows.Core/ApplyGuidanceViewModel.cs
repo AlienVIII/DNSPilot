@@ -71,12 +71,20 @@ public sealed class ApplyGuidanceViewModel
             Environment.NewLine,
             new[]
             {
-                $"DNS Pilot recommendation: {plan.ProfileName}",
-                plan.TestedResolver is null ? "Tested resolver: not available" : $"Tested resolver: {plan.TestedResolver}",
-                "No silent DNS mutation is performed by the Store build.",
-                "Copy the DNS servers.",
-                "Open Windows Settings > Network & internet > Advanced network settings.",
-                "Pick the active adapter, edit DNS server assignment, paste the copied servers, save, then run System DNS validation.",
+                WindowsDisplayText.Text($"DNS Pilot recommendation: {plan.ProfileName}", $"Khuyến nghị DNS Pilot: {plan.ProfileName}"),
+                plan.TestedResolver is null
+                    ? WindowsDisplayText.Text("Tested resolver: not available", "Resolver đã test: chưa có")
+                    : WindowsDisplayText.Text($"Tested resolver: {plan.TestedResolver}", $"Resolver đã test: {plan.TestedResolver}"),
+                WindowsDisplayText.Text(
+                    "No silent DNS mutation is performed by the Store build.",
+                    "Không có thay đổi DNS âm thầm trong bản Store."),
+                WindowsDisplayText.Text("Copy the DNS servers.", "Sao chép DNS server."),
+                WindowsDisplayText.Text(
+                    "Open Windows Settings > Network & internet > Advanced network settings.",
+                    "Mở Windows Settings > Network & internet > Advanced network settings."),
+                WindowsDisplayText.Text(
+                    "Pick the active adapter, edit DNS server assignment, paste the copied servers, save, then run System DNS validation.",
+                    "Chọn adapter đang dùng, sửa DNS server assignment, dán DNS server đã sao chép, lưu, rồi chạy kiểm tra DNS hệ thống."),
             });
 
         return new ApplyGuidanceViewModel(
@@ -84,9 +92,18 @@ public sealed class ApplyGuidanceViewModel
             WindowsSettingsUri.NetworkAdvancedSettings,
             new[]
             {
-                new ApplyActionDescriptor(ApplyActionKind.CopyDnsServers, "Copy DNS servers", "Copy the recommended DNS servers to the clipboard."),
-                new ApplyActionDescriptor(ApplyActionKind.OpenWindowsSettings, "Open Windows settings", "Open Network & internet advanced settings without changing DNS."),
-                new ApplyActionDescriptor(ApplyActionKind.CopyChecklist, "Copy checklist", "Copy the manual apply and retest checklist."),
+                new ApplyActionDescriptor(
+                    ApplyActionKind.CopyDnsServers,
+                    WindowsDisplayText.Text("Copy DNS servers", "Sao chép DNS server"),
+                    WindowsDisplayText.Text("Copy the recommended DNS servers to the clipboard.", "Sao chép DNS server được khuyến nghị vào clipboard.")),
+                new ApplyActionDescriptor(
+                    ApplyActionKind.OpenWindowsSettings,
+                    WindowsDisplayText.Text("Open Windows settings", "Mở cài đặt Windows"),
+                    WindowsDisplayText.Text("Open Network & internet advanced settings without changing DNS.", "Mở Network & internet advanced settings mà không đổi DNS.")),
+                new ApplyActionDescriptor(
+                    ApplyActionKind.CopyChecklist,
+                    WindowsDisplayText.Text("Copy checklist", "Sao chép checklist"),
+                    WindowsDisplayText.Text("Copy the manual apply and retest checklist.", "Sao chép checklist áp dụng thủ công và kiểm tra lại.")),
             },
             copyableDnsServers,
             checklist);

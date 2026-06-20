@@ -18,9 +18,9 @@
 - Mitigation: core/view-model behavior is covered by automated tests; `windows-qa.md`, `Validate-WindowsLane.ps1`, and `validate-windows-lane.sh` document the exact Windows checks still needed.
 
 ### "Multilingual support may be superficial"
-- Partly valid. Native shell labels, headers, buttons, and main tooltips are localized through `.resw` for English and Vietnamese.
-- Remaining gap: dynamic progress, validation, and report strings from `DNSPilotWindows.Core` are still English because this lane cannot change shared core.
-- Mitigation: the gap is documented as a core/app localization contract request; Store screenshots should avoid claiming fully localized diagnostics until that is solved.
+- Partly mitigated. Native shell labels, headers, buttons, and main tooltips are localized through `.resw` for English and Vietnamese.
+- Dynamic Windows shell text now follows `CurrentUICulture` for progress, validation issues, failure reports, apply checklist, history rows, and tray labels.
+- Remaining gap: free-text notes/errors returned by the CLI can still be English until CLI payloads expose localized display strings or stable message IDs.
 
 ### "CLI helper discovery can fail"
 - Partly mitigated. Locator now checks `DNSPILOT_CLI_PATH`, bundled helper, then repo `target/release` and `target/debug`.
@@ -47,7 +47,7 @@
 ## Current Evidence
 - `bash apps/windows/validate-windows-lane.sh` runs core tests, core build, store-safe static checks, and a WinUI build probe.
 - Automated tests cover benchmark commands, system DNS validation, progress/failure diagnostics, apply guidance, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
-- Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, package capability template, and bundled CLI copy rule.
+- Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, and bundled CLI copy rule.
 - Store-safe static scan currently finds no DNS mutation or admin-elevation implementation in `apps/windows/DNSPilotWindows`.
 - XML well-formed checks pass for `MainWindow.xaml`, both `.resw` files, and the Store package manifest template.
 

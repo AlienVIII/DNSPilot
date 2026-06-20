@@ -31,13 +31,17 @@ public sealed record BenchmarkRunResult(
         var debugLines = new[]
         {
             $"Command: {CommandLineFormatter.Format(ExecutablePath, CommandArguments)}",
-            $"Process failed with exit code {ExitCode}.",
+            WindowsDisplayText.Text(
+                $"Process failed with exit code {ExitCode}.",
+                $"Tiến trình thất bại với exit code {ExitCode}."),
             string.IsNullOrWhiteSpace(StandardOutput) ? "stdout: <empty>" : $"stdout: {StandardOutput.Trim()}",
             string.IsNullOrWhiteSpace(StandardError) ? "stderr: <empty>" : $"stderr: {StandardError.Trim()}",
         };
 
         var reason = string.IsNullOrWhiteSpace(StandardError)
-            ? $"CLI exited with code {ExitCode}."
+            ? WindowsDisplayText.Text(
+                $"CLI exited with code {ExitCode}.",
+                $"CLI thoát với code {ExitCode}.")
             : StandardError.Trim();
 
         return new BenchmarkExecutionFailure(
@@ -68,7 +72,9 @@ public sealed class BenchmarkRunner
     {
         if (!plan.Validation.CanRun)
         {
-            throw new InvalidOperationException("Invalid benchmark plan: " + string.Join("; ", plan.Validation.Issues));
+            throw new InvalidOperationException(
+                WindowsDisplayText.Text("Invalid benchmark plan: ", "Kế hoạch benchmark không hợp lệ: ")
+                + string.Join("; ", plan.Validation.Issues));
         }
 
         var arguments = plan.CommandArguments.ToList();

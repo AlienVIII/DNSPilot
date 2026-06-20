@@ -87,20 +87,20 @@ public sealed class BenchmarkExecutionFailure
     {
         var lines = new List<string>
         {
-            "Benchmark failed",
-            $"Mode: {modeLabel}",
-            $"Failed at: {FailedStep.Label}",
-            $"Reason: {Reason}",
-            $"Suggestion: {Suggestion ?? DefaultSuggestion(FailedStep)}",
+            WindowsDisplayText.Text("Benchmark failed", "Benchmark thất bại"),
+            $"{WindowsDisplayText.Text("Mode", "Chế độ")}: {modeLabel}",
+            $"{WindowsDisplayText.Text("Failed at", "Bước lỗi")}: {WindowsDisplayText.StepLabel(FailedStep)}",
+            $"{WindowsDisplayText.Text("Reason", "Lý do")}: {Reason}",
+            $"{WindowsDisplayText.Text("Suggestion", "Gợi ý")}: {Suggestion ?? DefaultSuggestion(FailedStep)}",
         };
 
         if (Elapsed is { } elapsed)
         {
-            lines.Add($"Elapsed: {Math.Round(elapsed.TotalMilliseconds):0} ms");
+            lines.Add($"{WindowsDisplayText.Text("Elapsed", "Thời gian")}: {Math.Round(elapsed.TotalMilliseconds):0} ms");
         }
 
         lines.Add(string.Empty);
-        lines.Add("Debug log:");
+        lines.Add(WindowsDisplayText.Text("Debug log:", "Log debug:"));
         lines.Add(DebugLog);
         return string.Join(Environment.NewLine, lines);
     }
@@ -109,20 +109,28 @@ public sealed class BenchmarkExecutionFailure
     {
         if (step == BenchmarkFailureStep.MeasuringConnection)
         {
-            return "Check network reachability, firewall, VPN, captive portal, or try DNS only.";
+            return WindowsDisplayText.Text(
+                "Check network reachability, firewall, VPN, captive portal, or try DNS only.",
+                "Kiểm tra kết nối mạng, firewall, VPN, captive portal, hoặc thử chế độ chỉ DNS.");
         }
 
         if (step == BenchmarkFailureStep.ParsingResult)
         {
-            return "Keep the debug log and verify the CLI output schema matches the app version.";
+            return WindowsDisplayText.Text(
+                "Keep the debug log and verify the CLI output schema matches the app version.",
+                "Giữ log debug và xác minh schema output của CLI khớp phiên bản app.");
         }
 
         if (step == BenchmarkFailureStep.SavingHistory)
         {
-            return "Check local DNS Pilot storage permissions and available disk space.";
+            return WindowsDisplayText.Text(
+                "Check local DNS Pilot storage permissions and available disk space.",
+                "Kiểm tra quyền lưu trữ cục bộ của DNS Pilot và dung lượng đĩa.");
         }
 
-        return "Check selected profiles, target domains, CLI availability, and network configuration.";
+        return WindowsDisplayText.Text(
+            "Check selected profiles, target domains, CLI availability, and network configuration.",
+            "Kiểm tra hồ sơ đã chọn, domain test, CLI, và cấu hình mạng.");
     }
 }
 
@@ -154,7 +162,7 @@ public sealed class BenchmarkProgressViewModel
         var running = state is BenchmarkRunState.Running or BenchmarkRunState.Cancelling;
         var completed = state == BenchmarkRunState.Completed && failure is null;
         var steps = StepSequence(mode)
-            .Select(step => new BenchmarkProgressStepViewModel(step.Id, step.Label, StepStatus(step, failure, running, completed, historySaved)))
+            .Select(step => new BenchmarkProgressStepViewModel(step.Id, WindowsDisplayText.StepLabel(step), StepStatus(step, failure, running, completed, historySaved)))
             .ToArray();
 
         return new BenchmarkProgressViewModel(
@@ -239,8 +247,12 @@ public sealed class BenchmarkProgressViewModel
         {
             return new[]
             {
-                "Cancellation requested; waiting for the CLI process to stop.",
-                "Output is still drained so the final state and debug log stay consistent.",
+                WindowsDisplayText.Text(
+                    "Cancellation requested; waiting for the CLI process to stop.",
+                    "Đã yêu cầu hủy; đang chờ tiến trình CLI dừng."),
+                WindowsDisplayText.Text(
+                    "Output is still drained so the final state and debug log stay consistent.",
+                    "Output vẫn được đọc hết để trạng thái cuối và log debug nhất quán."),
             };
         }
 
@@ -248,23 +260,33 @@ public sealed class BenchmarkProgressViewModel
         {
             return new[]
             {
-                $"Current resolver event: {latest.ProfileId} ({latest.Resolver}), {latest.Index}/{latest.Total}.",
+                WindowsDisplayText.Text(
+                    $"Current resolver event: {latest.ProfileId} ({latest.Resolver}), {latest.Index}/{latest.Total}.",
+                    $"Sự kiện resolver hiện tại: {latest.ProfileId} ({latest.Resolver}), {latest.Index}/{latest.Total}."),
                 latest.Type == ProgressEventType.ResolverFinished
-                    ? $"Last result: {EventDetail(latest)}."
-                    : "Waiting for this resolver to finish.",
+                    ? WindowsDisplayText.Text($"Last result: {EventDetail(latest)}.", $"Kết quả cuối: {EventDetail(latest)}.")
+                    : WindowsDisplayText.Text("Waiting for this resolver to finish.", "Đang chờ resolver này hoàn tất."),
             };
         }
 
         return mode == BenchmarkMode.DnsAndTcp
             ? new[]
             {
-                "Resolving DNS, then probing TCP :443 for returned endpoints.",
-                $"Planned input: {summary.DomainCount} domain(s), {summary.ResolverCount} resolver(s), {summary.Attempts} attempt(s).",
+                WindowsDisplayText.Text(
+                    "Resolving DNS, then probing TCP :443 for returned endpoints.",
+                    "Đang phân giải DNS, rồi kiểm tra TCP :443 cho endpoint trả về."),
+                WindowsDisplayText.Text(
+                    $"Planned input: {summary.DomainCount} domain(s), {summary.ResolverCount} resolver(s), {summary.Attempts} attempt(s).",
+                    $"Đầu vào dự kiến: {summary.DomainCount} domain, {summary.ResolverCount} resolver, {summary.Attempts} lần thử."),
             }
             : new[]
             {
-                $"Resolving {summary.DomainCount} domain(s) with {summary.ResolverCount} resolver(s), {summary.Attempts} attempt(s), {summary.RecordFamily.DisplayLabel}.",
-                "CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
+                WindowsDisplayText.Text(
+                    $"Resolving {summary.DomainCount} domain(s) with {summary.ResolverCount} resolver(s), {summary.Attempts} attempt(s), {summary.RecordFamily.DisplayLabel}.",
+                    $"Đang phân giải {summary.DomainCount} domain với {summary.ResolverCount} resolver, {summary.Attempts} lần thử, {WindowsDisplayText.RecordFamilyLabel(summary.RecordFamily)}."),
+                WindowsDisplayText.Text(
+                    "CLI probes resolvers sequentially; per-resolver rows update from progress events when available.",
+                    "CLI kiểm tra resolver tuần tự; từng dòng resolver sẽ cập nhật khi có progress event."),
             };
     }
 
@@ -286,7 +308,7 @@ public sealed class BenchmarkProgressViewModel
                 return summary.ResolverTargets
                     .Select(target => latestEventsByProfile.TryGetValue(target.Id, out var latest)
                         ? new BenchmarkResolverStatusViewModel(target.Id, target.Name, target.Resolver, EventStatus(latest), EventDetail(latest))
-                        : new BenchmarkResolverStatusViewModel(target.Id, target.Name, target.Resolver, ProgressStatus.Idle, "Pending"))
+                        : new BenchmarkResolverStatusViewModel(target.Id, target.Name, target.Resolver, ProgressStatus.Idle, WindowsDisplayText.Text("Pending", "Đang chờ")))
                     .ToArray();
             }
 
@@ -296,7 +318,11 @@ public sealed class BenchmarkProgressViewModel
                     target.Name,
                     target.Resolver,
                     index == 0 ? ProgressStatus.Running : ProgressStatus.Idle,
-                    cancelling && index == 0 ? "Cancelling" : index == 0 ? $"Running 1/{summary.ResolverTargets.Count}" : "Pending"))
+                    cancelling && index == 0
+                        ? WindowsDisplayText.Text("Cancelling", "Đang hủy")
+                        : index == 0
+                            ? WindowsDisplayText.Text($"Running 1/{summary.ResolverTargets.Count}", $"Đang chạy 1/{summary.ResolverTargets.Count}")
+                            : WindowsDisplayText.Text("Pending", "Đang chờ")))
                 .ToArray();
         }
 
@@ -308,7 +334,9 @@ public sealed class BenchmarkProgressViewModel
                     target.Name,
                     target.Resolver,
                     failure.FailedStep == BenchmarkFailureStep.PreparingBenchmark ? ProgressStatus.Idle : ProgressStatus.Failed,
-                    failure.FailedStep == BenchmarkFailureStep.ParsingResult ? "Result parsing failed" : "Benchmark failed"))
+                    failure.FailedStep == BenchmarkFailureStep.ParsingResult
+                        ? WindowsDisplayText.Text("Result parsing failed", "Đọc kết quả thất bại")
+                        : WindowsDisplayText.Text("Benchmark failed", "Benchmark thất bại")))
                 .ToArray();
         }
 
@@ -334,12 +362,16 @@ public sealed class BenchmarkProgressViewModel
     {
         if (progressEvent.Type == ProgressEventType.ResolverStarted)
         {
-            return $"Running {progressEvent.Index}/{progressEvent.Total}";
+            return WindowsDisplayText.Text(
+                $"Running {progressEvent.Index}/{progressEvent.Total}",
+                $"Đang chạy {progressEvent.Index}/{progressEvent.Total}");
         }
 
         var summary = progressEvent.FailureRate is { } failureRate
-            ? $"{Math.Round(Math.Clamp(failureRate, 0, 1) * 100):0}% failed"
-            : "Finished";
+            ? WindowsDisplayText.Text(
+                $"{Math.Round(Math.Clamp(failureRate, 0, 1) * 100):0}% failed",
+                $"{Math.Round(Math.Clamp(failureRate, 0, 1) * 100):0}% lỗi")
+            : WindowsDisplayText.Text("Finished", "Hoàn tất");
 
         return progressEvent.ElapsedMs is { } elapsedMs
             ? $"{summary} - {Math.Round(Math.Max(elapsedMs, 0)):0} ms"
