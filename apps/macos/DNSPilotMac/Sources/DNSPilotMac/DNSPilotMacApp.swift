@@ -531,7 +531,7 @@ private struct DNSPilotShellView: View {
         } detail: {
             switch navigation.selection ?? .capabilities {
             case .capabilities:
-                CapabilityMatrixDetailView(viewModel: capabilityViewModel)
+                CapabilityMatrixDetailView(viewModel: capabilityViewModel, localizer: localizer)
             case .permissions:
                 PermissionReadinessDetailView(localizer: localizer)
             case .publish:
@@ -539,22 +539,24 @@ private struct DNSPilotShellView: View {
             case .benchmark:
                 BenchmarkDetailHostView(
                     catalogViewModel: catalogViewModel,
+                    localizer: localizer,
                     quickBenchmarkRequestID: navigation.quickBenchmarkRequestID,
                     systemDNSValidationRequestID: navigation.systemDNSValidationRequestID,
                     onCatalogChanged: refreshCatalogFromStorage,
                     onGuidedApplyPlanChanged: navigation.setLastGuidedApplyPlan
                 )
             case .gamePing:
-                GamePingDetailHostView(catalogViewModel: catalogViewModel)
+                GamePingDetailHostView(catalogViewModel: catalogViewModel, localizer: localizer)
             case .customDNS:
                 CustomDNSDetailHostView(
                     executableAvailability: BenchmarkExecutableResolver().resolve(),
+                    localizer: localizer,
                     onProfileSaved: refreshCatalogFromStorage
                 )
             case .history:
-                HistoryDetailHostView(catalogViewModel: catalogViewModel)
+                HistoryDetailHostView(catalogViewModel: catalogViewModel, localizer: localizer)
             case .catalog:
-                CatalogOverviewDetailView(viewModel: catalogViewModel)
+                CatalogOverviewDetailView(viewModel: catalogViewModel, localizer: localizer)
             }
         }
         .onAppear {
@@ -637,6 +639,7 @@ private struct DNSPilotShellView: View {
 
 private struct CustomDNSDetailHostView: View {
     let executableAvailability: BenchmarkExecutableAvailability
+    let localizer: DNSPilotLocalizer
     let onProfileSaved: () -> Void
 
     var body: some View {
@@ -644,27 +647,30 @@ private struct CustomDNSDetailHostView: View {
         case .ready(let executableURL):
             CustomDNSProfileDetailView(
                 executableURL: executableURL,
+                localizer: localizer,
                 onProfileSaved: onProfileSaved
             )
         case .unavailable(let message):
-            BenchmarkUnavailableView(title: "Custom DNS", message: message)
+            BenchmarkUnavailableView(title: localizer.text(.customDNS), message: message)
         }
     }
 }
 
 private struct GamePingDetailHostView: View {
     let catalogViewModel: CatalogViewModel
+    let localizer: DNSPilotLocalizer
 
     var body: some View {
         if let loadErrorMessage = catalogViewModel.loadErrorMessage {
-            BenchmarkUnavailableView(title: "Game Ping", message: loadErrorMessage)
+            BenchmarkUnavailableView(title: localizer.text(.gamePing), message: loadErrorMessage)
         } else if let catalog = catalogViewModel.catalog {
             GamePingDetailView(
                 catalog: catalog,
-                executableAvailability: BenchmarkExecutableResolver().resolve()
+                executableAvailability: BenchmarkExecutableResolver().resolve(),
+                localizer: localizer
             )
         } else {
-            BenchmarkUnavailableView(title: "Game Ping", message: "Catalog unavailable.")
+            BenchmarkUnavailableView(title: localizer.text(.gamePing), message: "Catalog unavailable.")
         }
     }
 }
@@ -672,6 +678,7 @@ private struct GamePingDetailHostView: View {
 private struct GamePingDetailView: View {
     let catalog: CatalogSnapshot
     let executableAvailability: BenchmarkExecutableAvailability
+    let localizer: DNSPilotLocalizer
 
     @State private var selectedPresetID: String
     @State private var selectedProfileIDs: Set<String>
@@ -685,9 +692,14 @@ private struct GamePingDetailView: View {
     @State private var completedElapsedMS: Int?
     @State private var outcome: BenchmarkExecutionOutcome?
 
-    init(catalog: CatalogSnapshot, executableAvailability: BenchmarkExecutableAvailability) {
+    init(
+        catalog: CatalogSnapshot,
+        executableAvailability: BenchmarkExecutableAvailability,
+        localizer: DNSPilotLocalizer
+    ) {
         self.catalog = catalog
         self.executableAvailability = executableAvailability
+        self.localizer = localizer
         let defaultViewModel = GamePingPlanViewModel(catalog: catalog)
         _selectedPresetID = State(initialValue: defaultViewModel.selectedPresetID ?? "")
         _selectedProfileIDs = State(initialValue: Set(defaultViewModel.selectedProfileIDs))
@@ -726,17 +738,17 @@ private struct GamePingDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                 HStack {
-                    Text("Game Ping")
+                    Text(localizer.text(.gamePing))
                         .font(.title2.weight(.semibold))
                     Spacer()
                     Button(action: runGamePing) {
-                        Label(isRunning ? "Running" : "Run", systemImage: "play.fill")
+                        Label(isRunning ? localizer.text(.running) : localizer.text(.run), systemImage: "play.fill")
                     }
                     .disabled(!planViewModel.canRun || isRunning || !executableAvailability.isReady)
 
                     if isRunning {
                         Button(action: cancelGamePing) {
-                            Label("Cancel", systemImage: "xmark.circle")
+                            Label(localizer.text(.cancel), systemImage: "xmark.circle")
                         }
                     }
                 }
@@ -753,9 +765,9 @@ private struct GamePingDetailView: View {
                     BenchmarkIssueList(issues: planViewModel.issues)
                 }
 
-                BenchmarkSection(title: "Preset") {
+                BenchmarkSection(title: localizer.text(.preset)) {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                        Picker("Game", selection: $selectedPresetID) {
+                        Picker(localizer.text(.game), selection: $selectedPresetID) {
                             ForEach(planViewModel.presetOptions) { option in
                                 Text(option.name).tag(option.id)
                             }
@@ -776,14 +788,14 @@ private struct GamePingDetailView: View {
                     }
                 }
 
-                BenchmarkSection(title: "DNS Candidates") {
+                BenchmarkSection(title: localizer.text(.dnsCandidates)) {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
                         HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
-                            Button("All") {
+                            Button(localizer.text(.all)) {
                                 selectedProfileIDs = Set(plainProfiles.map(\.id))
                             }
                             .disabled(isRunning)
-                            Button("Vietnam") {
+                            Button(localizer.text(.vietnam)) {
                                 selectedProfileIDs = Set(
                                     plainProfiles
                                         .filter { $0.tags.contains("vietnam") || $0.tags.contains("isp") }
@@ -791,7 +803,7 @@ private struct GamePingDetailView: View {
                                 )
                             }
                             .disabled(isRunning)
-                            Button("Global") {
+                            Button(localizer.text(.global)) {
                                 selectedProfileIDs = Set(["cloudflare", "google-public-dns", "quad9"])
                             }
                             .disabled(isRunning)
@@ -815,9 +827,9 @@ private struct GamePingDetailView: View {
                     }
                 }
 
-                BenchmarkSection(title: "Probe") {
+                BenchmarkSection(title: localizer.text(.probe)) {
                     HStack(spacing: DNSPilotDesign.Spacing.panel) {
-                        Stepper("Attempts: \(attempts)", value: $attempts, in: 1...5)
+                        Stepper("\(localizer.text(.attempts)): \(attempts)", value: $attempts, in: 1...5)
                             .disabled(isRunning)
                         Stepper("DNS timeout: \(dnsTimeoutMS) ms", value: $dnsTimeoutMS, in: 200...3_000, step: 100)
                             .disabled(isRunning)
@@ -836,6 +848,7 @@ private struct GamePingDetailView: View {
                             planSummary: BenchmarkProgressPlanSummary(plan: planViewModel.plan),
                             progressEvents: currentProgressEvents
                         ),
+                        localizer: localizer,
                         startedAt: currentStartedAt,
                         completedElapsedMS: completedElapsedMS
                     )
@@ -847,12 +860,14 @@ private struct GamePingDetailView: View {
                         GamePingResultPanel(
                             viewModel: result,
                             elapsedMS: completedElapsedMS,
-                            setupText: planViewModel.copyText
+                            setupText: planViewModel.copyText,
+                            localizer: localizer
                         )
                     case .failed(let failure):
                         BenchmarkFailurePanel(
                             failure: failure,
                             mode: .connectionPathCompare,
+                            localizer: localizer,
                             elapsedMS: completedElapsedMS
                         )
                     }
@@ -935,9 +950,10 @@ private struct GamePingResultPanel: View {
     let viewModel: BenchmarkResultViewModel
     let elapsedMS: Int?
     let setupText: String
+    let localizer: DNSPilotLocalizer
 
     var body: some View {
-        BenchmarkSection(title: "Result") {
+        BenchmarkSection(title: localizer.text(.result)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                 HStack(spacing: DNSPilotDesign.Spacing.panel) {
                     Label(viewModel.healthLabel, systemImage: "waveform.path.ecg")
@@ -961,13 +977,13 @@ private struct GamePingResultPanel: View {
                 ScrollView(.horizontal) {
                     Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
                         GridRow {
-                            Text("Status").font(.headline)
-                            Text("Profile").font(.headline)
-                            Text("Resolver").font(.headline)
-                            Text("Median DNS").font(.headline)
-                            Text("Median TCP").font(.headline)
-                            Text("Failure").font(.headline)
-                            Text("Diagnosis").font(.headline)
+                            Text(localizer.text(.status)).font(.headline)
+                            Text(localizer.text(.profile)).font(.headline)
+                            Text(localizer.text(.resolver)).font(.headline)
+                            Text(localizer.text(.medianDNS)).font(.headline)
+                            Text(localizer.text(.medianTCP)).font(.headline)
+                            Text(localizer.text(.failure)).font(.headline)
+                            Text(localizer.text(.diagnosis)).font(.headline)
                         }
 
                         ForEach(viewModel.rows) { row in
@@ -1008,7 +1024,7 @@ private struct GamePingResultPanel: View {
                         ].joined(separator: "\n")
                     )
                 } label: {
-                    Label("Copy Game Ping Report", systemImage: "doc.on.doc")
+                    Label(localizer.text(.copyGamePingReport), systemImage: "doc.on.doc")
                 }
             }
         }
@@ -1017,6 +1033,7 @@ private struct GamePingResultPanel: View {
 
 private struct CustomDNSProfileDetailView: View {
     let executableURL: URL
+    let localizer: DNSPilotLocalizer
     let onProfileSaved: () -> Void
 
     @State private var name = ""
@@ -1067,7 +1084,7 @@ private struct CustomDNSProfileDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                 HStack {
-                    Text("Custom DNS")
+                    Text(localizer.text(.customDNS))
                         .font(.title2.weight(.semibold))
                     Spacer()
                     Button(action: saveProfile) {
@@ -1079,7 +1096,7 @@ private struct CustomDNSProfileDetailView: View {
                         }
                     }
                     .disabled(!editorViewModel.canSave || isMutatingProfile)
-                    .help(editorViewModel.canSave ? "Save profile" : "Resolve validation issues")
+                    .help(editorViewModel.canSave ? localizer.text(.saveProfile) : "Resolve validation issues")
                 }
 
                 if shouldShowIssues, !editorViewModel.issues.isEmpty {
@@ -1094,12 +1111,12 @@ private struct CustomDNSProfileDetailView: View {
                     BenchmarkIssueList(issues: [profileListError])
                 }
 
-                BenchmarkSection(title: "Saved Profiles") {
+                BenchmarkSection(title: localizer.text(.savedProfiles)) {
                     if isLoadingProfiles {
                         ProgressView()
                             .controlSize(.small)
                     } else if managementViewModel.rows.isEmpty {
-                        Label("No custom plain DNS profiles.", systemImage: "tray")
+                        Label(localizer.text(.noCustomPlainDNSProfiles), systemImage: "tray")
                             .foregroundStyle(.secondary)
                     } else {
                         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
@@ -1116,9 +1133,9 @@ private struct CustomDNSProfileDetailView: View {
                     }
                 }
 
-                BenchmarkSection(title: "Profile") {
+                BenchmarkSection(title: localizer.text(.profile)) {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                        TextField("Name", text: $name)
+                        TextField(localizer.text(.name), text: $name)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 360, alignment: .leading)
                             .disabled(isMutatingProfile)
@@ -1126,14 +1143,14 @@ private struct CustomDNSProfileDetailView: View {
                             .foregroundStyle(.secondary)
                         if editingProfileID != nil {
                             Button(action: clearEditor) {
-                                Label("New Profile", systemImage: "plus")
+                                Label(localizer.text(.newProfile), systemImage: "plus")
                             }
                             .disabled(isMutatingProfile)
                         }
                     }
                 }
 
-                BenchmarkSection(title: "Servers") {
+                BenchmarkSection(title: localizer.text(.servers)) {
                     HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.panel) {
                         CustomDNSServerEditor(
                             title: "IPv4",
@@ -1157,14 +1174,14 @@ private struct CustomDNSProfileDetailView: View {
         .onChange(of: ipv4ServersText) { _, _ in resetTransientSaveState() }
         .onChange(of: ipv6ServersText) { _, _ in resetTransientSaveState() }
         .alert(
-            "Delete Custom DNS Profile?",
+            localizer.text(.deleteCustomDNSProfile),
             isPresented: $isDeleteConfirmationPresented,
             presenting: profilePendingDelete
         ) { row in
-            Button("Delete", role: .destructive) {
+            Button(localizer.text(.delete), role: .destructive) {
                 deleteProfile(row)
             }
-            Button("Cancel", role: .cancel) {
+            Button(localizer.text(.cancel), role: .cancel) {
                 profilePendingDelete = nil
             }
         } message: { row in
@@ -1176,7 +1193,7 @@ private struct CustomDNSProfileDetailView: View {
         if isSaving {
             return editorViewModel.saveButtonLabel
         }
-        return editingProfileID == nil ? "Save Profile" : "Update Profile"
+        return editingProfileID == nil ? localizer.text(.saveProfile) : localizer.text(.updateProfile)
     }
 
     private func saveProfile() {
@@ -1492,15 +1509,16 @@ private struct CustomDNSSaveStatusView: View {
 
 private struct CapabilityMatrixDetailView: View {
     let viewModel: CapabilityMatrixViewModel
+    let localizer: DNSPilotLocalizer
     private let productGoalReadiness = ProductGoalReadinessViewModel()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
-                Text("Capability Matrix")
+                Text(localizer.text(.capabilityMatrix))
                     .font(.title2.weight(.semibold))
 
-                ProductGoalReadinessSection(viewModel: productGoalReadiness)
+                ProductGoalReadinessSection(viewModel: productGoalReadiness, localizer: localizer)
 
                 if let loadErrorMessage = viewModel.loadErrorMessage {
                     Label(loadErrorMessage, systemImage: "exclamationmark.triangle")
@@ -1508,10 +1526,10 @@ private struct CapabilityMatrixDetailView: View {
                 } else {
                     Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: DNSPilotDesign.Spacing.row) {
                         GridRow {
-                            Text("Platform").font(.headline)
-                            Text("Benchmark").font(.headline)
-                            Text("Apply").font(.headline)
-                            Text("Flush").font(.headline)
+                            Text(localizer.text(.platform)).font(.headline)
+                            Text(localizer.text(.benchmark)).font(.headline)
+                            Text(localizer.text(.apply)).font(.headline)
+                            Text(localizer.text(.flush)).font(.headline)
                         }
 
                         ForEach(viewModel.rows) { row in
@@ -1535,10 +1553,11 @@ private struct CapabilityMatrixDetailView: View {
 
 private struct ProductGoalReadinessSection: View {
     let viewModel: ProductGoalReadinessViewModel
+    let localizer: DNSPilotLocalizer
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-            Text("Product Goals")
+            Text(localizer.text(.productGoals))
                 .font(.headline)
 
             ForEach(viewModel.rows) { row in
@@ -1705,12 +1724,13 @@ private struct MacOSReadinessRowView: View {
 
 private struct CatalogOverviewDetailView: View {
     let viewModel: CatalogViewModel
+    let localizer: DNSPilotLocalizer
     @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
-                Text("Catalog")
+                Text(localizer.text(.catalog))
                     .font(.title2.weight(.semibold))
 
                 if let loadErrorMessage = viewModel.loadErrorMessage {
@@ -1719,23 +1739,23 @@ private struct CatalogOverviewDetailView: View {
                 } else {
                     HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                         CatalogMetricView(
-                            title: "Providers",
+                            title: localizer.text(.providers),
                             value: "\(viewModel.profileCount)",
                             systemImage: "server.rack"
                         )
                         CatalogMetricView(
-                            title: "Suites",
+                            title: localizer.text(.suites),
                             value: "\(viewModel.testSuiteCount)",
                             systemImage: "list.bullet.rectangle"
                         )
                         CatalogMetricView(
-                            title: "Filtered",
+                            title: localizer.text(.filtered),
                             value: "\(viewModel.filteredProfileCount)",
                             systemImage: "shield"
                         )
                     }
 
-                    CatalogListSection(title: "Providers") {
+                    CatalogListSection(title: localizer.text(.providers)) {
                         ForEach(viewModel.profileSummaries) { summary in
                             CatalogProfileRow(
                                 summary: summary,
@@ -1744,7 +1764,7 @@ private struct CatalogOverviewDetailView: View {
                         }
                     }
 
-                    CatalogListSection(title: "Test Suites") {
+                    CatalogListSection(title: localizer.text(.testSuites)) {
                         ForEach(viewModel.testSuiteSummaries) { summary in
                             CatalogSuiteRow(summary: summary)
                         }
@@ -1776,6 +1796,7 @@ private struct CatalogOverviewDetailView: View {
 
 private struct BenchmarkDetailHostView: View {
     let catalogViewModel: CatalogViewModel
+    let localizer: DNSPilotLocalizer
     let quickBenchmarkRequestID: Int
     let systemDNSValidationRequestID: Int
     let onCatalogChanged: () -> Void
@@ -1783,18 +1804,19 @@ private struct BenchmarkDetailHostView: View {
 
     var body: some View {
         if let loadErrorMessage = catalogViewModel.loadErrorMessage {
-            BenchmarkUnavailableView(message: loadErrorMessage)
+            BenchmarkUnavailableView(title: localizer.text(.benchmark), message: loadErrorMessage)
         } else if let catalog = catalogViewModel.catalog {
             BenchmarkDetailView(
                 catalog: catalog,
                 executableAvailability: BenchmarkExecutableResolver().resolve(),
+                localizer: localizer,
                 quickBenchmarkRequestID: quickBenchmarkRequestID,
                 systemDNSValidationRequestID: systemDNSValidationRequestID,
                 onCatalogChanged: onCatalogChanged,
                 onGuidedApplyPlanChanged: onGuidedApplyPlanChanged
             )
         } else {
-            BenchmarkUnavailableView(message: "Catalog unavailable.")
+            BenchmarkUnavailableView(title: localizer.text(.benchmark), message: "Catalog unavailable.")
         }
     }
 }
@@ -1824,29 +1846,31 @@ private struct BenchmarkUnavailableView: View {
 
 private struct HistoryDetailHostView: View {
     let catalogViewModel: CatalogViewModel
+    let localizer: DNSPilotLocalizer
 
     var body: some View {
         if let loadErrorMessage = catalogViewModel.loadErrorMessage {
-            HistoryUnavailableView(message: loadErrorMessage)
+            HistoryUnavailableView(title: localizer.text(.history), message: loadErrorMessage)
         } else if let catalog = catalogViewModel.catalog {
             switch BenchmarkExecutableResolver().resolve() {
             case .ready(let executableURL):
-                HistoryDetailView(catalog: catalog, executableURL: executableURL)
+                HistoryDetailView(catalog: catalog, executableURL: executableURL, localizer: localizer)
             case .unavailable(let message):
-                HistoryUnavailableView(message: message)
+                HistoryUnavailableView(title: localizer.text(.history), message: message)
             }
         } else {
-            HistoryUnavailableView(message: "Catalog unavailable.")
+            HistoryUnavailableView(title: localizer.text(.history), message: "Catalog unavailable.")
         }
     }
 }
 
 private struct HistoryUnavailableView: View {
+    let title: String
     let message: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
-            Text("History")
+            Text(title)
                 .font(.title2.weight(.semibold))
             Label(message, systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.secondary)
@@ -1861,6 +1885,7 @@ private struct HistoryUnavailableView: View {
 private struct HistoryDetailView: View {
     let catalog: CatalogSnapshot
     let executableURL: URL
+    let localizer: DNSPilotLocalizer
 
     @State private var isLoading = false
     @State private var isDeleting = false
@@ -1884,7 +1909,7 @@ private struct HistoryDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                 HStack {
-                    Text("History")
+                    Text(localizer.text(.history))
                         .font(.title2.weight(.semibold))
                     Spacer()
                     if isDeleting {
@@ -1892,11 +1917,11 @@ private struct HistoryDetailView: View {
                             .controlSize(.small)
                     }
                     Button(action: loadHistory) {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+                        Label(localizer.text(.refresh), systemImage: "arrow.clockwise")
                     }
                     .disabled(isMutatingHistory)
                     Button(role: .destructive, action: requestClearHistory) {
-                        Label("Clear All", systemImage: "trash")
+                        Label(localizer.text(.clearAll), systemImage: "trash")
                     }
                     .disabled(isMutatingHistory || !hasLoadedHistoryRows)
                     .help("Delete all saved benchmark runs")
@@ -1912,12 +1937,13 @@ private struct HistoryDetailView: View {
                     HistoryResultPanel(
                         viewModel: viewModel,
                         isDisabled: isMutatingHistory,
+                        localizer: localizer,
                         onDelete: requestDeleteHistory
                     )
                 case .failed(let message):
                     BenchmarkIssueList(issues: [message])
                 case nil:
-                    Text("History has not been loaded.")
+                    Text(localizer.text(.historyNotLoaded))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -1931,24 +1957,24 @@ private struct HistoryDetailView: View {
             }
         }
         .alert(
-            "Delete Saved Run?",
+            localizer.text(.deleteSavedRun),
             isPresented: $isDeleteHistoryConfirmationPresented,
             presenting: historyPendingDelete
         ) { row in
-            Button("Delete", role: .destructive) {
+            Button(localizer.text(.delete), role: .destructive) {
                 deleteHistory(row)
             }
-            Button("Cancel", role: .cancel) {
+            Button(localizer.text(.cancel), role: .cancel) {
                 historyPendingDelete = nil
             }
         } message: { row in
             Text("Delete \(row.id)? This removes it from local benchmark history.")
         }
-        .alert("Clear History?", isPresented: $isClearHistoryConfirmationPresented) {
-            Button("Clear All", role: .destructive) {
+        .alert(localizer.text(.clearHistory), isPresented: $isClearHistoryConfirmationPresented) {
+            Button(localizer.text(.clearAll), role: .destructive) {
                 clearHistory()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.text(.cancel), role: .cancel) {}
         } message: {
             Text("Delete all saved benchmark runs? This cannot be undone.")
         }
@@ -2067,6 +2093,7 @@ private struct HistoryDetailView: View {
 private struct BenchmarkDetailView: View {
     let catalog: CatalogSnapshot
     let executableAvailability: BenchmarkExecutableAvailability
+    let localizer: DNSPilotLocalizer
     let quickBenchmarkRequestID: Int
     let systemDNSValidationRequestID: Int
     let onCatalogChanged: () -> Void
@@ -2165,6 +2192,7 @@ private struct BenchmarkDetailView: View {
     init(
         catalog: CatalogSnapshot,
         executableAvailability: BenchmarkExecutableAvailability,
+        localizer: DNSPilotLocalizer,
         quickBenchmarkRequestID: Int,
         systemDNSValidationRequestID: Int,
         onCatalogChanged: @escaping () -> Void,
@@ -2172,6 +2200,7 @@ private struct BenchmarkDetailView: View {
     ) {
         self.catalog = catalog
         self.executableAvailability = executableAvailability
+        self.localizer = localizer
         self.quickBenchmarkRequestID = quickBenchmarkRequestID
         self.systemDNSValidationRequestID = systemDNSValidationRequestID
         self.onCatalogChanged = onCatalogChanged
@@ -2195,444 +2224,506 @@ private struct BenchmarkDetailView: View {
     }
 
     var body: some View {
+        benchmarkContent
+            .onChange(of: suiteNameText) { _, _ in resetSuiteSaveState() }
+            .onChange(of: customDomainsText) { _, _ in resetSuiteSaveState() }
+            .onChange(of: vpnActive) { _, _ in reloadApplyPlanForCurrentResult() }
+            .onChange(of: mdmProfileActive) { _, _ in reloadApplyPlanForCurrentResult() }
+            .onChange(of: corporateDNSDetected) { _, _ in reloadApplyPlanForCurrentResult() }
+            .onChange(of: captivePortalDetected) { _, _ in reloadApplyPlanForCurrentResult() }
+            .onChange(of: mode) { _, nextMode in
+                if nextMode == .systemDNSValidation {
+                    refreshSystemDNSResolverSnapshot()
+                }
+            }
+            .onChange(of: quickBenchmarkRequestID) { _, requestID in
+                handleQuickBenchmarkRequest(requestID)
+            }
+            .onChange(of: systemDNSValidationRequestID) { _, requestID in
+                handleSystemDNSValidationRequest(requestID)
+            }
+            .onAppear {
+                if mode == .systemDNSValidation {
+                    refreshSystemDNSResolverSnapshot()
+                }
+                handleQuickBenchmarkRequest(quickBenchmarkRequestID)
+                handleSystemDNSValidationRequest(systemDNSValidationRequestID)
+            }
+            .storeSafeFlushConfirmation(isPresented: $isShowingFlushDNSConfirmation)
+            .alert(
+                localizer.text(.deleteCustomSuite),
+                isPresented: $isDeleteSuiteConfirmationPresented,
+                presenting: suitePendingDelete
+            ) { row in
+                Button(localizer.text(.delete), role: .destructive) {
+                    deleteCustomSuite(row)
+                }
+                Button(localizer.text(.cancel), role: .cancel) {
+                    suitePendingDelete = nil
+                }
+            } message: { row in
+                Text("Delete \(row.name)? This removes it from saved benchmark targets.")
+            }
+    }
+
+    private var benchmarkContent: AnyView {
+        AnyView(
         ScrollView {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
-                HStack {
-                    Text("Benchmark")
-                        .font(.title2.weight(.semibold))
-                    Spacer()
-                    if runControls.showsCancel {
-                        Button(action: cancelBenchmark) {
-                            Label("Cancel", systemImage: "xmark")
-                        }
-                        .accessibilityLabel("Cancel benchmark")
-                        .accessibilityIdentifier("benchmark-cancel-button")
-                        .disabled(!runControls.isCancelEnabled)
-                    }
-                    Button(action: runBenchmark) {
-                        if case .running = runStateMachine.state {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else if case .cancelling = runStateMachine.state {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Label(runControls.primaryLabel, systemImage: "play.fill")
-                        }
-                    }
-                    .accessibilityLabel(runControls.primaryLabel == "Run" ? "Run benchmark" : runControls.primaryLabel)
-                    .accessibilityIdentifier("benchmark-run-button")
-                    .disabled(!runControls.isPrimaryEnabled)
-                    .help(setupViewModel.canRun ? "Run benchmark" : "Resolve readiness issues")
-                }
-
-                Label(setupViewModel.runPlanSummary, systemImage: "list.bullet.clipboard")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Label(setupViewModel.flushPolicySummary, systemImage: "arrow.triangle.2.circlepath")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if setupViewModel.systemDNSFlushChecklistText != nil {
-                    Button {
-                        isShowingFlushDNSConfirmation = true
-                    } label: {
-                        Label(StoreSafeDNSFlushGuidanceViewModel().buttonLabel, systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    .disabled(isBenchmarkActive)
-                    .accessibilityIdentifier("benchmark-copy-flush-checklist-button")
-                    .help("Confirm and copy manual cache flush and validation steps for System DNS mode.")
-                }
-                if let estimatedDurationWarning = setupViewModel.estimatedDurationWarning {
-                    Label(estimatedDurationWarning, systemImage: "hourglass")
-                        .font(.caption)
-                        .foregroundStyle(DNSPilotDesign.Palette.warning)
-                }
-
-                if !setupViewModel.readinessIssues.isEmpty {
-                    BenchmarkIssueList(issues: setupViewModel.readinessIssues)
-                }
-
-                if shouldShowBenchmarkRunArtifacts, progressViewModel.shouldDisplay {
-                    BenchmarkProgressPanel(
-                        viewModel: progressViewModel,
-                        startedAt: currentBenchmarkStartedAt,
-                        completedElapsedMS: lastBenchmarkElapsedMS
-                    )
-                }
-
-                if shouldShowBenchmarkOutcome, let outcome {
-                    switch outcome {
-                    case .completed(let resultViewModel):
-                        BenchmarkResultPanel(
-                            viewModel: resultViewModel,
-                            elapsedMS: lastBenchmarkElapsedMS,
-                            applyPlanOutcome: applyPlanOutcome,
-                            isLoadingApplyPlan: isLoadingApplyPlan,
-                            currentDNSBeforeApplySnapshot: currentDNSBeforeApplySnapshot,
-                            onStartSystemDNSValidation: startSystemDNSValidationBenchmark
-                        )
-                    case .failed(let failure):
-                        BenchmarkFailurePanel(
-                            failure: failure,
-                            mode: mode,
-                            elapsedMS: lastBenchmarkElapsedMS
-                        )
-                    }
-                }
-
-                BenchmarkSection(title: "Mode") {
-                    Picker("Mode", selection: $mode) {
-                        Text(BenchmarkPlanMode.dnsOnlyCompare.displayLabel)
-                            .help(BenchmarkPlanMode.dnsOnlyCompare.helpText)
-                            .tag(BenchmarkPlanMode.dnsOnlyCompare)
-                        Text(BenchmarkPlanMode.connectionPathCompare.displayLabel)
-                            .help(BenchmarkPlanMode.connectionPathCompare.helpText)
-                            .tag(BenchmarkPlanMode.connectionPathCompare)
-                        Text(BenchmarkPlanMode.systemDNSValidation.displayLabel)
-                            .help(BenchmarkPlanMode.systemDNSValidation.helpText)
-                            .tag(BenchmarkPlanMode.systemDNSValidation)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 420, alignment: .leading)
-                    .help(mode.helpText)
-
-                    if mode == .systemDNSValidation {
-                        SystemDNSResolverStatusView(
-                            viewModel: SystemDNSResolverViewModel(snapshot: systemDNSResolverSnapshot),
-                            isRefreshDisabled: isBenchmarkActive,
-                            onRefresh: refreshSystemDNSResolverSnapshot
-                        )
-                    } else {
-                        Picker("Resolver", selection: $resolverTransport) {
-                            ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
-                                Text(transport.displayLabel)
-                                    .help(transport.helpText)
-                                    .tag(transport)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(maxWidth: 280, alignment: .leading)
-                        .help(resolverTransport.helpText)
-                    }
-
-                    Picker("DNS records", selection: $recordFamily) {
-                        ForEach(BenchmarkRecordFamily.allCases, id: \.self) { family in
-                            Text(family.displayLabel)
-                                .help(family.helpText)
-                                .tag(family)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 340, alignment: .leading)
-                    .help(recordFamily.helpText)
-                }
-
-                BenchmarkSection(title: "Network Safeguards") {
-                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                        Toggle("VPN active", isOn: $vpnActive)
-                            .disabled(isBenchmarkActive)
-                            .help("Protect current DNS when a VPN may own routing or DNS.")
-                        Toggle("MDM managed", isOn: $mdmProfileActive)
-                            .disabled(isBenchmarkActive)
-                            .help("Protect current DNS when this Mac may be managed by an organization.")
-                        Toggle("Corporate DNS required", isOn: $corporateDNSDetected)
-                            .disabled(isBenchmarkActive)
-                            .help("Protect current DNS when internal domains may require company DNS.")
-                        Toggle("Captive portal", isOn: $captivePortalDetected)
-                            .disabled(isBenchmarkActive)
-                            .help("Protect current DNS while a hotel, airport, or guest Wi-Fi login may be active.")
-
-                        Label(
-                            "Enabled safeguards affect apply policy only; benchmark measurements still run.",
-                            systemImage: "shield"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-                }
-
-                BenchmarkSection(title: "Profiles") {
-                    if mode == .systemDNSValidation {
-                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                            Label("System DNS uses the current macOS resolver; selected profiles are ignored.", systemImage: "desktopcomputer")
-                                .font(.body.weight(.semibold))
-                            Label("Use this after manually changing DNS to validate the active OS resolver path.", systemImage: "arrow.triangle.2.circlepath")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                            Toggle(isOn: selectAllProfilesBinding) {
-                                Text("Select all runnable")
-                                    .font(.body.weight(.semibold))
-                            }
-                            .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
-                            .help(
-                                """
-                                EN: Select every plain DNS profile that can run with the current Resolver option.
-                                VI: Chọn tất cả profile DNS thường có thể chạy với option Resolver hiện tại.
-                                """
-                            )
-
-                            Text(setupViewModel.profileSelectionSummary)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            if let profileSelectionCaveat = setupViewModel.profileSelectionCaveat {
-                                Label(profileSelectionCaveat, systemImage: "line.3.horizontal.decrease.circle")
-                                    .font(.caption)
-                                    .foregroundStyle(DNSPilotDesign.Palette.warning)
-                            }
-
-                            ForEach(setupViewModel.profileOptions) { option in
-                                Toggle(isOn: profileBinding(for: option)) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(option.name)
-                                                .font(.body.weight(.semibold))
-                                            Text(option.detailLabel)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        Spacer()
-                                    }
-                                }
-                                .disabled(!option.isRunnable || isBenchmarkActive)
-                                .help(option.helpText)
-                            }
-                        }
-                    }
-                }
-
-                BenchmarkSection(title: "Targets") {
-                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                        Picker("Suite", selection: $selectedSuiteID) {
-                            Text("Custom only")
-                                .help(
-                                    """
-                                    EN: Use only the custom domains typed below.
-                                    VI: Chỉ dùng các domain tự nhập bên dưới.
-                                    """
-                                )
-                                .tag(Optional<String>.none)
-                            ForEach(setupViewModel.suiteOptions) { option in
-                                Text("\(option.name) (\(option.domainCountLabel))")
-                                    .help(option.helpText)
-                                    .tag(Optional(option.id))
-                            }
-                        }
-                        .frame(maxWidth: 360, alignment: .leading)
-                        .help(
-                            """
-                            EN: Choose a saved domain suite, or choose Custom only and type domains below.
-                            VI: Chọn bộ domain đã lưu, hoặc chọn Custom only rồi nhập domain bên dưới.
-                            """
-                        )
-
-                        DNSPilotMultilineTextInput(text: $customDomainsText)
-                            .frame(minHeight: 88, alignment: .topLeading)
-                            .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
-                                    .stroke(.separator.opacity(0.5))
-                            }
-                            .help(
-                                """
-                                EN: Enter domains separated by commas, spaces, or new lines.
-                                VI: Nhập domain, phân tách bằng dấu phẩy, khoảng trắng hoặc xuống dòng.
-                                """
-                            )
-
-                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                            HStack(spacing: DNSPilotDesign.Spacing.row) {
-                                TextField("Suite name", text: $suiteNameText)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(maxWidth: 260, alignment: .leading)
-                                    .disabled(isBenchmarkActive || isMutatingSuite)
-                                    .help(
-                                        """
-                                        EN: Name for saving the custom domain list as a reusable suite.
-                                        VI: Tên để lưu danh sách domain thành một bộ test dùng lại.
-                                        """
-                                    )
-
-                                Button(action: saveCustomSuite) {
-                                    if isSavingSuite {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                    } else {
-                                        Label(suiteSaveButtonLabel, systemImage: "tray.and.arrow.down")
-                                    }
-                                }
-                                .disabled(!suiteForm.canSave || isBenchmarkActive || isMutatingSuite)
-                                .help(
-                                    suiteForm.canSave
-                                        ? """
-                                          EN: Save these custom domains as a reusable suite.
-                                          VI: Lưu các domain này thành bộ test dùng lại.
-                                          """
-                                        : suiteForm.issues.joined(separator: "\n")
-                                )
-
-                                if editingSuiteID != nil {
-                                    Button(action: clearSuiteEditor) {
-                                        Label("New Suite", systemImage: "plus")
-                                    }
-                                    .disabled(isBenchmarkActive || isMutatingSuite)
-                                    .help(
-                                        """
-                                        EN: Create a new suite instead of updating the selected suite.
-                                        VI: Tạo bộ test mới thay vì cập nhật bộ đang chọn.
-                                        """
-                                    )
-                                }
-
-                                Button(action: fillAzureSuiteExample) {
-                                    Label("Azure Example", systemImage: "sparkles")
-                                }
-                                .disabled(isBenchmarkActive || isMutatingSuite)
-                                .help(
-                                    """
-                                    EN: Fill common Azure and Microsoft domains for a quick example.
-                                    VI: Điền nhanh các domain Azure/Microsoft phổ biến làm ví dụ.
-                                    """
-                                )
-                            }
-
-                            if shouldShowSuiteIssues, !suiteForm.issues.isEmpty {
-                                ForEach(suiteForm.issues, id: \.self) { issue in
-                                    Label(issue, systemImage: "exclamationmark.triangle")
-                                        .font(.caption)
-                                        .foregroundStyle(DNSPilotDesign.Palette.warning)
-                                }
-                            }
-
-                            if let suiteSaveMessage {
-                                Label(suiteSaveMessage, systemImage: suiteSaveSystemImage)
-                                    .font(.caption)
-                                    .foregroundStyle(suiteSaveForegroundStyle)
-                            }
-
-                            if !suiteManagementViewModel.rows.isEmpty {
-                                Divider()
-                                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                                    Text("Saved suites")
-                                        .font(.headline)
-                                    ForEach(suiteManagementViewModel.rows) { row in
-                                        CustomDomainSuiteManagementRowView(
-                                            row: row,
-                                            isSelected: row.id == editingSuiteID,
-                                            isDisabled: isBenchmarkActive || isMutatingSuite,
-                                            onEdit: { editCustomSuite(row) },
-                                            onDelete: { requestDeleteCustomSuite(row) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                BenchmarkSection(title: "Attempts") {
-                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                        Stepper(value: $attempts, in: 1...5) {
-                            Text("Attempts: \(attempts)")
-                                .font(.body.monospacedDigit())
-                        }
-                        .frame(maxWidth: 220, alignment: .leading)
-                        .help(
-                            """
-                            EN: More attempts reduce noise but make the benchmark take longer.
-                            VI: Nhiều lượt đo hơn sẽ ổn định hơn nhưng benchmark lâu hơn.
-                            """
-                        )
-
-                        Stepper(value: $dnsTimeoutMS, in: 200...5_000, step: 100) {
-                            Text("DNS timeout: \(dnsTimeoutMS) ms")
-                                .font(.body.monospacedDigit())
-                        }
-                        .frame(maxWidth: 260, alignment: .leading)
-                        .help(
-                            """
-                            EN: Maximum wait for each DNS lookup. Increase on slow networks; lower for quick smoke tests.
-                            VI: Thời gian chờ tối đa cho mỗi lần phân giải DNS. Tăng khi mạng chậm, giảm khi muốn test nhanh.
-                            """
-                        )
-
-                        if mode == .connectionPathCompare {
-                            Stepper(value: $connectTimeoutMS, in: 200...5_000, step: 100) {
-                                Text("TCP timeout: \(connectTimeoutMS) ms")
-                                    .font(.body.monospacedDigit())
-                            }
-                            .frame(maxWidth: 260, alignment: .leading)
-                            .help(
-                                """
-                                EN: Maximum wait for each TCP connect attempt after DNS resolves.
-                                VI: Thời gian chờ tối đa cho mỗi lần thử kết nối TCP sau khi DNS trả IP.
-                                """
-                            )
-
-                            Stepper(value: $maxConnectTargetsPerDomain, in: 1...8) {
-                                Text("TCP targets/domain: \(maxConnectTargetsPerDomain)")
-                                    .font(.body.monospacedDigit())
-                            }
-                            .frame(maxWidth: 260, alignment: .leading)
-                            .help(
-                                """
-                                EN: Limit how many resolved IPs are tested per domain. Lower it for CDN-heavy domains.
-                                VI: Giới hạn số IP được thử cho mỗi domain. Giảm giá trị này với domain/CDN có nhiều IP.
-                                """
-                            )
-                        }
-                    }
-                }
-
+                AnyView(benchmarkHeader)
+                AnyView(benchmarkSummary)
+                AnyView(benchmarkRunArtifacts)
+                AnyView(modeSection)
+                AnyView(networkSafeguardsSection)
+                AnyView(profilesSection)
+                AnyView(targetsSection)
+                AnyView(attemptsSection)
             }
             .padding(DNSPilotDesign.Spacing.panel)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(DNSPilotDesign.Palette.background)
-        .onChange(of: suiteNameText) { _, _ in resetSuiteSaveState() }
-        .onChange(of: customDomainsText) { _, _ in resetSuiteSaveState() }
-        .onChange(of: vpnActive) { _, _ in reloadApplyPlanForCurrentResult() }
-        .onChange(of: mdmProfileActive) { _, _ in reloadApplyPlanForCurrentResult() }
-        .onChange(of: corporateDNSDetected) { _, _ in reloadApplyPlanForCurrentResult() }
-        .onChange(of: captivePortalDetected) { _, _ in reloadApplyPlanForCurrentResult() }
-        .onChange(of: mode) { _, nextMode in
-            if nextMode == .systemDNSValidation {
-                refreshSystemDNSResolverSnapshot()
+        )
+    }
+
+    private var benchmarkHeader: some View {
+        HStack {
+            Text(localizer.text(.benchmark))
+                .font(.title2.weight(.semibold))
+            Spacer()
+            if runControls.showsCancel {
+                Button(action: cancelBenchmark) {
+                    Label(localizer.text(.cancel), systemImage: "xmark")
+                }
+                .accessibilityLabel("Cancel benchmark")
+                .accessibilityIdentifier("benchmark-cancel-button")
+                .disabled(!runControls.isCancelEnabled)
+            }
+            Button(action: runBenchmark) {
+                if case .running = runStateMachine.state {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if case .cancelling = runStateMachine.state {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Label(runControls.primaryLabel, systemImage: "play.fill")
+                }
+            }
+            .accessibilityLabel(runControls.primaryLabel == "Run" ? "Run benchmark" : runControls.primaryLabel)
+            .accessibilityIdentifier("benchmark-run-button")
+            .disabled(!runControls.isPrimaryEnabled)
+            .help(setupViewModel.canRun ? "Run benchmark" : "Resolve readiness issues")
+        }
+    }
+
+    @ViewBuilder
+    private var benchmarkSummary: some View {
+        Label(setupViewModel.runPlanSummary, systemImage: "list.bullet.clipboard")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        Label(setupViewModel.flushPolicySummary, systemImage: "arrow.triangle.2.circlepath")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        if setupViewModel.systemDNSFlushChecklistText != nil {
+            Button {
+                isShowingFlushDNSConfirmation = true
+            } label: {
+                Label(StoreSafeDNSFlushGuidanceViewModel().buttonLabel, systemImage: "arrow.triangle.2.circlepath")
+            }
+            .disabled(isBenchmarkActive)
+            .accessibilityIdentifier("benchmark-copy-flush-checklist-button")
+            .help("Confirm and copy manual cache flush and validation steps for System DNS mode.")
+        }
+        if let estimatedDurationWarning = setupViewModel.estimatedDurationWarning {
+            Label(estimatedDurationWarning, systemImage: "hourglass")
+                .font(.caption)
+                .foregroundStyle(DNSPilotDesign.Palette.warning)
+        }
+    }
+
+    @ViewBuilder
+    private var benchmarkRunArtifacts: some View {
+        if !setupViewModel.readinessIssues.isEmpty {
+            BenchmarkIssueList(issues: setupViewModel.readinessIssues)
+        }
+
+        if shouldShowBenchmarkRunArtifacts, progressViewModel.shouldDisplay {
+            BenchmarkProgressPanel(
+                viewModel: progressViewModel,
+                localizer: localizer,
+                startedAt: currentBenchmarkStartedAt,
+                completedElapsedMS: lastBenchmarkElapsedMS
+            )
+        }
+
+        if shouldShowBenchmarkOutcome, let outcome {
+            switch outcome {
+            case .completed(let resultViewModel):
+                BenchmarkResultPanel(
+                    viewModel: resultViewModel,
+                    elapsedMS: lastBenchmarkElapsedMS,
+                    applyPlanOutcome: applyPlanOutcome,
+                    isLoadingApplyPlan: isLoadingApplyPlan,
+                    currentDNSBeforeApplySnapshot: currentDNSBeforeApplySnapshot,
+                    localizer: localizer,
+                    onStartSystemDNSValidation: startSystemDNSValidationBenchmark
+                )
+            case .failed(let failure):
+                BenchmarkFailurePanel(
+                    failure: failure,
+                    mode: mode,
+                    localizer: localizer,
+                    elapsedMS: lastBenchmarkElapsedMS
+                )
             }
         }
-        .onChange(of: quickBenchmarkRequestID) { _, requestID in
-            handleQuickBenchmarkRequest(requestID)
-        }
-        .onChange(of: systemDNSValidationRequestID) { _, requestID in
-            handleSystemDNSValidationRequest(requestID)
-        }
-        .onAppear {
+    }
+
+    private var modeSection: some View {
+        BenchmarkSection(title: localizer.text(.mode)) {
+            Picker(localizer.text(.mode), selection: $mode) {
+                Text(BenchmarkPlanMode.dnsOnlyCompare.displayLabel)
+                    .help(BenchmarkPlanMode.dnsOnlyCompare.helpText)
+                    .tag(BenchmarkPlanMode.dnsOnlyCompare)
+                Text(BenchmarkPlanMode.connectionPathCompare.displayLabel)
+                    .help(BenchmarkPlanMode.connectionPathCompare.helpText)
+                    .tag(BenchmarkPlanMode.connectionPathCompare)
+                Text(BenchmarkPlanMode.systemDNSValidation.displayLabel)
+                    .help(BenchmarkPlanMode.systemDNSValidation.helpText)
+                    .tag(BenchmarkPlanMode.systemDNSValidation)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: 420, alignment: .leading)
+            .help(mode.helpText)
+
             if mode == .systemDNSValidation {
-                refreshSystemDNSResolverSnapshot()
+                SystemDNSResolverStatusView(
+                    viewModel: SystemDNSResolverViewModel(snapshot: systemDNSResolverSnapshot),
+                    localizer: localizer,
+                    isRefreshDisabled: isBenchmarkActive,
+                    onRefresh: refreshSystemDNSResolverSnapshot
+                )
+            } else {
+                Picker(localizer.text(.resolver), selection: $resolverTransport) {
+                    ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
+                        Text(transport.displayLabel)
+                            .help(transport.helpText)
+                            .tag(transport)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 280, alignment: .leading)
+                .help(resolverTransport.helpText)
             }
-            handleQuickBenchmarkRequest(quickBenchmarkRequestID)
-            handleSystemDNSValidationRequest(systemDNSValidationRequestID)
+
+            Picker(localizer.text(.dnsRecords), selection: $recordFamily) {
+                ForEach(BenchmarkRecordFamily.allCases, id: \.self) { family in
+                    Text(family.displayLabel)
+                        .help(family.helpText)
+                        .tag(family)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: 340, alignment: .leading)
+            .help(recordFamily.helpText)
         }
-        .storeSafeFlushConfirmation(isPresented: $isShowingFlushDNSConfirmation)
-        .alert(
-            "Delete Custom Suite?",
-            isPresented: $isDeleteSuiteConfirmationPresented,
-            presenting: suitePendingDelete
-        ) { row in
-            Button("Delete", role: .destructive) {
-                deleteCustomSuite(row)
+    }
+
+    private var networkSafeguardsSection: some View {
+        BenchmarkSection(title: localizer.text(.networkSafeguards)) {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                Toggle("VPN active", isOn: $vpnActive)
+                    .disabled(isBenchmarkActive)
+                    .help("Protect current DNS when a VPN may own routing or DNS.")
+                Toggle("MDM managed", isOn: $mdmProfileActive)
+                    .disabled(isBenchmarkActive)
+                    .help("Protect current DNS when this Mac may be managed by an organization.")
+                Toggle("Corporate DNS required", isOn: $corporateDNSDetected)
+                    .disabled(isBenchmarkActive)
+                    .help("Protect current DNS when internal domains may require company DNS.")
+                Toggle("Captive portal", isOn: $captivePortalDetected)
+                    .disabled(isBenchmarkActive)
+                    .help("Protect current DNS while a hotel, airport, or guest Wi-Fi login may be active.")
+
+                Label(
+                    "Enabled safeguards affect apply policy only; benchmark measurements still run.",
+                    systemImage: "shield"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
-            Button("Cancel", role: .cancel) {
-                suitePendingDelete = nil
+        }
+    }
+
+    private var profilesSection: some View {
+        BenchmarkSection(title: localizer.text(.profiles)) {
+            if mode == .systemDNSValidation {
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Label("System DNS uses the current macOS resolver; selected profiles are ignored.", systemImage: "desktopcomputer")
+                        .font(.body.weight(.semibold))
+                    Label("Use this after manually changing DNS to validate the active OS resolver path.", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                profileSelectionControls
             }
-        } message: { row in
-            Text("Delete \(row.name)? This removes it from saved benchmark targets.")
+        }
+    }
+
+    private var profileSelectionControls: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+            Toggle(isOn: selectAllProfilesBinding) {
+                Text("Select all runnable")
+                    .font(.body.weight(.semibold))
+            }
+            .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
+            .help(
+                """
+                EN: Select every plain DNS profile that can run with the current Resolver option.
+                VI: Chọn tất cả profile DNS thường có thể chạy với option Resolver hiện tại.
+                """
+            )
+
+            Text(setupViewModel.profileSelectionSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if let profileSelectionCaveat = setupViewModel.profileSelectionCaveat {
+                Label(profileSelectionCaveat, systemImage: "line.3.horizontal.decrease.circle")
+                    .font(.caption)
+                    .foregroundStyle(DNSPilotDesign.Palette.warning)
+            }
+
+            ForEach(setupViewModel.profileOptions) { option in
+                Toggle(isOn: profileBinding(for: option)) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(option.name)
+                                .font(.body.weight(.semibold))
+                            Text(option.detailLabel)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                }
+                .disabled(!option.isRunnable || isBenchmarkActive)
+                .help(option.helpText)
+            }
+        }
+    }
+
+    private var targetsSection: some View {
+        BenchmarkSection(title: localizer.text(.targets)) {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                targetSuitePicker
+                targetDomainInput
+                targetSuiteEditor
+            }
+        }
+    }
+
+    private var targetSuitePicker: some View {
+        Picker(localizer.text(.suites), selection: $selectedSuiteID) {
+            Text(localizer.text(.customOnly))
+                .help(
+                    """
+                    EN: Use only the custom domains typed below.
+                    VI: Chỉ dùng các domain tự nhập bên dưới.
+                    """
+                )
+                .tag(Optional<String>.none)
+            ForEach(setupViewModel.suiteOptions) { option in
+                Text("\(option.name) (\(option.domainCountLabel))")
+                    .help(option.helpText)
+                    .tag(Optional(option.id))
+            }
+        }
+        .frame(maxWidth: 360, alignment: .leading)
+        .help(
+            """
+            EN: Choose a saved domain suite, or choose Custom only and type domains below.
+            VI: Chọn bộ domain đã lưu, hoặc chọn Custom only rồi nhập domain bên dưới.
+            """
+        )
+    }
+
+    private var targetDomainInput: some View {
+        DNSPilotMultilineTextInput(text: $customDomainsText)
+            .frame(minHeight: 88, alignment: .topLeading)
+            .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control))
+            .overlay {
+                RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
+                    .stroke(.separator.opacity(0.5))
+            }
+            .help(
+                """
+                EN: Enter domains separated by commas, spaces, or new lines.
+                VI: Nhập domain, phân tách bằng dấu phẩy, khoảng trắng hoặc xuống dòng.
+                """
+            )
+    }
+
+    private var targetSuiteEditor: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            suiteEditorControls
+            suiteEditorMessages
+            savedSuitesList
+        }
+    }
+
+    private var suiteEditorControls: some View {
+        HStack(spacing: DNSPilotDesign.Spacing.row) {
+            TextField(localizer.text(.suiteName), text: $suiteNameText)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 260, alignment: .leading)
+                .disabled(isBenchmarkActive || isMutatingSuite)
+                .help(
+                    """
+                    EN: Name for saving the custom domain list as a reusable suite.
+                    VI: Tên để lưu danh sách domain thành một bộ test dùng lại.
+                    """
+                )
+
+            Button(action: saveCustomSuite) {
+                if isSavingSuite {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Label(suiteSaveButtonLabel, systemImage: "tray.and.arrow.down")
+                }
+            }
+            .disabled(!suiteForm.canSave || isBenchmarkActive || isMutatingSuite)
+            .help(
+                suiteForm.canSave
+                    ? """
+                      EN: Save these custom domains as a reusable suite.
+                      VI: Lưu các domain này thành bộ test dùng lại.
+                      """
+                    : suiteForm.issues.joined(separator: "\n")
+            )
+
+            if editingSuiteID != nil {
+                Button(action: clearSuiteEditor) {
+                    Label(localizer.text(.newSuite), systemImage: "plus")
+                }
+                .disabled(isBenchmarkActive || isMutatingSuite)
+                .help(
+                    """
+                    EN: Create a new suite instead of updating the selected suite.
+                    VI: Tạo bộ test mới thay vì cập nhật bộ đang chọn.
+                    """
+                )
+            }
+
+            Button(action: fillAzureSuiteExample) {
+                Label(localizer.text(.azureExample), systemImage: "sparkles")
+            }
+            .disabled(isBenchmarkActive || isMutatingSuite)
+            .help(
+                """
+                EN: Fill common Azure and Microsoft domains for a quick example.
+                VI: Điền nhanh các domain Azure/Microsoft phổ biến làm ví dụ.
+                """
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var suiteEditorMessages: some View {
+        if shouldShowSuiteIssues, !suiteForm.issues.isEmpty {
+            ForEach(suiteForm.issues, id: \.self) { issue in
+                Label(issue, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(DNSPilotDesign.Palette.warning)
+            }
+        }
+
+        if let suiteSaveMessage {
+            Label(suiteSaveMessage, systemImage: suiteSaveSystemImage)
+                .font(.caption)
+                .foregroundStyle(suiteSaveForegroundStyle)
+        }
+    }
+
+    @ViewBuilder
+    private var savedSuitesList: some View {
+        if !suiteManagementViewModel.rows.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                Text(localizer.text(.savedSuites))
+                    .font(.headline)
+                ForEach(suiteManagementViewModel.rows) { row in
+                    CustomDomainSuiteManagementRowView(
+                        row: row,
+                        isSelected: row.id == editingSuiteID,
+                        isDisabled: isBenchmarkActive || isMutatingSuite,
+                        onEdit: { editCustomSuite(row) },
+                        onDelete: { requestDeleteCustomSuite(row) }
+                    )
+                }
+            }
+        }
+    }
+
+    private var attemptsSection: some View {
+        BenchmarkSection(title: localizer.text(.attempts)) {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                Stepper(value: $attempts, in: 1...5) {
+                    Text("\(localizer.text(.attempts)): \(attempts)")
+                        .font(.body.monospacedDigit())
+                }
+                .frame(maxWidth: 220, alignment: .leading)
+                .help(
+                    """
+                    EN: More attempts reduce noise but make the benchmark take longer.
+                    VI: Nhiều lượt đo hơn sẽ ổn định hơn nhưng benchmark lâu hơn.
+                    """
+                )
+
+                Stepper(value: $dnsTimeoutMS, in: 200...5_000, step: 100) {
+                    Text("DNS timeout: \(dnsTimeoutMS) ms")
+                        .font(.body.monospacedDigit())
+                }
+                .frame(maxWidth: 260, alignment: .leading)
+                .help(
+                    """
+                    EN: Maximum wait for each DNS lookup. Increase on slow networks; lower for quick smoke tests.
+                    VI: Thời gian chờ tối đa cho mỗi lần phân giải DNS. Tăng khi mạng chậm, giảm khi muốn test nhanh.
+                    """
+                )
+
+                if mode == .connectionPathCompare {
+                    Stepper(value: $connectTimeoutMS, in: 200...5_000, step: 100) {
+                        Text("TCP timeout: \(connectTimeoutMS) ms")
+                            .font(.body.monospacedDigit())
+                    }
+                    .frame(maxWidth: 260, alignment: .leading)
+                    .help(
+                        """
+                        EN: Maximum wait for each TCP connect attempt after DNS resolves.
+                        VI: Thời gian chờ tối đa cho mỗi lần thử kết nối TCP sau khi DNS trả IP.
+                        """
+                    )
+
+                    Stepper(value: $maxConnectTargetsPerDomain, in: 1...8) {
+                        Text("TCP targets/domain: \(maxConnectTargetsPerDomain)")
+                            .font(.body.monospacedDigit())
+                    }
+                    .frame(maxWidth: 260, alignment: .leading)
+                    .help(
+                        """
+                        EN: Limit how many resolved IPs are tested per domain. Lower it for CDN-heavy domains.
+                        VI: Giới hạn số IP được thử cho mỗi domain. Giảm giá trị này với domain/CDN có nhiều IP.
+                        """
+                    )
+                }
+            }
         }
     }
 
@@ -2680,7 +2771,7 @@ private struct BenchmarkDetailView: View {
     }
 
     private var suiteSaveButtonLabel: String {
-        editingSuiteID == nil ? "Save Suite" : "Update Suite"
+        editingSuiteID == nil ? localizer.text(.saveSuite) : localizer.text(.updateSuite)
     }
 
     private var shouldShowSuiteIssues: Bool {
@@ -3267,6 +3358,7 @@ private struct BenchmarkIssueList: View {
 
 private struct SystemDNSResolverStatusView: View {
     let viewModel: SystemDNSResolverViewModel
+    let localizer: DNSPilotLocalizer
     let isRefreshDisabled: Bool
     let onRefresh: () -> Void
 
@@ -3292,7 +3384,7 @@ private struct SystemDNSResolverStatusView: View {
 
             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                 Button(action: onRefresh) {
-                    Label("Refresh Current DNS", systemImage: "arrow.clockwise")
+                    Label(localizer.text(.refreshCurrentDNS), systemImage: "arrow.clockwise")
                 }
                 .disabled(isRefreshDisabled)
                 .help("Refresh the current macOS DNS resolver summary.")
@@ -3300,7 +3392,7 @@ private struct SystemDNSResolverStatusView: View {
                 Button {
                     copyToPasteboard(viewModel.copyText)
                 } label: {
-                    Label("Copy Current DNS", systemImage: "doc.on.doc")
+                    Label(localizer.text(.copyCurrentDNS), systemImage: "doc.on.doc")
                 }
                 .help("Copy the current macOS DNS resolver summary.")
             }
@@ -3310,11 +3402,12 @@ private struct SystemDNSResolverStatusView: View {
 
 private struct BenchmarkProgressPanel: View {
     let viewModel: BenchmarkProgressViewModel
+    let localizer: DNSPilotLocalizer
     let startedAt: Date?
     let completedElapsedMS: Int?
 
     var body: some View {
-        BenchmarkSection(title: "Process") {
+        BenchmarkSection(title: localizer.text(.process)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                 BenchmarkElapsedTimeView(
                     startedAt: startedAt,
@@ -3348,7 +3441,7 @@ private struct BenchmarkProgressPanel: View {
                 if !viewModel.resolverStatuses.isEmpty {
                     Divider()
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                        Text("DNS status")
+                        Text(localizer.text(.status))
                             .font(.headline)
                         ForEach(viewModel.resolverStatuses) { resolver in
                             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -3423,26 +3516,27 @@ private struct BenchmarkProgressStatusIcon: View {
 private struct BenchmarkFailurePanel: View {
     let failure: BenchmarkExecutionFailure
     let mode: BenchmarkPlanMode
+    let localizer: DNSPilotLocalizer
     let elapsedMS: Int?
 
     var body: some View {
-        BenchmarkSection(title: "Benchmark failed") {
+        BenchmarkSection(title: localizer.text(.benchmarkFailed)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                BenchmarkFailureRow(label: "Mode", value: mode.displayLabel)
-                BenchmarkFailureRow(label: "Failed at", value: failure.failedStep.label)
-                BenchmarkFailureRow(label: "Reason", value: failure.message)
-                BenchmarkFailureRow(label: "Suggestion", value: failure.suggestion)
+                BenchmarkFailureRow(label: localizer.text(.mode), value: mode.displayLabel)
+                BenchmarkFailureRow(label: localizer.text(.failedAt), value: failure.failedStep.label)
+                BenchmarkFailureRow(label: localizer.text(.reason), value: failure.message)
+                BenchmarkFailureRow(label: localizer.text(.suggestion), value: failure.suggestion)
                 if let elapsedMS {
-                    BenchmarkFailureRow(label: "Elapsed", value: "\(elapsedMS) ms")
+                    BenchmarkFailureRow(label: localizer.text(.elapsed), value: "\(elapsedMS) ms")
                 }
 
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
                     HStack {
-                        Text("Debug log")
+                        Text(localizer.text(.debugLog))
                             .font(.headline)
                         Spacer()
                         Button(action: copyIssueLog) {
-                            Label("Copy Issue Report", systemImage: "doc.on.doc")
+                            Label(localizer.text(.copyIssueReport), systemImage: "doc.on.doc")
                         }
                     }
                     Text("Copy the full failure report when creating an issue.")
@@ -3553,6 +3647,7 @@ private struct BenchmarkResultPanel: View {
     let applyPlanOutcome: BenchmarkApplyPlanLoadOutcome?
     let isLoadingApplyPlan: Bool
     let currentDNSBeforeApplySnapshot: SystemDNSResolverSnapshot
+    let localizer: DNSPilotLocalizer
     let onStartSystemDNSValidation: () -> Void
 
     private var applyPlanPresentation: BenchmarkApplyPlanPresentation {
@@ -3567,7 +3662,7 @@ private struct BenchmarkResultPanel: View {
     }
 
     var body: some View {
-        BenchmarkSection(title: "Result") {
+        BenchmarkSection(title: localizer.text(.result)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                 HStack(spacing: DNSPilotDesign.Spacing.panel) {
                     Label(viewModel.healthLabel, systemImage: "waveform.path.ecg")
@@ -3610,7 +3705,7 @@ private struct BenchmarkResultPanel: View {
 
                 if nextStepViewModel.canValidateSystemDNSAfterApply {
                     Button(action: onStartSystemDNSValidation) {
-                        Label("Validate System DNS", systemImage: "checkmark.seal")
+                        Label(localizer.text(.validateSystemDNS), systemImage: "checkmark.seal")
                     }
                     .accessibilityIdentifier("benchmark-validate-system-dns-button")
                     .help("After manual DNS apply and cache flush, run System DNS validation against the current macOS resolver.")
@@ -3629,7 +3724,7 @@ private struct BenchmarkResultPanel: View {
                         )
                     )
                 } label: {
-                    Label("Copy Result Report", systemImage: "doc.on.doc")
+                    Label(localizer.text(.copyResultReport), systemImage: "doc.on.doc")
                 }
 
                 if let savedHistoryLabel = viewModel.savedHistoryLabel {
@@ -3640,7 +3735,7 @@ private struct BenchmarkResultPanel: View {
                             Button {
                                 copyToPasteboard(fullSavedHistoryID)
                             } label: {
-                                Label("Copy Run ID", systemImage: "doc.on.doc")
+                                Label(localizer.text(.copyRunID), systemImage: "doc.on.doc")
                             }
                             .labelStyle(.iconOnly)
                             .help("Copy full saved run ID")
@@ -3651,16 +3746,16 @@ private struct BenchmarkResultPanel: View {
                 ScrollView(.horizontal) {
                     Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.panel, verticalSpacing: DNSPilotDesign.Spacing.row) {
                         GridRow {
-                            Text("Status").font(.headline)
-                            Text("Profile").font(.headline)
-                            Text("Resolver").font(.headline)
-                            Text("Median DNS").font(.headline)
-                            Text("P95 DNS").font(.headline)
+                            Text(localizer.text(.status)).font(.headline)
+                            Text(localizer.text(.profile)).font(.headline)
+                            Text(localizer.text(.resolver)).font(.headline)
+                            Text(localizer.text(.medianDNS)).font(.headline)
+                            Text(localizer.text(.p95DNS)).font(.headline)
                             if viewModel.showsConnectionMetrics {
-                                Text("Median TCP").font(.headline)
+                                Text(localizer.text(.medianTCP)).font(.headline)
                             }
-                            Text("Failure").font(.headline)
-                            Text("Diagnosis").font(.headline)
+                            Text(localizer.text(.failure)).font(.headline)
+                            Text(localizer.text(.diagnosis)).font(.headline)
                         }
 
                         ForEach(viewModel.rows) { row in
@@ -4002,12 +4097,13 @@ private struct BenchmarkResultNextStepPanel: View {
 private struct HistoryResultPanel: View {
     let viewModel: BenchmarkHistoryViewModel
     let isDisabled: Bool
+    let localizer: DNSPilotLocalizer
     let onDelete: (BenchmarkHistoryRow) -> Void
 
     var body: some View {
-        BenchmarkSection(title: "Saved Runs") {
+        BenchmarkSection(title: localizer.text(.savedRuns)) {
             if viewModel.rows.isEmpty {
-                Label("No saved runs yet.", systemImage: "tray")
+                Label(localizer.text(.noSavedRuns), systemImage: "tray")
                     .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
@@ -4015,6 +4111,7 @@ private struct HistoryResultPanel: View {
                         HistoryRowView(
                             row: row,
                             isDisabled: isDisabled,
+                            localizer: localizer,
                             onDelete: { onDelete(row) }
                         )
                     }
@@ -4027,6 +4124,7 @@ private struct HistoryResultPanel: View {
 private struct HistoryRowView: View {
     let row: BenchmarkHistoryRow
     let isDisabled: Bool
+    let localizer: DNSPilotLocalizer
     let onDelete: () -> Void
 
     var body: some View {
@@ -4060,12 +4158,12 @@ private struct HistoryRowView: View {
             Button {
                 copyToPasteboard(row.id)
             } label: {
-                Label("Copy Run ID", systemImage: "doc.on.doc")
+                Label(localizer.text(.copyRunID), systemImage: "doc.on.doc")
             }
             .labelStyle(.iconOnly)
             .help("Copy saved run ID")
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label(localizer.text(.delete), systemImage: "trash")
             }
             .labelStyle(.iconOnly)
             .help("Delete saved run")

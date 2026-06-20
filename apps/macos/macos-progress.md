@@ -28,6 +28,7 @@
 - Sidebar includes Permissions and Publish readiness screens with copyable checklists.
 - Native Settings includes language selection; English and Vietnamese are wired for top-level navigation and readiness surfaces.
 - Publishing source-of-truth lives in `apps/macos/PUBLISHING.md`, including App Store and Power edition manual steps.
+- Primary native surfaces now use the English/Vietnamese localizer for common labels, sections, results, failures, and actions.
 
 ## Current Work
 - macOS remains UX lead lane.

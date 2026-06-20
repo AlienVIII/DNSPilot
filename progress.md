@@ -130,6 +130,7 @@ DNS handling, and platform capability reporting.
 - [x] [119] v0.1 macOS permission/publish readiness — add native screens and copyable checklists.
 - [x] [120] v0.1 macOS localization foundation — add English/Vietnamese top-level language support.
 - [x] [121] v0.1 macOS publishing source-of-truth — document App Store and Power edition release steps.
+- [x] [122] v0.1 macOS native localization pass — localize primary app surfaces and split large SwiftUI benchmark body.
 
 ---
 
@@ -6020,6 +6021,42 @@ manual submission steps, Power manual QA steps, and current blockers.
 ```text
 git diff --check
 Result: passed
+```
+
+---
+
+## Chunk 122: v0.1 macOS Native Localization Pass
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/DNSPilotLocalization.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/DNSPilotLocalizationTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Expanded English/Vietnamese localization keys and wired the localizer through
+primary native surfaces: Benchmark, Game Ping, Custom DNS, History, Catalog,
+Capability Matrix, and common result/failure/progress labels.
+
+### Edge Cases / Caveats
+
+- Technical CLI/debug payload strings remain English to preserve issue-report
+  precision.
+- `BenchmarkDetailView` was split into smaller SwiftUI subviews because the
+  localized body otherwise exceeded Swift compiler type-check limits.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter DNSPilotLocalizationTests
+Result: 5 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 245 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed
 ```
 
 ---

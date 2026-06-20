@@ -14,6 +14,8 @@ final class DNSPilotLocalizationTests: XCTestCase {
         XCTAssertEqual(localizer.text(.permissions), "Quyền")
         XCTAssertEqual(localizer.text(.publish), "Phát hành")
         XCTAssertEqual(localizer.text(.language), "Ngôn ngữ")
+        XCTAssertEqual(localizer.text(.run), "Chạy")
+        XCTAssertEqual(localizer.text(.dnsCandidates), "DNS ứng viên")
     }
 
     func testLocalizerFallsBackToEnglishForSystemLanguage() {
@@ -26,5 +28,15 @@ final class DNSPilotLocalizationTests: XCTestCase {
     func testLanguageFromCodeFallsBackToSystem() {
         XCTAssertEqual(DNSPilotLanguage(code: "vi"), .vietnamese)
         XCTAssertEqual(DNSPilotLanguage(code: "unknown"), .system)
+    }
+
+    func testAllTextKeysHaveConcreteEnglishAndVietnameseLabels() {
+        let english = DNSPilotLocalizer(language: .english)
+        let vietnamese = DNSPilotLocalizer(language: .vietnamese)
+
+        for key in DNSPilotTextKey.allCases {
+            XCTAssertNotEqual(english.text(key), key.rawValue, "Missing English label for \(key)")
+            XCTAssertNotEqual(vietnamese.text(key), key.rawValue, "Missing Vietnamese label for \(key)")
+        }
     }
 }
