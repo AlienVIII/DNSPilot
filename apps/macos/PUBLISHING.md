@@ -63,6 +63,13 @@ Expected:
    - Use release signing, not ad-hoc signing.
    - Sign nested helper with `DNSPilotHelper.entitlements`.
    - Sign app bundle with `DNSPilotMac.entitlements`.
+   - Packaging driver:
+
+```bash
+DNSPILOT_CODESIGN_IDENTITY="<app distribution signing identity>" \
+DNSPILOT_INSTALLER_IDENTITY="<installer signing identity>" \
+./script/package_macos_distribution.sh
+```
 
 5. Validate the signed export.
 
@@ -122,5 +129,6 @@ DNSPILOT_ENABLE_POWER_ACTIONS=1 dist/DNSPilotMac.app/Contents/MacOS/DNSPilotMac
 
 - Release signing identity and provisioning profile are not present in this
   worktree.
-- App Store Connect metadata/screenshots/review notes are not present here.
+- Final App Store screenshots, support URL, marketing URL, and Apple account
+  privacy answers are not present here.
 - Power edition needs real manual DNS mutation QA before public distribution.

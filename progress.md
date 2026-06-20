@@ -132,6 +132,7 @@ DNS handling, and platform capability reporting.
 - [x] [121] v0.1 macOS publishing source-of-truth — document App Store and Power edition release steps.
 - [x] [122] v0.1 macOS native localization pass — localize primary app surfaces and split large SwiftUI benchmark body.
 - [x] [123] v0.1 macOS App Store metadata template — add review notes, privacy notes, and screenshot checklist.
+- [x] [124] v0.1 macOS distribution packaging script — sign, validate, and package release bundle when identities are provided.
 
 ---
 
@@ -6083,6 +6084,37 @@ manual release blockers.
 ### Verification
 
 ```text
+git diff --check
+Result: passed
+```
+
+---
+
+## Chunk 124: v0.1 macOS Distribution Packaging Script
+
+**Status:** Complete
+**Files changed:** `script/package_macos_distribution.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added a release packaging driver that requires a distribution signing identity,
+signs the app/helper with existing entitlement templates, runs distribution
+bundle validation, and creates a `.pkg` with an optional installer identity.
+
+### Edge Cases / Caveats
+
+- The script does not upload to App Store Connect.
+- Real signing identities and installer identity remain manual Apple Developer
+  account inputs.
+- The script intentionally fails if no distribution app signing identity is
+  provided, so ad-hoc signed builds are not mistaken for release artifacts.
+
+### Verification
+
+```text
+bash -n script/package_macos_distribution.sh
+Result: passed
+
 git diff --check
 Result: passed
 ```
