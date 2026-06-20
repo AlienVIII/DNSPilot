@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppDisplayName" xml:space="preserve">
+    <value>DNS Pilot</value>
+  </data>
+  <data name="AppDescription" xml:space="preserve">
+    <value>Store-safe DNS benchmark and apply guidance for Windows.</value>
+  </data>
+  <data name="MainWindow.Title" xml:space="preserve">
+    <value>DNS Pilot</value>
+  </data>
+  <data name="AppTitle.Text" xml:space="preserve">
+    <value>DNS Pilot</value>
+  </data>
+  <data name="AppSubtitle.Text" xml:space="preserve">
+    <value>Windows Store-safe DNS benchmark shell</value>
+  </data>
+  <data name="QuickBenchmarkTooltip.Content" xml:space="preserve">
+    <value>Run the default DNS + TCP benchmark command.</value>
+  </data>
+  <data name="QuickBenchmarkText.Text" xml:space="preserve">
+    <value>Quick benchmark</value>
+  </data>
+  <data name="ValidateDnsTooltip.Content" xml:space="preserve">
+    <value>Benchmark the current Windows resolver path.</value>
+  </data>
+  <data name="ValidateDnsText.Text" xml:space="preserve">
+    <value>Validate DNS</value>
+  </data>
+  <data name="SettingsTooltip.Content" xml:space="preserve">
+    <value>Open Windows Network settings without changing DNS.</value>
+  </data>
+  <data name="SettingsText.Text" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="NavBenchmark.Content" xml:space="preserve">
+    <value>Benchmark</value>
+  </data>
+  <data name="NavApply.Content" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="NavProfiles.Content" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+  <data name="NavHistory.Content" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="NavDiagnostics.Content" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="BenchmarkHeader.Text" xml:space="preserve">
+    <value>Benchmark</value>
+  </data>
+  <data name="ModeCombo.Header" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="ModeTooltip.Content" xml:space="preserve">
+    <value>DNS only, DNS + TCP, or current/system DNS validation.</value>
+  </data>
+  <data name="ModeDnsOnly.Content" xml:space="preserve">
+    <value>DNS only</value>
+  </data>
+  <data name="ModeDnsTcp.Content" xml:space="preserve">
+    <value>DNS + TCP</value>
+  </data>
+  <data name="ModeSystemDns.Content" xml:space="preserve">
+    <value>System DNS validation</value>
+  </data>
+  <data name="RecordFamilyCombo.Header" xml:space="preserve">
+    <value>Record family</value>
+  </data>
+  <data name="RecordFamilyTooltip.Content" xml:space="preserve">
+    <value>A returns IPv4 answers. AAAA returns IPv6 answers. Use A only when IPv6 is weak.</value>
+  </data>
+  <data name="RecordFamilyBoth.Content" xml:space="preserve">
+    <value>A + AAAA</value>
+  </data>
+  <data name="RecordFamilyIpv4.Content" xml:space="preserve">
+    <value>A only</value>
+  </data>
+  <data name="RecordFamilyIpv6.Content" xml:space="preserve">
+    <value>AAAA only</value>
+  </data>
+  <data name="ResolverFamilyCombo.Header" xml:space="preserve">
+    <value>Resolver address</value>
+  </data>
+  <data name="ResolverFamilyTooltip.Content" xml:space="preserve">
+    <value>Choose Auto, IPv4 DNS servers only, or IPv6 DNS servers only.</value>
+  </data>
+  <data name="ResolverFamilyAuto.Content" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="ResolverFamilyIpv4.Content" xml:space="preserve">
+    <value>IPv4</value>
+  </data>
+  <data name="ResolverFamilyIpv6.Content" xml:space="preserve">
+    <value>IPv6</value>
+  </data>
+  <data name="AttemptsBox.Header" xml:space="preserve">
+    <value>Attempts</value>
+  </data>
+  <data name="DnsTimeoutBox.Header" xml:space="preserve">
+    <value>DNS timeout ms</value>
+  </data>
+  <data name="TcpTimeoutBox.Header" xml:space="preserve">
+    <value>TCP timeout ms</value>
+  </data>
+  <data name="TcpTargetsBox.Header" xml:space="preserve">
+    <value>TCP targets/domain</value>
+  </data>
+  <data name="CommandPreviewHeader.Text" xml:space="preserve">
+    <value>Command preview</value>
+  </data>
+  <data name="RunBenchmarkText.Text" xml:space="preserve">
+    <value>Run benchmark</value>
+  </data>
+  <data name="CopyCommandText.Text" xml:space="preserve">
+    <value>Copy command</value>
+  </data>
+  <data name="ProcessHeader.Text" xml:space="preserve">
+    <value>Process</value>
+  </data>
+  <data name="StepsList.Header" xml:space="preserve">
+    <value>Steps</value>
+  </data>
+  <data name="ResolversList.Header" xml:space="preserve">
+    <value>Resolvers</value>
+  </data>
+  <data name="ApplyHeader.Text" xml:space="preserve">
+    <value>Apply guidance</value>
+  </data>
+  <data name="DnsServersBox.Header" xml:space="preserve">
+    <value>DNS servers</value>
+  </data>
+  <data name="CopyDnsText.Text" xml:space="preserve">
+    <value>Copy DNS</value>
+  </data>
+  <data name="OpenSettingsText.Text" xml:space="preserve">
+    <value>Open settings</value>
+  </data>
+  <data name="CopyChecklistText.Text" xml:space="preserve">
+    <value>Copy checklist</value>
+  </data>
+  <data name="ChecklistBox.Header" xml:space="preserve">
+    <value>Checklist</value>
+  </data>
+  <data name="ProfilesHeader.Text" xml:space="preserve">
+    <value>Custom DNS profiles</value>
+  </data>
+  <data name="ProfilesList.Header" xml:space="preserve">
+    <value>Saved profiles</value>
+  </data>
+  <data name="ProfileNameBox.Header" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="ProfileIdBox.Header" xml:space="preserve">
+    <value>Profile ID for update/delete</value>
+  </data>
+  <data name="Ipv4Box.Header" xml:space="preserve">
+    <value>IPv4 servers</value>
+  </data>
+  <data name="Ipv4Tooltip.Content" xml:space="preserve">
+    <value>Plain IPv4 DNS server addresses.</value>
+  </data>
+  <data name="Ipv6Box.Header" xml:space="preserve">
+    <value>IPv6 servers</value>
+  </data>
+  <data name="Ipv6Tooltip.Content" xml:space="preserve">
+    <value>Plain IPv6 DNS server addresses.</value>
+  </data>
+  <data name="PreviewProfileText.Text" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="AddProfileText.Text" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="UpdateProfileText.Text" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="DeleteProfileText.Text" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DiagnosticsHeader.Text" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="HistoryList.Header" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="RefreshStorageText.Text" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ClearHistoryText.Text" xml:space="preserve">
+    <value>Clear history</value>
+  </data>
+  <data name="DeleteSelectedHistoryText.Text" xml:space="preserve">
+    <value>Delete selected</value>
+  </data>
+  <data name="DiagnosticsBox.Header" xml:space="preserve">
+    <value>Report</value>
+  </data>
+  <data name="CopyDiagnosticsText.Text" xml:space="preserve">
+    <value>Copy report</value>
+  </data>
+</root>

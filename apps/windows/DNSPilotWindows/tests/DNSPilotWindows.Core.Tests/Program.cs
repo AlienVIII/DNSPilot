@@ -1,4 +1,5 @@
 using DNSPilotWindows.Core;
+using System.Xml.Linq;
 
 var tests = new WindowsCoreTestSuite();
 tests.RunAll();
@@ -28,6 +29,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
+        Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -520,6 +522,189 @@ internal sealed class WindowsCoreTestSuite
                 Directory.Delete(root, recursive: true);
             }
         }
+    }
+
+    private static void WindowsAppDeclaresLocalizationAndPackagingReadiness()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+        var requiredUids = new[]
+        {
+            "AppTitle",
+            "AppSubtitle",
+            "QuickBenchmarkText",
+            "ValidateDnsText",
+            "SettingsText",
+            "NavBenchmark",
+            "NavApply",
+            "NavProfiles",
+            "NavHistory",
+            "NavDiagnostics",
+            "BenchmarkHeader",
+            "ModeCombo",
+            "ModeDnsOnly",
+            "ModeDnsTcp",
+            "ModeSystemDns",
+            "RecordFamilyCombo",
+            "RecordFamilyBoth",
+            "RecordFamilyIpv4",
+            "RecordFamilyIpv6",
+            "ResolverFamilyCombo",
+            "ResolverFamilyAuto",
+            "ResolverFamilyIpv4",
+            "ResolverFamilyIpv6",
+            "AttemptsBox",
+            "DnsTimeoutBox",
+            "TcpTimeoutBox",
+            "TcpTargetsBox",
+            "CommandPreviewHeader",
+            "RunBenchmarkText",
+            "CopyCommandText",
+            "ProcessHeader",
+            "StepsList",
+            "ResolversList",
+            "ApplyHeader",
+            "DnsServersBox",
+            "CopyDnsText",
+            "OpenSettingsText",
+            "CopyChecklistText",
+            "ChecklistBox",
+            "ProfilesHeader",
+            "ProfilesList",
+            "ProfileNameBox",
+            "ProfileIdBox",
+            "Ipv4Box",
+            "Ipv6Box",
+            "PreviewProfileText",
+            "AddProfileText",
+            "UpdateProfileText",
+            "DeleteProfileText",
+            "DiagnosticsHeader",
+            "HistoryList",
+            "RefreshStorageText",
+            "ClearHistoryText",
+            "DeleteSelectedHistoryText",
+            "DiagnosticsBox",
+            "CopyDiagnosticsText",
+        };
+
+        foreach (var uid in requiredUids)
+        {
+            Assert.Contains($"x:Uid=\"{uid}\"", xaml);
+        }
+
+        var requiredResourceKeys = new[]
+        {
+            "AppDisplayName",
+            "AppDescription",
+            "AppTitle.Text",
+            "AppSubtitle.Text",
+            "QuickBenchmarkText.Text",
+            "ValidateDnsText.Text",
+            "SettingsText.Text",
+            "NavBenchmark.Content",
+            "NavApply.Content",
+            "NavProfiles.Content",
+            "NavHistory.Content",
+            "NavDiagnostics.Content",
+            "BenchmarkHeader.Text",
+            "ModeCombo.Header",
+            "ModeDnsOnly.Content",
+            "ModeDnsTcp.Content",
+            "ModeSystemDns.Content",
+            "RecordFamilyCombo.Header",
+            "RecordFamilyBoth.Content",
+            "RecordFamilyIpv4.Content",
+            "RecordFamilyIpv6.Content",
+            "ResolverFamilyCombo.Header",
+            "ResolverFamilyAuto.Content",
+            "ResolverFamilyIpv4.Content",
+            "ResolverFamilyIpv6.Content",
+            "AttemptsBox.Header",
+            "DnsTimeoutBox.Header",
+            "TcpTimeoutBox.Header",
+            "TcpTargetsBox.Header",
+            "CommandPreviewHeader.Text",
+            "RunBenchmarkText.Text",
+            "CopyCommandText.Text",
+            "ProcessHeader.Text",
+            "StepsList.Header",
+            "ResolversList.Header",
+            "ApplyHeader.Text",
+            "DnsServersBox.Header",
+            "CopyDnsText.Text",
+            "OpenSettingsText.Text",
+            "CopyChecklistText.Text",
+            "ChecklistBox.Header",
+            "ProfilesHeader.Text",
+            "ProfilesList.Header",
+            "ProfileNameBox.Header",
+            "ProfileIdBox.Header",
+            "Ipv4Box.Header",
+            "Ipv6Box.Header",
+            "PreviewProfileText.Text",
+            "AddProfileText.Text",
+            "UpdateProfileText.Text",
+            "DeleteProfileText.Text",
+            "DiagnosticsHeader.Text",
+            "HistoryList.Header",
+            "RefreshStorageText.Text",
+            "ClearHistoryText.Text",
+            "DeleteSelectedHistoryText.Text",
+            "DiagnosticsBox.Header",
+            "CopyDiagnosticsText.Text",
+        };
+
+        foreach (var culture in new[] { "en-US", "vi-VN" })
+        {
+            var resourceKeys = LoadResourceKeys(Path.Combine(appRoot, "Strings", culture, "Resources.resw"));
+            foreach (var key in requiredResourceKeys)
+            {
+                Assert.True(resourceKeys.Contains(key), $"Expected {culture} resources to include {key}.");
+            }
+        }
+
+        var packageTemplate = File.ReadAllText(Path.Combine(appRoot, "Packaging", "Package.Store.appxmanifest.template"));
+        Assert.Contains("ms-resource:AppDisplayName", packageTemplate);
+        Assert.Contains("ms-resource:AppDescription", packageTemplate);
+        Assert.Contains("Name=\"internetClient\"", packageTemplate);
+        Assert.Contains("Name=\"runFullTrust\"", packageTemplate);
+        Assert.Contains("Executable=\"DNSPilotWindows.App.exe\"", packageTemplate);
+        Assert.DoesNotContain("requireAdministrator", packageTemplate);
+        Assert.DoesNotContain("highestAvailable", packageTemplate);
+
+        var projectFile = File.ReadAllText(Path.Combine(appRoot, "DNSPilotWindows.App.csproj"));
+        Assert.Contains("PRIResource Include=\"Strings\\**\\*.resw\"", projectFile);
+        Assert.Contains("Content Include=\"dnspilot-cli.exe\"", projectFile);
+        Assert.Contains("CopyToOutputDirectory=\"PreserveNewest\"", projectFile);
+    }
+
+    private static string FindRepoRoot()
+    {
+        var current = new DirectoryInfo(Environment.CurrentDirectory);
+        while (current is not null)
+        {
+            var marker = Path.Combine(current.FullName, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App", "MainWindow.xaml");
+            if (File.Exists(marker))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new InvalidOperationException("Could not locate repository root from test working directory.");
+    }
+
+    private static IReadOnlySet<string> LoadResourceKeys(string path)
+    {
+        var document = XDocument.Load(path);
+        return document.Descendants("data")
+            .Select(element => element.Attribute("name")?.Value)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .ToHashSet(StringComparer.Ordinal);
     }
 }
 

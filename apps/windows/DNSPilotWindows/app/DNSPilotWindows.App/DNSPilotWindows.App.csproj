@@ -19,4 +19,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DNSPilotWindows.Core\DNSPilotWindows.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PRIResource Include="Strings\**\*.resw" />
+    <Content Include="dnspilot-cli.exe" CopyToOutputDirectory="PreserveNewest" Condition="Exists('dnspilot-cli.exe')" />
+  </ItemGroup>
 </Project>

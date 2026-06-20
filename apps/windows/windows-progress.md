@@ -20,18 +20,27 @@
 - Added CLI executable locator: `DNSPILOT_CLI_PATH`, bundled `dnspilot-cli.exe`, then development `target/release` or `target/debug`.
 - Added lane validation script for core tests, core build, store-safe static checks, and Windows App SDK build probe.
 - Added self-review/counterargument summary for Windows lane release risk and scope discipline.
+- Added native WinUI localization hooks with `x:Uid` and `Strings/en-US` plus `Strings/vi-VN` `.resw` resources.
+- Added Store MSIX manifest template with localized `ms-resource` display strings and explicit `internetClient` plus `runFullTrust` capability declarations.
+- Added conditional app project packaging rule to copy bundled `dnspilot-cli.exe` when present beside the WinUI project.
+- Added Windows PowerShell validation script for real Windows build/test runs.
+- Added Windows publish runbook covering helper bundling, validation, manual QA, MSIX assets, Partner Center capability justification, and Store-safe copy/settings positioning.
 
 ## Current Work
-- Windows lane code-complete for store-safe shell behavior that can be validated on macOS; Windows-only UI compile/runtime validation remains pending.
+- Windows lane is code-complete for store-safe benchmark/recommend/apply-guidance shell behavior that can be validated on macOS.
+- Remaining work is real Windows validation, Store signing, Partner Center metadata, package assets, and manual device QA.
 
 ## Blockers
 - Real Windows UI, tray, MSIX, Store, and signing validation still require a Windows machine and store/signing access.
+- Dynamic diagnostic/status strings from the shared Windows core layer remain English until a broader localization contract is added without touching core from this lane.
 
 ## Next Actions
+- Follow `apps/windows/windows-publish.md` on a Windows device.
 - Run Windows QA from `apps/windows/windows-qa.md`.
-- On Windows, build `apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx`.
+- On Windows, run `apps/windows/Validate-WindowsLane.ps1 -Configuration Release`.
 - Bundle or point `DNSPILOT_CLI_PATH` at `dnspilot-cli.exe` before live UI benchmark runs.
 - On Windows, verify hydrated catalog/profile/history/apply-plan state after launch.
 - On Windows, verify benchmark success refreshes DNS servers in Apply guidance from the recommended profile/tested resolver.
 - On Windows, verify selecting a custom profile populates the form and built-in profile update/delete is blocked.
 - On Windows, verify app can find `dnspilot-cli.exe` through env override, bundled helper, or repo `target` fallback.
+- In Partner Center, justify `runFullTrust` as packaged desktop shell/helper/tray support with no UAC and no DNS mutation.

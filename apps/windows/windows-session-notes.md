@@ -8,6 +8,9 @@
 - Windows UI solution `DNSPilotWindows.WinUI.slnx` includes the WinUI app and is intended for Windows build validation.
 - Store apply uses `ms-settings:network-advancedsettings` with `ms-settings:network-status` fallback and never mutates DNS.
 - Tray quick actions are modeled in core and hosted in the WinUI app through a NotifyIcon context menu.
+- Native shell localization uses WinUI `.resw` resources in `Strings/en-US` and `Strings/vi-VN` with `x:Uid` hooks in `MainWindow.xaml`.
+- Store packaging readiness is documented through `Packaging/Package.Store.appxmanifest.template`; the live package manifest still needs Partner Center identity and real assets.
+- Packaged helper path is explicit: copy `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj`; the app project copies it to output when present.
 
 ## Context
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
@@ -17,9 +20,12 @@
 - Custom DNS profile add/update/delete and history delete/clear run through the same CLI process boundary as benchmarks.
 - Benchmark success path now decodes result JSON and refreshes apply guidance via `apply-plan windows-store` using recommended profile/tested resolver.
 - Profile rows now expose edit/delete safety state; only `use_case=custom` profiles are treated as editable/deletable by the Windows shell.
+- `Validate-WindowsLane.ps1` is the Windows-host validation entrypoint; `validate-windows-lane.sh` remains useful from macOS.
 
 ## Open Questions
 - Store packaging assets, signing, and MSIX submission metadata are not validated yet.
+- Partner Center must approve/accept `runFullTrust` for the packaged desktop shell/helper/tray model.
+- Dynamic progress/diagnostic strings are not fully localized because the shared Windows core layer still emits English text.
 - Confirm NotifyIcon behavior in packaged Store context during Windows QA.
 
 ## Handoff
@@ -27,3 +33,4 @@
 - Record Core CLI needs in `windows-core-cli-request.md`.
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
+- Publish path and Store capability justification are in `apps/windows/windows-publish.md`.

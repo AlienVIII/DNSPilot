@@ -3,6 +3,7 @@
 ## BLUF
 - Store-safe scope is coherent: benchmark, copy guidance, Settings handoff, profiles, history, tray actions.
 - The biggest remaining risk is not missing core logic; it is unverified Windows App SDK/MSIX/tray runtime behavior.
+- Native shell localization and Store packaging scaffolding are now present, but real Windows layout/package validation remains mandatory.
 - Power edition must stay separate. Do not add admin DNS mutation to this Store lane.
 
 ## Counterarguments
@@ -14,7 +15,12 @@
 
 ### "WinUI exists but was not really tested"
 - Valid. macOS cannot run Windows App SDK `XamlCompiler.exe` or tray runtime.
-- Mitigation: core/view-model behavior is covered by automated tests; `windows-qa.md` and `validate-windows-lane.sh` document the exact Windows checks still needed.
+- Mitigation: core/view-model behavior is covered by automated tests; `windows-qa.md`, `Validate-WindowsLane.ps1`, and `validate-windows-lane.sh` document the exact Windows checks still needed.
+
+### "Multilingual support may be superficial"
+- Partly valid. Native shell labels, headers, buttons, and main tooltips are localized through `.resw` for English and Vietnamese.
+- Remaining gap: dynamic progress, validation, and report strings from `DNSPilotWindows.Core` are still English because this lane cannot change shared core.
+- Mitigation: the gap is documented as a core/app localization contract request; Store screenshots should avoid claiming fully localized diagnostics until that is solved.
 
 ### "CLI helper discovery can fail"
 - Partly mitigated. Locator now checks `DNSPILOT_CLI_PATH`, bundled helper, then repo `target/release` and `target/debug`.
@@ -28,6 +34,11 @@
 - Valid. NotifyIcon is a desktop shell affordance and must be checked under packaged Store/MSIX context.
 - If Store packaging rejects or degrades tray behavior, keep tray for unpackaged/power distribution and retain toolbar quick actions for Store.
 
+### "`runFullTrust` may hurt Store approval"
+- Valid. `runFullTrust` is a restricted capability and must be justified in Partner Center.
+- Current rationale: packaged desktop WinUI shell, helper CLI process boundary, and tray actions. It is not used for elevation or DNS mutation.
+- If Store review rejects it, reduce the Store SKU to toolbar-only packaged behavior or split tray/helper into a non-Store distribution.
+
 ### "No adapter-specific guidance"
 - Valid. Windows network settings vary by adapter and Windows version.
 - Current choice is stable, store-safe Settings handoff, not adapter mutation.
@@ -36,9 +47,12 @@
 ## Current Evidence
 - `bash apps/windows/validate-windows-lane.sh` runs core tests, core build, store-safe static checks, and a WinUI build probe.
 - Automated tests cover benchmark commands, system DNS validation, progress/failure diagnostics, apply guidance, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
+- Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, package capability template, and bundled CLI copy rule.
 - Store-safe static scan currently finds no DNS mutation or admin-elevation implementation in `apps/windows/DNSPilotWindows`.
+- XML well-formed checks pass for `MainWindow.xaml`, both `.resw` files, and the Store package manifest template.
 
 ## Next Hard Gate
-- Run `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` on Windows.
+- Run `apps/windows/Validate-WindowsLane.ps1 -Configuration Release` on Windows.
 - Run the manual QA checklist in `apps/windows/windows-qa.md`.
 - Validate MSIX/Store packaging and signing before any release claim.
+- Follow `apps/windows/windows-publish.md` for the final publish sequence and capability justification.
