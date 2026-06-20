@@ -160,11 +160,12 @@ resolvectl --version || true
 pkcheck --version
 dnspilot-linux-shell detect
 dnspilot-linux-shell permissions --package deb --network-manager --polkit --system-resolver-probe
+dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --package deb --network-manager --polkit --system-resolver-probe --profile-id local --resolver-family auto
 ```
 
 Expected:
 
-- native apply is offered only when NetworkManager or systemd-resolved plus
+- native apply plan is offered only when NetworkManager or systemd-resolved plus
   polkit are detected,
 - polkit prompt appears before any DNS write,
 - current/system resolver validation can run after apply if supported.
@@ -204,5 +205,5 @@ sudo dnf install ./dnspilot-0.1.0-*.rpm
   builds still need package-tool validation on Linux.
 - The native UI adapter is represented by app view-model and desktop metadata;
   GTK/libadwaita or Qt binding remains a separate implementation step.
-- The native power helper contract and resolver writes are planned but not
-  implemented in this lane.
+- The native power helper contract is implemented as a non-mutating apply plan;
+  resolver write execution is not implemented in this lane.

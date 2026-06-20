@@ -12,6 +12,7 @@ use dnspilot_linux_shell::detect::{
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
 use dnspilot_linux_shell::i18n::Language;
 use dnspilot_linux_shell::native_app::{build_native_app_model, render_native_app_model};
+use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_apply_plan};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
 use dnspilot_linux_shell::process::LinuxBenchmarkProcessViewModel;
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
@@ -45,6 +46,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
         Some("detect") => run_detect(args.into_iter().skip(1)),
         Some("permissions") => run_permissions(args.into_iter().skip(1)),
         Some("app-model") => run_app_model(args.into_iter().skip(1)),
+        Some("apply-plan") => run_apply_plan(args.into_iter().skip(1)),
         _ => run_legacy_report(args),
     }
 }
@@ -231,6 +233,30 @@ fn run_app_model(args: impl IntoIterator<Item = String>) -> Result<String, CliEr
     let capability = capability_view_model(config.to_probe());
     let model = build_native_app_model(&capability, config.language);
     Ok(render_native_app_model(&model))
+}
+
+fn run_apply_plan(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let config = PlanConfig::parse(args)?;
+    if config.profile_ids.len() != 1 {
+        return Err(CliError::new(
+            2,
+            "apply-plan requires exactly one --profile-id",
+        ));
+    }
+
+    let repo = FileProfileRepository::new(config.store.clone());
+    let profiles = repo
+        .load_profiles()
+        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let profile_id = &config.profile_ids[0];
+    let profile = profiles
+        .iter()
+        .find(|profile| profile.id == *profile_id)
+        .ok_or_else(|| CliError::new(2, format!("Profile {profile_id} not found")))?;
+    let capability = capability_view_model(config.to_probe());
+    let plan = build_native_apply_plan(&capability, profile, config.resolver_address_family)
+        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    Ok(render_native_apply_plan(&plan))
 }
 
 fn build_plan_from_config(

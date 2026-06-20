@@ -63,6 +63,9 @@ pub struct LinuxEnvironmentProbe {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LinuxCapabilityViewModel {
     pub package_kind: LinuxPackageKind,
+    pub network_manager_available: bool,
+    pub systemd_resolved_available: bool,
+    pub polkit_available: bool,
     pub can_benchmark_dns: bool,
     pub can_benchmark_tcp: bool,
     pub can_validate_current_system_resolver: bool,
@@ -112,6 +115,9 @@ pub fn capability_view_model(probe: LinuxEnvironmentProbe) -> LinuxCapabilityVie
 
     LinuxCapabilityViewModel {
         package_kind: probe.package_kind,
+        network_manager_available: probe.network_manager_available,
+        systemd_resolved_available: probe.systemd_resolved_available,
+        polkit_available: probe.polkit_available,
         can_benchmark_dns: true,
         can_benchmark_tcp: true,
         can_validate_current_system_resolver: probe.system_resolver_probe_available,

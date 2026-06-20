@@ -16,7 +16,7 @@
 | Process UI: idle/running/success/failed per step/resolver | Covered | `process.rs`, diagnostics tests |
 | Result diagnostics and copyable debug report | Covered | `diagnostics.rs`, CLI/report tests |
 | Guided settings only for store/sandbox builds | Covered | settings/guide tests |
-| Native power path plan | Covered as plan, not mutation | `settings.rs`, `guide` CLI |
+| Native power path plan | Covered as helper contract, not mutation | `settings.rs`, `native_power.rs`, `guide` CLI, `apply-plan` CLI |
 | Tray optional | Covered as invariant | capability/report output and native app model say tray optional |
 | Custom DNS profile add/edit/delete | Covered | in-memory store plus file-backed CLI commands |
 | IPv4/IPv6 and A/AAAA controls | Covered | settings/app/session tests |
@@ -38,7 +38,7 @@
    Intentional. Guided settings are reserved for store/sandbox builds. Native packages without NetworkManager/systemd-resolved plus polkit should not pretend to have an apply path.
 
 4. **Counterargument: Real DNS apply is still not implemented.**  
-   Valid and intentional. Real DNS apply belongs to a native power package with NetworkManager D-Bus, systemd-resolved, and polkit. Current lane includes the plan and safeguards, not privileged writes.
+   Valid and intentional. Real DNS apply belongs to a native power package with NetworkManager D-Bus, systemd-resolved, and polkit. Current lane includes the helper contract, resolver-stack selection, polkit action id, rollback/validation steps, and safeguards, not privileged writes.
 
 5. **Counterargument: Current/system resolver validation is not universally available.**  
    Valid. It remains capability-gated. Unsupported mode requests fail before core CLI execution.
@@ -55,7 +55,7 @@
 ## Remaining Risks
 
 - Real Flatpak/Snap/deb/rpm builds are not validated in this lane.
-- NetworkManager D-Bus and systemd-resolved writes are not implemented.
+- NetworkManager D-Bus and systemd-resolved write execution is not implemented.
 - Polkit helper signing/install/authorization flow is not implemented.
 - Native GUI stack/rendering adapter remains undecided.
 - Distro-specific settings handoff text may need UX refinement after QA.
@@ -64,5 +64,5 @@
 
 1. Select Linux native UI stack: GTK/libadwaita or Qt.
 2. Bind the UI to the existing app/session, storage, runner, diagnostics, and guide modules.
-3. Build native power helper contract behind explicit deb/rpm packaging.
+3. Implement native power helper execution behind explicit deb/rpm packaging.
 4. Add package-level QA fixtures for Flatpak, Snap, deb, and rpm.

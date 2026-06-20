@@ -339,6 +339,56 @@ fn cli_app_model_renders_main_window_sections_without_tray_requirement() {
     assert!(stdout.contains("Apply with native helper [enabled]"));
 }
 
+#[test]
+fn cli_apply_plan_renders_native_helper_contract_for_deb_profile() {
+    let store = temp_path("apply-plan");
+    let add = binary()
+        .args([
+            "profile-add",
+            "--store",
+            store.to_str().unwrap(),
+            "--id",
+            "local",
+            "--name",
+            "Local DNS",
+            "--ipv4",
+            "1.1.1.1",
+            "--ipv6",
+            "2606:4700:4700::1111",
+        ])
+        .output()
+        .unwrap();
+    assert!(add.status.success());
+
+    let output = binary()
+        .args([
+            "apply-plan",
+            "--store",
+            store.to_str().unwrap(),
+            "--package",
+            "deb",
+            "--network-manager",
+            "--polkit",
+            "--system-resolver-probe",
+            "--profile-id",
+            "local",
+            "--resolver-family",
+            "ipv4",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Native DNS apply plan"));
+    assert!(stdout.contains("Resolver stack: NetworkManager D-Bus"));
+    assert!(stdout.contains("Polkit action: io.dnspilot.DNSPilot.apply-dns"));
+    assert!(stdout.contains("Servers: 1.1.1.1"));
+    assert!(!stdout.contains("2606:4700:4700::1111"));
+    assert!(stdout.contains("Rollback snapshot: yes"));
+    assert!(stdout.contains("Post-apply validation: yes"));
+}
+
 #[cfg(unix)]
 fn make_executable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;

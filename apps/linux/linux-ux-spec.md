@@ -202,6 +202,24 @@ Native power package plan:
 3. Require polkit authorization before writing resolver settings.
 4. Flush/validate through the supported resolver stack, then rerun current/system resolver validation.
 
+Native apply contract CLI example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- apply-plan \
+  --store /tmp/dnspilot-linux-profiles.json \
+  --package deb \
+  --network-manager \
+  --polkit \
+  --system-resolver-probe \
+  --profile-id local \
+  --resolver-family ipv4
+```
+
+The apply plan rejects Flatpak/Snap, requires a supported resolver stack plus
+polkit, selects NetworkManager before systemd-resolved when both are available,
+filters DNS servers by IPv4/IPv6 selection, requires rollback snapshot, and
+includes post-apply current/system resolver validation when supported.
+
 ## Custom Profiles
 
 The Linux shell package includes view-model support for custom plain DNS

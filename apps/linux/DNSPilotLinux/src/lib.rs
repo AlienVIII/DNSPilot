@@ -5,6 +5,7 @@ pub mod detect;
 pub mod diagnostics;
 pub mod i18n;
 pub mod native_app;
+pub mod native_power;
 pub mod permissions;
 pub mod process;
 pub mod profiles;
