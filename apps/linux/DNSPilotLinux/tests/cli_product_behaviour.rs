@@ -325,6 +325,48 @@ fn cli_guide_for_store_build_outputs_copyable_manual_dns_steps() {
 }
 
 #[test]
+fn cli_guide_can_render_vietnamese_guided_settings() {
+    let store = temp_path("guide-store-vi");
+    let add = binary()
+        .args([
+            "profile-add",
+            "--store",
+            store.to_str().unwrap(),
+            "--id",
+            "local",
+            "--name",
+            "Local DNS",
+            "--ipv4",
+            "1.1.1.1",
+        ])
+        .output()
+        .unwrap();
+    assert!(add.status.success());
+
+    let output = binary()
+        .args([
+            "guide",
+            "--store",
+            store.to_str().unwrap(),
+            "--package",
+            "flatpak",
+            "--profile-id",
+            "local",
+            "--lang",
+            "vi",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Hướng dẫn cài đặt"));
+    assert!(stdout.contains("Gói: Flatpak"));
+    assert!(stdout.contains("Không tự động đổi DNS"));
+    assert!(stdout.contains("Sao chép DNS server: 1.1.1.1"));
+}
+
+#[test]
 fn cli_guide_for_native_power_outputs_native_plan_without_fake_guidance() {
     let store = temp_path("guide-native");
 

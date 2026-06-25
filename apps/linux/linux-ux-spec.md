@@ -64,7 +64,7 @@ The view-model includes:
 - permissions.
 
 English and Vietnamese are supported for the Linux shell's primary app and
-permission surfaces.
+permission surfaces. Guided settings also supports `--lang en|vi`.
 
 ## Permissions
 
@@ -192,7 +192,8 @@ CLI guide example:
 cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- guide \
   --store /tmp/dnspilot-linux-profiles.json \
   --package flatpak \
-  --profile-id local
+  --profile-id local \
+  --lang vi
 ```
 
 Native power package plan:

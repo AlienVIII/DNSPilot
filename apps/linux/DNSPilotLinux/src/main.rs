@@ -10,7 +10,7 @@ use dnspilot_linux_shell::detect::{
     detect_linux_environment, detect_linux_environment_from_snapshot, LinuxDetectionSnapshot,
 };
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
-use dnspilot_linux_shell::i18n::Language;
+use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, render_native_app_model};
 use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_apply_plan};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
@@ -214,10 +214,10 @@ fn run_guide(args: impl IntoIterator<Item = String>) -> Result<String, CliError>
             .chain(profile.ipv6_servers.iter())
             .cloned()
             .collect::<Vec<_>>();
-        return Ok(format!(
-            "Guided settings\nPackage: {}\nThis does not change DNS automatically.\nCopy DNS servers: {}\nSteps:\n1. Copy the DNS servers.\n2. Open your desktop network settings.\n3. Paste the DNS servers into the active connection.\n4. Retest with current/system resolver validation when supported.",
+        return Ok(render_guided_settings(
+            config.language,
             capability.package_kind.label(),
-            servers.join(", ")
+            &servers,
         ));
     }
 
@@ -430,6 +430,7 @@ struct PlanConfig {
     systemd_resolved_available: bool,
     polkit_available: bool,
     system_resolver_probe_available: bool,
+    language: Language,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -539,6 +540,7 @@ impl PlanConfig {
             systemd_resolved_available: false,
             polkit_available: false,
             system_resolver_probe_available: false,
+            language: Language::English,
         };
         let mut args = args.into_iter();
         while let Some(arg) = args.next() {
@@ -566,6 +568,11 @@ impl PlanConfig {
                 "--systemd-resolved" => config.systemd_resolved_available = true,
                 "--polkit" => config.polkit_available = true,
                 "--system-resolver-probe" => config.system_resolver_probe_available = true,
+                "--lang" => {
+                    let value = next_arg(&mut args, "--lang")?;
+                    config.language = Language::parse(&value)
+                        .ok_or_else(|| CliError::new(2, format!("unknown language: {value}")))?;
+                }
                 _ => return Err(CliError::new(2, format!("unknown argument: {arg}"))),
             }
         }
@@ -754,4 +761,20 @@ fn completed_mock_process(mode: BenchmarkMode) -> LinuxBenchmarkProcessViewModel
         process.complete_resolver(&resolver_id, "mocked validation; no DNS mutation");
     }
     process
+}
+
+fn render_guided_settings(language: Language, package_label: &str, servers: &[String]) -> String {
+    match language {
+        Language::English => format!(
+            "Guided settings\nPackage: {}\nThis does not change DNS automatically.\nCopy DNS servers: {}\nSteps:\n1. Copy the DNS servers.\n2. Open your desktop network settings.\n3. Paste the DNS servers into the active connection.\n4. Retest with current/system resolver validation when supported.",
+            package_label,
+            servers.join(", ")
+        ),
+        Language::Vietnamese => format!(
+            "{}\nGói: {}\nKhông tự động đổi DNS.\nSao chép DNS server: {}\nCác bước:\n1. Sao chép DNS server.\n2. Mở cài đặt mạng của hệ điều hành.\n3. Dán DNS server vào kết nối đang dùng.\n4. Đo lại bằng xác thực resolver hệ thống khi được hỗ trợ.",
+            localized_text(TextKey::GuidedSettings, language),
+            package_label,
+            servers.join(", ")
+        ),
+    }
 }

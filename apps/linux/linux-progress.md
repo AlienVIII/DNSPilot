@@ -17,7 +17,7 @@
 - Added CLI product commands for profile add/edit/list/delete, benchmark plan generation, executable run, and guided apply/native-plan output.
 - Added non-mutating Linux capability auto-detection plus mocked snapshot detection for deterministic QA.
 - Added self-review and counterargument summary in `linux-self-review.md`.
-- Added localized English/Vietnamese native app view-models and CLI surfaces for permission/app-model inspection.
+- Added localized English/Vietnamese native app view-models and CLI surfaces for permission/app-model/guided-settings inspection.
 - Added package-specific permission plans for Flatpak, Snap, deb, and rpm.
 - Added store-safe Flatpak/Snap packaging templates, deb/rpm native-power templates, shared desktop/AppStream metadata, icon, and polkit policy.
 - Added packaging policy tests and Linux publish/manual-QA checklist.
