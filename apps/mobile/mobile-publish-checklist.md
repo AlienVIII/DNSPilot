@@ -24,22 +24,25 @@
    ```
 5. Open the app on the device with Expo Go or a development build.
 6. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
-   titles and primary screens update.
-7. Overview: paste the Mac LAN bridge URL, tap Refresh, then confirm Bridge is
+   titles, validation errors, and guided settings copy update.
+7. Overview > Device Setup: choose the real-device target. Confirm localhost is
+   rejected for physical phones, Android emulator recommends `10.0.2.2`, and
+   store-safe policy says no silent DNS mutation/VpnService.
+8. Overview: paste the Mac LAN bridge URL, tap Refresh, then confirm Bridge is
    up and profiles/suites/capabilities/history load.
-8. iOS/iPadOS: when prompted for Local Network, tap Allow. If the prompt does
+9. iOS/iPadOS: when prompted for Local Network, tap Allow. If the prompt does
    not appear, check Settings > Privacy & Security > Local Network.
-9. Android: no dangerous runtime permission prompt is expected for normal
+10. Android: no dangerous runtime permission prompt is expected for normal
    network access.
-10. Benchmark: run DNS Compare, Path Compare, Single DNS, Single Path, and
+11. Benchmark: run DNS Compare, Path Compare, Single DNS, Single Path, and
     System DNS validation. Confirm per-step/per-resolver status, elapsed time,
     failed step/reason on failures, debug report, and Copy report.
-11. Storage: add, edit, and delete plain DNS, DoH, DoT profiles, and custom
+12. Storage: add, edit, and delete plain DNS, DoH, DoT profiles, and custom
     domain suites. Invalid forms must disable actions before bridge calls.
-12. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive
+13. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive
     portal. Expected behavior is `protect-current-dns` or guide-only steps, not
     system mutation.
-13. iPad/Android tablet: confirm the layout uses multi-column native tablet
+14. iPad/Android tablet: confirm the layout uses multi-column native tablet
     width and does not stretch a phone UI.
 
 ## Native Build Smoke

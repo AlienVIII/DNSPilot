@@ -21,10 +21,14 @@
 - Vietnam/default suites: covered when the core catalog exposes
   `general-browsing` and `vietnam-daily`.
 - Multilingual UX: covered for primary app chrome and workflows with system
-  locale detection plus manual English/Tiếng Việt override.
+  locale detection, manual English/Tiếng Việt override, localized validation
+  errors, and localized guided DNS settings steps.
 - Native build metadata: covered for iOS bundle ID/build number, Android package
   ID/version code, EN/VI supported locales, iOS Local Network permission text,
   Android normal network permissions, and EAS build profiles.
+- Real-device setup UX: covered by an in-app Device Setup evaluator that checks
+  localhost vs LAN/emulator bridge URLs, OS permission expectations, and
+  store-safe DNS mutation policy before benchmark testing.
 
 ## Critique
 - Expo plus local Node bridge is the fastest store-safe test shell, but it is
@@ -60,8 +64,9 @@
 3. Run `npm start` or `npx expo start --lan --port 8082`.
 4. Use `http://localhost:8787` on web/iOS Simulator. Use the Mac LAN URL for a
    physical phone. Use `http://10.0.2.2:8787` for Android emulator if needed.
-5. Overview: switch Auto/English/Tiếng Việt, refresh bridge, confirm profiles,
-   suites, capabilities, and history load.
+5. Overview: switch Auto/English/Tiếng Việt, choose the correct Device Setup
+   target, confirm localhost is rejected for physical phones, paste the Mac LAN
+   URL, refresh bridge, and confirm profiles/suites/capabilities/history load.
 6. If iOS asks for Local Network, allow it for bridge testing.
 7. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare
    and Path Compare, confirm live progress rows, final result, copy report, and

@@ -187,7 +187,7 @@ export default function BenchmarkScreen() {
       const payload = applyPlanPayload(applyPlanRequest);
       const next = await runAction('applyPlan', payload);
       setGuidancePayload(next);
-      setGuidance(buildSettingsGuidance({ platform: guidancePlatform, applyPlan: next.data }));
+      setGuidance(buildSettingsGuidance({ platform: guidancePlatform, applyPlan: next.data, locale }));
     } finally {
       setGuidanceWorking(false);
     }

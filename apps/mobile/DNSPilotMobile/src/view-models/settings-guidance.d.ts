@@ -10,4 +10,5 @@ export type SettingsGuidance = {
 export function buildSettingsGuidance(input: {
   platform: string;
   applyPlan?: unknown;
+  locale?: string;
 }): SettingsGuidance;

@@ -68,3 +68,25 @@ test("protected network guidance suppresses apply flow", () => {
   assert.match(guidance.steps[0], /Keep current DNS/);
   assert.equal(guidance.canMutateSystemDns, false);
 });
+
+test("Vietnamese iOS guidance localizes user-facing steps", () => {
+  const guidance = buildSettingsGuidance({
+    platform: "ios",
+    locale: "vi",
+    applyPlan: {
+      platform: "ios",
+      apply_capability: "apple-network-extension-dns-settings",
+      disposition: "guide-only",
+      profile_name: "Cloudflare",
+      tested_resolver: "1.1.1.1",
+      dns_servers: ["1.1.1.1", "1.0.0.1"],
+      can_apply: false,
+      notes: [],
+    },
+  });
+
+  assert.match(guidance.title, /iOS\/iPadOS/);
+  assert.ok(guidance.steps.some((step) => step.includes("profile DNS Settings")));
+  assert.ok(guidance.steps.some((step) => step.includes("1.1.1.1")));
+  assert.doesNotMatch(guidance.claims.join(" "), /silent|speed improvement|fastest/i);
+});

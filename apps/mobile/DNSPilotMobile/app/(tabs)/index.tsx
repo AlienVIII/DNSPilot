@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { compactJson } from '@/src/api/dnspilot';
-import { AdaptiveColumns, Button, CodeBlock, ErrorBanner, Metric, Row, Screen, Section, TextField, palette } from '@/src/components/ui';
+import { AdaptiveColumns, Button, CodeBlock, ErrorBanner, Metric, Pill, Row, Screen, Section, Segmented, TextField, palette } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
+import { buildDeviceSetupPlan, deviceTargets, normalizeBridgeUrl, type DeviceTarget, type DeviceSetupStatus } from '@/src/view-models/device-setup';
+
+const defaultDeviceTarget = process.env.EXPO_OS === 'android' ? 'android-device' : process.env.EXPO_OS === 'web' ? 'web' : 'ios-device';
 
 export default function OverviewScreen() {
   const {
@@ -24,8 +27,27 @@ export default function OverviewScreen() {
     t,
   } = useDNSPilot();
   const [urlDraft, setUrlDraft] = useState(bridgeUrl);
+  const [deviceTarget, setDeviceTarget] = useState<DeviceTarget>(defaultDeviceTarget);
   const [sample, setSample] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
+  const normalizedBridgeUrl = normalizeBridgeUrl(urlDraft);
+  const deviceSetupPlan = useMemo(
+    () =>
+      buildDeviceSetupPlan({
+        target: deviceTarget,
+        bridgeUrl: urlDraft,
+        health,
+      }),
+    [deviceTarget, health, urlDraft]
+  );
+  const targetOptions = useMemo(
+    () =>
+      deviceTargets.map((target) => ({
+        value: target.value,
+        label: t(`device.target.${target.value}`),
+      })),
+    [t]
+  );
 
   useEffect(() => {
     refreshAll().catch(() => undefined);
@@ -69,6 +91,32 @@ export default function OverviewScreen() {
           </Row>
         </Section>
         <TextField label={t('overview.bridgeUrl')} value={urlDraft} onChangeText={setUrlDraft} placeholder="http://localhost:8787" />
+        <Section title={t('device.title')} subtitle={t('device.subtitle')}>
+          <Segmented options={targetOptions} value={deviceTarget} onChange={setDeviceTarget} />
+          <Row>
+            <SetupStatusCard
+              title={t('device.metric.bridge')}
+              status={deviceSetupPlan.bridge.status}
+              statusLabel={t(`status.${deviceSetupPlan.bridge.status}`)}
+              text={t(`device.code.${deviceSetupPlan.bridge.code}`)}
+            />
+            <SetupStatusCard
+              title={t('device.metric.permission')}
+              status={deviceSetupPlan.permission.status}
+              statusLabel={t(`status.${deviceSetupPlan.permission.status}`)}
+              text={t(`device.code.${deviceSetupPlan.permission.code}`)}
+            />
+            <SetupStatusCard title={t('device.metric.policy')} status="success" statusLabel={t('status.success')} text={t('device.policy.noMutation')} />
+          </Row>
+          <Row>
+            {normalizedBridgeUrl && normalizedBridgeUrl !== urlDraft.trim() ? (
+              <Button label={t('device.useNormalized')} onPress={() => setUrlDraft(normalizedBridgeUrl)} variant="secondary" />
+            ) : null}
+            {deviceSetupPlan.recommendedPreset === 'android-emulator' ? (
+              <Button label={t('device.useAndroidEmulator')} onPress={() => setUrlDraft('http://10.0.2.2:8787')} variant="secondary" />
+            ) : null}
+          </Row>
+        </Section>
         <Row>
           <Button
             label={t('overview.useUrl')}
@@ -130,5 +178,28 @@ export default function OverviewScreen() {
         </View>
       </Section>
     </Screen>
+  );
+}
+
+function statusTone(status: DeviceSetupStatus) {
+  if (status === 'success') return 'green';
+  if (status === 'failed') return 'red';
+  if (status === 'running') return 'amber';
+  return 'neutral';
+}
+
+function SetupStatusCard({ title, status, statusLabel, text }: { title: string; status: DeviceSetupStatus; statusLabel: string; text: string }) {
+  return (
+    <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, flexGrow: 1, gap: 8, minWidth: 220, padding: 12 }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
+        <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
+          {title}
+        </Text>
+        <Pill label={statusLabel} tone={statusTone(status)} />
+      </View>
+      <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+        {text}
+      </Text>
+    </View>
   );
 }

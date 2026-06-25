@@ -31,7 +31,7 @@ const platformOptions: { label: string; value: MobilePlatform }[] = [
 ];
 
 export default function PolicyScreen() {
-  const { profiles, capabilities, error, runAction, t } = useDNSPilot();
+  const { profiles, capabilities, error, runAction, locale, t } = useDNSPilot();
   const [platform, setPlatform] = useState<MobilePlatform>('ios');
   const [profileId, setProfileId] = useState('');
   const [testedResolver, setTestedResolver] = useState('');
@@ -48,7 +48,7 @@ export default function PolicyScreen() {
   const selectedProfile = plainProfiles.find((profile) => profile.id === profileId);
   const capability = capabilities.find((item) => item.platform === platform);
   const guidance = results.applyPlan
-    ? buildSettingsGuidance({ platform, applyPlan: results.applyPlan.data })
+    ? buildSettingsGuidance({ platform, applyPlan: results.applyPlan.data, locale })
     : null;
   const healthOptions = useMemo(
     () => [
