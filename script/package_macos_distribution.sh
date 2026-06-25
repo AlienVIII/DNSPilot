@@ -8,6 +8,7 @@ OUTPUT_DIR="${DNSPILOT_OUTPUT_DIR:-"$ROOT_DIR/dist/release"}"
 PACKAGE_PATH="${DNSPILOT_PACKAGE_PATH:-"$OUTPUT_DIR/$APP_NAME.pkg"}"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-${DNSPILOT_CODESIGN_IDENTITY:-}}"
 INSTALLER_IDENTITY="${DNSPILOT_INSTALLER_IDENTITY:-}"
+POWER_EDITION="${DNSPILOT_POWER_EDITION:-0}"
 
 usage() {
   cat >&2 <<USAGE
@@ -24,6 +25,8 @@ Environment:
                                Also accepts CODESIGN_IDENTITY.
   DNSPILOT_INSTALLER_IDENTITY  Optional installer signing identity.
                                If omitted, creates an unsigned local .pkg.
+  DNSPILOT_POWER_EDITION       Set to 1 for direct-install Power edition
+                               validation/package behavior.
 
 This script does not upload to App Store Connect.
 USAGE
@@ -37,6 +40,13 @@ fi
 fail() {
   printf "FAIL %s\n" "$1" >&2
   exit 1
+}
+
+truthy() {
+  case "$(printf "%s" "$1" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 if [[ -z "$CODESIGN_IDENTITY" || "$CODESIGN_IDENTITY" == "-" ]]; then
@@ -53,7 +63,11 @@ printf "Signing app bundle: %s\n" "$APP_BUNDLE"
 CODESIGN_IDENTITY="$CODESIGN_IDENTITY" "$ROOT_DIR/script/sign_macos_bundle.sh" "$APP_BUNDLE"
 
 printf "Validating distribution bundle.\n"
-"$ROOT_DIR/script/validate_macos_bundle.sh" "$APP_BUNDLE" --distribution
+validation_args=("$APP_BUNDLE" "--distribution")
+if truthy "$POWER_EDITION"; then
+  validation_args+=("--power-edition")
+fi
+"$ROOT_DIR/script/validate_macos_bundle.sh" "${validation_args[@]}"
 
 if [[ -n "$INSTALLER_IDENTITY" ]]; then
   printf "Building signed installer package: %s\n" "$PACKAGE_PATH"

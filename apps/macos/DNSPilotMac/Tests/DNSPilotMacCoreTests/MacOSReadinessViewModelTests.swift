@@ -15,6 +15,7 @@ final class MacOSReadinessViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.first { $0.id == "admin-apply-flush" }?.status, .manual)
         XCTAssertTrue(viewModel.rows.first { $0.id == "admin-apply-flush" }?.detail.contains("when you press") == true)
         XCTAssertEqual(viewModel.rows.first { $0.id == "power-mode-flag" }?.status, .ready)
+        XCTAssertTrue(viewModel.rows.first { $0.id == "power-mode-flag" }?.detail.contains("Info.plist") == true)
         XCTAssertTrue(viewModel.copyText.contains("administrator approval"))
     }
 
@@ -22,6 +23,7 @@ final class MacOSReadinessViewModelTests: XCTestCase {
         let viewModel = MacOSPermissionReadinessViewModel(isPowerActionsEnabled: false)
 
         XCTAssertEqual(viewModel.rows.first { $0.id == "power-mode-flag" }?.status, .manual)
+        XCTAssertTrue(viewModel.rows.first { $0.id == "power-mode-flag" }?.detail.contains("DNSPilotPowerActionsEnabled=true") == true)
         XCTAssertTrue(viewModel.rows.first { $0.id == "power-mode-flag" }?.detail.contains("DNSPILOT_ENABLE_POWER_ACTIONS=1") == true)
     }
 

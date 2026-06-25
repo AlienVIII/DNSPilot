@@ -18,6 +18,7 @@ validation to distribution.
 
 - Direct install only.
 - Plain DNS apply/flush can ask for administrator approval when
+  the app bundle has `DNSPilotPowerActionsEnabled=true` or
   `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
 - Not App Store-safe as implemented today.
 - Needs separate signing/review positioning and manual QA on real network
@@ -105,10 +106,10 @@ Expected:
 
 ## Power Edition Manual Steps
 
-1. Launch Power mode locally:
+1. Build and launch Power mode locally:
 
 ```bash
-DNSPILOT_ENABLE_POWER_ACTIONS=1 dist/DNSPilotMac.app/Contents/MacOS/DNSPilotMac
+DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
 ```
 
 2. Confirm UI behavior.
@@ -116,14 +117,23 @@ DNSPILOT_ENABLE_POWER_ACTIONS=1 dist/DNSPilotMac.app/Contents/MacOS/DNSPilotMac
    - `Flush Now (Admin)` appears only in Power mode.
    - Store-safe copy/open actions remain available.
 
-3. Test admin prompt on a disposable network setup.
+3. Package Power edition when direct-install signing assets are available:
+
+```bash
+DNSPILOT_POWER_EDITION=1 \
+DNSPILOT_CODESIGN_IDENTITY="<app distribution signing identity>" \
+DNSPILOT_INSTALLER_IDENTITY="<installer signing identity>" \
+./script/package_macos_distribution.sh
+```
+
+4. Test admin prompt on a disposable network setup.
    - Capture current DNS first.
    - Apply a known safe resolver.
    - Run System DNS validation.
    - Restore original DNS.
    - Run System DNS validation again.
 
-4. Do not ship Power mode as the App Store edition.
+5. Do not ship Power mode as the App Store edition.
 
 ## Current Publish Blockers
 

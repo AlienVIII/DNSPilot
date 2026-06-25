@@ -76,6 +76,7 @@ Expected behavior:
 - Flush DNS in the store-safe build copies a checklist and does not execute
   administrator commands.
 - Power admin actions are disabled unless launched outside the store path with
+  `DNSPilotPowerActionsEnabled=true` in the app bundle or
   `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
 
 ## Privacy Notes

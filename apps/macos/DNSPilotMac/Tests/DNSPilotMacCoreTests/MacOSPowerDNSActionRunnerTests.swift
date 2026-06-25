@@ -84,6 +84,27 @@ final class MacOSPowerDNSActionRunnerTests: XCTestCase {
         XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: ["DNSPILOT_ENABLE_POWER_ACTIONS": "1"]))
         XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: ["DNSPILOT_ENABLE_POWER_ACTIONS": "true"]))
     }
+
+    func testBundleInfoCanEnablePowerEditionWithoutTerminalEnvironment() {
+        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: true))
+        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: "yes"))
+        XCTAssertFalse(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: false))
+    }
+
+    func testEnvironmentFlagOverridesBundlePowerEditionSwitch() {
+        XCTAssertFalse(
+            MacOSPowerDNSActionConfiguration.isEnabled(
+                environment: ["DNSPILOT_ENABLE_POWER_ACTIONS": "0"],
+                bundleInfoValue: true
+            )
+        )
+        XCTAssertTrue(
+            MacOSPowerDNSActionConfiguration.isEnabled(
+                environment: ["DNSPILOT_ENABLE_POWER_ACTIONS": "1"],
+                bundleInfoValue: false
+            )
+        )
+    }
 }
 
 private final class RecordingPowerActionProcessRunner: BenchmarkProcessRunning {

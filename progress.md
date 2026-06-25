@@ -133,6 +133,7 @@ DNS handling, and platform capability reporting.
 - [x] [122] v0.1 macOS native localization pass — localize primary app surfaces and split large SwiftUI benchmark body.
 - [x] [123] v0.1 macOS App Store metadata template — add review notes, privacy notes, and screenshot checklist.
 - [x] [124] v0.1 macOS distribution packaging script — sign, validate, and package release bundle when identities are provided.
+- [x] [125] v0.1 macOS Power edition bundle switch — enable direct-install admin apply/flush from bundle metadata.
 
 ---
 
@@ -6114,6 +6115,52 @@ bundle validation, and creates a `.pkg` with an optional installer identity.
 ```text
 bash -n script/package_macos_distribution.sh
 Result: passed
+
+git diff --check
+Result: passed
+```
+
+---
+
+## Chunk 125: v0.1 macOS Power Edition Bundle Switch
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `script/build_and_run.sh`, `script/validate_macos_bundle.sh`, `script/package_macos_distribution.sh`, `README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Power edition can now be enabled by bundle metadata through
+`DNSPilotPowerActionsEnabled=true`, not only by Terminal environment. The local
+build script can create a Power bundle with `DNSPILOT_POWER_EDITION=1`, and the
+validator distinguishes Store-safe bundles from Power bundles.
+
+### Edge Cases / Caveats
+
+- Store-safe/App Store validation rejects Power-enabled distribution bundles by
+  default.
+- Power edition still requires manual QA because admin apply/flush mutates real
+  macOS DNS state.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSPowerDNSActionRunnerTests --filter MacOSReadinessViewModelTests --filter ProductGoalReadinessViewModelTests
+Result: 14 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 247 passed, 0 failed
+
+cargo test --workspace --tests
+Result: 125 passed, 0 failed
+
+bash -n script/build_and_run.sh script/validate_macos_bundle.sh script/package_macos_distribution.sh
+Result: passed
+
+DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
+Result: macOS Power bundle structural validation passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
 
 git diff --check
 Result: passed

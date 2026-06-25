@@ -24,12 +24,31 @@ extension MacOSPowerDNSActionRunnerError: LocalizedError {
 
 public enum MacOSPowerDNSActionConfiguration {
     public static let environmentFlag = "DNSPILOT_ENABLE_POWER_ACTIONS"
+    public static let bundleInfoKey = "DNSPilotPowerActionsEnabled"
 
-    public static func isEnabled(environment: [String: String] = ProcessInfo.processInfo.environment) -> Bool {
-        guard let value = environment[environmentFlag]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() else {
+    public static func isEnabled(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        bundleInfoValue: Any? = Bundle.main.object(forInfoDictionaryKey: bundleInfoKey)
+    ) -> Bool {
+        if let environmentValue = environment[environmentFlag] {
+            return isTruthy(environmentValue)
+        }
+        return isTruthy(bundleInfoValue)
+    }
+
+    private static func isTruthy(_ value: Any?) -> Bool {
+        if let boolValue = value as? Bool {
+            return boolValue
+        }
+        if let numberValue = value as? NSNumber {
+            return numberValue.boolValue
+        }
+        guard let stringValue = value as? String else {
             return false
         }
-        return ["1", "true", "yes", "on"].contains(value)
+        return ["1", "true", "yes", "on"].contains(
+            stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        )
     }
 }
 

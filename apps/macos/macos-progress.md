@@ -22,8 +22,8 @@
 - Benchmark and Game Ping results show fastest observed DNS separately from the balanced recommendation.
 - Catalog provider rows can start confirmed store-safe apply for selected plain DNS profiles.
 - Capabilities screen includes Product Goals readiness with current support level and caveats for fastest DNS, balanced DNS, guided apply, guided flush, saved domains, and game checks.
-- Power DNS action runner exists for direct-install builds, disabled by default and gated behind `DNSPILOT_ENABLE_POWER_ACTIONS`.
-- Power apply/flush UI appears only when `DNSPILOT_ENABLE_POWER_ACTIONS=1`; default store-safe builds keep copy/open-settings guidance.
+- Power DNS action runner exists for direct-install builds, disabled by default and gated behind the `DNSPilotPowerActionsEnabled` bundle key or `DNSPILOT_ENABLE_POWER_ACTIONS`.
+- Power apply/flush UI appears only when Power edition is explicitly enabled; default store-safe builds keep copy/open-settings guidance.
 - Capability matrix now includes macOS Power so direct-install admin apply/flush is not confused with macOS Store behavior.
 - Sidebar includes Permissions and Publish readiness screens with copyable checklists.
 - Native Settings includes language selection; English and Vietnamese are wired for top-level navigation and readiness surfaces.
@@ -31,6 +31,7 @@
 - Primary native surfaces now use the English/Vietnamese localizer for common labels, sections, results, failures, and actions.
 - App Store Connect template covers metadata, review notes, privacy notes, screenshot checklist, and remaining manual blockers.
 - Distribution packaging script signs, validates, and packages the app when publisher signing identities are provided.
+- Power edition bundles can be built with `DNSPILOT_POWER_EDITION=1`, so direct-install users do not need to launch from Terminal to see admin apply/flush actions.
 
 ## Current Work
 - macOS remains UX lead lane.

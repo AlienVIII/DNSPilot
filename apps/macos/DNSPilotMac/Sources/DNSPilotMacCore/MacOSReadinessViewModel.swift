@@ -73,11 +73,11 @@ public struct MacOSPermissionReadinessViewModel: Equatable, Sendable {
             ),
             MacOSReadinessRow(
                 id: "power-mode-flag",
-                title: "Power mode flag",
+                title: "Power edition switch",
                 status: isPowerActionsEnabled ? .ready : .manual,
                 detail: isPowerActionsEnabled
-                    ? "DNSPILOT_ENABLE_POWER_ACTIONS is enabled for this launch."
-                    : "Launch with DNSPILOT_ENABLE_POWER_ACTIONS=1 to expose admin apply/flush actions."
+                    ? "Power admin actions are enabled for this launch by bundle Info.plist or DNSPILOT_ENABLE_POWER_ACTIONS."
+                    : "Build with DNSPilotPowerActionsEnabled=true or launch with DNSPILOT_ENABLE_POWER_ACTIONS=1 to expose admin apply/flush actions."
             ),
             MacOSReadinessRow(
                 id: "no-silent-mutation",

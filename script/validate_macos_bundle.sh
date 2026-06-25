@@ -9,12 +9,14 @@ EXPECTED_MIN_SYSTEM_VERSION="14.0"
 ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
 HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
 DISTRIBUTION=0
+POWER_EDITION=0
 
 usage() {
   cat >&2 <<USAGE
-usage: $0 [APP_BUNDLE] [--distribution]
+usage: $0 [APP_BUNDLE] [--distribution] [--power-edition]
 
   --distribution  Treat debug-only signing warnings as release-blocking failures.
+  --power-edition Validate a direct-install Power bundle instead of a Store-safe bundle.
 USAGE
 }
 
@@ -22,6 +24,9 @@ for arg in "$@"; do
   case "$arg" in
     --distribution)
       DISTRIBUTION=1
+      ;;
+    --power-edition)
+      POWER_EDITION=1
       ;;
     --help|-h)
       usage
@@ -90,6 +95,21 @@ if [[ "$minimum_system_version" == "$EXPECTED_MIN_SYSTEM_VERSION" ]]; then
   pass "LSMinimumSystemVersion is $EXPECTED_MIN_SYSTEM_VERSION"
 else
   fail "LSMinimumSystemVersion expected $EXPECTED_MIN_SYSTEM_VERSION, got ${minimum_system_version:-missing}"
+fi
+
+power_actions_enabled="$(plist_value "$INFO_PLIST" "DNSPilotPowerActionsEnabled")"
+if [[ "$power_actions_enabled" == "true" ]]; then
+  if (( POWER_EDITION )); then
+    pass "Power edition Info.plist switch is enabled"
+  else
+    warn_or_fail_distribution "Power actions Info.plist switch is enabled; this bundle is not App Store-safe"
+  fi
+else
+  if (( POWER_EDITION )); then
+    fail "Power edition validation requested, but DNSPilotPowerActionsEnabled is not true"
+  else
+    pass "Power actions Info.plist switch is absent for Store-safe bundle"
+  fi
 fi
 
 bundle_executable="$(plist_value "$INFO_PLIST" "CFBundleExecutable")"

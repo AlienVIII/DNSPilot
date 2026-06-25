@@ -29,9 +29,10 @@ macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 - macOS Product Goals readiness panel summarizing supported, store-safe guided,
   and estimate-only features with explicit caveats.
 - macOS Power DNS action runner for future direct-install builds, disabled by
-  default and gated behind `DNSPILOT_ENABLE_POWER_ACTIONS`.
+  default and gated behind the `DNSPilotPowerActionsEnabled` bundle key or
+  `DNSPILOT_ENABLE_POWER_ACTIONS`.
 - macOS Power apply/flush UI entry points appear only when
-  `DNSPILOT_ENABLE_POWER_ACTIONS` is explicitly enabled.
+  Power actions are explicitly enabled.
 - Versioned storage snapshot contract for profiles, test suites, and benchmark
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.
@@ -225,7 +226,7 @@ macOS publishing steps live in `apps/macos/PUBLISHING.md`.
   service and flush DNS through an administrator AppleScript prompt when
   explicitly enabled; store-safe UI remains guided by default.
 - macOS Benchmark/Catalog Power buttons can apply selected DNS with explicit
-  confirmation when `DNSPILOT_ENABLE_POWER_ACTIONS=1`; Flush DNS dialogs can
+  confirmation when Power edition is enabled; Flush DNS dialogs can
   run an administrator flush or copy the store-safe checklist.
 - macOS Capabilities/Product Goals surfaces include the macOS Power path so
   store-safe and direct-install behavior stay visibly separated.

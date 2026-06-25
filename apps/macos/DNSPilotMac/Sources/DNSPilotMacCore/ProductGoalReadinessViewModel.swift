@@ -83,14 +83,14 @@ public struct ProductGoalReadinessViewModel: Equatable, Sendable {
             title: "Apply selected DNS",
             status: .storeSafeGuided,
             summary: "Selected plain DNS profiles can be copied and opened in macOS Network Settings after confirmation.",
-            caveat: "True one-click system mutation is available only in Power edition paths such as DNSPILOT_ENABLE_POWER_ACTIONS=1 or a future privileged helper."
+            caveat: "True one-click system mutation is available only in Power edition paths such as DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, or a future privileged helper."
         ),
         ProductGoalReadinessRow(
             id: "flush-dns",
             title: "Flush DNS",
             status: .storeSafeGuided,
             summary: "DNS Pilot provides a confirmed, copyable flush checklist for the current macOS build.",
-            caveat: "Real cache flush requires admin authorization through DNSPILOT_ENABLE_POWER_ACTIONS=1 or a trusted helper outside the store-safe app."
+            caveat: "Real cache flush requires admin authorization through DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, or a trusted helper outside the store-safe app."
         ),
         ProductGoalReadinessRow(
             id: "saved-domains",

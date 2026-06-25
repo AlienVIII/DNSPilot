@@ -17,6 +17,14 @@ APP_HELPERS="$APP_CONTENTS/Library/Helpers"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 CLI_NAME="dnspilot-cli"
+POWER_EDITION="${DNSPILOT_POWER_EDITION:-0}"
+
+truthy() {
+  case "$(printf "%s" "$1" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 
@@ -51,6 +59,10 @@ cat >"$INFO_PLIST" <<PLIST
 </dict>
 </plist>
 PLIST
+
+if truthy "$POWER_EDITION"; then
+  /usr/libexec/PlistBuddy -c "Add :DNSPilotPowerActionsEnabled bool true" "$INFO_PLIST"
+fi
 
 open_app() {
   /usr/bin/open -n "$APP_BUNDLE"
@@ -96,6 +108,14 @@ verify_launch() {
   return 1
 }
 
+validate_bundle() {
+  local validation_args=("$APP_BUNDLE")
+  if truthy "$POWER_EDITION"; then
+    validation_args+=("--power-edition")
+  fi
+  "$ROOT_DIR/script/validate_macos_bundle.sh" "${validation_args[@]}"
+}
+
 case "$MODE" in
   run)
     open_app
@@ -114,16 +134,16 @@ case "$MODE" in
   --verify|verify)
     open_app
     verify_launch
-    "$ROOT_DIR/script/validate_macos_bundle.sh" "$APP_BUNDLE"
+    validate_bundle
     ;;
   --sandbox-verify|sandbox-verify)
     "$ROOT_DIR/script/sign_macos_bundle.sh" "$APP_BUNDLE"
     open_app
     verify_launch
-    "$ROOT_DIR/script/validate_macos_bundle.sh" "$APP_BUNDLE"
+    validate_bundle
     ;;
   --validate|validate)
-    "$ROOT_DIR/script/validate_macos_bundle.sh" "$APP_BUNDLE"
+    validate_bundle
     ;;
   *)
     echo "usage: $0 [run|--debug|--logs|--telemetry|--verify|--sandbox-verify|--validate]" >&2
