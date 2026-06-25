@@ -168,7 +168,7 @@ public sealed class BenchmarkProgressViewModel
         return new BenchmarkProgressViewModel(
             steps,
             BuildCurrentStepLines(mode, running, state == BenchmarkRunState.Cancelling, summary, progressEvents),
-            BuildResolverStatuses(running, state == BenchmarkRunState.Cancelling, summary, progressEvents, failure));
+            BuildResolverStatuses(running, completed, state == BenchmarkRunState.Cancelling, summary, progressEvents, failure));
     }
 
     private static IReadOnlyList<BenchmarkFailureStep> StepSequence(BenchmarkMode mode)
@@ -292,6 +292,7 @@ public sealed class BenchmarkProgressViewModel
 
     private static IReadOnlyList<BenchmarkResolverStatusViewModel> BuildResolverStatuses(
         bool running,
+        bool completed,
         bool cancelling,
         BenchmarkProgressPlanSummary summary,
         IReadOnlyList<BenchmarkProgressEvent> progressEvents,
@@ -337,6 +338,24 @@ public sealed class BenchmarkProgressViewModel
                     failure.FailedStep == BenchmarkFailureStep.ParsingResult
                         ? WindowsDisplayText.Text("Result parsing failed", "Đọc kết quả thất bại")
                         : WindowsDisplayText.Text("Benchmark failed", "Benchmark thất bại")))
+                .ToArray();
+        }
+
+        if (completed)
+        {
+            var latestEventsByProfile = progressEvents
+                .GroupBy(progressEvent => progressEvent.ProfileId)
+                .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
+
+            return summary.ResolverTargets
+                .Select(target => latestEventsByProfile.TryGetValue(target.Id, out var latest)
+                    ? new BenchmarkResolverStatusViewModel(target.Id, target.Name, target.Resolver, EventStatus(latest), EventDetail(latest))
+                    : new BenchmarkResolverStatusViewModel(
+                        target.Id,
+                        target.Name,
+                        target.Resolver,
+                        ProgressStatus.Success,
+                        WindowsDisplayText.Text("Finished", "Hoàn tất")))
                 .ToArray();
         }
 

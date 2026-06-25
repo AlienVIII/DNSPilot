@@ -77,6 +77,16 @@ public sealed partial class MainWindow : Window
         await OpenSettingsAsync();
     }
 
+    private void BenchmarkSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        RefreshBenchmarkDraft();
+    }
+
+    private void BenchmarkNumber_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        RefreshBenchmarkDraft();
+    }
+
     private void PreviewProfileSave_Click(object sender, RoutedEventArgs e)
     {
         var form = BuildProfileForm();
@@ -319,8 +329,7 @@ public sealed partial class MainWindow : Window
 
             ViewModel = loaded;
             RenderStaticState();
-            RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
-            CommandPreviewBox.Text = FormatCommand(ViewModel.BenchmarkPlan.CommandArguments);
+            RefreshBenchmarkDraft();
         }
         catch (Exception ex)
         {
@@ -415,40 +424,43 @@ public sealed partial class MainWindow : Window
 
     private BenchmarkPlanViewModel BuildSelectedBenchmarkPlan()
     {
-        var mode = ModeCombo.SelectedIndex switch
-        {
-            0 => BenchmarkMode.DnsOnly,
-            2 => BenchmarkMode.SystemDnsValidation,
-            _ => BenchmarkMode.DnsAndTcp,
-        };
-        var recordFamily = RecordFamilyCombo.SelectedIndex switch
-        {
-            1 => DnsRecordFamily.Ipv4Only,
-            2 => DnsRecordFamily.Ipv6Only,
-            _ => DnsRecordFamily.Both,
-        };
-        var resolverFamily = ResolverFamilyCombo.SelectedIndex switch
-        {
-            1 => ResolverAddressFamily.Ipv4Only,
-            2 => ResolverAddressFamily.Ipv6Only,
-            _ => ResolverAddressFamily.Automatic,
-        };
-        var selectedProfiles = mode == BenchmarkMode.SystemDnsValidation
-            ? Array.Empty<string>()
-            : ViewModel.Catalog.Profiles.Where(profile => profile.Protocol == DnsProtocol.Plain).Take(3).Select(profile => profile.Id).ToArray();
+        return ViewModel.BuildBenchmarkPlan(CurrentBenchmarkSelection());
+    }
 
-        return new BenchmarkPlanViewModel(
-            ViewModel.Catalog,
-            selectedProfiles,
-            selectedSuiteId: ViewModel.Catalog.TestSuites.FirstOrDefault()?.Id,
-            customDomains: Array.Empty<string>(),
-            attempts: Math.Max(1, (int)AttemptsBox.Value),
-            dnsTimeoutMs: Math.Max(1, (int)DnsTimeoutBox.Value),
-            connectTimeoutMs: Math.Max(1, (int)TcpTimeoutBox.Value),
-            maxConnectTargetsPerDomain: Math.Max(1, (int)TcpTargetsBox.Value),
-            recordFamily: recordFamily,
-            resolverAddressFamily: resolverFamily,
-            mode: mode);
+    private BenchmarkControlSelection CurrentBenchmarkSelection()
+    {
+        return new BenchmarkControlSelection(
+            ModeCombo?.SelectedIndex ?? 1,
+            RecordFamilyCombo?.SelectedIndex ?? 0,
+            ResolverFamilyCombo?.SelectedIndex ?? 0,
+            SafeNumberValue(AttemptsBox, 2),
+            SafeNumberValue(DnsTimeoutBox, 800),
+            SafeNumberValue(TcpTimeoutBox, 1_000),
+            SafeNumberValue(TcpTargetsBox, 4));
+    }
+
+    private void RefreshBenchmarkDraft()
+    {
+        if (CommandPreviewBox is null || StepsList is null || ResolversList is null)
+        {
+            return;
+        }
+
+        var plan = BuildSelectedBenchmarkPlan();
+        CommandPreviewBox.Text = plan.Validation.CanRun
+            ? FormatCommand(plan.CommandArguments)
+            : string.Join(Environment.NewLine, plan.Validation.Issues);
+        RenderProgress(BenchmarkRunState.Idle, plan.Mode, plan.ProgressSummary);
+    }
+
+    private static int SafeNumberValue(NumberBox? box, int fallback)
+    {
+        if (box is null || double.IsNaN(box.Value) || double.IsInfinity(box.Value))
+        {
+            return fallback;
+        }
+
+        return Math.Max(1, (int)box.Value);
     }
 
     private static BenchmarkFailureStep FailureStepFor(BenchmarkMode mode)

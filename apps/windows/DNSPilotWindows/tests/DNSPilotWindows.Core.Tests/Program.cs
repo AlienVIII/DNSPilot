@@ -22,6 +22,7 @@ internal sealed class WindowsCoreTestSuite
         Run("History persistence appends save args and exposes management commands", HistoryPersistenceBuildsSaveAndManagementCommands);
         Run("Windows capability policy separates Store-safe shell from Power edition", WindowsCapabilityPolicySeparatesStoreAndPower);
         Run("Windows shell state exposes benchmark, apply, profile, history, and tray surfaces", WindowsShellStateExposesStoreSafeSurfaces);
+        Run("Benchmark control selection builds live preview plans", BenchmarkControlSelectionBuildsLivePreviewPlans);
         Run("Benchmark runner validates plan, appends progress and history args, and reports process failure", BenchmarkRunnerBuildsProcessBoundary);
         Run("CLI payload decoders map catalog, capabilities, and apply-plan contracts", CliPayloadDecodersMapCoreContracts);
         Run("CLI contract runners invoke catalog, capabilities, apply-plan, profile, and history commands", CliContractRunnersInvokeCommands);
@@ -175,6 +176,22 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("Failed at: Measuring TCP", failure.CopyableReport("DNS + TCP"));
         Assert.Contains("Elapsed: 1530 ms", failure.CopyableReport("DNS + TCP"));
         Assert.Contains("Debug log:", failure.CopyableReport("DNS + TCP"));
+
+        var completed = BenchmarkProgressViewModel.From(
+            BenchmarkMode.DnsAndTcp,
+            BenchmarkRunState.Completed,
+            summary,
+            progressEvents: new[]
+            {
+                new BenchmarkProgressEvent(ProgressEventType.ResolverFinished, "cloudflare", "1.1.1.1:53", 1, 2, ProgressEventStatus.Success, 0, 82),
+                new BenchmarkProgressEvent(ProgressEventType.ResolverFinished, "google", "8.8.8.8:53", 2, 2, ProgressEventStatus.Degraded, 0.25, 140),
+            },
+            historySaved: true);
+
+        Assert.Equal(ProgressStatus.Success, completed.ResolverStatuses.Single(row => row.Id == "cloudflare").Status);
+        Assert.Equal(ProgressStatus.Degraded, completed.ResolverStatuses.Single(row => row.Id == "google").Status);
+        Assert.Contains("0% failed", completed.ResolverStatuses.Single(row => row.Id == "cloudflare").Detail);
+        Assert.Equal(ProgressStatus.Success, completed.Steps.Single(step => step.Id == BenchmarkFailureStep.SavingHistory.Id).Status);
     }
 
     private static void StoreApplyGuidanceIsCopyAndSettingsOnly()
@@ -277,6 +294,47 @@ internal sealed class WindowsCoreTestSuite
         Assert.Equal(TrayActionKind.QuickBenchmark, shell.TrayQuickActions.Actions.First().Kind);
         Assert.Contains("A + AAAA", shell.BenchmarkControlHelpText);
         Assert.Contains("IPv4", shell.BenchmarkControlHelpText);
+    }
+
+    private static void BenchmarkControlSelectionBuildsLivePreviewPlans()
+    {
+        var shell = WindowsShellViewModel.CreateDefault("profiles.sqlite");
+
+        var dnsOnly = shell.BuildBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 0,
+            RecordFamilyIndex: 1,
+            ResolverFamilyIndex: 0,
+            Attempts: 3,
+            DnsTimeoutMs: 900,
+            TcpTimeoutMs: 1_100,
+            TcpTargetsPerDomain: 5));
+        Assert.Equal(BenchmarkMode.DnsOnly, dnsOnly.Mode);
+        Assert.SequenceEqual(
+            new[] { "compare", "--resolver", "cloudflare=1.1.1.1:53", "--resolver", "google=8.8.8.8:53", "--resolver", "quad9=9.9.9.9:53", "--domain", "github.com", "--domain", "microsoft.com", "--domain", "azure.microsoft.com", "--attempts", "3", "--ip-family", "ipv4-only", "--timeout-ms", "900" },
+            dnsOnly.CommandArguments);
+
+        var systemDns = shell.BuildBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 2,
+            RecordFamilyIndex: 2,
+            ResolverFamilyIndex: 1,
+            Attempts: 1,
+            DnsTimeoutMs: 700,
+            TcpTimeoutMs: 1_100,
+            TcpTargetsPerDomain: 2));
+        Assert.Equal(BenchmarkMode.SystemDnsValidation, systemDns.Mode);
+        Assert.SequenceEqual(
+            new[] { "system-benchmark", "--platform", "windows-store", "--domain", "github.com", "--domain", "microsoft.com", "--domain", "azure.microsoft.com", "--attempts", "1", "--ip-family", "ipv6-only", "--timeout-ms", "700" },
+            systemDns.CommandArguments);
+
+        var ipv6Resolvers = shell.BuildBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 1,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 2,
+            Attempts: 2,
+            DnsTimeoutMs: 800,
+            TcpTimeoutMs: 1_000,
+            TcpTargetsPerDomain: 4));
+        Assert.Contains("--resolver cloudflare=[2606:4700:4700::1111]:53", string.Join(" ", ipv6Resolvers.CommandArguments));
     }
 
     private static void BenchmarkRunnerBuildsProcessBoundary()
@@ -595,6 +653,9 @@ internal sealed class WindowsCoreTestSuite
         {
             Assert.Contains($"x:Uid=\"{uid}\"", xaml);
         }
+
+        Assert.Contains("SelectionChanged=\"BenchmarkSelection_Changed\"", xaml);
+        Assert.Contains("ValueChanged=\"BenchmarkNumber_ValueChanged\"", xaml);
 
         var requiredResourceKeys = new[]
         {

@@ -29,6 +29,7 @@
 ### "Recommendation UI is thinner than macOS"
 - Valid. Windows parses benchmark result JSON enough to refresh store-safe apply guidance, but it does not yet render full macOS-style recommendation cards.
 - Current acceptable state: diagnostics, progress rows, resolver rows, copied reports, refreshed DNS servers, and history rows are implemented.
+- Benchmark controls now update command preview/process rows before run, and completed runs keep final resolver status rows visible.
 
 ### "Tray behavior may be Store-sensitive"
 - Valid. NotifyIcon is a desktop shell affordance and must be checked under packaged Store/MSIX context.
@@ -46,7 +47,7 @@
 
 ## Current Evidence
 - `bash apps/windows/validate-windows-lane.sh` runs core tests, core build, store-safe static checks, and a WinUI build probe.
-- Automated tests cover benchmark commands, system DNS validation, progress/failure diagnostics, apply guidance, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
+- Automated tests cover benchmark commands, live control previews, system DNS validation, progress/failure diagnostics, completed resolver statuses, apply guidance, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
 - Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, and bundled CLI copy rule.
 - Store-safe static scan currently finds no DNS mutation or admin-elevation implementation in `apps/windows/DNSPilotWindows`.
 - XML well-formed checks pass for `MainWindow.xaml`, both `.resw` files, and the Store package manifest template.

@@ -87,7 +87,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <ComboBox x:Name="ModeCombo" x:Uid="ModeCombo" Header="Mode" SelectedIndex="1">
+                            <ComboBox x:Name="ModeCombo" x:Uid="ModeCombo" Header="Mode" SelectedIndex="1" SelectionChanged="BenchmarkSelection_Changed">
                                 <ToolTipService.ToolTip>
                                     <ToolTip x:Uid="ModeTooltip" Content="DNS only, DNS + TCP, or current/system DNS validation." />
                                 </ToolTipService.ToolTip>
@@ -95,7 +95,7 @@
                                 <ComboBoxItem x:Uid="ModeDnsTcp" Content="DNS + TCP" />
                                 <ComboBoxItem x:Uid="ModeSystemDns" Content="System DNS validation" />
                             </ComboBox>
-                            <ComboBox x:Name="RecordFamilyCombo" x:Uid="RecordFamilyCombo" Grid.Column="1" Header="Record family" SelectedIndex="0">
+                            <ComboBox x:Name="RecordFamilyCombo" x:Uid="RecordFamilyCombo" Grid.Column="1" Header="Record family" SelectedIndex="0" SelectionChanged="BenchmarkSelection_Changed">
                                 <ToolTipService.ToolTip>
                                     <ToolTip x:Uid="RecordFamilyTooltip" Content="A returns IPv4 answers. AAAA returns IPv6 answers. Use A only when IPv6 is weak." />
                                 </ToolTipService.ToolTip>
@@ -103,7 +103,7 @@
                                 <ComboBoxItem x:Uid="RecordFamilyIpv4" Content="A only" />
                                 <ComboBoxItem x:Uid="RecordFamilyIpv6" Content="AAAA only" />
                             </ComboBox>
-                            <ComboBox x:Name="ResolverFamilyCombo" x:Uid="ResolverFamilyCombo" Grid.Column="2" Header="Resolver address" SelectedIndex="0">
+                            <ComboBox x:Name="ResolverFamilyCombo" x:Uid="ResolverFamilyCombo" Grid.Column="2" Header="Resolver address" SelectedIndex="0" SelectionChanged="BenchmarkSelection_Changed">
                                 <ToolTipService.ToolTip>
                                     <ToolTip x:Uid="ResolverFamilyTooltip" Content="Choose Auto, IPv4 DNS servers only, or IPv6 DNS servers only." />
                                 </ToolTipService.ToolTip>
@@ -120,10 +120,10 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <NumberBox x:Name="AttemptsBox" x:Uid="AttemptsBox" Header="Attempts" Value="2" Minimum="1" />
-                            <NumberBox x:Name="DnsTimeoutBox" x:Uid="DnsTimeoutBox" Grid.Column="1" Header="DNS timeout ms" Value="800" Minimum="1" />
-                            <NumberBox x:Name="TcpTimeoutBox" x:Uid="TcpTimeoutBox" Grid.Column="2" Header="TCP timeout ms" Value="1000" Minimum="1" />
-                            <NumberBox x:Name="TcpTargetsBox" x:Uid="TcpTargetsBox" Grid.Column="3" Header="TCP targets/domain" Value="4" Minimum="1" />
+                            <NumberBox x:Name="AttemptsBox" x:Uid="AttemptsBox" Header="Attempts" Value="2" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
+                            <NumberBox x:Name="DnsTimeoutBox" x:Uid="DnsTimeoutBox" Grid.Column="1" Header="DNS timeout ms" Value="800" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
+                            <NumberBox x:Name="TcpTimeoutBox" x:Uid="TcpTimeoutBox" Grid.Column="2" Header="TCP timeout ms" Value="1000" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
+                            <NumberBox x:Name="TcpTargetsBox" x:Uid="TcpTargetsBox" Grid.Column="3" Header="TCP targets/domain" Value="4" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
                         </Grid>
 
                         <TextBlock x:Uid="CommandPreviewHeader" Text="Command preview" FontWeight="SemiBold" />

@@ -5,7 +5,7 @@
 - `dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, profile-list, history-list, profile mutations, history mutations, hydrated shell state, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -19,7 +19,9 @@
 - Confirm diagnostics do not report CLI contract load failure; expected: locator finds env, bundled, release, or debug CLI path.
 - Confirm the app launches without UAC/admin prompt.
 - Confirm English and Vietnamese localized UI labels render by switching Windows app/display language or using the Windows language override available during QA.
+- Change benchmark mode, record family, resolver address family, and timeout controls before running; expected: command preview and idle process rows update immediately.
 - Run `Quick benchmark`; expected: command preview uses `path-compare`, process rows move to running, diagnostics show success or a copyable failure report.
+- After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
 - After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
 - Run `Validate DNS`; expected: command preview uses `system-benchmark --platform windows-store`.
 - Change `Record family` to `A only` and `AAAA only`; expected: command preview uses `--ip-family ipv4-only` or `--ip-family ipv6-only`.

@@ -68,6 +68,11 @@ public sealed class WindowsShellViewModel
         AvailableRecordFamilies.Select(family => $"{family.DisplayLabel}: {family.HelpText}")
             .Concat(AvailableResolverAddressFamilies.Select(family => $"{family.DisplayLabel}: {family.HelpText}")));
 
+    public BenchmarkPlanViewModel BuildBenchmarkPlan(BenchmarkControlSelection selection)
+    {
+        return BenchmarkControlPlanFactory.Build(Catalog, selection);
+    }
+
     public static WindowsShellViewModel CreateDefault(string databasePath)
     {
         var catalog = WindowsDefaultCatalog.Create();
