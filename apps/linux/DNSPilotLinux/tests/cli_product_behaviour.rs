@@ -507,6 +507,19 @@ fn cli_apply_plan_renders_native_helper_contract_for_deb_profile() {
     assert!(stdout.contains("Post-apply validation: yes"));
 }
 
+#[test]
+fn cli_readiness_outputs_code_ready_and_manual_publish_requirements() {
+    let output = binary().arg("readiness").output().unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("DNS Pilot Linux Readiness"));
+    assert!(stdout.contains("Code readiness: ready for manual Linux package QA"));
+    assert!(stdout.contains("Packaging and publish checklist: ready"));
+    assert!(stdout.contains("Manual/external requirements:"));
+    assert!(stdout.contains("store credentials"));
+}
+
 #[cfg(unix)]
 fn make_executable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;

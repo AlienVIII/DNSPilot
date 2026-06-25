@@ -27,3 +27,4 @@
 - CLI examples are documented in `linux-ux-spec.md`.
 - Current critique/risk summary is documented in `linux-self-review.md`.
 - Publish/manual QA steps are documented in `linux-publish-checklist.md`.
+- Run `dnspilot-linux-shell readiness` before handoff or package QA to verify scoped Linux goals remain covered.

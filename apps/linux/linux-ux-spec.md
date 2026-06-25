@@ -38,6 +38,16 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- detect \
   --mock-command pkcheck
 ```
 
+Readiness checkpoint:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness
+```
+
+The readiness report marks scoped Linux code goals as ready and separates
+manual package QA, store credentials, signing, screenshots, release notes, GUI
+adapter choice, and real resolver-write QA as external release work.
+
 ## Native App Surface
 
 The Linux shell exposes a native app view-model for the eventual GTK/libadwaita

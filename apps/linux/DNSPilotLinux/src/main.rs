@@ -16,6 +16,7 @@ use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
 use dnspilot_linux_shell::process::LinuxBenchmarkProcessViewModel;
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
+use dnspilot_linux_shell::readiness::{linux_release_readiness, render_readiness_report};
 use dnspilot_linux_shell::settings::{
     native_power_path_plan, DnsRecordFamily, ResolverAddressFamily,
 };
@@ -48,6 +49,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
         Some("permissions") => run_permissions(args.into_iter().skip(1)),
         Some("app-model") => run_app_model(args.into_iter().skip(1)),
         Some("apply-plan") => run_apply_plan(args.into_iter().skip(1)),
+        Some("readiness") => Ok(render_readiness_report(&linux_release_readiness())),
         _ => run_legacy_report(args),
     }
 }

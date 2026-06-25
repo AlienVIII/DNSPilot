@@ -22,6 +22,7 @@
 - Added store-safe Flatpak/Snap packaging templates, deb/rpm native-power templates, shared desktop/AppStream metadata, icon, and polkit policy.
 - Added packaging policy tests and Linux publish/manual-QA checklist.
 - Added native DNS apply helper contract planning with polkit action, resolver-stack selection, rollback snapshot, and post-apply validation gates.
+- Added release readiness report that maps main Linux goals to code evidence and separates manual publish requirements.
 
 ## Current Work
 - Linux lane UX/spec/code is implemented for scoped benchmark, profile, diagnostics, guidance, permission, packaging-policy, and native-power helper planning behavior.
