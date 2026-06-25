@@ -76,6 +76,82 @@ fn cli_can_add_list_and_delete_custom_profiles_in_store() {
 }
 
 #[test]
+fn cli_can_edit_custom_profiles_in_store() {
+    let store = temp_path("edit-profile");
+
+    let add = binary()
+        .args([
+            "profile-add",
+            "--store",
+            store.to_str().unwrap(),
+            "--id",
+            "local",
+            "--name",
+            "Local DNS",
+            "--ipv4",
+            "1.1.1.1",
+        ])
+        .output()
+        .unwrap();
+    assert!(add.status.success());
+
+    let edit = binary()
+        .args([
+            "profile-edit",
+            "--store",
+            store.to_str().unwrap(),
+            "--id",
+            "local",
+            "--name",
+            "Edited DNS",
+            "--ipv4",
+            "9.9.9.9",
+            "--ipv6",
+            "2620:fe::fe",
+        ])
+        .output()
+        .unwrap();
+    assert!(edit.status.success());
+    assert!(String::from_utf8(edit.stdout)
+        .unwrap()
+        .contains("Updated profile local"));
+
+    let list = binary()
+        .args(["profile-list", "--store", store.to_str().unwrap()])
+        .output()
+        .unwrap();
+    assert!(list.status.success());
+    let stdout = String::from_utf8(list.stdout).unwrap();
+    assert!(stdout.contains("local\tEdited DNS\t9.9.9.9\t2620:fe::fe"));
+    assert!(!stdout.contains("1.1.1.1"));
+}
+
+#[test]
+fn cli_profile_edit_rejects_missing_profile_before_saving() {
+    let store = temp_path("missing-edit-profile");
+
+    let output = binary()
+        .args([
+            "profile-edit",
+            "--store",
+            store.to_str().unwrap(),
+            "--id",
+            "missing",
+            "--name",
+            "Missing DNS",
+            "--ipv4",
+            "1.1.1.1",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    assert!(String::from_utf8(output.stderr)
+        .unwrap()
+        .contains("MissingProfile"));
+}
+
+#[test]
 fn cli_profile_add_rejects_invalid_family_before_saving() {
     let store = temp_path("invalid-profile");
 

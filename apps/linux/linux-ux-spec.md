@@ -247,6 +247,13 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- profile-add \
 cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- profile-list \
   --store /tmp/dnspilot-linux-profiles.json
 
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- profile-edit \
+  --store /tmp/dnspilot-linux-profiles.json \
+  --id local \
+  --name "Edited DNS" \
+  --ipv4 9.9.9.9 \
+  --ipv6 2620:fe::fe
+
 cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- profile-delete \
   --store /tmp/dnspilot-linux-profiles.json \
   --id local

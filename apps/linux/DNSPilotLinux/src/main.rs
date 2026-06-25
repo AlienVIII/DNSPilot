@@ -38,6 +38,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let args = args.into_iter().collect::<Vec<_>>();
     match args.first().map(String::as_str) {
         Some("profile-add") => run_profile_add(args.into_iter().skip(1)),
+        Some("profile-edit") => run_profile_edit(args.into_iter().skip(1)),
         Some("profile-list") => run_profile_list(args.into_iter().skip(1)),
         Some("profile-delete") => run_profile_delete(args.into_iter().skip(1)),
         Some("plan") => run_plan(args.into_iter().skip(1)),
@@ -93,6 +94,32 @@ fn run_profile_add(args: impl IntoIterator<Item = String>) -> Result<String, Cli
     repo.save_profiles(store.list())
         .map_err(|error| CliError::new(2, format!("{error:?}")))?;
     Ok(format!("Saved profile {id}"))
+}
+
+fn run_profile_edit(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let config = ProfileAddConfig::parse(args)?;
+    let repo = FileProfileRepository::new(config.store.clone());
+    let loaded = repo
+        .load_profiles()
+        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let mut store = CustomProfileStore::new();
+    for profile in loaded {
+        store
+            .add(profile_to_draft(profile))
+            .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    }
+    let id = config.id.clone();
+    store
+        .edit(PlainDnsProfileDraft {
+            id: config.id,
+            name: config.name,
+            ipv4_servers: config.ipv4_servers,
+            ipv6_servers: config.ipv6_servers,
+        })
+        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    repo.save_profiles(store.list())
+        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    Ok(format!("Updated profile {id}"))
 }
 
 fn run_profile_list(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {

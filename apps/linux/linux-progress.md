@@ -14,7 +14,7 @@
 - Added core CLI runner boundary for `compare`, `path-compare`, and `system-benchmark`.
 - Added Linux app/session workflow for mode/profile/suite/domain readiness and benchmark plan construction.
 - Added file-backed custom profile repository with schema versioning.
-- Added CLI product commands for profile add/list/delete, benchmark plan generation, executable run, and guided apply/native-plan output.
+- Added CLI product commands for profile add/edit/list/delete, benchmark plan generation, executable run, and guided apply/native-plan output.
 - Added non-mutating Linux capability auto-detection plus mocked snapshot detection for deterministic QA.
 - Added self-review and counterargument summary in `linux-self-review.md`.
 - Added localized English/Vietnamese native app view-models and CLI surfaces for permission/app-model inspection.
