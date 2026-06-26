@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=DNS Pilot
+Comment=Benchmark DNS resolvers and guide safe resolver changes
+Comment[vi]=Đo kiểm DNS resolver và hướng dẫn đổi resolver an toàn
+Exec=dnspilot-linux-shell app-model
+Icon=io.dnspilot.DNSPilot
+Terminal=false
+Categories=Network;Utility;
+Keywords=DNS;Network;Resolver;Benchmark;
+Keywords[vi]=DNS;Mạng;Resolver;Đo kiểm;

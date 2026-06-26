@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD polkit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/software/polkit/policyconfig-1.dtd">
+<policyconfig>
+  <vendor>DNS Pilot</vendor>
+  <vendor_url>https://dnspilot.io</vendor_url>
+  <icon_name>io.dnspilot.DNSPilot</icon_name>
+
+  <action id="io.dnspilot.DNSPilot.apply-dns">
+    <description>Apply DNS settings</description>
+    <description xml:lang="vi">Áp dụng cài đặt DNS</description>
+    <message>Authentication is required to change system DNS settings.</message>
+    <message xml:lang="vi">Cần xác thực để thay đổi cài đặt DNS hệ thống.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

@@ -1,0 +1,32 @@
+name: dnspilot
+base: core24
+version: '0.1.0'
+summary: DNS benchmark and resolver guidance
+description: |
+  DNS Pilot benchmarks DNS resolver choices, validates supported resolver paths,
+  and guides safe DNS settings changes. This strict Snap build stays store-safe:
+  it uses outbound network access for benchmark and guidance workflows only.
+
+grade: devel
+confinement: strict
+
+apps:
+  dnspilot:
+    command: bin/dnspilot-linux-shell
+    desktop: usr/share/applications/io.dnspilot.DNSPilot.desktop
+    plugs:
+      - network
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+
+parts:
+  dnspilot:
+    plugin: dump
+    source: ../snap-payload
+    organize:
+      dnspilot-linux-shell: bin/dnspilot-linux-shell
+      io.dnspilot.DNSPilot.desktop: usr/share/applications/io.dnspilot.DNSPilot.desktop
+      io.dnspilot.DNSPilot.metainfo.xml: usr/share/metainfo/io.dnspilot.DNSPilot.metainfo.xml
+      io.dnspilot.DNSPilot.svg: usr/share/icons/hicolor/scalable/apps/io.dnspilot.DNSPilot.svg

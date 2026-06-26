@@ -1,0 +1,30 @@
+app-id: io.dnspilot.DNSPilot
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: dnspilot-linux-shell
+
+finish-args:
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+
+modules:
+  - name: dnspilot-linux-shell
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 dnspilot-linux-shell /app/bin/dnspilot-linux-shell
+      - install -Dm644 io.dnspilot.DNSPilot.desktop /app/share/applications/io.dnspilot.DNSPilot.desktop
+      - install -Dm644 io.dnspilot.DNSPilot.metainfo.xml /app/share/metainfo/io.dnspilot.DNSPilot.metainfo.xml
+      - install -Dm644 io.dnspilot.DNSPilot.svg /app/share/icons/hicolor/scalable/apps/io.dnspilot.DNSPilot.svg
+    sources:
+      - type: file
+        path: ../../DNSPilotLinux/target/release/dnspilot-linux-shell
+        dest-filename: dnspilot-linux-shell
+      - type: file
+        path: ../shared/io.dnspilot.DNSPilot.desktop
+      - type: file
+        path: ../shared/io.dnspilot.DNSPilot.metainfo.xml
+      - type: file
+        path: ../shared/io.dnspilot.DNSPilot.svg

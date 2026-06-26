@@ -1,0 +1,15 @@
+Source: dnspilot
+Section: net
+Priority: optional
+Maintainer: DNS Pilot Maintainers <maintainers@dnspilot.io>
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Build-Depends: debhelper-compat (= 13)
+
+Package: dnspilot
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, policykit-1 | polkitd, network-manager | systemd-resolved
+Description: DNS benchmark and native resolver guidance
+ DNS Pilot benchmarks DNS resolvers, manages custom DNS profiles, renders
+ diagnostics, and can use a native helper path for DNS apply when the resolver
+ stack and polkit authorization are available.
