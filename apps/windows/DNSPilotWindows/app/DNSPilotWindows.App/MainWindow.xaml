@@ -1,0 +1,271 @@
+<Window
+    x:Class="DNSPilotWindows.App.MainWindow"
+    x:Uid="MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="DNS Pilot">
+
+    <Grid Padding="24" RowSpacing="16" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Spacing="4">
+                <TextBlock x:Uid="AppTitle" Text="DNS Pilot" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock x:Uid="AppSubtitle" Text="Windows Store-safe DNS benchmark shell" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Click="QuickBenchmark_Click">
+                    <ToolTipService.ToolTip>
+                        <ToolTip x:Uid="QuickBenchmarkTooltip" Content="Run the default DNS + TCP benchmark command." />
+                    </ToolTipService.ToolTip>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <SymbolIcon Symbol="Play" />
+                        <TextBlock x:Uid="QuickBenchmarkText" Text="Quick benchmark" />
+                    </StackPanel>
+                </Button>
+                <Button Click="ValidateSystemDns_Click">
+                    <ToolTipService.ToolTip>
+                        <ToolTip x:Uid="ValidateDnsTooltip" Content="Benchmark the current Windows resolver path." />
+                    </ToolTipService.ToolTip>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <SymbolIcon Symbol="Refresh" />
+                        <TextBlock x:Uid="ValidateDnsText" Text="Validate DNS" />
+                    </StackPanel>
+                </Button>
+                <Button Click="OpenSettings_Click">
+                    <ToolTipService.ToolTip>
+                        <ToolTip x:Uid="SettingsTooltip" Content="Open Windows Network settings without changing DNS." />
+                    </ToolTipService.ToolTip>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <SymbolIcon Symbol="Setting" />
+                        <TextBlock x:Uid="SettingsText" Text="Settings" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <NavigationView
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            PaneDisplayMode="Top"
+            IsSettingsVisible="False"
+            SelectionChanged="SectionNav_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Uid="NavBenchmark" Content="Benchmark" Tag="Benchmark" Icon="Play" IsSelected="True" />
+                <NavigationViewItem x:Uid="NavApply" Content="Apply" Tag="Apply" Icon="Copy" />
+                <NavigationViewItem x:Uid="NavProfiles" Content="Profiles" Tag="Profiles" Icon="Edit" />
+                <NavigationViewItem x:Uid="NavHistory" Content="History" Tag="History" Icon="Clock" />
+                <NavigationViewItem x:Uid="NavDiagnostics" Content="Diagnostics" Tag="Diagnostics" Icon="ReportHacked" />
+            </NavigationView.MenuItems>
+        </NavigationView>
+
+        <ScrollViewer Grid.Row="2">
+            <Grid ColumnSpacing="16" RowSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*" />
+                    <ColumnDefinition Width="0.9*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border x:Name="BenchmarkSection" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <TextBlock x:Uid="BenchmarkHeader" Text="Benchmark" FontSize="20" FontWeight="SemiBold" />
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="ModeCombo" x:Uid="ModeCombo" Header="Mode" SelectedIndex="1" SelectionChanged="BenchmarkSelection_Changed">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Uid="ModeTooltip" Content="DNS only, DNS + TCP, or current/system DNS validation." />
+                                </ToolTipService.ToolTip>
+                                <ComboBoxItem x:Uid="ModeDnsOnly" Content="DNS only" />
+                                <ComboBoxItem x:Uid="ModeDnsTcp" Content="DNS + TCP" />
+                                <ComboBoxItem x:Uid="ModeSystemDns" Content="System DNS validation" />
+                            </ComboBox>
+                            <ComboBox x:Name="RecordFamilyCombo" x:Uid="RecordFamilyCombo" Grid.Column="1" Header="Record family" SelectedIndex="0" SelectionChanged="BenchmarkSelection_Changed">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Uid="RecordFamilyTooltip" Content="A returns IPv4 answers. AAAA returns IPv6 answers. Use A only when IPv6 is weak." />
+                                </ToolTipService.ToolTip>
+                                <ComboBoxItem x:Uid="RecordFamilyBoth" Content="A + AAAA" />
+                                <ComboBoxItem x:Uid="RecordFamilyIpv4" Content="A only" />
+                                <ComboBoxItem x:Uid="RecordFamilyIpv6" Content="AAAA only" />
+                            </ComboBox>
+                            <ComboBox x:Name="ResolverFamilyCombo" x:Uid="ResolverFamilyCombo" Grid.Column="2" Header="Resolver address" SelectedIndex="0" SelectionChanged="BenchmarkSelection_Changed">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Uid="ResolverFamilyTooltip" Content="Choose Auto, IPv4 DNS servers only, or IPv6 DNS servers only." />
+                                </ToolTipService.ToolTip>
+                                <ComboBoxItem x:Uid="ResolverFamilyAuto" Content="Auto" />
+                                <ComboBoxItem x:Uid="ResolverFamilyIpv4" Content="IPv4" />
+                                <ComboBoxItem x:Uid="ResolverFamilyIpv6" Content="IPv6" />
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <NumberBox x:Name="AttemptsBox" x:Uid="AttemptsBox" Header="Attempts" Value="2" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
+                            <NumberBox x:Name="DnsTimeoutBox" x:Uid="DnsTimeoutBox" Grid.Column="1" Header="DNS timeout ms" Value="800" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
+                            <NumberBox x:Name="TcpTimeoutBox" x:Uid="TcpTimeoutBox" Grid.Column="2" Header="TCP timeout ms" Value="1000" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
+                            <NumberBox x:Name="TcpTargetsBox" x:Uid="TcpTargetsBox" Grid.Column="3" Header="TCP targets/domain" Value="4" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
+                        </Grid>
+
+                        <TextBlock x:Uid="CommandPreviewHeader" Text="Command preview" FontWeight="SemiBold" />
+                        <TextBox x:Name="CommandPreviewBox" IsReadOnly="True" TextWrapping="Wrap" MinHeight="76" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Click="QuickBenchmark_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Play" />
+                                    <TextBlock x:Uid="RunBenchmarkText" Text="Run benchmark" />
+                                </StackPanel>
+                            </Button>
+                            <Button Click="CopyCommand_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Copy" />
+                                    <TextBlock x:Uid="CopyCommandText" Text="Copy command" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="ProcessSection" Grid.Column="1" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <TextBlock x:Uid="ProcessHeader" Text="Process" FontSize="20" FontWeight="SemiBold" />
+                        <ListView x:Name="StepsList" x:Uid="StepsList" Header="Steps" MaxHeight="220" />
+                        <ListView x:Name="ResolversList" x:Uid="ResolversList" Header="Resolvers" MaxHeight="220" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="ApplySection" Grid.Row="1" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <TextBlock x:Uid="ApplyHeader" Text="Apply guidance" FontSize="20" FontWeight="SemiBold" />
+                        <TextBox x:Name="DnsServersBox" x:Uid="DnsServersBox" Header="DNS servers" IsReadOnly="True" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Click="CopyDnsServers_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Copy" />
+                                    <TextBlock x:Uid="CopyDnsText" Text="Copy DNS" />
+                                </StackPanel>
+                            </Button>
+                            <Button Click="OpenSettings_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Setting" />
+                                    <TextBlock x:Uid="OpenSettingsText" Text="Open settings" />
+                                </StackPanel>
+                            </Button>
+                            <Button Click="CopyChecklist_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="List" />
+                                    <TextBlock x:Uid="CopyChecklistText" Text="Copy checklist" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <TextBox x:Name="ChecklistBox" x:Uid="ChecklistBox" Header="Checklist" IsReadOnly="True" TextWrapping="Wrap" MinHeight="120" />
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Row="1" Grid.Column="1" RowSpacing="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Border x:Name="ProfilesSection" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock x:Uid="ProfilesHeader" Text="Custom DNS profiles" FontSize="20" FontWeight="SemiBold" />
+                            <ListView x:Name="ProfilesList" x:Uid="ProfilesList" Header="Saved profiles" MaxHeight="160" SelectionChanged="ProfilesList_SelectionChanged" />
+                            <TextBox x:Name="ProfileNameBox" x:Uid="ProfileNameBox" Header="Name" Text="Cloudflare Lab" />
+                            <TextBox x:Name="ProfileIdBox" x:Uid="ProfileIdBox" Header="Profile ID for update/delete" Text="cloudflare-lab" />
+                            <TextBox x:Name="Ipv4Box" x:Uid="Ipv4Box" Header="IPv4 servers" Text="1.1.1.1, 1.0.0.1">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Uid="Ipv4Tooltip" Content="Plain IPv4 DNS server addresses." />
+                                </ToolTipService.ToolTip>
+                            </TextBox>
+                            <TextBox x:Name="Ipv6Box" x:Uid="Ipv6Box" Header="IPv6 servers" Text="2606:4700:4700::1111">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Uid="Ipv6Tooltip" Content="Plain IPv6 DNS server addresses." />
+                                </ToolTipService.ToolTip>
+                            </TextBox>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Click="PreviewProfileSave_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="PreviewLink" />
+                                        <TextBlock x:Uid="PreviewProfileText" Text="Preview" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="SaveProfile_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Save" />
+                                        <TextBlock x:Uid="AddProfileText" Text="Add" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="UpdateProfile_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Edit" />
+                                        <TextBlock x:Uid="UpdateProfileText" Text="Update" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="DeleteProfile_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Delete" />
+                                        <TextBlock x:Uid="DeleteProfileText" Text="Delete" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border x:Name="DiagnosticsSection" Grid.Row="1" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock x:Uid="DiagnosticsHeader" Text="Diagnostics" FontSize="20" FontWeight="SemiBold" />
+                            <ListView x:Name="HistoryList" x:Uid="HistoryList" Header="History" MaxHeight="160" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Click="RefreshStorage_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Refresh" />
+                                        <TextBlock x:Uid="RefreshStorageText" Text="Refresh" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="ClearHistory_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Delete" />
+                                        <TextBlock x:Uid="ClearHistoryText" Text="Clear history" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="DeleteHistory_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Remove" />
+                                        <TextBlock x:Uid="DeleteSelectedHistoryText" Text="Delete selected" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <TextBox x:Name="DiagnosticsBox" x:Uid="DiagnosticsBox" Header="Report" IsReadOnly="True" TextWrapping="Wrap" MinHeight="160" />
+                            <Button Click="CopyDiagnostics_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Copy" />
+                                    <TextBlock x:Uid="CopyDiagnosticsText" Text="Copy report" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

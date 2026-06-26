@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DNSPilotWindows.Core/DNSPilotWindows.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj" />
+  </Folder>
+</Solution>

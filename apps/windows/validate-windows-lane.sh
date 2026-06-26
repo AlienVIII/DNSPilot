@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$repo_root"
+
+echo "== Windows core tests =="
+dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj
+
+echo "== Windows core solution build =="
+dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx
+
+echo "== Store-safe static checks =="
+manifest="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/app.manifest"
+grep -q 'requestedExecutionLevel level="asInvoker"' "$manifest"
+
+if rg -n 'netsh|Set-DnsClientServerAddress|Get-DnsClientServerAddress|Verb\s*=\s*runas|requireAdministrator|highestAvailable|HKLM|Registry|DnsClient' \
+  apps/windows/DNSPilotWindows/app \
+  apps/windows/DNSPilotWindows/src \
+  --glob '!**/bin/**' \
+  --glob '!**/obj/**'; then
+  echo "Store-safe check failed: admin or DNS mutation token found in Windows app source." >&2
+  exit 1
+fi
+
+echo "== Localization and packaging static checks =="
+xaml="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/MainWindow.xaml"
+en_resw="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Strings/en-US/Resources.resw"
+vi_resw="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Strings/vi-VN/Resources.resw"
+package_template="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Packaging/Package.Store.appxmanifest.template"
+
+for required in "$xaml" "$en_resw" "$vi_resw" "$package_template"; do
+  test -f "$required"
+done
+
+grep -q 'x:Uid="AppTitle"' "$xaml"
+grep -q 'name="AppDisplayName"' "$en_resw"
+grep -q 'name="AppDisplayName"' "$vi_resw"
+grep -q 'ms-resource:AppDisplayName' "$package_template"
+grep -q 'Name="internetClient"' "$package_template"
+grep -q 'Name="runFullTrust"' "$package_template"
+
+echo "== Windows App SDK build probe =="
+if dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx; then
+  echo "WinUI solution build passed."
+else
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "WinUI build probe failed on macOS as expected: Windows App SDK XamlCompiler.exe is Windows-only."
+  else
+    echo "WinUI solution build failed on non-macOS host." >&2
+    exit 1
+  fi
+fi
+
+echo "Windows lane validation complete."
