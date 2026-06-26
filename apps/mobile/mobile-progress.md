@@ -1,43 +1,41 @@
 # Mobile Progress
 
-## Completed
-- Initialized Expo/React Native app at `apps/mobile/DNSPilotMobile`.
-- Added local CLI bridge that maps mobile actions to whitelisted `dnspilot-cli`
-  commands.
-- Added mobile tabs for Overview, Benchmark, Catalog, Storage, and Policy.
-- Exposed catalog, capability, preflight, apply-policy/apply-plan, benchmark,
-  compare, path-estimate/path-compare, custom profile/suite storage, history,
-  and recommendation sample flows.
-- Added benchmark process diagnostics: per-step status, resolver status rows,
-  elapsed time, failed step/reason, debug log, and copyable report.
-- Added foreground benchmark job polling through the local bridge so resolver
-  progress can update before the CLI process exits.
-- Added capability-based guided DNS settings/profile flow for iOS/iPadOS and
-  Android, including protected-network suppression.
-- Added adaptive phone/tablet/expanded layout helpers and applied two-column
-  tablet layouts to key Overview, Storage, and Policy flows.
-- Added System DNS validation platform selector plus A/AAAA help text for
-  IPv4/IPv6 troubleshooting.
-- Added benchmark-result guided settings plan: recommended profile, OS selector,
-  protected-network flags, core apply-plan payload, and store-safe steps.
-- Added storage form validation for custom DNS profiles and domain suites,
-  including protocol-specific fields and preserved `custom` tags.
-- Added benchmark plan validation and catalog-aware Default/Vietnam suite
-  quick-picks before foreground jobs are started.
-- Added `mobile-readiness.md` with main-goal checklist, critique, blockers, and
-  manual validation flow.
+## BLUF
 
-## Current Work
-- Test shell is ready for local Expo Go/web validation through the bridge, with
-  live benchmark progress when the bridge can stream CLI JSONL events.
+The mobile lane meets the current test-shell requirement: it validates DNSPilot
+UX, bridge contracts, mobile policy limits, guided settings, localization, and
+device setup flows. It is not yet the final public-store architecture.
 
-## Blockers
-- Expo Go cannot spawn or link the Rust CLI inside the app process.
-- Release-grade mobile builds still need native Rust bindings or approved
-  platform adapters.
+## Requirement Coverage
 
-## Next Actions
-- Test on iOS Simulator, Android emulator, and a physical phone using LAN bridge
-  URL.
-- Decide whether release work should use direct Rust FFI/native modules or
-  separate SwiftUI/Kotlin shells.
+- Expo/React Native shell with Overview, Benchmark, Catalog, Storage, and Policy
+  tabs.
+- Local Node bridge maps allowed mobile actions to `dnspilot-cli` commands.
+- Benchmark UI covers DNS-only, DNS+TCP, and system-DNS validation with
+  foreground progress polling, resolver rows, failure details, and copyable
+  reports.
+- Guided settings covers iOS/iPadOS profile/settings guidance and Android
+  settings/Private DNS guidance without silent DNS mutation or VpnService.
+- Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
+  validation, and custom tag preservation.
+- Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,
+  Default/Vietnam quick picks, English/Vietnamese localization, and real-device
+  bridge URL checks are implemented.
+
+## Validation
+
+- `npm test`: pass.
+- `npm run typecheck`: pass after `npm ci`.
+
+## Remaining Gates
+
+- Real-device QA on iOS Simulator, Android emulator, and physical phones.
+- Apple/Google signing, store setup, and Local Network/Private DNS manual checks.
+- Native Rust adapter, approved backend, or another release runtime decision.
+- Dependency audit: Expo tooling currently pulls vulnerable `uuid <11.1.1`; npm's
+  force fix is breaking.
+
+## Source Of Truth
+
+- Main checklist and manual flow: `apps/mobile/mobile-readiness.md`.
+- Publish steps: `apps/mobile/mobile-publish-checklist.md`.

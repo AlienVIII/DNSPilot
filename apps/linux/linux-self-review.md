@@ -28,28 +28,28 @@
 
 ## Counterarguments And Resolution
 
-1. **Counterargument: A CLI harness is not a finished Linux GUI.**  
+1. **Counterargument: A CLI harness is not a finished Linux GUI.**
    Valid. The lane now has product-grade app/session models, localized native app view-models, persistence, runner boundary, desktop metadata, and CLI surfaces, but no GTK/libadwaita or Qt rendering adapter. This remains the largest product gap before a real end-user GUI can be called complete.
 
-2. **Counterargument: Capability detection can be wrong on some distros.**  
+2. **Counterargument: Capability detection can be wrong on some distros.**
    Valid. Detection is intentionally conservative and non-mutating. It checks sandbox markers, resolver-stack tools, paths, and polkit availability. Later distro QA must validate real packaging behavior.
 
-3. **Counterargument: deb/rpm without resolver stack gets diagnostics-only, not guided settings.**  
+3. **Counterargument: deb/rpm without resolver stack gets diagnostics-only, not guided settings.**
    Intentional. Guided settings are reserved for store/sandbox builds. Native packages without NetworkManager/systemd-resolved plus polkit should not pretend to have an apply path.
 
-4. **Counterargument: Real DNS apply is still not implemented.**  
+4. **Counterargument: Real DNS apply is still not implemented.**
    Valid and intentional. Real DNS apply belongs to a native power package with NetworkManager D-Bus, systemd-resolved, and polkit. Current lane includes the helper contract, resolver-stack selection, polkit action id, rollback/validation steps, and safeguards, not privileged writes.
 
-5. **Counterargument: Current/system resolver validation is not universally available.**  
+5. **Counterargument: Current/system resolver validation is not universally available.**
    Valid. It remains capability-gated. Unsupported mode requests fail before core CLI execution.
 
-6. **Counterargument: Store-safe builds can only guide, not apply.**  
+6. **Counterargument: Store-safe builds can only guide, not apply.**
    Correct. The product message must remain benchmark/guidance first for Flatpak and Snap.
 
-7. **Counterargument: Packaging templates are not real store validation.**  
+7. **Counterargument: Packaging templates are not real store validation.**
    Valid. The tests assert policy invariants and file presence, but Flatpak Builder, appstreamcli, desktop-file-validate, snapcraft, debuild, and rpmbuild still need to run on Linux.
 
-8. **Counterargument: Vietnamese coverage is not app-wide translation.**  
+8. **Counterargument: Vietnamese coverage is not app-wide translation.**
    Partially valid. The Linux shell now supports English/Vietnamese strings for primary native app, permission, and CLI surfaces. Full GUI copy coverage should expand when the GTK/Qt adapter lands.
 
 ## Remaining Risks
