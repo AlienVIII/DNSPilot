@@ -109,7 +109,49 @@ public struct ApplyPlanViewModel: Equatable {
         guidedPrimaryActionLabel != nil
     }
 
+    public var guidedApplySteps: [ApplyPlanStep] {
+        guard plan.disposition == .guideOnly, !plan.dnsServers.isEmpty else {
+            return []
+        }
+        return [
+            ApplyPlanStep(
+                id: "copy-dns",
+                title: "Copy DNS servers",
+                detail: "Copy the measured DNS server list: \(dnsServerText.replacingOccurrences(of: "\n", with: ", ")).",
+                systemImage: "doc.on.doc"
+            ),
+            ApplyPlanStep(
+                id: "open-network-settings",
+                title: "Open macOS Network Settings",
+                detail: "DNS Pilot opens Settings only; it does not change system DNS in the store-safe build.",
+                systemImage: "gearshape"
+            ),
+            ApplyPlanStep(
+                id: "paste-active-service",
+                title: "Paste into the active network service",
+                detail: "Select the network service currently carrying traffic, then paste the DNS servers into its DNS list.",
+                systemImage: "network"
+            ),
+            ApplyPlanStep(
+                id: "flush-cache",
+                title: "Flush cache or reconnect",
+                detail: "Use the copied checklist commands if allowed, or reconnect Wi-Fi/Ethernet before validating.",
+                systemImage: "arrow.triangle.2.circlepath"
+            ),
+            ApplyPlanStep(
+                id: "validate-system-dns",
+                title: "Validate System DNS",
+                detail: "Run System DNS validation to confirm macOS is using the intended resolver path.",
+                systemImage: "checkmark.seal"
+            ),
+        ]
+    }
+
     public var guidedApplyChecklistText: String? {
+        guidedApplyChecklistTextWithRestore(nil)
+    }
+
+    public func guidedApplyChecklistTextWithRestore(_ restoreSnapshot: SystemDNSResolverSnapshot?) -> String? {
         guard plan.disposition == .guideOnly, !plan.dnsServers.isEmpty else {
             return nil
         }
@@ -125,13 +167,44 @@ public struct ApplyPlanViewModel: Equatable {
         }
         lines.append("DNS servers:")
         lines.append(dnsServerText)
+        if let restoreSnapshot {
+            lines.append(contentsOf: restoreSectionLines(for: GuidedApplyRestoreViewModel(snapshot: restoreSnapshot)))
+        }
         lines.append("Steps:")
         lines.append("1. Open macOS Network Settings.")
         lines.append("2. Select the active network service.")
         lines.append("3. Paste these DNS servers into the DNS server list.")
         lines.append("4. Apply the network changes.")
-        lines.append("5. Retest DNS Pilot after applying DNS.")
+        lines.append("5. If allowed, flush local DNS cache before validating:")
+        lines.append("   sudo dscacheutil -flushcache")
+        lines.append("   sudo killall -HUP mDNSResponder")
+        lines.append("6. Run System DNS validation in DNS Pilot.")
+        lines.append("7. Retest DNS Pilot after applying DNS.")
         return lines.joined(separator: "\n")
+    }
+
+    private func restoreSectionLines(for restoreViewModel: GuidedApplyRestoreViewModel) -> [String] {
+        guard restoreViewModel.hasRestorableDNS else {
+            return [
+                "Current DNS before apply:",
+                "Current DNS unavailable",
+                "Capture the current macOS DNS settings manually before changing DNS.",
+            ]
+        }
+
+        var lines = [
+            "Current DNS before apply:",
+            restoreViewModel.dnsServerText,
+        ]
+        if !restoreViewModel.snapshot.searchDomains.isEmpty {
+            lines.append("Search domains before apply:")
+            lines.append(contentsOf: restoreViewModel.snapshot.searchDomains)
+        }
+        lines.append("If validation fails, paste the previous DNS servers back into the active network service.")
+        if restoreViewModel.snapshot.supplementalResolverCount > 0 {
+            lines.append("Scoped resolvers were present; restore may need VPN/MDM/service-specific settings.")
+        }
+        return lines
     }
 
     public var dnsServerText: String {
@@ -162,5 +235,38 @@ public struct ApplyPlanViewModel: Equatable {
 
     public init(plan: ApplyPlan) {
         self.plan = plan
+    }
+}
+
+public struct ApplyPlanStep: Equatable, Identifiable {
+    public let id: String
+    public let title: String
+    public let detail: String
+    public let systemImage: String
+
+    public init(id: String, title: String, detail: String, systemImage: String) {
+        self.id = id
+        self.title = title
+        self.detail = detail
+        self.systemImage = systemImage
+    }
+}
+
+public struct BenchmarkApplyPlanPresentation: Equatable {
+    public let showsApplyPlanState: Bool
+    public let showsLocalNextStep: Bool
+    public let reportIncludesLocalNextStep: Bool
+
+    public init(outcome: BenchmarkApplyPlanLoadOutcome?, isLoading: Bool) {
+        showsApplyPlanState = isLoading || outcome != nil
+        switch outcome {
+        case .failed:
+            showsLocalNextStep = !isLoading
+        case .loaded:
+            showsLocalNextStep = false
+        case nil:
+            showsLocalNextStep = !isLoading
+        }
+        reportIncludesLocalNextStep = showsLocalNextStep
     }
 }

@@ -14,4 +14,8 @@
 
 ## Open Requests
 - Expose system-DNS validation in UI-ready schema with `summary`, `runs`, `recommendation: null`, and preflight.
+- Add `--progress-jsonl`, `--save-db`, and `--history-id` support to `system-benchmark` or document that it is intentionally stateless.
 
+## macOS Temporary Adapter
+- macOS currently adapts `system-benchmark` payloads locally when `scope == "system-dns-validation"`.
+- System DNS validation deliberately skips progress JSONL and history arguments until Core CLI supports them.

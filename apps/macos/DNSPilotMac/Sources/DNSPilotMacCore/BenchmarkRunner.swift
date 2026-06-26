@@ -162,8 +162,13 @@ public struct BenchmarkRunner {
             throw BenchmarkRunnerError.invalidPlan(issues: validation.issues)
         }
 
-        let progressArguments = progressHandler == nil ? [] : ["--progress-jsonl"]
-        let arguments = plan.commandArguments + progressArguments + (persistence?.commandArguments ?? [])
+        let progressArguments = progressHandler == nil || !plan.supportsProgressEvents
+            ? []
+            : ["--progress-jsonl"]
+        let persistenceArguments = plan.supportsHistoryPersistence
+            ? (persistence?.commandArguments ?? [])
+            : []
+        let arguments = plan.commandArguments + progressArguments + persistenceArguments
         let output = try processRunner.run(
             executableURL: executableURL,
             arguments: arguments,

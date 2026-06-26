@@ -45,6 +45,8 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.scopeLabel, "DNS only")
         XCTAssertEqual(viewModel.healthLabel, "Healthy")
         XCTAssertEqual(viewModel.recommendationLabel, "Recommended: Cloudflare")
+        XCTAssertEqual(viewModel.fastestObservedLabel, "Fastest observed DNS: Cloudflare (4 ms median, 0% failed)")
+        XCTAssertEqual(viewModel.balancedRecommendationLabel, "Balanced recommendation: Cloudflare")
         XCTAssertEqual(viewModel.confidenceLabel, "High confidence")
         XCTAssertTrue(viewModel.hasActionableRecommendation)
         XCTAssertFalse(viewModel.recommendsKeepingCurrentDNS)
@@ -63,6 +65,8 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             Scope: DNS only
             Confidence: High confidence
             Recommendation: Recommended: Cloudflare
+            Fastest observed DNS: Cloudflare (4 ms median, 0% failed)
+            Balanced recommendation: Cloudflare
             Next step: Apply recommended DNS manually
             DNS Pilot has not changed system DNS.
             Recommended profile: Cloudflare.
@@ -93,6 +97,50 @@ final class BenchmarkResultViewModelTests: XCTestCase {
             DNS-only warning.
             """
         )
+    }
+
+    func testResultViewModelSeparatesFastestObservedFromBalancedRecommendation() {
+        let result = BenchmarkResultPayload(
+            summary: BenchmarkResultSummary(
+                measurementScope: .dnsOnly,
+                mode: .fastestRawDNS,
+                health: .healthy,
+                primaryIssue: "none",
+                canRecommend: true,
+                safetyNotes: [],
+                resolverCount: 2,
+                domainCount: 1,
+                attemptsPerRecord: 1,
+                timeoutMS: 500,
+                dnsTimeoutMS: nil,
+                connectTimeoutMS: nil,
+                tlsHandshakeTimeoutMS: nil,
+                connectPort: nil,
+                maxConnectTargetsPerDomain: nil,
+                tlsEnabled: nil,
+                trustStore: nil,
+                tlsSampleCount: nil,
+                recommendedProfileID: "cloudflare"
+            ),
+            runs: [
+                makeResultRun(profileID: "cloudflare", medianDNS: 12, failureRate: 0),
+                makeResultRun(profileID: "google-public-dns", medianDNS: 4, failureRate: 0),
+            ],
+            recommendation: BenchmarkRecommendation(
+                profileID: "cloudflare",
+                score: 0.97,
+                confidence: .high,
+                reasons: ["Better reliability across the run."],
+                caveats: []
+            ),
+            savedHistoryID: nil,
+            warning: ""
+        )
+
+        let viewModel = BenchmarkResultViewModel(result: result, catalog: makeResultCatalog())
+
+        XCTAssertEqual(viewModel.fastestObservedLabel, "Fastest observed DNS: Google Public DNS (4 ms median, 0% failed)")
+        XCTAssertEqual(viewModel.balancedRecommendationLabel, "Balanced recommendation: Cloudflare")
     }
 
     func testNextStepGuidanceAllowsManualSettingsOnlyForStrongRecommendation() {
@@ -136,8 +184,9 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         let guidance = BenchmarkResultNextStepViewModel(result: resultViewModel)
 
         XCTAssertEqual(guidance.title, "Next step: Apply recommended DNS manually")
-        XCTAssertEqual(guidance.actionLabel, "Open Network Settings")
+        XCTAssertEqual(guidance.actionLabel, "Copy DNS + Open Settings")
         XCTAssertTrue(guidance.canOpenNetworkSettings)
+        XCTAssertTrue(guidance.canValidateSystemDNSAfterApply)
         XCTAssertEqual(guidance.dnsSettings?.serverListText, "1.1.1.1\n1.0.0.1\n2606:4700:4700::1111")
         XCTAssertEqual(
             guidance.lines,
@@ -315,6 +364,7 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(guidance.title, "Next step: Keep current DNS")
         XCTAssertEqual(guidance.actionLabel, "Copy Next Step")
         XCTAssertFalse(guidance.canOpenNetworkSettings)
+        XCTAssertFalse(guidance.canValidateSystemDNSAfterApply)
         XCTAssertTrue(guidance.lines.contains("This run is not reliable enough to change DNS from it."))
     }
 

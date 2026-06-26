@@ -342,6 +342,40 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             "Direct resolver test; system DNS flush is not required."
         )
     }
+
+    func testSetupExplainsSystemDNSValidationFlushPolicy() {
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: makeSetupCatalog(),
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: [],
+            selectedSuiteID: "developer",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .systemDNSValidation
+        )
+
+        XCTAssertTrue(viewModel.canRun)
+        XCTAssertEqual(
+            viewModel.runPlanSummary,
+            "System DNS, A + AAAA, 1 resolver, 1 domain, 1 attempt"
+        )
+        XCTAssertEqual(
+            viewModel.flushPolicySummary,
+            "System DNS validation should flush macOS DNS cache before testing."
+        )
+        XCTAssertEqual(
+            viewModel.systemDNSFlushChecklistText,
+            """
+            System DNS validation checklist
+            1. Apply DNS manually in macOS Network Settings.
+            2. If allowed, flush local DNS cache before validating:
+               sudo dscacheutil -flushcache
+               sudo killall -HUP mDNSResponder
+            3. Run System DNS validation in DNS Pilot.
+            4. Treat browser Secure DNS, VPN, MDM, captive portal, and app caches as possible distortions.
+            """
+        )
+    }
 }
 
 private func makeSetupCatalog() -> CatalogSnapshot {

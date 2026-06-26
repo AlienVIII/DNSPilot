@@ -117,6 +117,23 @@ DNS handling, and platform capability reporting.
 - [x] [106] v0.1 path family health — reduce IPv4/IPv6 path health when probed TCP/TLS family paths fail.
 - [x] [107] v0.1 macOS result family failure label — show weak IPv4/IPv6 family in failure cells.
 - [x] [108] v0.1 macOS sidebar width — prevent platform names from truncating in default window.
+- [x] [109] v0.1 gaming suites — add Steam/Valve, Dota 2 SEA, CS2, and Riot/LoL DNS/TCP presets.
+- [x] [110] v0.1 macOS Game Ping — add gaming preset screen backed by path-compare.
+- [x] [111] v0.1 macOS confirmed apply and flush guidance — confirm copy/open apply and store-safe flush checklist actions.
+- [x] [112] v0.1 macOS fastest vs balanced result labels — separate raw fastest DNS from safety-gated recommendation.
+- [x] [113] v0.1 macOS selected profile guided apply — apply selected plain DNS profiles from Catalog with confirmation.
+- [x] [114] v0.1 saved-domain suites — add YouTube, GitHub, and ChatGPT/OpenAI presets.
+- [x] [115] v0.1 macOS product goal readiness — show support level and caveats for main goals.
+- [x] [116] v0.1 macOS power DNS action runner — add disabled-by-default admin apply/flush adapter.
+- [x] [117] v0.1 macOS power apply/flush UI — expose admin actions only behind explicit Power flag.
+- [x] [118] v0.1 macOS power capability alignment — reflect Power path in readiness and capability matrix.
+- [x] [119] v0.1 macOS permission/publish readiness — add native screens and copyable checklists.
+- [x] [120] v0.1 macOS localization foundation — add English/Vietnamese top-level language support.
+- [x] [121] v0.1 macOS publishing source-of-truth — document App Store and Power edition release steps.
+- [x] [122] v0.1 macOS native localization pass — localize primary app surfaces and split large SwiftUI benchmark body.
+- [x] [123] v0.1 macOS App Store metadata template — add review notes, privacy notes, and screenshot checklist.
+- [x] [124] v0.1 macOS distribution packaging script — sign, validate, and package release bundle when identities are provided.
+- [x] [125] v0.1 macOS Power edition bundle switch — enable direct-install admin apply/flush from bundle metadata.
 
 ---
 
@@ -5060,6 +5077,80 @@ Result: macOS bundle structural validation passed
 
 ---
 
+## Chunk 111: v0.1 macOS Confirmed Apply and Flush Guidance
+
+**Status:** Complete
+
+Store-safe guided apply actions now require confirmation before copying DNS
+servers and opening macOS Network Settings. Menu bar `Apply Last DNS` opens the
+app and confirms before reuse. `Flush DNS...` is available from the menu bar and
+System DNS validation mode; it confirms and copies the macOS flush checklist
+instead of running sudo/admin commands.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter "BenchmarkResultViewModelTests/testNextStepGuidanceAllowsManualSettingsOnlyForStrongRecommendation|StoreSafeDNSActionViewModelTests|MenuBarQuickActionsViewModelTests"
+Result: 10 passed, 0 failed
+```
+
+---
+
+## Chunk 112: v0.1 macOS Fastest vs Balanced Result Labels
+
+**Status:** Complete
+
+Benchmark and Game Ping results now show the fastest observed DNS candidate
+separately from the balanced recommendation. Reports include both labels so raw
+median-DNS speed is not confused with the safety-gated pick.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter "BenchmarkResultViewModelTests/testResultViewModelBuildsRecommendedSummaryAndRows|BenchmarkResultViewModelTests/testResultViewModelSeparatesFastestObservedFromBalancedRecommendation"
+Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 113: v0.1 macOS Selected Profile Guided Apply
+
+**Status:** Complete
+
+Catalog provider rows now expose confirmed store-safe apply for selected plain
+DNS profiles. The action copies that profile's DNS servers and opens macOS
+Network Settings after confirmation; encrypted or empty profiles do not offer
+the guided apply button.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests
+Result: 8 passed, 0 failed
+```
+
+---
+
+## Chunk 114: v0.1 Saved-Domain Suites
+
+**Status:** Complete
+
+The built-in catalog now includes dedicated YouTube/Google Video, GitHub, and
+ChatGPT/OpenAI suites in both the Rust core and macOS preview catalog. Custom
+company API domains remain covered through saved custom suites.
+
+### Verification
+
+```text
+cargo test -p dnspilot-core --test core_behaviour built_in_catalog_contains_required_profiles_and_suites
+Result: 1 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac --filter CatalogViewModelTests/testDefaultCatalogViewModelProvidesPreviewSummary
+Result: 1 passed, 0 failed
+```
+
+---
+
 ## Chunk 216: v0.1 System DNS Validation CLI
 
 **Status:** Complete
@@ -5800,4 +5891,387 @@ Result: 197 passed, 0 failed
 
 ./script/build_and_run.sh --verify
 Result: macOS bundle structural validation passed
+```
+
+---
+
+## Chunk 115: v0.1 macOS Product Goal Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The macOS Capabilities screen now includes a Product Goals readiness section.
+It shows the current support level for fastest DNS, balanced DNS, selected DNS
+apply, DNS flush, saved domain suites, and game server checks.
+
+### Edge Cases / Caveats
+
+- Apply and flush are intentionally marked as Store-safe guided, not silent
+  system mutation.
+- Game checks are marked as estimates because they use DNS + TCP path probes,
+  not ICMP ping or in-match UDP latency.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter ProductGoalReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 229 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 119: v0.1 macOS Permission and Publish Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added native sidebar screens for Permissions and Publish. Permissions explains
+ask-as-needed authorization, including Network Settings handoff and admin
+approval only when Power apply/flush is pressed. Publish separates App Store
+edition requirements from Power edition distribution.
+
+### Edge Cases / Caveats
+
+- macOS does not provide a normal pre-grant permission for plain DNS edits.
+- Release signing, provisioning, App Store entitlement approval, and review
+  metadata remain manual publisher steps.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 244 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 120: v0.1 macOS Localization Foundation
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/DNSPilotLocalization.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/DNSPilotLocalizationTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added English/Vietnamese language options and a native Settings scene. Top-level
+navigation, Settings, and the new readiness surfaces use the localizer.
+
+### Edge Cases / Caveats
+
+- Existing deep benchmark/result strings remain English until the next
+  localization pass.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter DNSPilotLocalizationTests --filter MacOSReadinessViewModelTests
+Result: 7 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 244 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 121: v0.1 macOS Publishing Source of Truth
+
+**Status:** Complete
+**Files changed:** `apps/macos/PUBLISHING.md`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added the macOS publishing source-of-truth with App Store and Power edition
+tracks, local release gate commands, signing/entitlement checks, App Store
+manual submission steps, Power manual QA steps, and current blockers.
+
+### Edge Cases / Caveats
+
+- App Store edition must keep Power apply/flush disabled and use guided flows.
+- Power edition can request administrator approval, but needs real manual QA
+  because it can change system DNS and flush DNS cache.
+- Release signing, provisioning, App Store Connect metadata, screenshots, and
+  final upload remain publisher-owned manual steps.
+
+### Verification
+
+```text
+git diff --check
+Result: passed
+```
+
+---
+
+## Chunk 122: v0.1 macOS Native Localization Pass
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/DNSPilotLocalization.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/DNSPilotLocalizationTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Expanded English/Vietnamese localization keys and wired the localizer through
+primary native surfaces: Benchmark, Game Ping, Custom DNS, History, Catalog,
+Capability Matrix, and common result/failure/progress labels.
+
+### Edge Cases / Caveats
+
+- Technical CLI/debug payload strings remain English to preserve issue-report
+  precision.
+- `BenchmarkDetailView` was split into smaller SwiftUI subviews because the
+  localized body otherwise exceeded Swift compiler type-check limits.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter DNSPilotLocalizationTests
+Result: 5 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 245 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed
+```
+
+---
+
+## Chunk 123: v0.1 macOS App Store Metadata Template
+
+**Status:** Complete
+**Files changed:** `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added an App Store Connect source-of-truth covering product identity, subtitle,
+description, keywords, review notes, privacy notes, screenshot checklist, and
+manual release blockers.
+
+### Edge Cases / Caveats
+
+- Support URL, marketing URL, final privacy answers, and screenshots remain
+  manual publisher inputs.
+- Metadata assumes the current store-safe build; update it if telemetry, sync,
+  accounts, remote catalog updates, or Power edition distribution are added.
+
+### Verification
+
+```text
+git diff --check
+Result: passed
+```
+
+---
+
+## Chunk 124: v0.1 macOS Distribution Packaging Script
+
+**Status:** Complete
+**Files changed:** `script/package_macos_distribution.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added a release packaging driver that requires a distribution signing identity,
+signs the app/helper with existing entitlement templates, runs distribution
+bundle validation, and creates a `.pkg` with an optional installer identity.
+
+### Edge Cases / Caveats
+
+- The script does not upload to App Store Connect.
+- Real signing identities and installer identity remain manual Apple Developer
+  account inputs.
+- The script intentionally fails if no distribution app signing identity is
+  provided, so ad-hoc signed builds are not mistaken for release artifacts.
+
+### Verification
+
+```text
+bash -n script/package_macos_distribution.sh
+Result: passed
+
+git diff --check
+Result: passed
+```
+
+---
+
+## Chunk 125: v0.1 macOS Power Edition Bundle Switch
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `script/build_and_run.sh`, `script/validate_macos_bundle.sh`, `script/package_macos_distribution.sh`, `README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Power edition can now be enabled by bundle metadata through
+`DNSPilotPowerActionsEnabled=true`, not only by Terminal environment. The local
+build script can create a Power bundle with `DNSPILOT_POWER_EDITION=1`, and the
+validator distinguishes Store-safe bundles from Power bundles.
+
+### Edge Cases / Caveats
+
+- Store-safe/App Store validation rejects Power-enabled distribution bundles by
+  default.
+- Power edition still requires manual QA because admin apply/flush mutates real
+  macOS DNS state.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSPowerDNSActionRunnerTests --filter MacOSReadinessViewModelTests --filter ProductGoalReadinessViewModelTests
+Result: 14 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 247 passed, 0 failed
+
+cargo test --workspace --tests
+Result: 125 passed, 0 failed
+
+bash -n script/build_and_run.sh script/validate_macos_bundle.sh script/package_macos_distribution.sh
+Result: passed
+
+DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
+Result: macOS Power bundle structural validation passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
+
+git diff --check
+Result: passed
+```
+
+---
+
+## Chunk 118: v0.1 macOS Power Capability Alignment
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/CapabilityMatrixViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/CapabilityMatrixViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The Swift preview capability matrix now includes `macos-power`, matching the
+Rust core capability model. Product Goals caveats now explicitly mention the
+`DNSPILOT_ENABLE_POWER_ACTIONS` path for admin apply/flush.
+
+### Edge Cases / Caveats
+
+- macOS Store remains the default store-safe product path.
+- macOS Power is direct-install only and not App Store-safe.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter CapabilityMatrixViewModelTests/testDefaultMatrixIncludesPlatformFlushAndApplyPolicy --filter ProductGoalReadinessViewModelTests/testApplyAndFlushStayHonestAboutStoreSafeLimits
+Result: 2 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 237 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 117: v0.1 macOS Power Apply/Flush UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/StoreSafeDNSActionViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/StoreSafeDNSActionViewModelTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Power apply buttons now appear in Benchmark recommendation, legacy next-step,
+and Catalog profile flows only when `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+The Flush DNS confirmation dialog also offers `Flush Now (Admin)` only under
+that same explicit flag.
+
+### Edge Cases / Caveats
+
+- Default store-safe builds keep copy/open-settings guidance only.
+- Power actions run asynchronously so the macOS administrator prompt does not
+  block SwiftUI state updates.
+- Power apply targets the active network service; unusual VPN or enterprise
+  routing can still fail and surfaces as a user-visible error alert.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter StoreSafeDNSActionViewModelTests --filter MacOSPowerDNSActionRunnerTests
+Result: 11 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 237 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
+```
+
+---
+
+## Chunk 116: v0.1 macOS Power DNS Action Runner
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `README.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added a disabled-by-default macOS Power DNS action runner for future
+direct-install builds. When explicitly enabled, it builds an administrator
+AppleScript prompt to apply plain DNS servers to the active macOS network
+service and flush local DNS cache.
+
+### Edge Cases / Caveats
+
+- Store-safe builds keep using guided copy/open-settings flows.
+- The runner validates DNS server strings before prompting for administrator
+  rights.
+- Active service detection can still fail on unusual routing/VPN/enterprise
+  network setups; the process error is returned to the UI layer.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSPowerDNSActionRunnerTests
+Result: 6 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 235 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS bundle structural validation passed; app exposed an on-screen window
 ```

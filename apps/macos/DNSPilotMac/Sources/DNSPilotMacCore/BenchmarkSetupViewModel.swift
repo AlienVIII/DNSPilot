@@ -27,6 +27,9 @@ public struct BenchmarkSetupViewModel: Equatable {
     }
 
     public var profileSelectionSummary: String {
+        if mode == .systemDNSValidation {
+            return "System DNS uses the current macOS resolver; profile selection is ignored."
+        }
         let runnableIDs = runnableProfileIDs
         guard !runnableIDs.isEmpty else {
             return "No runnable profiles available"
@@ -37,6 +40,9 @@ public struct BenchmarkSetupViewModel: Equatable {
     }
 
     public var profileSelectionCaveat: String? {
+        guard mode != .systemDNSValidation else {
+            return nil
+        }
         let selectedProfiles = catalog.profiles.filter { profile in
             selectedProfileIDs.contains(profile.id)
                 && BenchmarkProfileOption(profile: profile, resolverTransport: resolverTransport).isRunnable
@@ -52,7 +58,7 @@ public struct BenchmarkSetupViewModel: Equatable {
     public var runPlanSummary: String {
         let plan = plan
         var parts = [modeLabel]
-        if let resolverTransportLabel = resolverTransport.summaryLabel {
+        if mode != .systemDNSValidation, let resolverTransportLabel = resolverTransport.summaryLabel {
             parts.append(resolverTransportLabel)
         }
         parts += [
@@ -68,7 +74,17 @@ public struct BenchmarkSetupViewModel: Equatable {
     }
 
     public var flushPolicySummary: String {
-        "Direct resolver test; system DNS flush is not required."
+        if mode == .systemDNSValidation {
+            return "System DNS validation should flush macOS DNS cache before testing."
+        }
+        return "Direct resolver test; system DNS flush is not required."
+    }
+
+    public var systemDNSFlushChecklistText: String? {
+        guard mode == .systemDNSValidation else {
+            return nil
+        }
+        return StoreSafeDNSFlushGuidanceViewModel().checklistText
     }
 
     public var estimatedDurationWarning: String? {
@@ -218,12 +234,7 @@ public struct BenchmarkSetupViewModel: Equatable {
     }
 
     private var modeLabel: String {
-        switch mode {
-        case .dnsOnlyCompare:
-            "DNS only"
-        case .connectionPathCompare:
-            "DNS + TCP"
-        }
+        mode.displayLabel
     }
 
     private static func countLabel(_ count: Int, singular: String, plural: String) -> String {

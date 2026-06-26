@@ -1,6 +1,7 @@
 public enum BenchmarkPlanMode: Equatable, Hashable, Sendable {
     case dnsOnlyCompare
     case connectionPathCompare
+    case systemDNSValidation
 
     public var displayLabel: String {
         switch self {
@@ -8,6 +9,8 @@ public enum BenchmarkPlanMode: Equatable, Hashable, Sendable {
             "DNS only"
         case .connectionPathCompare:
             "DNS + TCP"
+        case .systemDNSValidation:
+            "System DNS"
         }
     }
 
@@ -22,6 +25,11 @@ public enum BenchmarkPlanMode: Equatable, Hashable, Sendable {
             """
             EN: Measures DNS lookup, then TCP connect to resolved endpoints.
             VI: Đo DNS rồi thử kết nối TCP tới IP trả về; sát trải nghiệm hơn DNS only nhưng chưa đo TLS/HTTP/QUIC.
+            """
+        case .systemDNSValidation:
+            """
+            EN: Validates the current macOS system DNS resolver path after a manual DNS change.
+            VI: Kiểm tra DNS hệ thống hiện tại của macOS sau khi bạn đổi DNS thủ công; nên flush cache trước khi test.
             """
         }
     }
@@ -179,11 +187,23 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     }
 
     public var resolverCount: Int {
-        plainResolvers.count
+        if mode == .systemDNSValidation {
+            return 1
+        }
+        return plainResolvers.count
     }
 
     public var resolverTargets: [BenchmarkProgressResolverTarget] {
-        plainResolvers.map { resolver in
+        if mode == .systemDNSValidation {
+            return [
+                BenchmarkProgressResolverTarget(
+                    id: Self.systemDNSResolverID,
+                    name: "System DNS",
+                    resolver: Self.systemDNSResolverLabel
+                ),
+            ]
+        }
+        return plainResolvers.map { resolver in
             BenchmarkProgressResolverTarget(
                 id: resolver.id,
                 name: resolver.name,
@@ -194,7 +214,7 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
 
     public var validation: BenchmarkPlanValidation {
         var issues: [String] = []
-        if plainResolvers.isEmpty {
+        if mode != .systemDNSValidation, plainResolvers.isEmpty {
             if let summaryLabel = resolverTransport.summaryLabel {
                 issues.append("Select at least one plain DNS profile with \(summaryLabel).")
             } else {
@@ -223,10 +243,22 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     }
 
     public var commandArguments: [String] {
-        var args = [mode == .dnsOnlyCompare ? "compare" : "path-compare"]
-        for resolver in plainResolvers {
-            args.append("--resolver")
-            args.append("\(resolver.id)=\(resolver.socketAddress)")
+        var args: [String]
+        switch mode {
+        case .dnsOnlyCompare:
+            args = ["compare"]
+            for resolver in plainResolvers {
+                args.append("--resolver")
+                args.append("\(resolver.id)=\(resolver.socketAddress)")
+            }
+        case .connectionPathCompare:
+            args = ["path-compare"]
+            for resolver in plainResolvers {
+                args.append("--resolver")
+                args.append("\(resolver.id)=\(resolver.socketAddress)")
+            }
+        case .systemDNSValidation:
+            args = ["system-benchmark", "--platform", "macos-store"]
         }
         for domain in domains {
             args.append("--domain")
@@ -236,18 +268,27 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
         args.append(String(attempts))
         args.append("--ip-family")
         args.append(recordFamily.cliValue)
-        if mode == .connectionPathCompare {
+        switch mode {
+        case .connectionPathCompare:
             args.append("--dns-timeout-ms")
             args.append(String(dnsTimeoutMS))
             args.append("--connect-timeout-ms")
             args.append(String(connectTimeoutMS))
             args.append("--max-connect-targets-per-domain")
             args.append(String(maxConnectTargetsPerDomain))
-        } else {
+        case .dnsOnlyCompare, .systemDNSValidation:
             args.append("--timeout-ms")
             args.append(String(dnsTimeoutMS))
         }
         return args
+    }
+
+    public var supportsProgressEvents: Bool {
+        mode != .systemDNSValidation
+    }
+
+    public var supportsHistoryPersistence: Bool {
+        mode != .systemDNSValidation
     }
 
     private var plainResolvers: [PlainResolver] {
@@ -340,6 +381,9 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
                 || byte == 45
         }
     }
+
+    private static let systemDNSResolverID = "system-dns"
+    private static let systemDNSResolverLabel = "macOS system resolver"
 }
 
 private struct PlainResolver: Equatable, Sendable {

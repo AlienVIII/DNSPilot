@@ -6,6 +6,8 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
     public let scopeLabel: String
     public let healthLabel: String
     public let recommendationLabel: String
+    public let fastestObservedLabel: String
+    public let balancedRecommendationLabel: String
     public let confidenceLabel: String
     public let showsConnectionMetrics: Bool
     public let rows: [BenchmarkResultRow]
@@ -32,6 +34,7 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
         rows = result.runs.map { run in
             BenchmarkResultRow(run: run, displayName: profileNames[run.profileID])
         }
+        fastestObservedLabel = Self.fastestObservedLabel(for: result.runs, profileNames: profileNames)
         warning = result.warning
         savedHistoryLabel = result.savedHistoryID.map(Self.savedHistoryLabel)
         fullSavedHistoryID = result.savedHistoryID
@@ -99,6 +102,7 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
         } else {
             recommendationLabel = "No recommendation"
         }
+        balancedRecommendationLabel = Self.balancedRecommendationLabel(from: recommendationLabel)
 
         if let confidence = result.recommendation?.confidence {
             confidenceLabel = "\(Self.confidenceLabel(for: confidence)) confidence"
@@ -148,6 +152,8 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
             "Scope: \(scopeLabel)",
             "Confidence: \(confidenceLabel)",
             "Recommendation: \(recommendationLabel)",
+            fastestObservedLabel,
+            balancedRecommendationLabel,
         ]
         if includeNextStep {
             let nextStep = BenchmarkResultNextStepViewModel(result: self)
@@ -239,6 +245,43 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
             return "Recommended profile uses encrypted DNS; manual plain-DNS apply is not available in this build yet."
         }
         return "Recommended profile has no IPv4/IPv6 server addresses, so DNS Pilot cannot build a safe apply guide yet."
+    }
+
+    private static func fastestObservedLabel(
+        for runs: [BenchmarkResultRun],
+        profileNames: [String: String]
+    ) -> String {
+        guard let fastest = runs
+            .filter({ run in
+                guard let median = run.metrics.medianDNSLatencyMS else {
+                    return false
+                }
+                return median.isFinite && run.metrics.failureRate < 1
+            })
+            .min(by: { lhs, rhs in
+                let lhsMedian = lhs.metrics.medianDNSLatencyMS ?? .infinity
+                let rhsMedian = rhs.metrics.medianDNSLatencyMS ?? .infinity
+                if lhsMedian == rhsMedian {
+                    return lhs.metrics.failureRate < rhs.metrics.failureRate
+                }
+                return lhsMedian < rhsMedian
+            }) else {
+            return "Fastest observed DNS: unavailable"
+        }
+
+        let name = profileNames[fastest.profileID] ?? fastest.profileID
+        let median = Int((fastest.metrics.medianDNSLatencyMS ?? 0).rounded())
+        let failurePercent = Int((fastest.metrics.failureRate.clamped(to: 0...1) * 100).rounded())
+        return "Fastest observed DNS: \(name) (\(median) ms median, \(failurePercent)% failed)"
+    }
+
+    private static func balancedRecommendationLabel(from recommendationLabel: String) -> String {
+        for prefix in ["Recommended: ", "Best measured candidate: "] {
+            if recommendationLabel.hasPrefix(prefix) {
+                return "Balanced recommendation: \(recommendationLabel.dropFirst(prefix.count))"
+            }
+        }
+        return "Balanced recommendation: \(recommendationLabel)"
     }
 
     private static func userFacingNotes(
@@ -552,14 +595,16 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
     public let title: String
     public let actionLabel: String
     public let canOpenNetworkSettings: Bool
+    public let canValidateSystemDNSAfterApply: Bool
     public let dnsSettings: BenchmarkRecommendedDNSSettings?
     public let lines: [String]
 
     public init(result: BenchmarkResultViewModel) {
         if result.hasActionableRecommendation, let recommendedProfileName = result.recommendedProfileName {
             title = "Next step: Apply recommended DNS manually"
-            actionLabel = "Open Network Settings"
+            actionLabel = "Copy DNS + Open Settings"
             canOpenNetworkSettings = true
+            canValidateSystemDNSAfterApply = true
             dnsSettings = result.recommendedDNSSettings
             lines = [
                 "DNS Pilot has not changed system DNS.",
@@ -572,6 +617,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Manual apply not available"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            canValidateSystemDNSAfterApply = false
             dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",
@@ -583,6 +629,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Keep current DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            canValidateSystemDNSAfterApply = false
             dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",
@@ -593,6 +640,7 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
             title = "Next step: Retest before changing DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
+            canValidateSystemDNSAfterApply = false
             dnsSettings = nil
             lines = [
                 "DNS Pilot has not changed system DNS.",

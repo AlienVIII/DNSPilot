@@ -15,6 +15,12 @@ final class CapabilityMatrixViewModelTests: XCTestCase {
                 && row.applyDisposition == .allow
         })
         XCTAssertTrue(viewModel.rows.contains { row in
+            row.platformID == "macos-power"
+                && row.flush == .desktopAdminService
+                && row.applyDisposition == .allow
+                && row.storeSafe == false
+        })
+        XCTAssertTrue(viewModel.rows.contains { row in
             row.platformID == "windows-store"
                 && row.applyDisposition == .guideOnly
         })

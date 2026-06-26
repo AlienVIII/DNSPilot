@@ -32,6 +32,15 @@ public struct PreviewDNSPilotCoreBridge: DNSPilotCoreBridge {
                 notes: ["NetworkExtension DNS Settings require explicit user enablement."]
             ),
             CapabilityRow(
+                platformID: "macos-power",
+                platformName: "macOS Power",
+                canBenchmark: true,
+                applyDisposition: .allow,
+                flush: .desktopAdminService,
+                storeSafe: false,
+                notes: ["Direct-install builds can use administrator approval for plain DNS apply/flush."]
+            ),
+            CapabilityRow(
                 platformID: "ios",
                 platformName: "iOS / iPadOS",
                 canBenchmark: true,

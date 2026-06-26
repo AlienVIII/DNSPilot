@@ -59,6 +59,8 @@ public enum BenchmarkHistoryIDFactory {
             "compare"
         case .connectionPathCompare:
             "path-compare"
+        case .systemDNSValidation:
+            "system-benchmark"
         }
     }
 }

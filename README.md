@@ -6,6 +6,7 @@ This repository currently implements the reusable Rust core and a smoke CLI.
 Native platform shells are expected to bind to this core instead of duplicating
 benchmark scoring, provider catalogs, test suites, and capability rules.
 The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
+macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 
 ## Current Scope
 
@@ -13,7 +14,9 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - Built-in Vietnam ISP DNS profiles for FPT Telecom, VNPT, and Viettel
   benchmarking presets.
 - Built-in test suites for General, Developer, Azure/Microsoft,
-  Google/Firebase, and Vietnam/Daily use cases.
+  YouTube/Google Video, GitHub, ChatGPT/OpenAI, Google/Firebase,
+  Vietnam/Daily, and gaming presets for Steam/Valve, Dota 2 SEA, CS2,
+  and Riot/LoL use cases.
 - Versioned core-owned shell payload contracts for catalog and capability
   matrix JSON.
 - Recommendation scoring for connection-path estimates.
@@ -23,6 +26,13 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   issue decisions before UI/apply prompts.
 - Apply-prompt safety policy that protects VPN, MDM, corporate DNS, and captive
   portal networks.
+- macOS Product Goals readiness panel summarizing supported, store-safe guided,
+  and estimate-only features with explicit caveats.
+- macOS Power DNS action runner for future direct-install builds, disabled by
+  default and gated behind the `DNSPilotPowerActionsEnabled` bundle key or
+  `DNSPILOT_ENABLE_POWER_ACTIONS`.
+- macOS Power apply/flush UI entry points appear only when
+  Power actions are explicitly enabled.
 - Versioned storage snapshot contract for profiles, test suites, and benchmark
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.
@@ -96,8 +106,12 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   tested resolver and copyable DNS servers.
 - macOS Benchmark apply-policy UI offers one guided primary action that copies
   measured DNS servers and opens Network Settings without mutating DNS itself.
+- macOS guided apply actions require confirmation before copying DNS/opening
+  Network Settings, including last-plan menu bar reuse.
 - macOS Benchmark apply-policy UI offers a copyable guided apply/retest
   checklist for store-safe manual DNS changes.
+- macOS menu bar and System DNS validation mode expose store-safe `Flush DNS...`
+  guidance with confirmation before copying macOS flush commands.
 - macOS Benchmark result surface treats apply-policy as authoritative when it is
   loading or available, avoiding conflicting legacy next-step apply guidance.
 - macOS policy guidance ViewModel for flush/apply labels and protected-network
@@ -179,6 +193,10 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 - macOS Benchmark strong recommendations include store-safe guided apply
   details: DNS servers to paste, tested resolver, copy action, and Network
   Settings handoff without changing system DNS silently.
+- macOS Benchmark and Game Ping results separate fastest observed DNS from the
+  balanced recommendation so users can see raw latency versus safety-gated pick.
+- macOS Catalog provider rows expose confirmed store-safe apply for selected
+  plain DNS profiles.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
   when partial failures line up with a specific IP family.
 - macOS Benchmark result rows and copied result reports include per-resolver
@@ -198,6 +216,24 @@ The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
   DNS profiles.
 - macOS Benchmark saved-suite management for editing/deleting custom domain
   suites.
+- macOS Game Ping screen for gaming DNS/TCP path checks with selectable
+  built-in gaming presets and DNS candidates. It reports connection-path
+  estimates, not ICMP or in-match UDP latency.
+- macOS Capabilities screen includes Product Goals readiness, making fastest
+  DNS, balanced recommendation, guided apply, guided flush, saved domains, and
+  game checks visible with their current product limits.
+- macOS Power DNS action runner can apply plain DNS to the active network
+  service and flush DNS through an administrator AppleScript prompt when
+  explicitly enabled; store-safe UI remains guided by default.
+- macOS Benchmark/Catalog Power buttons can apply selected DNS with explicit
+  confirmation when Power edition is enabled; Flush DNS dialogs can
+  run an administrator flush or copy the store-safe checklist.
+- macOS Capabilities/Product Goals surfaces include the macOS Power path so
+  store-safe and direct-install behavior stay visibly separated.
+- macOS Permissions and Publish readiness screens explain ask-as-needed
+  authorization, App Store-safe review work, and Power edition separation.
+- Localization foundation supports English and Vietnamese for top-level
+  navigation, Settings, and new readiness surfaces.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
 - macOS shell refreshes the storage-backed catalog on launch and after Custom
