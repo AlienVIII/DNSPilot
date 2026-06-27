@@ -10,7 +10,8 @@
 - Tray quick actions are modeled in core and hosted in the WinUI app through a NotifyIcon context menu.
 - Native shell localization uses WinUI `.resw` resources in `Strings/en-US` and `Strings/vi-VN` with `x:Uid` hooks in `MainWindow.xaml`.
 - Dynamic Windows shell text follows `CurrentUICulture` for progress, validation, failure reports, apply checklist, history rows, and tray labels.
-- Store packaging readiness is documented through `Packaging/Package.Store.appxmanifest.template`; the live package manifest still needs Partner Center identity and real assets.
+- Store packaging readiness is documented through `Packaging/Package.Store.appxmanifest.template`; the live package manifest still needs Partner Center identity, version, and publisher metadata.
+- Baseline Store logo/tile/splash PNG assets now exist; replace only if final branding changes.
 - Packaged helper path is explicit: copy `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj`; the app project copies it to output when present.
 
 ## Context
@@ -29,7 +30,7 @@
 - `Validate-WindowsLane.ps1` is the Windows-host validation entrypoint; `validate-windows-lane.sh` remains useful from macOS.
 
 ## Open Questions
-- Store packaging assets, signing, and MSIX submission metadata are not validated yet.
+- Store asset approval, signing, and MSIX submission metadata are not validated yet.
 - Partner Center must approve/accept `runFullTrust` for the packaged desktop shell/helper/tray model.
 - CLI-returned free-text notes/errors may still be English until CLI payloads expose stable message IDs or localized display fields.
 - Confirm NotifyIcon behavior in packaged Store context during Windows QA.

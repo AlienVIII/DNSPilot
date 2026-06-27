@@ -27,7 +27,8 @@ MSIX, tray, and Store behavior still require a Windows host.
 - Profile and history add/update/delete/list/clear flows use CLI contract
   runners and management row models.
 - WinUI host, tray host, native localization resources, Store MSIX manifest
-  template, bundled CLI locator, and publish/QA runbooks are present.
+  template, baseline package assets, bundled CLI locator, and publish/QA
+  runbooks are present.
 
 ## Validation
 

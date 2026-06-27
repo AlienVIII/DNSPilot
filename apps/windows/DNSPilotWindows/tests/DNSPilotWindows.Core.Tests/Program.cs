@@ -783,6 +783,32 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("PRIResource Include=\"Strings\\**\\*.resw\"", projectFile);
         Assert.Contains("Content Include=\"dnspilot-cli.exe\"", projectFile);
         Assert.Contains("CopyToOutputDirectory=\"PreserveNewest\"", projectFile);
+
+        var assetsRoot = Path.Combine(appRoot, "Assets");
+        AssertPngDimensions(Path.Combine(assetsRoot, "StoreLogo.png"), 50, 50);
+        AssertPngDimensions(Path.Combine(assetsRoot, "Square44x44Logo.png"), 44, 44);
+        AssertPngDimensions(Path.Combine(assetsRoot, "Square150x150Logo.png"), 150, 150);
+        AssertPngDimensions(Path.Combine(assetsRoot, "Wide310x150Logo.png"), 310, 150);
+        AssertPngDimensions(Path.Combine(assetsRoot, "SplashScreen.png"), 620, 300);
+    }
+
+    private static void AssertPngDimensions(string path, int expectedWidth, int expectedHeight)
+    {
+        Assert.True(File.Exists(path), $"Expected PNG asset to exist: {path}");
+
+        var bytes = File.ReadAllBytes(path);
+        Assert.True(bytes.Length >= 24, $"Expected PNG asset to include an IHDR chunk: {path}");
+        Assert.SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, bytes.Take(8));
+        Assert.Equal(expectedWidth, ReadBigEndianInt32(bytes, 16));
+        Assert.Equal(expectedHeight, ReadBigEndianInt32(bytes, 20));
+    }
+
+    private static int ReadBigEndianInt32(byte[] bytes, int offset)
+    {
+        return (bytes[offset] << 24)
+            | (bytes[offset + 1] << 16)
+            | (bytes[offset + 2] << 8)
+            | bytes[offset + 3];
     }
 
     private static string FindRepoRoot()

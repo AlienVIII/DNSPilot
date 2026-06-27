@@ -68,7 +68,7 @@ Run `apps/windows/windows-qa.md` end to end. Minimum release gate:
 - Confirm no silent DNS mutation happened before the manual Windows Settings step.
 
 ## Package Assets
-Create final PNG assets at:
+Baseline PNG assets are already present at:
 
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\StoreLogo.png`
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\Square44x44Logo.png`
@@ -76,7 +76,9 @@ Create final PNG assets at:
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\Wide310x150Logo.png`
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\SplashScreen.png`
 
-Then copy `Packaging\Package.Store.appxmanifest.template` to the real package manifest used by Visual Studio/MSIX packaging and replace:
+Replace them only if final branding changes. Then copy
+`Packaging\Package.Store.appxmanifest.template` to the real package manifest
+used by Visual Studio/MSIX packaging and replace:
 - `Identity Name`
 - `Publisher`
 - `Version`
