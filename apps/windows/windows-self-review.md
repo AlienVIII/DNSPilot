@@ -20,6 +20,7 @@
 ### "Multilingual support may be superficial"
 - Partly mitigated. Native shell labels, headers, buttons, and main tooltips are localized through `.resw` for English and Vietnamese.
 - Dynamic Windows shell text now follows `CurrentUICulture` for progress, validation issues, failure reports, apply checklist, history rows, and tray labels.
+- Structured benchmark recommendation reports also follow `CurrentUICulture` for labels and confidence/health text.
 - Remaining gap: free-text notes/errors returned by the CLI can still be English until CLI payloads expose localized display strings or stable message IDs.
 
 ### "CLI helper discovery can fail"
@@ -27,7 +28,8 @@
 - Release packaging still must guarantee `dnspilot-cli.exe` is bundled beside the app or otherwise accessible.
 
 ### "Recommendation UI is thinner than macOS"
-- Valid. Windows parses benchmark result JSON enough to refresh store-safe apply guidance, but it does not yet render full macOS-style recommendation cards.
+- Partly mitigated. Windows parses benchmark result JSON into a localized structured copyable recommendation report with health, selected recommendation, reasons, resolver metrics, warnings, and saved history ID, then refreshes store-safe apply guidance.
+- Remaining gap: it does not yet render full macOS-style visual recommendation cards until real WinUI layout QA.
 - Current acceptable state: diagnostics, progress rows, resolver rows, copied reports, refreshed DNS servers, and history rows are implemented.
 - Benchmark controls now update command preview/process rows before run, and completed runs keep final resolver status rows visible.
 
@@ -47,7 +49,7 @@
 
 ## Current Evidence
 - `bash apps/windows/validate-windows-lane.sh` runs core tests, core build, store-safe static checks, and a WinUI build probe.
-- Automated tests cover benchmark commands, live control previews, system DNS validation, progress/failure diagnostics, completed resolver statuses, apply guidance, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
+- Automated tests cover benchmark commands, live control previews, system DNS validation, progress/failure diagnostics, completed resolver statuses, apply guidance, structured benchmark recommendation reports, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
 - Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, and bundled CLI copy rule.
 - Store-safe static scan currently finds no DNS mutation or admin-elevation implementation in `apps/windows/DNSPilotWindows`.
 - XML well-formed checks pass for `MainWindow.xaml`, both `.resw` files, and the Store package manifest template.

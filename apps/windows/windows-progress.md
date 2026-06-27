@@ -16,6 +16,9 @@ MSIX, tray, and Store behavior still require a Windows host.
   progress/failure diagnostics. Toolbar Quick forces DNS+TCP, in-panel Run
   uses the current preview, and Validate DNS forces system-DNS validation while
   preserving relevant controls.
+- Benchmark success diagnostics now parse CLI benchmark-result JSON into a
+  localized structured copyable recommendation report with health, reasons,
+  resolver metrics, warning, and saved history ID.
 - Store-safe apply guidance copies DNS servers/checklists and opens Windows
   Network Settings without admin DNS mutation.
 - Profile and history add/update/delete/list/clear flows use CLI contract

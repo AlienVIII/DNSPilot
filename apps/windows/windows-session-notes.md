@@ -20,6 +20,7 @@
 - Windows shell now has decoders/runners for catalog, capabilities, apply-plan, profile list, and history list.
 - Custom DNS profile add/update/delete and history delete/clear run through the same CLI process boundary as benchmarks.
 - Benchmark success path now decodes result JSON and refreshes apply guidance via `apply-plan windows-store` using recommended profile/tested resolver.
+- Benchmark success diagnostics now render a localized structured copyable recommendation report from result JSON, including health, reasons, resolver metrics, warning, and saved history ID, with raw stdout fallback for unknown CLI output.
 - Benchmark controls now share a core plan factory so command preview and idle process rows update as mode/A-AAAA/resolver-family/timeouts change.
 - Toolbar Quick forces DNS+TCP quick plan, in-panel Run uses the current preview, and toolbar Validate DNS forces system-DNS validation while preserving selected A/AAAA/attempts/timeout.
 - Completed benchmark progress now preserves final per-resolver success/degraded/failed details.

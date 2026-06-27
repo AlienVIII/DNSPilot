@@ -5,7 +5,7 @@
 - `dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -23,6 +23,7 @@
 - Use in-panel `Run benchmark`; expected: it runs the current command preview exactly.
 - Run toolbar `Quick benchmark`; expected: it forces DNS + TCP quick mode while preserving selected A/AAAA, resolver address family, and numeric controls.
 - After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
+- After successful benchmark, expected: diagnostics show a structured copyable report with localized labels, health, recommendation, reasons, resolver metrics, warning, and saved history ID when the CLI returns benchmark-result JSON.
 - After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
 - Run toolbar `Validate DNS`; expected: it uses `system-benchmark --platform windows-store` while preserving selected A/AAAA, attempts, and DNS timeout.
 - Change `Record family` to `A only` and `AAAA only`; expected: command preview uses `--ip-family ipv4-only` or `--ip-family ipv6-only`.
@@ -49,6 +50,6 @@
 
 ## Known Risks
 - Real Windows UI layout, tray behavior, MSIX packaging, Store policy, and signing are not validated from macOS.
-- Detailed recommendation cards are still lighter than macOS; Windows now parses benchmark result JSON enough to refresh apply guidance from the recommended profile and tested resolver.
+- Visual recommendation cards remain lighter than macOS until real WinUI layout QA, but Windows now emits a localized structured copyable recommendation report and refreshes apply guidance from the recommended profile/tested resolver.
 - Free-text notes/errors returned by the CLI may still be English until CLI payloads expose localized display strings or stable message IDs.
 - Power edition admin/service apply remains a separate future lane.

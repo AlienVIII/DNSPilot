@@ -538,6 +538,15 @@ internal sealed class WindowsCoreTestSuite
         Assert.Equal("1.1.1.1:53", result.Runs.Single(run => run.ProfileId == "cloudflare").Resolver);
         Assert.Equal(12.5, result.Runs.Single(run => run.ProfileId == "cloudflare").Metrics.MedianDnsLatencyMs);
 
+        var report = BenchmarkResultReportViewModel.FromResult(result);
+        Assert.Equal("Recommendation: cloudflare (high, score 0.98)", report.RecommendationLine);
+        Assert.Contains("Scope: dns-tcp; Mode: best-overall; Health: healthy; Can recommend: yes", report.CopyableReport);
+        Assert.Contains("Recommended profile: cloudflare", report.CopyableReport);
+        Assert.Contains("Saved history: windows-run-1", report.CopyableReport);
+        Assert.Contains("cloudflare 1.1.1.1:53 - median DNS 12.5 ms; p95 DNS 16 ms; connect 31 ms; failure 0%; timeout 0%; IPv4 100%; IPv6 100%; priority fit 100%", report.CopyableReport);
+        Assert.Contains("Reason: Best overall path.", report.CopyableReport);
+        Assert.Contains("Warning: Path comparison estimates DNS plus TCP connect timing only.", report.CopyableReport);
+
         var request = BenchmarkApplyPlanRequestFactory.MakeRequest(result);
         Assert.SequenceEqual(
             new[] { "apply-plan", "windows-store", "--confidence", "high", "--gate-health", "healthy", "--profile-id", "cloudflare", "--tested-resolver", "1.1.1.1:53" },
@@ -833,6 +842,14 @@ internal sealed class WindowsCoreTestSuite
         var history = new BenchmarkHistoryViewModel(BenchmarkHistoryJsonDecoder.Decode(SampleJson.HistoryList), TestData.Catalog);
         Assert.Equal("Khuyến nghị: Cloudflare", history.Rows.Single().RecommendationLabel);
         Assert.Equal("Kiểm tra lại trước khi áp dụng khuyến nghị đã lưu", history.Rows.Single().ApplyGuidanceLabel);
+
+        var resultReport = BenchmarkResultReportViewModel.FromResult(BenchmarkResultJsonDecoder.Decode(SampleJson.BenchmarkResult));
+        Assert.Contains("Kết quả benchmark", resultReport.CopyableReport);
+        Assert.Contains("Sức khỏe: Tốt", resultReport.CopyableReport);
+        Assert.Contains("Hồ sơ khuyến nghị: cloudflare", resultReport.CopyableReport);
+        Assert.Contains("Khuyến nghị: cloudflare (cao, điểm 0.98)", resultReport.RecommendationLine);
+        Assert.Contains("Lý do: Best overall path.", resultReport.CopyableReport);
+        Assert.Contains("Cảnh báo: Path comparison estimates DNS plus TCP connect timing only.", resultReport.CopyableReport);
 
         var tray = TrayQuickActionsViewModel.CreateDefault(TestData.Catalog);
         Assert.Equal("Benchmark nhanh", tray.Actions.First().Label);

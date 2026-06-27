@@ -248,13 +248,7 @@ public sealed partial class MainWindow : Window
             {
                 var applyPlanMessage = await TryRefreshApplyGuidanceFromBenchmarkAsync(result.StandardOutput);
                 RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: history is not null);
-                _lastDiagnostics = string.Join(
-                    Environment.NewLine,
-                    WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
-                    $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
-                    applyPlanMessage,
-                    string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim(),
-                    string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
+                _lastDiagnostics = FormatBenchmarkSuccessDiagnostics(result, applyPlanMessage);
                 DiagnosticsBox.Text = _lastDiagnostics;
                 _ = LoadRuntimeContractsAsync();
                 return;
@@ -362,6 +356,32 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             return WindowsDisplayText.Text("Apply-plan refresh skipped: ", "Bỏ qua cập nhật apply-plan: ") + ex.Message;
+        }
+    }
+
+    private static string FormatBenchmarkSuccessDiagnostics(BenchmarkRunResult result, string applyPlanMessage)
+    {
+        return string.Join(
+            Environment.NewLine,
+            WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
+            $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
+            applyPlanMessage,
+            TryFormatBenchmarkReport(result.StandardOutput)
+                ?? (string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim()),
+            string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
+    }
+
+    private static string? TryFormatBenchmarkReport(string standardOutput)
+    {
+        try
+        {
+            return BenchmarkResultReportViewModel
+                .FromResult(BenchmarkResultJsonDecoder.Decode(standardOutput))
+                .CopyableReport;
+        }
+        catch
+        {
+            return null;
         }
     }
 
