@@ -97,6 +97,14 @@ Suggested App Privacy answers for the current store-safe macOS build:
 Confirm these answers again before submission if telemetry, crash reporting,
 sync, accounts, or remote catalog updates are added.
 
+Draft page sources:
+
+- Support page: `apps/macos/AppStoreConnect/SupportPage.md`
+- Privacy policy: `apps/macos/AppStoreConnect/PrivacyPolicy.md`
+
+Before submission, replace contact placeholders and host these pages at the
+public support/privacy URLs used in App Store Connect.
+
 ## Screenshot Checklist
 
 - Benchmark default state.
@@ -115,5 +123,6 @@ sync, accounts, or remote catalog updates are added.
 - App Store Connect app record for `com.dnspilot.mac`.
 - Mac App Store signing identity and provisioning profile.
 - Final screenshots from a signed release candidate.
-- Support URL and marketing URL.
+- Publicly hosted support/privacy URLs.
+- Marketing URL if you choose to provide one.
 - Final privacy answers in App Store Connect.

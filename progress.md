@@ -139,6 +139,7 @@ DNS handling, and platform capability reporting.
 - [x] [128] v0.1 macOS publish preflight readiness — surface the preflight gate in the native Publish screen.
 - [x] [129] v0.1 macOS privacy manifest gate — bundle and validate PrivacyInfo.xcprivacy for App Store readiness.
 - [x] [130] v0.1 macOS privacy manifest readiness — surface privacy manifest status in the native Publish screen.
+- [x] [131] v0.1 macOS support and privacy page drafts — add hostable App Store support/privacy source text.
 
 ---
 
@@ -6348,6 +6349,33 @@ Result: passed
 
 ./script/build_and_run.sh --sandbox-verify
 Result: macOS Store-safe bundle structural validation passed
+```
+
+---
+
+## Chunk 131: v0.1 macOS Support and Privacy Page Drafts
+
+**Status:** Complete
+**Files changed:** `apps/macos/AppStoreConnect/SupportPage.md`, `apps/macos/AppStoreConnect/PrivacyPolicy.md`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `progress.md`
+
+### What changed
+
+Added hostable support and privacy policy draft pages for the current Store-safe
+macOS build. App Store notes and publishing docs now point to those source files
+and narrow the remaining manual work to replacing contact placeholders and
+hosting public URLs.
+
+### Edge Cases / Caveats
+
+- The drafts match the current build only. They must be reviewed again if
+  telemetry, crash reporting, accounts, sync, remote catalog updates, or backend
+  services are added later.
+
+### Verification
+
+```text
+git diff --check
+Result: passed
 ```
 
 ---

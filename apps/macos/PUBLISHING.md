@@ -88,6 +88,8 @@ Expected:
 
 6. Prepare App Store metadata.
    - Start from `apps/macos/AppStoreConnect/README.md`.
+   - Support page draft: `apps/macos/AppStoreConnect/SupportPage.md`.
+   - Privacy policy draft: `apps/macos/AppStoreConnect/PrivacyPolicy.md`.
    - Explain DNS benchmarking and connection-path estimates.
    - State that the app does not claim full internet speed improvement.
    - State that store builds do not silently change system DNS.
@@ -149,6 +151,6 @@ DNSPILOT_INSTALLER_IDENTITY="<installer signing identity>" \
 
 - Release signing identity and provisioning profile are not present in this
   worktree.
-- Final App Store screenshots, support URL, marketing URL, and Apple account
-  privacy answers are not present here.
+- Final App Store screenshots, hosted support/privacy URLs, optional marketing
+  URL, and Apple account privacy answers are not present here.
 - Power edition needs real manual DNS mutation QA before public distribution.
