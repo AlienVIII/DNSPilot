@@ -35,7 +35,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --test server/*.test.mjs src/view-models/*.test.mjs"
+    "test": "node --test server/*.test.mjs src/view-models/*.test.mjs",
+    "verify": "npm test && npm run typecheck && npx expo config --type public && npx expo export --platform web && npx expo install --check && npm audit --omit=dev --audit-level=high"
   },
   "private": true
 }

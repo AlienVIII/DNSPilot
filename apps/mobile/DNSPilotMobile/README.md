@@ -30,6 +30,17 @@ Use `http://localhost:8787` for web and iOS Simulator. For a physical phone,
 replace the Bridge URL in the Overview tab with the printed Mac LAN URL, for
 example `http://192.168.1.20:8787`.
 
+## Verify
+
+Before real-device QA or EAS builds, run:
+
+```bash
+npm run verify
+```
+
+This runs unit tests, TypeScript, Expo config export, web export, Expo install
+checks, and the high-severity production dependency audit.
+
 ## Real Device Notes
 
 - iOS/iPadOS may ask for Local Network permission when connecting to the local

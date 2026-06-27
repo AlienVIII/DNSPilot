@@ -82,6 +82,7 @@
    stretched phone views.
 
 ## Validation Commands
+- `npm run verify`
 - `npm test`
 - `npm run typecheck`
 - `npx expo export --platform web`

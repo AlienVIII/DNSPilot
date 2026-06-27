@@ -24,6 +24,8 @@ device setup flows. It is not yet the final public-store architecture.
 
 ## Validation
 
+- `npm run verify`: preferred full local gate before real-device QA or EAS
+  builds.
 - `npm test`: pass.
 - `npm run typecheck`: pass after `npm ci`.
 
