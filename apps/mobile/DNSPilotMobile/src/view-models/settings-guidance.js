@@ -7,6 +7,7 @@ export function buildSettingsGuidance({ platform, applyPlan, locale = "en" }) {
   const profileName = plan.profile_name ?? "selected DNS profile";
   const t = (key, params = {}) => translate(locale, key, params);
   const servers = dnsServers.join(", ") || t("settings.noneAvailable");
+  const actions = dnsServers.length > 0 ? guidanceActions({ servers, t }) : [openSettingsAction(t)];
 
   if (plan.disposition === "protect-current-dns") {
     return {
@@ -15,6 +16,7 @@ export function buildSettingsGuidance({ platform, applyPlan, locale = "en" }) {
       canMutateSystemDns: false,
       steps: [t("settings.protected.step")],
       claims: [t("settings.protected.claim")],
+      actions: [],
       notes,
     };
   }
@@ -31,6 +33,7 @@ export function buildSettingsGuidance({ platform, applyPlan, locale = "en" }) {
         t("settings.android.retest"),
       ],
       claims: [t("settings.android.claim")],
+      actions,
       notes,
     };
   }
@@ -46,6 +49,27 @@ export function buildSettingsGuidance({ platform, applyPlan, locale = "en" }) {
       t("settings.ios.retest"),
     ],
     claims: [t("settings.ios.claim")],
+    actions,
     notes,
+  };
+}
+
+function guidanceActions({ servers, t }) {
+  return [
+    {
+      id: "copy-dns-servers",
+      kind: "copy",
+      label: t("settings.action.copyDns"),
+      value: servers,
+    },
+    openSettingsAction(t),
+  ];
+}
+
+function openSettingsAction(t) {
+  return {
+    id: "open-settings",
+    kind: "open-settings",
+    label: t("settings.action.openSettings"),
   };
 }

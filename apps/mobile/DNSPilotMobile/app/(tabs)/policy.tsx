@@ -1,3 +1,5 @@
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -19,7 +21,7 @@ import {
   palette,
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
-import { buildSettingsGuidance } from '@/src/view-models/settings-guidance';
+import { buildSettingsGuidance, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type MobilePlatform = 'ios' | 'android-play';
 type GateHealth = 'healthy' | 'degraded' | 'failed' | 'inconclusive';
@@ -43,6 +45,7 @@ export default function PolicyScreen() {
   const [captivePortalDetected, setCaptivePortalDetected] = useState(false);
   const [working, setWorking] = useState(false);
   const [results, setResults] = useState<Record<string, BridgeResult>>({});
+  const [settingsActionStatus, setSettingsActionStatus] = useState<string | null>(null);
 
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
   const selectedProfile = plainProfiles.find((profile) => profile.id === profileId);
@@ -83,6 +86,7 @@ export default function PolicyScreen() {
 
   async function runPolicy() {
     setWorking(true);
+    setSettingsActionStatus(null);
     try {
       const environment = {
         vpnActive,
@@ -114,6 +118,15 @@ export default function PolicyScreen() {
     } finally {
       setWorking(false);
     }
+  }
+
+  async function runGuidanceAction(action: SettingsGuidance['actions'][number]) {
+    if (action.kind === 'copy') {
+      await Clipboard.setStringAsync(action.value);
+      setSettingsActionStatus(t('settings.action.copied'));
+      return;
+    }
+    await Linking.openSettings();
   }
 
   return (
@@ -183,6 +196,14 @@ export default function PolicyScreen() {
             <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
               {guidance.claims.join(' ')}
             </Text>
+            {guidance.actions.length > 0 ? (
+              <Row>
+                {guidance.actions.map((action) => (
+                  <Button key={action.id} label={action.label} onPress={() => runGuidanceAction(action).catch(() => undefined)} variant="secondary" />
+                ))}
+                {settingsActionStatus ? <Pill label={settingsActionStatus} tone="green" /> : null}
+              </Row>
+            ) : null}
           </View>
         ) : (
           <EmptyState text={t('policy.guided.empty')} />

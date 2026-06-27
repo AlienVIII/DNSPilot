@@ -4,6 +4,19 @@ export type SettingsGuidance = {
   canMutateSystemDns: boolean;
   steps: string[];
   claims: string[];
+  actions: (
+    | {
+        id: 'copy-dns-servers';
+        kind: 'copy';
+        label: string;
+        value: string;
+      }
+    | {
+        id: 'open-settings';
+        kind: 'open-settings';
+        label: string;
+      }
+  )[];
   notes: string[];
 };
 

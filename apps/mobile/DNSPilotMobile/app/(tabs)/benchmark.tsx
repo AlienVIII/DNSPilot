@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -76,6 +77,7 @@ export default function BenchmarkScreen() {
   const [guidancePayload, setGuidancePayload] = useState<BridgeResult | null>(null);
   const [guidanceWorking, setGuidanceWorking] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [settingsActionStatus, setSettingsActionStatus] = useState<string | null>(null);
   const [vpnActive, setVpnActive] = useState(false);
   const [mdmProfileActive, setMdmProfileActive] = useState(false);
   const [corporateDnsDetected, setCorporateDnsDetected] = useState(false);
@@ -132,6 +134,7 @@ export default function BenchmarkScreen() {
   useEffect(() => {
     setGuidance(null);
     setGuidancePayload(null);
+    setSettingsActionStatus(null);
   }, [captivePortalDetected, corporateDnsDetected, guidancePlatform, mdmProfileActive, result, vpnActive]);
 
   function toggleProfile(profile: DNSProfile) {
@@ -191,6 +194,15 @@ export default function BenchmarkScreen() {
     } finally {
       setGuidanceWorking(false);
     }
+  }
+
+  async function runGuidanceAction(action: SettingsGuidance['actions'][number]) {
+    if (action.kind === 'copy') {
+      await Clipboard.setStringAsync(action.value);
+      setSettingsActionStatus(t('settings.action.copied'));
+      return;
+    }
+    await Linking.openSettings();
   }
 
   const resultData = result?.data as Record<string, unknown> | undefined;
@@ -384,6 +396,14 @@ export default function BenchmarkScreen() {
                 <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
                   {guidance.claims.join(' ')}
                 </Text>
+                {guidance.actions.length > 0 ? (
+                  <Row>
+                    {guidance.actions.map((action) => (
+                      <Button key={action.id} label={action.label} onPress={() => runGuidanceAction(action).catch(() => undefined)} variant="secondary" />
+                    ))}
+                    {settingsActionStatus ? <Pill label={settingsActionStatus} tone="green" /> : null}
+                  </Row>
+                ) : null}
                 {guidancePayload ? <CodeBlock text={compactJson(guidancePayload.data, 2200)} /> : null}
               </View>
             ) : null}

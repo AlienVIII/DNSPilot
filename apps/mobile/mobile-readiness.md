@@ -13,7 +13,8 @@
   local form validation, custom tag preservation, catalog merge, and history.
 - Guided DNS settings/profile flow: covered by core apply-plan payloads,
   iOS/iPadOS profile/settings guidance, Android settings/Private DNS guidance,
-  and protected-network suppression.
+  protected-network suppression, copy DNS servers actions, and native Open
+  Settings actions.
 - Tablet layouts: covered by shared adaptive layout helpers and two-column
   flows on wide screens.
 - IPv4/IPv6 and A/AAAA controls: covered by benchmark IP-family controls and

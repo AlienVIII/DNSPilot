@@ -41,7 +41,8 @@
     domain suites. Invalid forms must disable actions before bridge calls.
 13. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive
     portal. Expected behavior is `protect-current-dns` or guide-only steps, not
-    system mutation.
+    system mutation. Use Copy DNS servers and Open Settings; expected behavior
+    is user-controlled OS settings, not an in-app DNS switch.
 14. iPad/Android tablet: confirm the layout uses multi-column native tablet
     width and does not stretch a phone UI.
 

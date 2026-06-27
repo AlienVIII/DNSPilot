@@ -23,7 +23,13 @@ test("iOS guidance stays store-safe and profile/settings based", () => {
   assert.equal(guidance.canMutateSystemDns, false);
   assert.ok(guidance.steps.some((step) => step.includes("DNS Settings profile")));
   assert.ok(guidance.steps.some((step) => step.includes("1.1.1.1")));
+  assert.deepEqual(
+    guidance.actions.map((action) => action.kind),
+    ["copy", "open-settings"]
+  );
+  assert.equal(guidance.actions[0].value, "1.1.1.1, 1.0.0.1");
   assert.doesNotMatch(guidance.claims.join(" "), /fastest|speed improvement|silent/i);
+  assert.doesNotMatch(JSON.stringify(guidance.actions), /apply|mutate|vpn/i);
 });
 
 test("Android guidance uses settings and avoids VpnService or silent mutation", () => {
@@ -45,6 +51,10 @@ test("Android guidance uses settings and avoids VpnService or silent mutation", 
   assert.match(guidance.title, /Android/);
   assert.equal(guidance.canMutateSystemDns, false);
   assert.ok(guidance.steps.some((step) => step.includes("Private DNS")));
+  assert.deepEqual(
+    guidance.actions.map((action) => action.kind),
+    ["copy", "open-settings"]
+  );
   assert.doesNotMatch(guidance.steps.join(" "), /VpnService|silent/i);
 });
 
@@ -66,6 +76,7 @@ test("protected network guidance suppresses apply flow", () => {
   assert.equal(guidance.mode, "protect");
   assert.equal(guidance.steps.length, 1);
   assert.match(guidance.steps[0], /Keep current DNS/);
+  assert.deepEqual(guidance.actions, []);
   assert.equal(guidance.canMutateSystemDns, false);
 });
 
