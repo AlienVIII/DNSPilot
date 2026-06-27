@@ -1510,7 +1510,10 @@ private struct CustomDNSSaveStatusView: View {
 private struct CapabilityMatrixDetailView: View {
     let viewModel: CapabilityMatrixViewModel
     let localizer: DNSPilotLocalizer
-    private let productGoalReadiness = ProductGoalReadinessViewModel()
+
+    private var productGoalReadiness: ProductGoalReadinessViewModel {
+        ProductGoalReadinessViewModel(localizer: localizer)
+    }
 
     var body: some View {
         ScrollView {
@@ -1561,7 +1564,7 @@ private struct ProductGoalReadinessSection: View {
                 .font(.headline)
 
             ForEach(viewModel.rows) { row in
-                ProductGoalReadinessRowView(row: row)
+                ProductGoalReadinessRowView(row: row, localizer: localizer)
             }
         }
     }
@@ -1569,11 +1572,12 @@ private struct ProductGoalReadinessSection: View {
 
 private struct ProductGoalReadinessRowView: View {
     let row: ProductGoalReadinessRow
+    let localizer: DNSPilotLocalizer
 
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.row, verticalSpacing: 2) {
             GridRow {
-                Label(row.statusLabel, systemImage: row.systemImage)
+                Label(row.status.localizedLabel(localizer: localizer), systemImage: row.systemImage)
                     .foregroundStyle(statusColor)
                     .frame(width: 150, alignment: .leading)
                     .help(row.caveat)
@@ -1584,6 +1588,12 @@ private struct ProductGoalReadinessRowView: View {
                     Text(row.summary)
                         .foregroundStyle(.secondary)
                     Text(row.caveat)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(localizer.text(.entryPoint)): \(row.entryPoint)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(localizer.text(.validationEvidence)): \(row.validationEvidence)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

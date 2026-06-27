@@ -134,6 +134,7 @@ DNS handling, and platform capability reporting.
 - [x] [123] v0.1 macOS App Store metadata template — add review notes, privacy notes, and screenshot checklist.
 - [x] [124] v0.1 macOS distribution packaging script — sign, validate, and package release bundle when identities are provided.
 - [x] [125] v0.1 macOS Power edition bundle switch — enable direct-install admin apply/flush from bundle metadata.
+- [x] [126] v0.1 macOS product goal acceptance evidence — localize and show entry points plus validation proof for the six main goals.
 
 ---
 
@@ -6164,6 +6165,43 @@ Result: macOS Store-safe bundle structural validation passed
 
 git diff --check
 Result: passed
+```
+
+---
+
+## Chunk 126: v0.1 macOS Product Goal Acceptance Evidence
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/DNSPilotLocalization.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Product Goals now show the concrete app entry point and test/validation evidence
+for all six main goals. The section also uses English/Vietnamese localized goal
+copy and localized status labels, so the scope can be audited from the app
+without relying on chat history.
+
+### Edge Cases / Caveats
+
+- Apply/flush evidence stays honest: Store-safe remains guided, while Power
+  direct apply/flush remains explicit and manual-QA gated.
+- Game Ping is still presented as a DNS + TCP estimate, not ICMP or in-match UDP
+  latency.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter ProductGoalReadinessViewModelTests
+Result: 5 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
 ```
 
 ---

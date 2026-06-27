@@ -18,6 +18,8 @@ edition only and explicitly gated.
   confirms copy/open Settings actions, and validates with System DNS mode.
 - Store-safe flush copies commands instead of running privileged mutations.
 - Catalog rows can launch confirmed store-safe apply for plain DNS profiles.
+- Product Goals list all six acceptance goals with concrete app entry points,
+  validation evidence, and EN/VI localized user-facing copy.
 - English/Vietnamese localization covers primary native surfaces.
 - Power actions are disabled by default and require
   `DNSPilotPowerActionsEnabled`, `DNSPILOT_ENABLE_POWER_ACTIONS`, or a Power
