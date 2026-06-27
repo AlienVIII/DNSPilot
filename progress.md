@@ -140,6 +140,7 @@ DNS handling, and platform capability reporting.
 - [x] [129] v0.1 macOS privacy manifest gate — bundle and validate PrivacyInfo.xcprivacy for App Store readiness.
 - [x] [130] v0.1 macOS privacy manifest readiness — surface privacy manifest status in the native Publish screen.
 - [x] [131] v0.1 macOS support and privacy page drafts — add hostable App Store support/privacy source text.
+- [x] [132] v0.1 macOS bundle version gate — generate and validate release version/build metadata.
 
 ---
 
@@ -6376,6 +6377,42 @@ hosting public URLs.
 ```text
 git diff --check
 Result: passed
+```
+
+---
+
+## Chunk 132: v0.1 macOS Bundle Version Gate
+
+**Status:** Complete
+**Files changed:** `script/build_and_run.sh`, `script/validate_macos_bundle.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Generated macOS bundles now include `CFBundleShortVersionString` and
+`CFBundleVersion`, defaulting to `0.1.0` and `1`. The bundle validator now fails
+if the marketing version is missing/non-numeric-semantic or if build number is
+missing/non-numeric.
+
+### Edge Cases / Caveats
+
+- Release builders can override values with `DNSPILOT_APP_VERSION` and
+  `DNSPILOT_APP_BUILD`.
+- App Store Connect still owns final submitted version/build sequencing.
+
+### Verification
+
+```text
+bash -n script/build_and_run.sh script/validate_macos_bundle.sh
+Result: passed
+
+git diff --check
+Result: passed
+
+DNSPILOT_APP_VERSION=1.2.3 DNSPILOT_APP_BUILD=42 ./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed with version 1.2.3 build 42
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed with default version 0.1.0 build 1
 ```
 
 ---

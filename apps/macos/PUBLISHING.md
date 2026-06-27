@@ -63,6 +63,9 @@ Expected:
 
 4. Build/export a signed app bundle.
    - Use release signing, not ad-hoc signing.
+   - Set release metadata when needed:
+     `DNSPILOT_APP_VERSION=<marketing version>` and
+     `DNSPILOT_APP_BUILD=<numeric build>`.
    - Sign nested helper with `DNSPilotHelper.entitlements`.
    - Sign app bundle with `DNSPilotMac.entitlements`.
    - Packaging driver:

@@ -6,6 +6,8 @@ APP_BUNDLE="$ROOT_DIR/dist/DNSPilotMac.app"
 APP_NAME="DNSPilotMac"
 CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
+APP_VERSION_PATTERN='^[0-9]+(\.[0-9]+){1,2}$'
+APP_BUILD_PATTERN='^[0-9]+$'
 ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
 HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
 DISTRIBUTION=0
@@ -96,6 +98,20 @@ if [[ "$minimum_system_version" == "$EXPECTED_MIN_SYSTEM_VERSION" ]]; then
   pass "LSMinimumSystemVersion is $EXPECTED_MIN_SYSTEM_VERSION"
 else
   fail "LSMinimumSystemVersion expected $EXPECTED_MIN_SYSTEM_VERSION, got ${minimum_system_version:-missing}"
+fi
+
+app_version="$(plist_value "$INFO_PLIST" "CFBundleShortVersionString")"
+if [[ "$app_version" =~ $APP_VERSION_PATTERN ]]; then
+  pass "CFBundleShortVersionString is $app_version"
+else
+  fail "CFBundleShortVersionString must be semantic numeric version, got ${app_version:-missing}"
+fi
+
+app_build="$(plist_value "$INFO_PLIST" "CFBundleVersion")"
+if [[ "$app_build" =~ $APP_BUILD_PATTERN ]]; then
+  pass "CFBundleVersion is $app_build"
+else
+  fail "CFBundleVersion must be a numeric build number, got ${app_build:-missing}"
 fi
 
 power_actions_enabled="$(plist_value "$INFO_PLIST" "DNSPilotPowerActionsEnabled")"

@@ -27,6 +27,8 @@ edition only and explicitly gated.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
   are present; the Publish screen also surfaces local release preflight and
   privacy manifest readiness.
+- Local bundle validation requires macOS target, version/build metadata,
+  sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
 
 ## Validation
 

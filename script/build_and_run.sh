@@ -5,6 +5,8 @@ MODE="${1:-run}"
 APP_NAME="DNSPilotMac"
 BUNDLE_ID="com.dnspilot.mac"
 MIN_SYSTEM_VERSION="14.0"
+APP_VERSION="${DNSPILOT_APP_VERSION:-0.1.0}"
+APP_BUILD="${DNSPILOT_APP_BUILD:-1}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SWIFT_PACKAGE_DIR="$ROOT_DIR/apps/macos/DNSPilotMac"
@@ -54,6 +56,10 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$APP_NAME</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$APP_VERSION</string>
+  <key>CFBundleVersion</key>
+  <string>$APP_BUILD</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
   <key>NSPrincipalClass</key>
