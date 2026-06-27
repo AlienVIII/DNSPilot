@@ -44,12 +44,17 @@ public sealed partial class MainWindow : Window
 
     private async void QuickBenchmark_Click(object sender, RoutedEventArgs e)
     {
+        await StartBenchmarkAsync(ViewModel.BuildQuickBenchmarkPlan(CurrentBenchmarkSelection()));
+    }
+
+    private async void RunBenchmark_Click(object sender, RoutedEventArgs e)
+    {
         await StartBenchmarkAsync(BuildSelectedBenchmarkPlan());
     }
 
     private async void ValidateSystemDns_Click(object sender, RoutedEventArgs e)
     {
-        await StartBenchmarkAsync(ViewModel.SystemDnsValidationPlan);
+        await StartBenchmarkAsync(ViewModel.BuildSystemDnsValidationPlan(CurrentBenchmarkSelection()));
     }
 
     private async void CopyCommand_Click(object sender, RoutedEventArgs e)

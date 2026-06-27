@@ -73,6 +73,16 @@ public sealed class WindowsShellViewModel
         return BenchmarkControlPlanFactory.Build(Catalog, selection);
     }
 
+    public BenchmarkPlanViewModel BuildQuickBenchmarkPlan(BenchmarkControlSelection selection)
+    {
+        return BenchmarkControlPlanFactory.BuildQuickBenchmark(Catalog, selection);
+    }
+
+    public BenchmarkPlanViewModel BuildSystemDnsValidationPlan(BenchmarkControlSelection selection)
+    {
+        return BenchmarkControlPlanFactory.BuildSystemDnsValidation(Catalog, selection);
+    }
+
     public static WindowsShellViewModel CreateDefault(string databasePath)
     {
         var catalog = WindowsDefaultCatalog.Create();

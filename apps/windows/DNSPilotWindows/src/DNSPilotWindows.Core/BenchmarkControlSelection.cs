@@ -19,6 +19,25 @@ public static class BenchmarkControlPlanFactory
             2 => BenchmarkMode.SystemDnsValidation,
             _ => BenchmarkMode.DnsAndTcp,
         };
+
+        return Build(catalog, selection, mode);
+    }
+
+    public static BenchmarkPlanViewModel BuildQuickBenchmark(CatalogSnapshot catalog, BenchmarkControlSelection selection)
+    {
+        return Build(catalog, selection, BenchmarkMode.DnsAndTcp);
+    }
+
+    public static BenchmarkPlanViewModel BuildSystemDnsValidation(CatalogSnapshot catalog, BenchmarkControlSelection selection)
+    {
+        return Build(catalog, selection, BenchmarkMode.SystemDnsValidation);
+    }
+
+    private static BenchmarkPlanViewModel Build(
+        CatalogSnapshot catalog,
+        BenchmarkControlSelection selection,
+        BenchmarkMode mode)
+    {
         var recordFamily = selection.RecordFamilyIndex switch
         {
             1 => DnsRecordFamily.Ipv4Only,

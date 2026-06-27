@@ -13,7 +13,9 @@ MSIX, tray, and Store behavior still require a Windows host.
   `DNSPilotWindows.Core` view-model/domain layer.
 - Benchmark commands cover DNS-only, DNS+TCP, system-DNS validation, A/AAAA,
   resolver address-family controls, numeric controls, live preview, and
-  progress/failure diagnostics.
+  progress/failure diagnostics. Toolbar Quick forces DNS+TCP, in-panel Run
+  uses the current preview, and Validate DNS forces system-DNS validation while
+  preserving relevant controls.
 - Store-safe apply guidance copies DNS servers/checklists and opens Windows
   Network Settings without admin DNS mutation.
 - Profile and history add/update/delete/list/clear flows use CLI contract

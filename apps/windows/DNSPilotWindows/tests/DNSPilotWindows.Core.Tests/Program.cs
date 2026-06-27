@@ -335,6 +335,30 @@ internal sealed class WindowsCoreTestSuite
             TcpTimeoutMs: 1_000,
             TcpTargetsPerDomain: 4));
         Assert.Contains("--resolver cloudflare=[2606:4700:4700::1111]:53", string.Join(" ", ipv6Resolvers.CommandArguments));
+
+        var validation = shell.BuildSystemDnsValidationPlan(new BenchmarkControlSelection(
+            ModeIndex: 1,
+            RecordFamilyIndex: 2,
+            ResolverFamilyIndex: 2,
+            Attempts: 4,
+            DnsTimeoutMs: 1_200,
+            TcpTimeoutMs: 1_100,
+            TcpTargetsPerDomain: 2));
+        Assert.SequenceEqual(
+            new[] { "system-benchmark", "--platform", "windows-store", "--domain", "github.com", "--domain", "microsoft.com", "--domain", "azure.microsoft.com", "--attempts", "4", "--ip-family", "ipv6-only", "--timeout-ms", "1200" },
+            validation.CommandArguments);
+
+        var quick = shell.BuildQuickBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 2,
+            RecordFamilyIndex: 1,
+            ResolverFamilyIndex: 1,
+            Attempts: 5,
+            DnsTimeoutMs: 900,
+            TcpTimeoutMs: 1_400,
+            TcpTargetsPerDomain: 6));
+        Assert.Equal(BenchmarkMode.DnsAndTcp, quick.Mode);
+        Assert.Contains("--ip-family ipv4-only", string.Join(" ", quick.CommandArguments));
+        Assert.Contains("--max-connect-targets-per-domain 6", string.Join(" ", quick.CommandArguments));
     }
 
     private static void BenchmarkRunnerBuildsProcessBoundary()
@@ -656,6 +680,7 @@ internal sealed class WindowsCoreTestSuite
 
         Assert.Contains("SelectionChanged=\"BenchmarkSelection_Changed\"", xaml);
         Assert.Contains("ValueChanged=\"BenchmarkNumber_ValueChanged\"", xaml);
+        Assert.Contains("Click=\"RunBenchmark_Click\"", xaml);
 
         var requiredResourceKeys = new[]
         {

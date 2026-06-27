@@ -20,10 +20,11 @@
 - Confirm the app launches without UAC/admin prompt.
 - Confirm English and Vietnamese localized UI labels render by switching Windows app/display language or using the Windows language override available during QA.
 - Change benchmark mode, record family, resolver address family, and timeout controls before running; expected: command preview and idle process rows update immediately.
-- Run `Quick benchmark`; expected: command preview uses `path-compare`, process rows move to running, diagnostics show success or a copyable failure report.
+- Use in-panel `Run benchmark`; expected: it runs the current command preview exactly.
+- Run toolbar `Quick benchmark`; expected: it forces DNS + TCP quick mode while preserving selected A/AAAA, resolver address family, and numeric controls.
 - After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
 - After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
-- Run `Validate DNS`; expected: command preview uses `system-benchmark --platform windows-store`.
+- Run toolbar `Validate DNS`; expected: it uses `system-benchmark --platform windows-store` while preserving selected A/AAAA, attempts, and DNS timeout.
 - Change `Record family` to `A only` and `AAAA only`; expected: command preview uses `--ip-family ipv4-only` or `--ip-family ipv6-only`.
 - Change `Resolver address` to `IPv4` and `IPv6`; expected: resolver args use matching DNS server families.
 - Use `Copy DNS`; expected: clipboard contains one DNS server per line.
