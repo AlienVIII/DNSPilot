@@ -11,6 +11,8 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
 - English/Vietnamese UI via `expo-localization`.
 - Native build metadata is configured in `app.json`; EAS profiles are in
   `eas.json`.
+- `patch-package` applies an Expo SDK 56 `expo-modules-jsi` Swift fix required
+  for Xcode 26 Simulator builds. Remove it after Expo ships the upstream fix.
 
 ## Run
 
@@ -30,6 +32,13 @@ Use `http://localhost:8787` for web and iOS Simulator. For a physical phone,
 replace the Bridge URL in the Overview tab with the printed Mac LAN URL, for
 example `http://192.168.1.20:8787`.
 
+Native local builds use:
+
+```bash
+npm run ios
+npm run android
+```
+
 ## Verify
 
 Before real-device QA or EAS builds, run:
@@ -40,6 +49,14 @@ npm run verify
 
 This runs unit tests, TypeScript, Expo config export, web export, Expo install
 checks, and the high-severity production dependency audit.
+
+Local native smoke commands:
+
+```bash
+npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache
+npx expo prebuild --platform android --no-install
+./android/gradlew -p android assembleDebug
+```
 
 ## Real Device Notes
 

@@ -4,6 +4,9 @@
 - App config is prepared for native builds: `ios.bundleIdentifier`,
   `android.package`, version codes, EAS profiles, iOS Local Network usage text,
   Android normal network permissions, and EN/VI locale metadata.
+- Local native build smoke passes for iOS Simulator and Android debug. The
+  app carries a `patch-package` patch for `expo-modules-jsi@56.0.10` so Expo SDK
+  56 compiles on Xcode 26. Remove it after Expo ships the upstream fix.
 - The app remains store-safe: no iOS plain system DNS switch, no Android silent
   Private DNS mutation, no Android `VpnService`, and no "apply fastest DNS" or
   internet speed claim.
@@ -47,21 +50,28 @@
     width and does not stretch a phone UI.
 
 ## Native Build Smoke
-1. Install and login:
+1. Run local gates:
+   ```bash
+   npm run verify
+   npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache
+   npx expo prebuild --platform android --no-install
+   ./android/gradlew -p android assembleDebug
+   ```
+2. Install and login:
    ```bash
    npm install --global eas-cli
    eas login
    ```
-2. Initialize the Expo project if it is not linked yet:
+3. Initialize the Expo project if it is not linked yet:
    ```bash
    npx eas-cli@latest init
    ```
-3. Build installable internal binaries:
+4. Build installable internal binaries:
    ```bash
    npx eas-cli@latest build -p ios --profile development
    npx eas-cli@latest build -p android --profile development
    ```
-4. Install on real devices and repeat the real-device manual test.
+5. Install on real devices and repeat the real-device manual test.
 
 ## Store Submission Steps
 1. Confirm `com.dnspilot.mobile` is the final iOS bundle ID and Android package

@@ -27,6 +27,9 @@
 - Native build metadata: covered for iOS bundle ID/build number, Android package
   ID/version code, EN/VI supported locales, iOS Local Network permission text,
   Android normal network permissions, and EAS build profiles.
+- Native build smoke: covered by local iOS Simulator build and Android
+  `assembleDebug`; `patch-package` carries the required Expo SDK 56/Xcode 26
+  `expo-modules-jsi` Swift patch until upstream removes it.
 - Real-device setup UX: covered by an in-app Device Setup evaluator that checks
   localhost vs LAN/emulator bridge URLs, OS permission expectations, and
   store-safe DNS mutation policy before benchmark testing.
@@ -50,8 +53,8 @@
   scheduler risk, but long worst-case benchmarks still need the app to stay
   open.
 - Real-device testing is now easier because the bridge prints private LAN URLs,
-  but iOS Local Network permission, Android device networking, signing, and
-  store account flows are still inherently manual.
+  but iOS Local Network permission, Android device networking, signing, store
+  account flows, and final OS settings validation are still inherently manual.
 
 ## Remaining Blockers
 - iOS/iPadOS: real-device validation, Local Network prompt behavior, Apple
@@ -88,6 +91,9 @@
 
 ## Validation Commands
 - `npm run verify`
+- `npm run postinstall`
+- `npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache`
+- `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`
 - `npm test`
 - `npm run typecheck`
 - `npx expo export --platform web`
