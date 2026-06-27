@@ -34,10 +34,13 @@ final class MacOSReadinessViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.first { $0.id == "store-sandbox" }?.status, .ready)
         XCTAssertEqual(viewModel.rows.first { $0.id == "release-preflight" }?.status, .ready)
         XCTAssertTrue(viewModel.rows.first { $0.id == "release-preflight" }?.detail.contains("./script/preflight_macos_release.sh") == true)
+        XCTAssertEqual(viewModel.rows.first { $0.id == "privacy-manifest" }?.status, .ready)
+        XCTAssertTrue(viewModel.rows.first { $0.id == "privacy-manifest" }?.detail.contains("CA92.1") == true)
         XCTAssertEqual(viewModel.rows.first { $0.id == "release-signing" }?.status, .manual)
         XCTAssertEqual(viewModel.rows.first { $0.id == "power-edition-split" }?.status, .ready)
         XCTAssertTrue(viewModel.copyText.contains("App Store edition"))
         XCTAssertTrue(viewModel.copyText.contains("Power edition"))
         XCTAssertTrue(viewModel.copyText.contains("--include-power"))
+        XCTAssertTrue(viewModel.copyText.contains("PrivacyInfo.xcprivacy"))
     }
 }

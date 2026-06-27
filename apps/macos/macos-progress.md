@@ -25,7 +25,8 @@ edition only and explicitly gated.
   `DNSPilotPowerActionsEnabled`, `DNSPILOT_ENABLE_POWER_ACTIONS`, or a Power
   edition bundle switch.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
-  are present; the Publish screen also surfaces the local release preflight gate.
+  are present; the Publish screen also surfaces local release preflight and
+  privacy manifest readiness.
 
 ## Validation
 

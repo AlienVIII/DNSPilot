@@ -122,6 +122,12 @@ public struct MacOSPublishReadinessViewModel: Equatable, Sendable {
                 detail: "Run ./script/preflight_macos_release.sh before signing or upload; add --include-power only when validating direct-install Power bundles."
             ),
             MacOSReadinessRow(
+                id: "privacy-manifest",
+                title: "Privacy manifest",
+                status: .ready,
+                detail: "PrivacyInfo.xcprivacy declares no tracking, no collected data, and UserDefaults reason CA92.1 for local settings."
+            ),
+            MacOSReadinessRow(
                 id: "release-signing",
                 title: "Release signing",
                 status: .manual,

@@ -138,6 +138,7 @@ DNS handling, and platform capability reporting.
 - [x] [127] v0.1 macOS release preflight gate — provide one local command for tests and bundle validation before signing/upload.
 - [x] [128] v0.1 macOS publish preflight readiness — surface the preflight gate in the native Publish screen.
 - [x] [129] v0.1 macOS privacy manifest gate — bundle and validate PrivacyInfo.xcprivacy for App Store readiness.
+- [x] [130] v0.1 macOS privacy manifest readiness — surface privacy manifest status in the native Publish screen.
 
 ---
 
@@ -6313,6 +6314,40 @@ Result: macOS Store-safe bundle structural validation passed, including privacy 
 Result: macOS Swift tests passed; Store-safe bundle validation passed; Power
 bundle validation passed; Store-safe bundle restored and validated; privacy
 manifest checks passed in all bundle modes
+```
+
+---
+
+## Chunk 130: v0.1 macOS Privacy Manifest Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The native Publish readiness screen now shows `PrivacyInfo.xcprivacy` as a ready
+item, including no tracking, no collected data, and UserDefaults reason
+`CA92.1`.
+
+### Edge Cases / Caveats
+
+- App Store Connect privacy answers still need final publisher confirmation
+  before upload.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
 ```
 
 ---
