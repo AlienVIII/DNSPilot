@@ -54,6 +54,9 @@ Expected:
 3. Confirm entitlements.
    - Required now: App Sandbox and outbound network client.
    - Current template: `apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements`.
+   - Privacy manifest: `apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy`.
+     It declares no tracking, no collected data, and UserDefaults reason
+     `CA92.1` for app-local settings.
    - Do not include Power/admin behavior in the App Store edition.
    - If Apple NetworkExtension DNS Settings is added later, request/verify the
      entitlement before submitting.

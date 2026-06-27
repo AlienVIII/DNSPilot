@@ -91,6 +91,8 @@ Suggested App Privacy answers for the current store-safe macOS build:
   history are stored locally on the Mac.
 - Network use: user-initiated DNS/TCP benchmark probes to selected resolvers and
   target domains.
+- Bundle privacy manifest: `PrivacyInfo.xcprivacy` declares no tracking, no
+  collected data types, and UserDefaults reason `CA92.1` for app-local settings.
 
 Confirm these answers again before submission if telemetry, crash reporting,
 sync, accounts, or remote catalog updates are added.

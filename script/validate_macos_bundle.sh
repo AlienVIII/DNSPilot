@@ -46,6 +46,7 @@ INFO_PLIST="$APP_BUNDLE/Contents/Info.plist"
 APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 HELPER_BINARY="$APP_BUNDLE/Contents/Library/Helpers/$CLI_NAME"
 LEGACY_HELPER="$APP_BUNDLE/Contents/Resources/$CLI_NAME"
+PRIVACY_MANIFEST="$APP_BUNDLE/Contents/Resources/PrivacyInfo.xcprivacy"
 
 failures=0
 
@@ -135,6 +136,32 @@ if [[ ! -e "$LEGACY_HELPER" ]]; then
   pass "legacy Resources CLI helper is absent"
 else
   fail "legacy Resources CLI helper should not be bundled"
+fi
+
+if [[ -f "$PRIVACY_MANIFEST" ]] && plutil -lint "$PRIVACY_MANIFEST" >/dev/null; then
+  pass "privacy manifest is valid"
+else
+  fail "PrivacyInfo.xcprivacy is missing or invalid"
+fi
+
+if plist_bool_is_true "$PRIVACY_MANIFEST" "NSPrivacyTracking"; then
+  fail "privacy manifest must not declare tracking for the current store-safe build"
+else
+  pass "privacy manifest declares no tracking"
+fi
+
+if /usr/libexec/PlistBuddy -c "Print :NSPrivacyCollectedDataTypes:0" "$PRIVACY_MANIFEST" >/dev/null 2>&1; then
+  fail "privacy manifest should declare no collected data types for this local-only build"
+else
+  pass "privacy manifest declares no collected data types"
+fi
+
+user_defaults_reason="$(plist_value "$PRIVACY_MANIFEST" "NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0")"
+user_defaults_category="$(plist_value "$PRIVACY_MANIFEST" "NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPIType")"
+if [[ "$user_defaults_category" == "NSPrivacyAccessedAPICategoryUserDefaults" && "$user_defaults_reason" == "CA92.1" ]]; then
+  pass "privacy manifest declares UserDefaults required-reason API"
+else
+  fail "privacy manifest must declare UserDefaults reason CA92.1"
 fi
 
 if [[ -f "$ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$ENTITLEMENTS_TEMPLATE" >/dev/null; then

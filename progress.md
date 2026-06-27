@@ -137,6 +137,7 @@ DNS handling, and platform capability reporting.
 - [x] [126] v0.1 macOS product goal acceptance evidence — localize and show entry points plus validation proof for the six main goals.
 - [x] [127] v0.1 macOS release preflight gate — provide one local command for tests and bundle validation before signing/upload.
 - [x] [128] v0.1 macOS publish preflight readiness — surface the preflight gate in the native Publish screen.
+- [x] [129] v0.1 macOS privacy manifest gate — bundle and validate PrivacyInfo.xcprivacy for App Store readiness.
 
 ---
 
@@ -6273,6 +6274,45 @@ Result: passed
 
 ./script/build_and_run.sh --sandbox-verify
 Result: macOS Store-safe bundle structural validation passed
+```
+
+---
+
+## Chunk 129: v0.1 macOS Privacy Manifest Gate
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy`, `script/build_and_run.sh`, `script/validate_macos_bundle.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/AppStoreConnect/README.md`, `progress.md`
+
+### What changed
+
+Added a bundled `PrivacyInfo.xcprivacy` for the macOS app. The local bundle
+builder copies it into `Contents/Resources`, and the bundle validator now fails
+if the manifest is missing, invalid, declares tracking, declares collected data,
+or omits the UserDefaults required-reason API entry.
+
+### Edge Cases / Caveats
+
+- The manifest reflects the current store-safe build: no tracking, no collected
+  data, and UserDefaults reason `CA92.1` for app-local settings.
+- Publisher still must confirm final App Store privacy answers if telemetry,
+  crash reporting, accounts, sync, or remote catalog updates are added later.
+
+### Verification
+
+```text
+bash -n script/build_and_run.sh script/validate_macos_bundle.sh
+Result: passed
+
+plutil -lint apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed, including privacy manifest checks
+
+./script/preflight_macos_release.sh --skip-cargo --include-power
+Result: macOS Swift tests passed; Store-safe bundle validation passed; Power
+bundle validation passed; Store-safe bundle restored and validated; privacy
+manifest checks passed in all bundle modes
 ```
 
 ---
