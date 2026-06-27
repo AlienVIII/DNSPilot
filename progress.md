@@ -135,6 +135,7 @@ DNS handling, and platform capability reporting.
 - [x] [124] v0.1 macOS distribution packaging script — sign, validate, and package release bundle when identities are provided.
 - [x] [125] v0.1 macOS Power edition bundle switch — enable direct-install admin apply/flush from bundle metadata.
 - [x] [126] v0.1 macOS product goal acceptance evidence — localize and show entry points plus validation proof for the six main goals.
+- [x] [127] v0.1 macOS release preflight gate — provide one local command for tests and bundle validation before signing/upload.
 
 ---
 
@@ -6202,6 +6203,41 @@ Result: passed
 
 ./script/build_and_run.sh --sandbox-verify
 Result: macOS Store-safe bundle structural validation passed
+```
+
+---
+
+## Chunk 127: v0.1 macOS Release Preflight Gate
+
+**Status:** Complete
+**Files changed:** `script/preflight_macos_release.sh`, `apps/macos/PUBLISHING.md`, `progress.md`
+
+### What changed
+
+Added a single macOS release preflight command that runs shell syntax checks,
+Rust tests, Swift tests, and Store-safe sandbox bundle validation before any
+signing or App Store upload work. The script can also include Power bundle
+validation explicitly with `--include-power`.
+
+### Edge Cases / Caveats
+
+- The default preflight stays Store-safe; Power validation must be requested
+  deliberately.
+- When Power validation is included, the script rebuilds Store-safe at the end
+  so `dist/DNSPilotMac.app` is not left in a Power-enabled state by accident.
+- This does not replace manual signing identity, App Store Connect, screenshot,
+  privacy-answer, or real Power DNS mutation QA gates.
+
+### Verification
+
+```text
+bash -n script/preflight_macos_release.sh
+Result: passed
+
+./script/preflight_macos_release.sh --include-power
+Result: Rust workspace tests passed; macOS Swift tests passed; Store-safe
+bundle validation passed; Power bundle validation passed; Store-safe bundle
+restored and validated.
 ```
 
 ---

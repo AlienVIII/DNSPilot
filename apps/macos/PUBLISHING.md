@@ -30,9 +30,7 @@ Run before any signing or upload work:
 
 ```bash
 cd /Users/aart/Projects/Desktop/dnspilot-macos
-cargo test --workspace --tests
-swift test --package-path apps/macos/DNSPilotMac
-./script/build_and_run.sh --sandbox-verify
+./script/preflight_macos_release.sh
 ```
 
 Expected:
@@ -111,6 +109,15 @@ Expected:
 ```bash
 DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
 ```
+
+Or include Power bundle validation in the local release gate:
+
+```bash
+./script/preflight_macos_release.sh --include-power
+```
+
+The preflight restores a Store-safe bundle after optional Power validation so
+`dist/DNSPilotMac.app` is not left Power-enabled by accident.
 
 2. Confirm UI behavior.
    - `Apply Now (Admin)` appears only in Power mode.
