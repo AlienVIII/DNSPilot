@@ -116,6 +116,12 @@ public struct MacOSPublishReadinessViewModel: Equatable, Sendable {
                 detail: "Store entitlement templates keep App Sandbox enabled and allow outbound network client access."
             ),
             MacOSReadinessRow(
+                id: "release-preflight",
+                title: "Release preflight",
+                status: .ready,
+                detail: "Run ./script/preflight_macos_release.sh before signing or upload; add --include-power only when validating direct-install Power bundles."
+            ),
+            MacOSReadinessRow(
                 id: "release-signing",
                 title: "Release signing",
                 status: .manual,

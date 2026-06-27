@@ -136,6 +136,7 @@ DNS handling, and platform capability reporting.
 - [x] [125] v0.1 macOS Power edition bundle switch — enable direct-install admin apply/flush from bundle metadata.
 - [x] [126] v0.1 macOS product goal acceptance evidence — localize and show entry points plus validation proof for the six main goals.
 - [x] [127] v0.1 macOS release preflight gate — provide one local command for tests and bundle validation before signing/upload.
+- [x] [128] v0.1 macOS publish preflight readiness — surface the preflight gate in the native Publish screen.
 
 ---
 
@@ -6238,6 +6239,40 @@ Result: passed
 Result: Rust workspace tests passed; macOS Swift tests passed; Store-safe
 bundle validation passed; Power bundle validation passed; Store-safe bundle
 restored and validated.
+```
+
+---
+
+## Chunk 128: v0.1 macOS Publish Preflight Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The native Publish readiness screen now includes the local release preflight as
+a ready item. Its copyable checklist points to
+`./script/preflight_macos_release.sh` and the optional `--include-power` path.
+
+### Edge Cases / Caveats
+
+- Preflight remains local validation only; signing identities, App Store Connect
+  fields, screenshots, and real Power DNS mutation QA remain manual gates.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
 ```
 
 ---
