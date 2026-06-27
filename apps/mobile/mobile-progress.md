@@ -21,6 +21,8 @@ device setup flows. It is not yet the final public-store architecture.
 - Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,
   Default/Vietnam quick picks, English/Vietnamese localization, and real-device
   bridge URL checks are implemented.
+- Primary controls expose accessibility labels and state metadata for
+  VoiceOver/TalkBack real-device checks.
 
 ## Validation
 

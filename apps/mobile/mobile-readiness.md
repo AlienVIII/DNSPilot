@@ -30,6 +30,9 @@
 - Real-device setup UX: covered by an in-app Device Setup evaluator that checks
   localhost vs LAN/emulator bridge URLs, OS permission expectations, and
   store-safe DNS mutation policy before benchmark testing.
+- Native accessibility UX: covered for primary buttons, segmented controls,
+  switches, text inputs, and selectable chips with labels and state metadata for
+  real-device assistive technology checks.
 
 ## Critique
 - Expo plus local Node bridge is the fastest store-safe test shell, but it is
@@ -79,7 +82,9 @@
 10. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
    switches to protect-current-dns when required.
 11. Tablet: validate iPad and Android tablet layouts are multi-column, not
-   stretched phone views.
+    stretched phone views.
+12. Accessibility: with VoiceOver/TalkBack enabled, confirm buttons, segmented
+    choices, switches, inputs, and selected chips announce their label and state.
 
 ## Validation Commands
 - `npm run verify`

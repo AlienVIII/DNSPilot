@@ -118,23 +118,28 @@ export function Button({
   variant = 'primary',
   disabled = false,
   loading = false,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger';
   disabled?: boolean;
   loading?: boolean;
+  accessibilityLabel?: string;
 }) {
+  const unavailable = disabled || loading;
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityRole="button"
-      disabled={disabled || loading}
+      accessibilityState={{ busy: loading, disabled: unavailable }}
+      disabled={unavailable}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
         buttonStyle(variant),
-        (disabled || loading) && styles.buttonDisabled,
-        pressed && !disabled ? styles.buttonPressed : null,
+        unavailable && styles.buttonDisabled,
+        pressed && !unavailable ? styles.buttonPressed : null,
       ]}>
       {loading ? <ActivityIndicator color={variant === 'primary' ? '#fff' : palette.blue} /> : null}
       <Text style={[styles.buttonText, variant === 'primary' ? styles.buttonTextPrimary : null]}>{label}</Text>
@@ -163,6 +168,7 @@ export function TextField({
       <TextInput
         autoCapitalize="none"
         autoCorrect={false}
+        accessibilityLabel={label}
         keyboardType={keyboardType}
         multiline={multiline}
         onChangeText={onChangeText}
@@ -190,7 +196,9 @@ export function Segmented<T extends string>({
         const selected = option.value === value;
         return (
           <Pressable
+            accessibilityLabel={option.label}
             accessibilityRole="button"
+            accessibilityState={{ selected }}
             key={option.value}
             onPress={() => onChange(option.value)}
             style={[styles.segment, selected ? styles.segmentSelected : null]}>
@@ -219,7 +227,14 @@ export function ToggleRow({
         <Text style={styles.toggleLabel}>{label}</Text>
         {subtitle ? <Text style={styles.toggleSubtitle}>{subtitle}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onValueChange} />
+      <Switch
+        accessibilityHint={subtitle}
+        accessibilityLabel={label}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        value={value}
+        onValueChange={onValueChange}
+      />
     </View>
   );
 }
@@ -235,8 +250,15 @@ export function Pill({
   onPress?: () => void;
   tone?: Tone;
 }) {
+  const interactive = Boolean(onPress);
   return (
-    <Pressable disabled={!onPress} onPress={onPress} style={[styles.pill, toneStyle(tone), selected ? styles.pillSelected : null]}>
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole={interactive ? 'button' : undefined}
+      accessibilityState={interactive ? { selected } : undefined}
+      disabled={!interactive}
+      onPress={onPress}
+      style={[styles.pill, toneStyle(tone), selected ? styles.pillSelected : null]}>
       <Text style={[styles.pillText, selected ? styles.pillTextSelected : null]}>{label}</Text>
     </Pressable>
   );
