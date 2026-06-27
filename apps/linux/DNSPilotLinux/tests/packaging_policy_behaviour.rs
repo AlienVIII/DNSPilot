@@ -42,12 +42,16 @@ fn snap_manifest_stays_strict_and_avoids_privileged_network_manager_plug() {
 #[test]
 fn native_package_templates_install_polkit_policy_for_dns_apply() {
     let deb = read_packaging_file("packaging/deb/control");
+    let deb_install = read_packaging_file("packaging/deb/dnspilot.install");
     let rpm = read_packaging_file("packaging/rpm/dnspilot-linux.spec");
     let policy = read_packaging_file("packaging/polkit/io.dnspilot.DNSPilot.apply.policy");
 
     assert!(deb.contains("policykit-1") || deb.contains("polkitd"));
     assert!(deb.contains("network-manager") || deb.contains("systemd-resolved"));
+    assert!(deb_install.contains("dnspilot-native-helper usr/libexec/dnspilot/"));
+    assert!(deb_install.contains("io.dnspilot.DNSPilot.apply.policy usr/share/polkit-1/actions/"));
     assert!(rpm.contains("Requires: polkit"));
+    assert!(rpm.contains("%{_libexecdir}/dnspilot/dnspilot-native-helper"));
     assert!(rpm.contains("polkit-1/actions/io.dnspilot.DNSPilot.apply.policy"));
     assert!(policy.contains("io.dnspilot.DNSPilot.apply-dns"));
     assert!(policy.contains("<allow_active>auth_admin_keep</allow_active>"));

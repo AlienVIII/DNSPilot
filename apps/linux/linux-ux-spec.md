@@ -231,6 +231,22 @@ polkit, selects NetworkManager before systemd-resolved when both are available,
 filters DNS servers by IPv4/IPv6 selection, requires rollback snapshot, and
 includes post-apply current/system resolver validation when supported.
 
+Native helper contract examples:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-native-helper -- --contract
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-native-helper -- \
+  --dry-run \
+  --stack networkmanager \
+  --server 1.1.1.1 \
+  --server 9.9.9.9
+```
+
+The helper contract binary is packaged only for native deb/rpm power builds.
+Its current dry-run surface proves stack/server routing and explicitly reports
+that no DNS writes were executed.
+
 ## Custom Profiles
 
 The Linux shell package includes view-model support for custom plain DNS

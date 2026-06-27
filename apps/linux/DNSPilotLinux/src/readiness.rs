@@ -53,7 +53,7 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Native power path",
-                "deb/rpm apply-plan requires resolver stack plus polkit and includes rollback/validation.",
+                "deb/rpm apply-plan and native-helper contract require resolver stack plus polkit and include rollback/validation.",
             ),
             item(
                 "Native app surface",
@@ -77,14 +77,14 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Packaging and publish checklist",
-                "Flatpak/Snap store-safe templates, deb/rpm native-power templates, AppStream, desktop file, icon, polkit policy, and publish checklist are present.",
+                "Flatpak/Snap store-safe templates, deb/rpm native-power templates, helper install paths, AppStream, desktop file, icon, polkit policy, and publish checklist are present.",
             ),
         ],
         external_requirements: vec![
             "Flatpak/Snap/deb/rpm real package QA on Linux hardware or VM.",
             "store credentials, signing, screenshots, release notes, and final metadata review.",
             "GTK/libadwaita or Qt rendering adapter if a graphical shell is selected for the release artifact.",
-            "Native resolver write execution QA before enabling real DNS mutation in deb/rpm.",
+            "Native resolver write execution implementation and QA before enabling real DNS mutation in deb/rpm.",
         ],
     }
 }

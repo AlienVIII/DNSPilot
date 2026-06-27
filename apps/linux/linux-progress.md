@@ -21,7 +21,9 @@ package release.
 - English/Vietnamese strings cover primary native app, permission, and CLI
   surfaces.
 - Packaging templates exist for Flatpak, Snap, deb, rpm, shared desktop/AppStream
-  metadata, icon, and polkit policy.
+  metadata, icon, native helper install paths, and polkit policy.
+- Native helper contract binary supports contract and dry-run inspection without
+  DNS mutation.
 
 ## Validation
 
@@ -31,8 +33,7 @@ package release.
 
 - Native GUI stack decision: GTK/libadwaita or Qt.
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.
-- NetworkManager/systemd-resolved write execution and polkit helper if the Power
-  path proceeds.
+- NetworkManager/systemd-resolved write execution if the Power path proceeds.
 
 ## Source Of Truth
 
