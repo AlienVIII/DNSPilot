@@ -32,6 +32,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
+        Run("Windows publish docs include privacy, listing, and certification copy", WindowsPublishDocsIncludePrivacyListingAndCertificationCopy);
         Run("Windows dynamic shell text follows current UI culture", WindowsDynamicShellTextFollowsCurrentUiCulture);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
@@ -809,6 +810,36 @@ internal sealed class WindowsCoreTestSuite
             | (bytes[offset + 1] << 16)
             | (bytes[offset + 2] << 8)
             | bytes[offset + 3];
+    }
+
+    private static void WindowsPublishDocsIncludePrivacyListingAndCertificationCopy()
+    {
+        var repoRoot = FindRepoRoot();
+        var windowsRoot = Path.Combine(repoRoot, "apps", "windows");
+        var privacy = File.ReadAllText(Path.Combine(windowsRoot, "windows-privacy.md"));
+        var listing = File.ReadAllText(Path.Combine(windowsRoot, "windows-store-listing.md"));
+        var publish = File.ReadAllText(Path.Combine(windowsRoot, "windows-publish.md"));
+
+        Assert.Contains("Privacy Policy Draft", privacy);
+        Assert.Contains("DNS queries", privacy);
+        Assert.Contains("TCP connection probes", privacy);
+        Assert.Contains("stored locally", privacy);
+        Assert.Contains("does not sell", privacy);
+        Assert.Contains("no silent DNS mutation", privacy);
+        Assert.Contains("REPLACE_WITH_PRIVACY_POLICY_URL", privacy);
+        Assert.Contains("REPLACE_WITH_SUPPORT_URL", privacy);
+
+        Assert.Contains("Store Listing Draft", listing);
+        Assert.Contains("DNS Pilot", listing);
+        Assert.Contains("benchmark, copy guidance, open Windows settings, validate current DNS", listing);
+        Assert.Contains("runFullTrust justification", listing);
+        Assert.Contains("Privacy policy URL", listing);
+        Assert.Contains("Support URL", listing);
+        Assert.Contains("Notes for certification", listing);
+
+        Assert.Contains("windows-privacy.md", publish);
+        Assert.Contains("windows-store-listing.md", publish);
+        Assert.Contains("Partner Center Properties", publish);
     }
 
     private static string FindRepoRoot()

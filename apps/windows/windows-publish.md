@@ -45,7 +45,7 @@ powershell -ExecutionPolicy Bypass -File apps\windows\Validate-WindowsLane.ps1 -
 ```
 
 Expected:
-- 22 Windows core tests pass.
+- 23 Windows core tests pass.
 - Core solution builds.
 - Store-safe static scan passes.
 - Localization and package template checks pass.
@@ -85,10 +85,18 @@ used by Visual Studio/MSIX packaging and replace:
 - asset paths if branding files differ
 
 ## Store Submission Notes
-- Include a privacy policy. DNS Pilot sends DNS queries and TCP probes to selected resolvers/domains and stores profile/history data locally.
+- Host `apps/windows/windows-privacy.md` as the public Privacy policy URL before submission.
+- Use `apps/windows/windows-store-listing.md` for listing text, support copy, search terms, and certification notes.
 - In Partner Center, disclose `runFullTrust` and explain the Store-safe boundary.
 - Do not describe the Store build as one-click DNS apply. Correct wording: benchmark, copy guidance, open Windows settings, validate current DNS.
 - Keep Power edition/admin-service wording out of Store screenshots and descriptions unless published as a separate SKU/distribution.
+
+## Partner Center Properties
+- Privacy policy URL: hosted `windows-privacy.md`.
+- Support URL: support site or mail form using the support copy in `windows-store-listing.md`.
+- Website URL: product page or documentation page.
+- Category: Utilities and tools.
+- Restricted capability notes: use the `runFullTrust justification` from `windows-store-listing.md`.
 
 ## Final Publish Gate
 Only publish after all are true:

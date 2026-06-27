@@ -12,6 +12,7 @@
 - Dynamic Windows shell text follows `CurrentUICulture` for progress, validation, failure reports, apply checklist, history rows, and tray labels.
 - Store packaging readiness is documented through `Packaging/Package.Store.appxmanifest.template`; the live package manifest still needs Partner Center identity, version, and publisher metadata.
 - Baseline Store logo/tile/splash PNG assets now exist; replace only if final branding changes.
+- Privacy policy draft, Store listing copy, support copy, and certification notes live in `windows-privacy.md` and `windows-store-listing.md`.
 - Packaged helper path is explicit: copy `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj`; the app project copies it to output when present.
 
 ## Context
@@ -30,7 +31,7 @@
 - `Validate-WindowsLane.ps1` is the Windows-host validation entrypoint; `validate-windows-lane.sh` remains useful from macOS.
 
 ## Open Questions
-- Store asset approval, signing, and MSIX submission metadata are not validated yet.
+- Store asset approval, signing, hosted privacy/support URLs, and MSIX submission metadata are not validated yet.
 - Partner Center must approve/accept `runFullTrust` for the packaged desktop shell/helper/tray model.
 - CLI-returned free-text notes/errors may still be English until CLI payloads expose stable message IDs or localized display fields.
 - Confirm NotifyIcon behavior in packaged Store context during Windows QA.
@@ -40,4 +41,4 @@
 - Record Core CLI needs in `windows-core-cli-request.md`.
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
-- Publish path and Store capability justification are in `apps/windows/windows-publish.md`.
+- Publish path and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.

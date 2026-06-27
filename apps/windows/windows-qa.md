@@ -5,7 +5,7 @@
 - `dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, privacy/listing docs, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.

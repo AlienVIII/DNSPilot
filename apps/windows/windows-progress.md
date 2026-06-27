@@ -29,6 +29,8 @@ MSIX, tray, and Store behavior still require a Windows host.
 - WinUI host, tray host, native localization resources, Store MSIX manifest
   template, baseline package assets, bundled CLI locator, and publish/QA
   runbooks are present.
+- Privacy policy draft, Store listing copy, support text, and certification
+  notes are present for Partner Center preparation.
 
 ## Validation
 
@@ -48,3 +50,5 @@ MSIX, tray, and Store behavior still require a Windows host.
 
 - Critique and Store risk: `apps/windows/windows-self-review.md`.
 - Publish steps: `apps/windows/windows-publish.md`.
+- Privacy/listing source: `apps/windows/windows-privacy.md` and
+  `apps/windows/windows-store-listing.md`.
