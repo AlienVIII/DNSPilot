@@ -38,7 +38,7 @@
    Intentional. Guided settings are reserved for store/sandbox builds. Native packages without NetworkManager/systemd-resolved plus polkit should not pretend to have an apply path.
 
 4. **Counterargument: Real DNS apply is still not implemented.**
-   Valid and intentional. Real DNS apply belongs to a native power package with NetworkManager D-Bus, systemd-resolved, and polkit. Current lane includes the helper binary contract, resolver-stack selection, polkit action id, rollback/validation steps, and safeguards, not privileged writes.
+   Valid and intentional. Real DNS apply belongs to a native power package with NetworkManager D-Bus, systemd-resolved, and polkit. Current lane includes the helper binary contract, request protocol, mock executor lifecycle, resolver-stack selection, polkit action id, rollback/validation steps, and safeguards, not privileged writes.
 
 5. **Counterargument: Current/system resolver validation is not universally available.**
    Valid. It remains capability-gated. Unsupported mode requests fail before core CLI execution.

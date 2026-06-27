@@ -52,3 +52,28 @@ fn native_helper_rejects_dry_run_without_servers() {
         .unwrap()
         .contains("--server is required"));
 }
+
+#[test]
+fn native_helper_request_json_runs_mock_lifecycle_without_writing_dns() {
+    let request = r#"{
+        "schema_version": 1,
+        "polkit_action_id": "io.dnspilot.DNSPilot.apply-dns",
+        "resolver_stack": "networkmanager",
+        "servers": ["1.1.1.1"],
+        "rollback_snapshot": true,
+        "validate_after_apply": true
+    }"#;
+
+    let output = helper_binary()
+        .args(["--request-json", request])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Native helper mock execution"));
+    assert!(stdout.contains("snapshot:NetworkManager"));
+    assert!(stdout.contains("authorize:io.dnspilot.DNSPilot.apply-dns"));
+    assert!(stdout.contains("write:NetworkManager:1.1.1.1"));
+    assert!(stdout.contains("DNS writes executed: no"));
+}

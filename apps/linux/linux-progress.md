@@ -24,6 +24,9 @@ package release.
   metadata, icon, native helper install paths, and polkit policy.
 - Native helper contract binary supports contract and dry-run inspection without
   DNS mutation.
+- Native helper request JSON and mock executor lifecycle cover snapshot,
+  authorization, write, flush, validation, and rollback sequencing without DNS
+  mutation.
 
 ## Validation
 

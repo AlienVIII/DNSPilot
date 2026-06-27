@@ -53,7 +53,7 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Native power path",
-                "deb/rpm apply-plan and native-helper contract require resolver stack plus polkit and include rollback/validation.",
+                "deb/rpm apply-plan, native-helper request protocol, and mock executor require resolver stack plus polkit and include rollback/validation.",
             ),
             item(
                 "Native app surface",

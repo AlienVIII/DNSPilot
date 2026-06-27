@@ -1,4 +1,7 @@
-use dnspilot_linux_shell::native_power::{NativeResolverStack, DNS_APPLY_POLKIT_ACTION_ID};
+use dnspilot_linux_shell::native_power::{
+    execute_native_apply_request, parse_native_apply_request_json, NativeHelperExecutor,
+    NativeHelperRunError, NativeResolverStack, DNS_APPLY_POLKIT_ACTION_ID,
+};
 use std::env;
 use std::process;
 
@@ -16,12 +19,17 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, String> {
     let mut mode = HelperMode::Contract;
     let mut stack = None;
     let mut servers = Vec::new();
+    let mut request_json = None;
     let mut args = args.into_iter();
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--contract" => mode = HelperMode::Contract,
             "--dry-run" => mode = HelperMode::DryRun,
+            "--request-json" => {
+                mode = HelperMode::RequestJson;
+                request_json = Some(next_arg(&mut args, "--request-json")?);
+            }
             "--stack" => stack = Some(parse_stack(&next_arg(&mut args, "--stack")?)?),
             "--server" => servers.push(next_arg(&mut args, "--server")?),
             _ => return Err(format!("unknown argument: {arg}")),
@@ -37,6 +45,15 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, String> {
             }
             Ok(render_dry_run(stack, &servers))
         }
+        HelperMode::RequestJson => {
+            let json = request_json.ok_or_else(|| "--request-json is required".to_string())?;
+            let request = parse_native_apply_request_json(&json)
+                .map_err(|error| format!("invalid request: {error:?}"))?;
+            let mut executor = DryRunExecutor::default();
+            execute_native_apply_request(&request, &mut executor)
+                .map_err(|error| format!("mock execution failed: {error:?}"))?;
+            Ok(render_mock_execution(&executor.events))
+        }
     }
 }
 
@@ -44,6 +61,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, String> {
 enum HelperMode {
     Contract,
     DryRun,
+    RequestJson,
 }
 
 fn render_contract() -> String {
@@ -74,6 +92,17 @@ fn render_dry_run(stack: NativeResolverStack, servers: &[String]) -> String {
     .join("\n")
 }
 
+fn render_mock_execution(events: &[String]) -> String {
+    let mut lines = vec![
+        "Native helper mock execution".to_string(),
+        "Dry run: yes".to_string(),
+        "Events:".to_string(),
+    ];
+    lines.extend(events.iter().map(|event| format!("- {event}")));
+    lines.push("DNS writes executed: no".to_string());
+    lines.join("\n")
+}
+
 fn parse_stack(value: &str) -> Result<NativeResolverStack, String> {
     match value {
         "networkmanager" | "network-manager" | "nm" => Ok(NativeResolverStack::NetworkManager),
@@ -85,4 +114,55 @@ fn parse_stack(value: &str) -> Result<NativeResolverStack, String> {
 fn next_arg(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<String, String> {
     args.next()
         .ok_or_else(|| format!("{flag} requires a value"))
+}
+
+#[derive(Default)]
+struct DryRunExecutor {
+    events: Vec<String>,
+}
+
+impl NativeHelperExecutor for DryRunExecutor {
+    fn snapshot_existing_dns(
+        &mut self,
+        stack: NativeResolverStack,
+    ) -> Result<(), NativeHelperRunError> {
+        self.events.push(format!("snapshot:{stack:?}"));
+        Ok(())
+    }
+
+    fn authorize(&mut self, action_id: &str) -> Result<(), NativeHelperRunError> {
+        self.events.push(format!("authorize:{action_id}"));
+        Ok(())
+    }
+
+    fn write_dns(
+        &mut self,
+        stack: NativeResolverStack,
+        servers: &[String],
+    ) -> Result<(), NativeHelperRunError> {
+        self.events
+            .push(format!("write:{stack:?}:{}", servers.join(",")));
+        Ok(())
+    }
+
+    fn flush_resolver_cache(
+        &mut self,
+        stack: NativeResolverStack,
+    ) -> Result<(), NativeHelperRunError> {
+        self.events.push(format!("flush:{stack:?}"));
+        Ok(())
+    }
+
+    fn validate_current_resolver(
+        &mut self,
+        stack: NativeResolverStack,
+    ) -> Result<(), NativeHelperRunError> {
+        self.events.push(format!("validate:{stack:?}"));
+        Ok(())
+    }
+
+    fn rollback_dns(&mut self, stack: NativeResolverStack) -> Result<(), NativeHelperRunError> {
+        self.events.push(format!("rollback:{stack:?}"));
+        Ok(())
+    }
 }

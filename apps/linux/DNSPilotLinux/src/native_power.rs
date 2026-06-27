@@ -1,6 +1,7 @@
 use crate::capabilities::{LinuxCapabilityViewModel, LinuxPackageKind};
 use crate::profiles::PlainDnsProfile;
 use crate::settings::ResolverAddressFamily;
+use serde_json::Value;
 
 pub const DNS_APPLY_POLKIT_ACTION_ID: &str = "io.dnspilot.DNSPilot.apply-dns";
 
@@ -56,6 +57,155 @@ pub enum NativeApplyError {
     UnsupportedPackage,
     MissingNativePowerCapability,
     NoServersForSelectedFamily,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeHelperApplyRequest {
+    pub resolver_stack: NativeResolverStack,
+    pub polkit_action_id: String,
+    pub servers: Vec<String>,
+    pub rollback_snapshot: bool,
+    pub validate_after_apply: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeHelperRunResult {
+    pub applied: bool,
+    pub rolled_back: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NativeHelperRunError {
+    InvalidJson(String),
+    UnsupportedSchema,
+    InvalidPolkitAction,
+    InvalidResolverStack,
+    NoServers,
+    RollbackSnapshotRequired,
+    SnapshotFailed(String),
+    AuthorizationFailed(String),
+    WriteFailed(String),
+    FlushFailed(String),
+    ValidationFailed(String),
+    RollbackFailed(String),
+}
+
+pub trait NativeHelperExecutor {
+    fn snapshot_existing_dns(
+        &mut self,
+        stack: NativeResolverStack,
+    ) -> Result<(), NativeHelperRunError>;
+
+    fn authorize(&mut self, action_id: &str) -> Result<(), NativeHelperRunError>;
+
+    fn write_dns(
+        &mut self,
+        stack: NativeResolverStack,
+        servers: &[String],
+    ) -> Result<(), NativeHelperRunError>;
+
+    fn flush_resolver_cache(
+        &mut self,
+        stack: NativeResolverStack,
+    ) -> Result<(), NativeHelperRunError>;
+
+    fn validate_current_resolver(
+        &mut self,
+        stack: NativeResolverStack,
+    ) -> Result<(), NativeHelperRunError>;
+
+    fn rollback_dns(&mut self, stack: NativeResolverStack) -> Result<(), NativeHelperRunError>;
+}
+
+pub fn parse_native_apply_request_json(
+    json: &str,
+) -> Result<NativeHelperApplyRequest, NativeHelperRunError> {
+    let value = serde_json::from_str::<Value>(json)
+        .map_err(|error| NativeHelperRunError::InvalidJson(error.to_string()))?;
+
+    if value
+        .get("schema_version")
+        .and_then(Value::as_u64)
+        .filter(|version| *version == 1)
+        .is_none()
+    {
+        return Err(NativeHelperRunError::UnsupportedSchema);
+    }
+
+    let polkit_action_id = value
+        .get("polkit_action_id")
+        .and_then(Value::as_str)
+        .ok_or(NativeHelperRunError::InvalidPolkitAction)?;
+    if polkit_action_id != DNS_APPLY_POLKIT_ACTION_ID {
+        return Err(NativeHelperRunError::InvalidPolkitAction);
+    }
+
+    let resolver_stack = value
+        .get("resolver_stack")
+        .and_then(Value::as_str)
+        .and_then(parse_native_stack)
+        .ok_or(NativeHelperRunError::InvalidResolverStack)?;
+
+    let servers = value
+        .get("servers")
+        .and_then(Value::as_array)
+        .ok_or(NativeHelperRunError::NoServers)?
+        .iter()
+        .filter_map(Value::as_str)
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    if servers.is_empty() {
+        return Err(NativeHelperRunError::NoServers);
+    }
+
+    let rollback_snapshot = value
+        .get("rollback_snapshot")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if !rollback_snapshot {
+        return Err(NativeHelperRunError::RollbackSnapshotRequired);
+    }
+
+    Ok(NativeHelperApplyRequest {
+        resolver_stack,
+        polkit_action_id: polkit_action_id.to_string(),
+        servers,
+        rollback_snapshot,
+        validate_after_apply: value
+            .get("validate_after_apply")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    })
+}
+
+pub fn execute_native_apply_request(
+    request: &NativeHelperApplyRequest,
+    executor: &mut impl NativeHelperExecutor,
+) -> Result<NativeHelperRunResult, NativeHelperRunError> {
+    executor.snapshot_existing_dns(request.resolver_stack)?;
+    executor.authorize(&request.polkit_action_id)?;
+
+    if let Err(error) = executor.write_dns(request.resolver_stack, &request.servers) {
+        rollback_after_failure(request, executor)?;
+        return Err(error);
+    }
+
+    if let Err(error) = executor.flush_resolver_cache(request.resolver_stack) {
+        rollback_after_failure(request, executor)?;
+        return Err(error);
+    }
+
+    if request.validate_after_apply {
+        if let Err(error) = executor.validate_current_resolver(request.resolver_stack) {
+            rollback_after_failure(request, executor)?;
+            return Err(error);
+        }
+    }
+
+    Ok(NativeHelperRunResult {
+        applied: true,
+        rolled_back: false,
+    })
 }
 
 pub fn build_native_apply_plan(
@@ -142,6 +292,21 @@ fn selected_servers(
         ResolverAddressFamily::Ipv4Only => profile.ipv4_servers.clone(),
         ResolverAddressFamily::Ipv6Only => profile.ipv6_servers.clone(),
     }
+}
+
+fn parse_native_stack(value: &str) -> Option<NativeResolverStack> {
+    match value {
+        "networkmanager" | "network-manager" | "nm" => Some(NativeResolverStack::NetworkManager),
+        "systemd-resolved" | "resolved" => Some(NativeResolverStack::SystemdResolved),
+        _ => None,
+    }
+}
+
+fn rollback_after_failure(
+    request: &NativeHelperApplyRequest,
+    executor: &mut impl NativeHelperExecutor,
+) -> Result<(), NativeHelperRunError> {
+    executor.rollback_dns(request.resolver_stack)
 }
 
 fn steps_for_stack(

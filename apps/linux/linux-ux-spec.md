@@ -241,11 +241,16 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-nat
   --stack networkmanager \
   --server 1.1.1.1 \
   --server 9.9.9.9
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-native-helper -- \
+  --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true}'
 ```
 
 The helper contract binary is packaged only for native deb/rpm power builds.
 Its current dry-run surface proves stack/server routing and explicitly reports
-that no DNS writes were executed.
+that no DNS writes were executed. The request JSON path validates the polkit
+action id, resolver stack, servers, rollback requirement, and validation flag,
+then runs the native lifecycle against a mock executor.
 
 ## Custom Profiles
 

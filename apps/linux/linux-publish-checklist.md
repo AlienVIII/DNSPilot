@@ -164,13 +164,14 @@ dnspilot-linux-shell permissions --package deb --network-manager --polkit --syst
 dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --package deb --network-manager --polkit --system-resolver-probe --profile-id local --resolver-family auto
 dnspilot-native-helper --contract
 dnspilot-native-helper --dry-run --stack networkmanager --server 1.1.1.1
+dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true}'
 ```
 
 Expected:
 
 - native apply plan is offered only when NetworkManager or systemd-resolved plus
   polkit are detected,
-- native helper contract/dry-run works without writing DNS,
+- native helper contract/dry-run/request protocol works without writing DNS,
 - polkit prompt appears before any DNS write,
 - current/system resolver validation can run after apply if supported.
 
