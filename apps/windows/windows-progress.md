@@ -19,6 +19,9 @@ MSIX, tray, and Store behavior still require a Windows host.
 - Benchmark success diagnostics now parse CLI benchmark-result JSON into a
   localized structured copyable recommendation report with health, reasons,
   resolver metrics, warning, and saved history ID.
+- The WinUI diagnostics section also exposes the parsed recommendation summary,
+  resolver metrics, and notes as native list/text surfaces, while preserving the
+  copyable report.
 - Store-safe apply guidance copies DNS servers/checklists and opens Windows
   Network Settings without admin DNS mutation.
 - Profile and history add/update/delete/list/clear flows use CLI contract

@@ -678,6 +678,9 @@ internal sealed class WindowsCoreTestSuite
             "RefreshStorageText",
             "ClearHistoryText",
             "DeleteSelectedHistoryText",
+            "RecommendationReportHeader",
+            "RecommendationResolversList",
+            "RecommendationNotesList",
             "DiagnosticsBox",
             "CopyDiagnosticsText",
         };
@@ -690,6 +693,8 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("SelectionChanged=\"BenchmarkSelection_Changed\"", xaml);
         Assert.Contains("ValueChanged=\"BenchmarkNumber_ValueChanged\"", xaml);
         Assert.Contains("Click=\"RunBenchmark_Click\"", xaml);
+        Assert.Contains("x:Name=\"RecommendationSummaryText\"", xaml);
+        Assert.Contains("x:Name=\"RecommendationLineText\"", xaml);
 
         var requiredResourceKeys = new[]
         {
@@ -749,6 +754,9 @@ internal sealed class WindowsCoreTestSuite
             "RefreshStorageText.Text",
             "ClearHistoryText.Text",
             "DeleteSelectedHistoryText.Text",
+            "RecommendationReportHeader.Text",
+            "RecommendationResolversList.Header",
+            "RecommendationNotesList.Header",
             "DiagnosticsBox.Header",
             "CopyDiagnosticsText.Text",
         };

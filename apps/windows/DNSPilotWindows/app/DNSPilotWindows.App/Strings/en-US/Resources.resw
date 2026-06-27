@@ -207,6 +207,15 @@
   <data name="DeleteSelectedHistoryText.Text" xml:space="preserve">
     <value>Delete selected</value>
   </data>
+  <data name="RecommendationReportHeader.Text" xml:space="preserve">
+    <value>Recommendation</value>
+  </data>
+  <data name="RecommendationResolversList.Header" xml:space="preserve">
+    <value>Resolver metrics</value>
+  </data>
+  <data name="RecommendationNotesList.Header" xml:space="preserve">
+    <value>Notes</value>
+  </data>
   <data name="DiagnosticsBox.Header" xml:space="preserve">
     <value>Report</value>
   </data>

@@ -255,6 +255,13 @@
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Uid="RecommendationReportHeader" Text="Recommendation" FontWeight="SemiBold" />
+                                <TextBlock x:Name="RecommendationSummaryText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="RecommendationLineText" TextWrapping="Wrap" FontSize="16" FontWeight="SemiBold" />
+                                <ListView x:Name="RecommendationResolversList" x:Uid="RecommendationResolversList" Header="Resolver metrics" MaxHeight="140" />
+                                <ListView x:Name="RecommendationNotesList" x:Uid="RecommendationNotesList" Header="Notes" MaxHeight="120" />
+                            </StackPanel>
                             <TextBox x:Name="DiagnosticsBox" x:Uid="DiagnosticsBox" Header="Report" IsReadOnly="True" TextWrapping="Wrap" MinHeight="160" />
                             <Button Click="CopyDiagnostics_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">

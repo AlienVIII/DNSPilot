@@ -246,11 +246,13 @@ public sealed partial class MainWindow : Window
 
             if (result.Succeeded)
             {
+                var benchmarkReport = TryBuildBenchmarkReport(result.StandardOutput);
                 var applyPlanMessage = await TryRefreshApplyGuidanceFromBenchmarkAsync(result.StandardOutput);
                 RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: history is not null);
-                _lastDiagnostics = FormatBenchmarkSuccessDiagnostics(result, applyPlanMessage);
+                RenderRecommendationReport(benchmarkReport);
+                _lastDiagnostics = FormatBenchmarkSuccessDiagnostics(result, applyPlanMessage, benchmarkReport);
                 DiagnosticsBox.Text = _lastDiagnostics;
-                _ = LoadRuntimeContractsAsync();
+                _ = LoadRuntimeContractsAsync(resetDiagnostics: false);
                 return;
             }
 
@@ -272,7 +274,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void RenderStaticState()
+    private void RenderStaticState(bool resetDiagnostics = true)
     {
         DnsServersBox.Text = ViewModel.ApplyGuidance.CopyableDnsServers;
         ChecklistBox.Text = ViewModel.ApplyGuidance.CopyableChecklist;
@@ -280,6 +282,12 @@ public sealed partial class MainWindow : Window
         HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
             ? Array.Empty<BenchmarkHistoryRow>()
             : ViewModel.HistoryRows;
+
+        if (!resetDiagnostics)
+        {
+            return;
+        }
+
         DiagnosticsBox.Text = string.Join(
             Environment.NewLine,
             WindowsDisplayText.Text("Profile list:", "Danh sách hồ sơ:"),
@@ -294,9 +302,10 @@ public sealed partial class MainWindow : Window
             WindowsDisplayText.Text("Power edition:", "Bản Power:"),
             ViewModel.PowerPlatformCapability.Notes.FirstOrDefault() ?? ViewModel.PowerPolicy.Notes);
         _lastDiagnostics = DiagnosticsBox.Text;
+        RenderRecommendationReport(null);
     }
 
-    private async Task LoadRuntimeContractsAsync()
+    private async Task LoadRuntimeContractsAsync(bool resetDiagnostics = true)
     {
         try
         {
@@ -327,7 +336,7 @@ public sealed partial class MainWindow : Window
             });
 
             ViewModel = loaded;
-            RenderStaticState();
+            RenderStaticState(resetDiagnostics);
             RefreshBenchmarkDraft();
         }
         catch (Exception ex)
@@ -344,7 +353,7 @@ public sealed partial class MainWindow : Window
             var request = BenchmarkApplyPlanRequestFactory.MakeRequest(result);
             var applyPlan = await Task.Run(() => new ApplyPlanRunner(DefaultCliPath()).Load(request));
             ViewModel = ViewModel.WithApplyPlan(applyPlan);
-            RenderStaticState();
+            RenderStaticState(resetDiagnostics: false);
             return result.Summary.CanRecommend
                 ? WindowsDisplayText.Text(
                     $"Apply-plan refreshed for {request.profileId ?? "current DNS"}.",
@@ -359,25 +368,46 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private static string FormatBenchmarkSuccessDiagnostics(BenchmarkRunResult result, string applyPlanMessage)
+    private void RenderRecommendationReport(BenchmarkResultReportViewModel? report)
+    {
+        if (report is null)
+        {
+            RecommendationSummaryText.Text = WindowsDisplayText.Text(
+                "Run a benchmark to populate recommendation diagnostics.",
+                "Chạy benchmark để hiển thị chẩn đoán khuyến nghị.");
+            RecommendationLineText.Text = "";
+            RecommendationResolversList.ItemsSource = Array.Empty<string>();
+            RecommendationNotesList.ItemsSource = Array.Empty<string>();
+            return;
+        }
+
+        RecommendationSummaryText.Text = report.SummaryLine;
+        RecommendationLineText.Text = report.RecommendationLine;
+        RecommendationResolversList.ItemsSource = report.ResolverLines;
+        RecommendationNotesList.ItemsSource = report.NoteLines;
+    }
+
+    private static string FormatBenchmarkSuccessDiagnostics(
+        BenchmarkRunResult result,
+        string applyPlanMessage,
+        BenchmarkResultReportViewModel? benchmarkReport)
     {
         return string.Join(
             Environment.NewLine,
             WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
             $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
             applyPlanMessage,
-            TryFormatBenchmarkReport(result.StandardOutput)
+            benchmarkReport?.CopyableReport
                 ?? (string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim()),
             string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
     }
 
-    private static string? TryFormatBenchmarkReport(string standardOutput)
+    private static BenchmarkResultReportViewModel? TryBuildBenchmarkReport(string standardOutput)
     {
         try
         {
             return BenchmarkResultReportViewModel
-                .FromResult(BenchmarkResultJsonDecoder.Decode(standardOutput))
-                .CopyableReport;
+                .FromResult(BenchmarkResultJsonDecoder.Decode(standardOutput));
         }
         catch
         {

@@ -23,7 +23,7 @@
 - Use in-panel `Run benchmark`; expected: it runs the current command preview exactly.
 - Run toolbar `Quick benchmark`; expected: it forces DNS + TCP quick mode while preserving selected A/AAAA, resolver address family, and numeric controls.
 - After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
-- After successful benchmark, expected: diagnostics show a structured copyable report with localized labels, health, recommendation, reasons, resolver metrics, warning, and saved history ID when the CLI returns benchmark-result JSON.
+- After successful benchmark, expected: recommendation summary, resolver metric rows, notes, and diagnostics show localized health, recommendation, reasons, warning, and saved history ID when the CLI returns benchmark-result JSON.
 - After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
 - Run toolbar `Validate DNS`; expected: it uses `system-benchmark --platform windows-store` while preserving selected A/AAAA, attempts, and DNS timeout.
 - Change `Record family` to `A only` and `AAAA only`; expected: command preview uses `--ip-family ipv4-only` or `--ip-family ipv6-only`.
@@ -50,6 +50,6 @@
 
 ## Known Risks
 - Real Windows UI layout, tray behavior, MSIX packaging, Store policy, and signing are not validated from macOS.
-- Visual recommendation cards remain lighter than macOS until real WinUI layout QA, but Windows now emits a localized structured copyable recommendation report and refreshes apply guidance from the recommended profile/tested resolver.
+- Recommendation summary/resolver metric UI is implemented, but final spacing and wrapping still require real WinUI layout QA.
 - Free-text notes/errors returned by the CLI may still be English until CLI payloads expose localized display strings or stable message IDs.
 - Power edition admin/service apply remains a separate future lane.
