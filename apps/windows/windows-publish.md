@@ -3,7 +3,7 @@
 ## BLUF
 - Store build stays `asInvoker`: no UAC, no silent DNS mutation, no adapter write API.
 - Native permissions are declared in the MSIX package template: `internetClient` plus `runFullTrust` for packaged desktop/WinUI + bundled CLI/tray.
-- Remaining publish work requires a real Windows machine, Microsoft Store/Partner Center access, signing identity, and final assets.
+- Remaining publish work requires a real Windows machine, Microsoft Store/Partner Center access, signing identity, and final asset approval/branding decision.
 
 ## Microsoft References
 - App capabilities and restricted capability review: https://learn.microsoft.com/en-us/windows/uwp/packaging/app-capability-declarations
