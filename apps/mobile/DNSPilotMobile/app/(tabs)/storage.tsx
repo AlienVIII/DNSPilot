@@ -24,20 +24,6 @@ import { buildProfileForm, buildSuiteForm } from '@/src/view-models/storage-form
 type Protocol = 'plain' | 'doh' | 'dot';
 type Filtering = 'none' | 'malware' | 'family' | 'ads' | 'security';
 
-const protocolOptions: { label: string; value: Protocol }[] = [
-  { label: 'Plain', value: 'plain' },
-  { label: 'DoH', value: 'doh' },
-  { label: 'DoT', value: 'dot' },
-];
-
-const filteringOptions: { label: string; value: Filtering }[] = [
-  { label: 'None', value: 'none' },
-  { label: 'Malware', value: 'malware' },
-  { label: 'Family', value: 'family' },
-  { label: 'Ads', value: 'ads' },
-  { label: 'Security', value: 'security' },
-];
-
 export default function StorageScreen() {
   const { profiles, suites, history, error, refreshAll, runAction, locale, t } = useDNSPilot();
   const [profileId, setProfileId] = useState('');
@@ -85,6 +71,24 @@ export default function StorageScreen() {
   );
   const profileErrors = profileForm.errors.map((item) => translateKnownError(locale, item)).join('\n');
   const suiteErrors = suiteForm.errors.map((item) => translateKnownError(locale, item)).join('\n');
+  const protocolOptions = useMemo(
+    () => [
+      { label: t('storage.protocol.plain'), value: 'plain' as const },
+      { label: t('storage.protocol.doh'), value: 'doh' as const },
+      { label: t('storage.protocol.dot'), value: 'dot' as const },
+    ],
+    [t]
+  );
+  const filteringOptions = useMemo(
+    () => [
+      { label: t('storage.filtering.none'), value: 'none' as const },
+      { label: t('storage.filtering.malware'), value: 'malware' as const },
+      { label: t('storage.filtering.family'), value: 'family' as const },
+      { label: t('storage.filtering.ads'), value: 'ads' as const },
+      { label: t('storage.filtering.security'), value: 'security' as const },
+    ],
+    [t]
+  );
 
   function fillProfile(id: string) {
     const profile = customProfiles.find((item) => item.id === id);

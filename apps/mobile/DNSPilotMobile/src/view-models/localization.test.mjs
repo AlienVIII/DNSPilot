@@ -60,3 +60,13 @@ test("known validation errors translate to Vietnamese and unknown errors remain 
   );
   assert.equal(translateKnownError("vi", "Bridge offline."), "Bridge offline.");
 });
+
+test("primary option labels are localized for Vietnamese real-device checks", () => {
+  const t = createTranslator("vi");
+
+  assert.equal(t("benchmark.mode.pathCompare"), "DNS + TCP");
+  assert.equal(t("benchmark.mode.systemBenchmark"), "DNS hệ thống");
+  assert.equal(t("benchmark.family.ipv4Only"), "Chỉ A");
+  assert.equal(t("platform.android"), "Android");
+  assert.equal(t("storage.filtering.family"), "Gia đình");
+});

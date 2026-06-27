@@ -27,11 +27,6 @@ type MobilePlatform = 'ios' | 'android-play';
 type GateHealth = 'healthy' | 'degraded' | 'failed' | 'inconclusive';
 type Confidence = 'high' | 'medium' | 'low' | 'inconclusive';
 
-const platformOptions: { label: string; value: MobilePlatform }[] = [
-  { label: 'iOS', value: 'ios' },
-  { label: 'Android', value: 'android-play' },
-];
-
 export default function PolicyScreen() {
   const { profiles, capabilities, error, runAction, locale, t } = useDNSPilot();
   const [platform, setPlatform] = useState<MobilePlatform>('ios');
@@ -53,6 +48,13 @@ export default function PolicyScreen() {
   const guidance = results.applyPlan
     ? buildSettingsGuidance({ platform, applyPlan: results.applyPlan.data, locale })
     : null;
+  const platformOptions = useMemo(
+    () => [
+      { label: t('platform.ios'), value: 'ios' as const },
+      { label: t('platform.android'), value: 'android-play' as const },
+    ],
+    [t]
+  );
   const healthOptions = useMemo(
     () => [
       { label: t('policy.option.healthy'), value: 'healthy' as const },

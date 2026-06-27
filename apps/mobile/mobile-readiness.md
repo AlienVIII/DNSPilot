@@ -23,7 +23,7 @@
   `general-browsing` and `vietnam-daily`.
 - Multilingual UX: covered for primary app chrome and workflows with system
   locale detection, manual English/Tiếng Việt override, localized validation
-  errors, and localized guided DNS settings steps.
+  errors, localized option controls, and localized guided DNS settings steps.
 - Native build metadata: covered for iOS bundle ID/build number, Android package
   ID/version code, EN/VI supported locales, iOS Local Network permission text,
   Android normal network permissions, and EAS build profiles.

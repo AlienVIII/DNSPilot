@@ -36,25 +36,6 @@ type Mode = 'compare' | 'pathCompare' | 'benchmark' | 'pathEstimate' | 'systemBe
 type IpFamily = 'both' | 'ipv4-only' | 'ipv6-only';
 type MobilePlatform = 'ios' | 'android-play';
 
-const modeOptions: { label: string; value: Mode }[] = [
-  { label: 'DNS Compare', value: 'compare' },
-  { label: 'Path Compare', value: 'pathCompare' },
-  { label: 'Single DNS', value: 'benchmark' },
-  { label: 'Single Path', value: 'pathEstimate' },
-  { label: 'System DNS', value: 'systemBenchmark' },
-];
-
-const familyOptions: { label: string; value: IpFamily }[] = [
-  { label: 'A + AAAA', value: 'both' },
-  { label: 'A only', value: 'ipv4-only' },
-  { label: 'AAAA only', value: 'ipv6-only' },
-];
-
-const platformOptions: { label: string; value: MobilePlatform }[] = [
-  { label: 'iOS', value: 'ios' },
-  { label: 'Android', value: 'android-play' },
-];
-
 export default function BenchmarkScreen() {
   const { profiles, suites, error, refreshAll, runAction, startJob, getJob, locale, t } = useDNSPilot();
   const [mode, setMode] = useState<Mode>('pathCompare');
@@ -84,6 +65,31 @@ export default function BenchmarkScreen() {
   const [captivePortalDetected, setCaptivePortalDetected] = useState(false);
 
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
+  const modeOptions = useMemo(
+    () => [
+      { label: t('benchmark.mode.compare'), value: 'compare' as const },
+      { label: t('benchmark.mode.pathCompare'), value: 'pathCompare' as const },
+      { label: t('benchmark.mode.benchmark'), value: 'benchmark' as const },
+      { label: t('benchmark.mode.pathEstimate'), value: 'pathEstimate' as const },
+      { label: t('benchmark.mode.systemBenchmark'), value: 'systemBenchmark' as const },
+    ],
+    [t]
+  );
+  const familyOptions = useMemo(
+    () => [
+      { label: t('benchmark.family.both'), value: 'both' as const },
+      { label: t('benchmark.family.ipv4Only'), value: 'ipv4-only' as const },
+      { label: t('benchmark.family.ipv6Only'), value: 'ipv6-only' as const },
+    ],
+    [t]
+  );
+  const platformOptions = useMemo(
+    () => [
+      { label: t('platform.ios'), value: 'ios' as const },
+      { label: t('platform.android'), value: 'android-play' as const },
+    ],
+    [t]
+  );
   const protectedEnvironment = useMemo(
     () => ({
       vpnActive,
