@@ -854,6 +854,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("Package.Store.appxmanifest", packagePrep);
         Assert.Contains("REPLACE_WITH_PARTNER_CENTER_PUBLISHER", packagePrep);
         Assert.Contains("Version must use four numeric parts", packagePrep);
+        Assert.Contains("IsPathRooted", packagePrep);
         Assert.Contains("Generated Store package manifest", packagePrep);
     }
 

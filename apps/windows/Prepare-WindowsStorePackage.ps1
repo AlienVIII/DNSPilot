@@ -60,7 +60,14 @@ if ($outputDirectory -and -not (Test-Path $outputDirectory)) {
     New-Item -ItemType Directory -Path $outputDirectory | Out-Null
 }
 
-$manifest.Save((Join-Path (Get-Location) $OutputPath))
+$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
+    $OutputPath
+}
+else {
+    Join-Path (Get-Location) $OutputPath
+}
+
+$manifest.Save($resolvedOutputPath)
 $generated = Get-Content -Raw -Path $OutputPath
 
 if ($generated -match 'REPLACE_WITH_PARTNER_CENTER_PUBLISHER') {

@@ -11,7 +11,7 @@
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
 - Build the CLI helper: `cargo build --release -p dnspilot-cli`.
-- Copy `target\release\dnspilot-cli.exe` to `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\dnspilot-cli.exe` before Release packaging, or set `DNSPILOT_CLI_PATH` for local QA.
+- For local unpackaged QA, set `DNSPILOT_CLI_PATH` or copy the helper beside `DNSPilotWindows.App.csproj`.
 - Generate the Store manifest with `powershell -ExecutionPolicy Bypass -File apps\windows\Prepare-WindowsStorePackage.ps1 -IdentityName <PartnerCenterIdentity> -Publisher <PartnerCenterPublisher> -Version <x.y.z.w> -CliPath target\release\dnspilot-cli.exe`.
 - From repo root, run `powershell -ExecutionPolicy Bypass -File apps\windows\Validate-WindowsLane.ps1 -Configuration Release`.
 - If running checks manually, run `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx -c Release`.

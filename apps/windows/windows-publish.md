@@ -32,10 +32,11 @@ From repo root on Windows:
 
 ```powershell
 cargo build --release -p dnspilot-cli
-Copy-Item target\release\dnspilot-cli.exe apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\dnspilot-cli.exe -Force
 ```
 
-The app project copies `dnspilot-cli.exe` to output when that file exists beside `DNSPilotWindows.App.csproj`.
+`Prepare-WindowsStorePackage.ps1 -CliPath target\release\dnspilot-cli.exe`
+copies the helper beside `DNSPilotWindows.App.csproj`. The app project then
+copies `dnspilot-cli.exe` to output when that file exists.
 
 ## Validate Before Manual QA
 From repo root:
