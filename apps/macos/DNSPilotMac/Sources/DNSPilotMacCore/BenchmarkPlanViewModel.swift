@@ -284,11 +284,11 @@ public struct BenchmarkPlanViewModel: Equatable, Sendable {
     }
 
     public var supportsProgressEvents: Bool {
-        mode != .systemDNSValidation
+        true
     }
 
     public var supportsHistoryPersistence: Bool {
-        mode != .systemDNSValidation
+        true
     }
 
     private var plainResolvers: [PlainResolver] {

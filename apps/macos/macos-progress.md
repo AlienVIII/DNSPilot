@@ -15,7 +15,8 @@ edition only and explicitly gated.
   saved history, fastest observed DNS, balanced recommendation, A/AAAA controls,
   IPv4/IPv6 controls, and copyable reports.
 - Guided apply uses shared `apply-plan`, captures restore DNS when available,
-  confirms copy/open Settings actions, and validates with System DNS mode.
+  confirms copy/open Settings actions, and validates with System DNS mode with
+  visible progress and saved history.
 - Store-safe flush copies commands instead of running privileged mutations.
 - Catalog rows can launch confirmed store-safe apply for plain DNS profiles.
 - Product Goals list all six acceptance goals with concrete app entry points,

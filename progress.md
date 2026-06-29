@@ -141,6 +141,7 @@ DNS handling, and platform capability reporting.
 - [x] [130] v0.1 macOS privacy manifest readiness — surface privacy manifest status in the native Publish screen.
 - [x] [131] v0.1 macOS support and privacy page drafts — add hostable App Store support/privacy source text.
 - [x] [132] v0.1 macOS bundle version gate — generate and validate release version/build metadata.
+- [x] [133] v0.1 system DNS validation progress/history — persist post-apply validation runs with visible progress.
 
 ---
 
@@ -6413,6 +6414,39 @@ Result: macOS Store-safe bundle structural validation passed with version 1.2.3 
 
 ./script/build_and_run.sh --sandbox-verify
 Result: macOS Store-safe bundle structural validation passed with default version 0.1.0 build 1
+```
+
+---
+
+## Chunk 133: v0.1 System DNS Validation Progress/History
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkPlanViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkProgressViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkProgressViewModelTests.swift`, `apps/macos/macos-core-cli-request.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+`system-benchmark` now supports `--progress-jsonl`, `--save-db`, and
+`--history-id`. macOS System DNS validation now requests progress events, saves
+post-apply validation runs to local history, and shows the Saving history step
+instead of treating this mode as stateless.
+
+### Edge Cases / Caveats
+
+- History stores System DNS validation under the existing `dns-only` history
+  scope with resolver profile `system-dns`; a future schema can add a dedicated
+  scope without blocking v0.1 UX.
+- System DNS validation still measures the OS resolver path only. Browser Secure
+  DNS, VPN, MDM, captive portal, DNS cache, and app-specific behavior can
+  distort the result.
+
+### Verification
+
+```text
+cargo test --workspace --tests
+Result: passed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
 ```
 
 ---

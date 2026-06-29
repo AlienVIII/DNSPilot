@@ -221,11 +221,9 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         nextSteps.append(
             Self.step(.parsingResult, status: Self.status(for: .parsingResult, failure: failure, isRunning: false, isCompleted: isCompleted))
         )
-        if mode != .systemDNSValidation {
-            nextSteps.append(
-                Self.step(.savingHistory, status: Self.historyStatus(failure: failure, isCompleted: isCompleted, historySaved: historySaved))
-            )
-        }
+        nextSteps.append(
+            Self.step(.savingHistory, status: Self.historyStatus(failure: failure, isCompleted: isCompleted, historySaved: historySaved))
+        )
         steps = nextSteps
         currentStepVerboseLines = Self.verboseLines(
             mode: mode,
@@ -357,7 +355,7 @@ public struct BenchmarkProgressViewModel: Equatable, Sendable {
         case .systemDNSValidation:
             return [
                 "* Validating current macOS system DNS with \(planSummary.domainCount) domain(s), \(planSummary.attempts) attempt(s), \(planSummary.recordFamily.displayLabel).",
-                "* Worst-case wait before output: about \(dnsSeconds); this CLI path does not emit per-resolver progress yet.",
+                "* Worst-case wait before output: about \(dnsSeconds); stdout is drained while the CLI runs.",
                 "* If this hangs, suspect OS resolver, VPN, firewall, captive portal, or DNS cache state.",
             ]
         }

@@ -73,6 +73,43 @@ fn system_benchmark_command_outputs_system_dns_validation_payload() {
 }
 
 #[test]
+fn system_benchmark_command_can_emit_progress_jsonl() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "system-benchmark",
+            "--domain",
+            "localhost",
+            "--attempts",
+            "1",
+            "--ip-family",
+            "ipv4-only",
+            "--timeout-ms",
+            "500",
+            "--progress-jsonl",
+        ])
+        .output()
+        .expect("run dnspilot-cli system-benchmark");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
+    let events = stderr
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).expect("progress line should be json"))
+        .collect::<Vec<_>>();
+
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0]["type"], "resolver_started");
+    assert_eq!(events[1]["type"], "resolver_finished");
+    assert_eq!(events[0]["profile_id"], "system-dns");
+    assert_eq!(events[0]["resolver"], "macOS System Resolver");
+}
+
+#[test]
 fn benchmark_command_rejects_zero_attempts() {
     let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
         .args([

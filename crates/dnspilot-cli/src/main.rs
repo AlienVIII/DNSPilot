@@ -118,6 +118,12 @@ enum Command {
         ip_family: IpFamilyArg,
         #[arg(long, default_value_t = 800)]
         timeout_ms: u64,
+        #[arg(long)]
+        save_db: Option<std::path::PathBuf>,
+        #[arg(long)]
+        history_id: Option<String>,
+        #[arg(long)]
+        progress_jsonl: bool,
     },
     Compare {
         #[arg(long = "resolver")]
@@ -554,11 +560,15 @@ fn main() {
             attempts,
             ip_family,
             timeout_ms,
+            save_db,
+            history_id,
+            progress_jsonl,
         } => {
             reject_zero_usize("--attempts", attempts);
             reject_zero_u64("--timeout-ms", timeout_ms);
 
             let domains = resolve_domains(domains, suite_db.as_deref(), suite_id);
+            let domains_for_history = domains.clone();
             let config = DnsBenchmarkConfig {
                 profile_id: "system-dns".into(),
                 domains,
@@ -567,17 +577,66 @@ fn main() {
                 first_transaction_id: 0x6000,
                 record_family: ip_family.into(),
             };
+            emit_resolver_progress(
+                progress_jsonl,
+                "resolver_started",
+                MeasurementScope::DnsOnly,
+                "system-dns",
+                "macOS System Resolver",
+                1,
+                1,
+                None,
+                None,
+            );
+            let resolver_started_at = Instant::now();
             let run = run_system_dns_benchmark(&config);
+            emit_resolver_progress(
+                progress_jsonl,
+                "resolver_finished",
+                MeasurementScope::DnsOnly,
+                "system-dns",
+                "macOS System Resolver",
+                1,
+                1,
+                Some(&run.metrics),
+                Some(resolver_started_at.elapsed()),
+            );
             let preflight = benchmark_preflight_payload_for(
                 platform.into(),
                 BenchmarkPreflightScope::SystemDnsValidation,
             );
+            let gate = recommendation_gate(
+                std::slice::from_ref(&run.metrics),
+                MeasurementScope::DnsOnly,
+            );
+            let saved_history_id = save_db.as_ref().map(|db| {
+                let id = history_id.unwrap_or_else(|| default_history_id("system-benchmark"));
+                save_benchmark_history(
+                    db,
+                    BenchmarkHistoryRecord {
+                        id: id.clone(),
+                        started_at: default_history_id("started"),
+                        scope: MeasurementScope::DnsOnly,
+                        mode: RecommendationMode::FastestRawDns,
+                        domains: domains_for_history,
+                        resolver_profile_ids: vec!["system-dns".into()],
+                        metrics: vec![run.metrics.clone()],
+                        gate: gate.clone(),
+                        recommendation_profile_id: None,
+                        notes: vec![
+                            "Saved by system-benchmark CLI for System DNS validation.".into()
+                        ],
+                    },
+                );
+                id
+            });
             let payload = serde_json::json!({
                 "scope": "system-dns-validation",
                 "preflight": preflight.preflight,
                 "metrics": run.metrics,
                 "samples": run.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
                 "ip_family": ip_family_name(ip_family),
+                "saved_history_id": saved_history_id,
                 "warning": "System DNS validation measures the OS resolver path after DNS changes; flush cache first, and still expect browser Secure DNS, VPN, MDM, captive portal, and app caches to distort results.",
             });
             println!(
@@ -1728,7 +1787,7 @@ fn emit_resolver_progress(
     event_type: &str,
     measurement_scope: MeasurementScope,
     profile_id: &str,
-    resolver: SocketAddr,
+    resolver: impl std::fmt::Display,
     index: usize,
     total: usize,
     metrics: Option<&BenchmarkMetrics>,

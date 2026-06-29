@@ -287,7 +287,7 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
         )
     }
 
-    func testProgressOmitsHistoryStepForSystemDNSValidation() {
+    func testProgressShowsHistoryStepForSystemDNSValidation() {
         let viewModel = BenchmarkProgressViewModel(
             mode: .systemDNSValidation,
             state: .running(runID: BenchmarkRunID(1)),
@@ -315,13 +315,14 @@ final class BenchmarkProgressViewModelTests: XCTestCase {
                 "Preparing benchmark:success",
                 "Resolving DNS:running",
                 "Parsing result:idle",
+                "Saving history:idle",
             ]
         )
         XCTAssertEqual(
             viewModel.currentStepVerboseLines,
             [
                 "* Validating current macOS system DNS with 2 domain(s), 1 attempt(s), A + AAAA.",
-                "* Worst-case wait before output: about 3.2s; this CLI path does not emit per-resolver progress yet.",
+                "* Worst-case wait before output: about 3.2s; stdout is drained while the CLI runs.",
                 "* If this hangs, suspect OS resolver, VPN, firewall, captive portal, or DNS cache state.",
             ]
         )

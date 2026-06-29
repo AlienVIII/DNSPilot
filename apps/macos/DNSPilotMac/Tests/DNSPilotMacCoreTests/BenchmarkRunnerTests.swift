@@ -130,7 +130,7 @@ final class BenchmarkRunnerTests: XCTestCase {
         XCTAssertEqual(receivedEvents.values, [event])
     }
 
-    func testRunnerDoesNotRequestProgressJSONLForSystemDNSValidation() throws {
+    func testRunnerRequestsProgressJSONLForSystemDNSValidation() throws {
         let processRunner = RecordingBenchmarkProcessRunner(
             output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "{}", standardError: "")
         )
@@ -141,10 +141,10 @@ final class BenchmarkRunnerTests: XCTestCase {
 
         _ = try runner.run(plan: makeSystemDNSValidationPlan()) { _ in }
 
-        XCTAssertFalse(processRunner.invocations[0].arguments.contains("--progress-jsonl"))
+        XCTAssertTrue(processRunner.invocations[0].arguments.contains("--progress-jsonl"))
     }
 
-    func testRunnerDoesNotAppendHistoryPersistenceForSystemDNSValidation() throws {
+    func testRunnerAppendsHistoryPersistenceForSystemDNSValidation() throws {
         let processRunner = RecordingBenchmarkProcessRunner(
             output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "{}", standardError: "")
         )
@@ -159,8 +159,8 @@ final class BenchmarkRunnerTests: XCTestCase {
 
         _ = try runner.run(plan: makeSystemDNSValidationPlan(), persistence: persistence)
 
-        XCTAssertFalse(processRunner.invocations[0].arguments.contains("--save-db"))
-        XCTAssertFalse(processRunner.invocations[0].arguments.contains("--history-id"))
+        XCTAssertTrue(processRunner.invocations[0].arguments.contains("--save-db"))
+        XCTAssertTrue(processRunner.invocations[0].arguments.contains("--history-id"))
     }
 
     func testProgressEventDecoderMapsResolverFinishedJSONLine() throws {
