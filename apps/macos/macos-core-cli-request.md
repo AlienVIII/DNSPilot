@@ -13,8 +13,9 @@
 - Failed benchmark payloads include failed step, elapsed time, stderr summary, and debug-safe raw logs.
 
 ## Open Requests
-- Expose system-DNS validation in UI-ready schema with `summary`, `runs`, `recommendation: null`, and preflight.
+- None for v0.1 macOS core flows.
 
-## macOS Temporary Adapter
-- macOS currently adapts `system-benchmark` payloads locally when `scope == "system-dns-validation"`.
+## macOS Compatibility Adapter
+- `system-benchmark` now exposes UI-ready `summary`, `runs`, `recommendation: null`, and preflight fields.
+- macOS still adapts legacy `system-benchmark` payloads when `scope == "system-dns-validation"` for backward compatibility.
 - `system-benchmark` supports `--progress-jsonl`, `--save-db`, and `--history-id`; macOS can show per-run progress and save validation runs to local history.

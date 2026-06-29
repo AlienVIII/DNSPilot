@@ -142,6 +142,7 @@ DNS handling, and platform capability reporting.
 - [x] [131] v0.1 macOS support and privacy page drafts — add hostable App Store support/privacy source text.
 - [x] [132] v0.1 macOS bundle version gate — generate and validate release version/build metadata.
 - [x] [133] v0.1 system DNS validation progress/history — persist post-apply validation runs with visible progress.
+- [x] [134] v0.1 system DNS validation canonical payload — expose summary/runs schema without dropping legacy compatibility.
 
 ---
 
@@ -6447,6 +6448,38 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac
 Result: 249 passed, 0 failed
+```
+
+---
+
+## Chunk 134: v0.1 System DNS Validation Canonical Payload
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultDecoderTests.swift`, `apps/macos/macos-core-cli-request.md`, `progress.md`
+
+### What changed
+
+`system-benchmark` now emits the same UI-ready result shape as compare commands:
+`summary`, `runs`, `recommendation: null`, `saved_history_id`, preflight, and
+warning. The legacy `scope`, `metrics`, and `samples` fields remain so older
+macOS adapters can still decode the payload.
+
+### Edge Cases / Caveats
+
+- System DNS validation deliberately sets `can_recommend=false`; validating the
+  currently configured resolver path should not become an automatic DNS-change
+  recommendation.
+- macOS keeps the legacy adapter only for backward compatibility with old CLI
+  payloads.
+
+### Verification
+
+```text
+cargo test -p dnspilot-cli --test cli_benchmark_behaviour system_benchmark_command_outputs_system_dns_validation_payload
+Result: passed
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
+Result: 2 passed, 0 failed
 ```
 
 ---

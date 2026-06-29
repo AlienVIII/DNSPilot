@@ -66,6 +66,18 @@ fn system_benchmark_command_outputs_system_dns_validation_payload() {
     assert_eq!(json["scope"], "system-dns-validation");
     assert_eq!(json["metrics"]["profile_id"], "system-dns");
     assert_eq!(json["samples"].as_array().expect("samples array").len(), 1);
+    assert_eq!(json["summary"]["measurement_scope"], "dns-only");
+    assert_eq!(json["summary"]["mode"], "fastest-raw-dns");
+    assert_eq!(json["summary"]["can_recommend"], false);
+    assert_eq!(json["summary"]["recommended_profile_id"], Value::Null);
+    assert_eq!(json["summary"]["resolver_count"], 1);
+    assert_eq!(json["summary"]["domain_count"], 1);
+    assert_eq!(json["summary"]["attempts_per_record"], 1);
+    assert_eq!(json["summary"]["ip_family"], "ipv4-only");
+    assert_eq!(json["runs"][0]["profile_id"], "system-dns");
+    assert_eq!(json["runs"][0]["resolver"], "macOS system resolver");
+    assert_eq!(json["runs"][0]["metrics"]["profile_id"], "system-dns");
+    assert_eq!(json["recommendation"], Value::Null);
     assert_eq!(
         json["preflight"]["flush_requirement"],
         "recommended-before-test"
@@ -106,7 +118,7 @@ fn system_benchmark_command_can_emit_progress_jsonl() {
     assert_eq!(events[0]["type"], "resolver_started");
     assert_eq!(events[1]["type"], "resolver_finished");
     assert_eq!(events[0]["profile_id"], "system-dns");
-    assert_eq!(events[0]["resolver"], "macOS System Resolver");
+    assert_eq!(events[0]["resolver"], "macOS system resolver");
 }
 
 #[test]

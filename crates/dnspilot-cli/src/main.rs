@@ -530,7 +530,7 @@ fn main() {
                         started_at: default_history_id("started"),
                         scope: MeasurementScope::DnsOnly,
                         mode: RecommendationMode::FastestRawDns,
-                        domains: domains_for_history,
+                        domains: domains_for_history.clone(),
                         resolver_profile_ids: vec![profile_id],
                         metrics: vec![run.metrics.clone()],
                         gate,
@@ -582,7 +582,7 @@ fn main() {
                 "resolver_started",
                 MeasurementScope::DnsOnly,
                 "system-dns",
-                "macOS System Resolver",
+                "macOS system resolver",
                 1,
                 1,
                 None,
@@ -595,7 +595,7 @@ fn main() {
                 "resolver_finished",
                 MeasurementScope::DnsOnly,
                 "system-dns",
-                "macOS System Resolver",
+                "macOS system resolver",
                 1,
                 1,
                 Some(&run.metrics),
@@ -609,6 +609,18 @@ fn main() {
                 std::slice::from_ref(&run.metrics),
                 MeasurementScope::DnsOnly,
             );
+            let mut safety_notes = preflight.preflight.notes.clone();
+            let system_validation_note =
+                "System DNS validation does not produce a resolver recommendation.".to_string();
+            for note in gate
+                .notes
+                .iter()
+                .chain(std::iter::once(&system_validation_note))
+            {
+                if !safety_notes.contains(note) {
+                    safety_notes.push(note.clone());
+                }
+            }
             let saved_history_id = save_db.as_ref().map(|db| {
                 let id = history_id.unwrap_or_else(|| default_history_id("system-benchmark"));
                 save_benchmark_history(
@@ -618,7 +630,7 @@ fn main() {
                         started_at: default_history_id("started"),
                         scope: MeasurementScope::DnsOnly,
                         mode: RecommendationMode::FastestRawDns,
-                        domains: domains_for_history,
+                        domains: domains_for_history.clone(),
                         resolver_profile_ids: vec!["system-dns".into()],
                         metrics: vec![run.metrics.clone()],
                         gate: gate.clone(),
@@ -632,6 +644,29 @@ fn main() {
             });
             let payload = serde_json::json!({
                 "scope": "system-dns-validation",
+                "summary": {
+                    "measurement_scope": "dns-only",
+                    "mode": "fastest-raw-dns",
+                    "health": gate.health,
+                    "primary_issue": gate.primary_issue,
+                    "can_recommend": false,
+                    "safety_notes": safety_notes.clone(),
+                    "resolver_count": 1,
+                    "domain_count": domains_for_history.len(),
+                    "attempts_per_record": attempts,
+                    "timeout_ms": timeout_ms,
+                    "ip_family": ip_family_name(ip_family),
+                    "recommended_profile_id": serde_json::Value::Null,
+                },
+                "runs": [
+                    {
+                        "profile_id": "system-dns",
+                        "resolver": "macOS system resolver",
+                        "metrics": run.metrics.clone(),
+                        "caveats": safety_notes.clone(),
+                    }
+                ],
+                "recommendation": serde_json::Value::Null,
                 "preflight": preflight.preflight,
                 "metrics": run.metrics,
                 "samples": run.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
