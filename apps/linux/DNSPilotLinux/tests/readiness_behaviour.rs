@@ -32,6 +32,10 @@ fn release_readiness_marks_main_linux_goals_as_code_ready() {
     assert!(readiness.items.iter().any(|item| {
         item.name == "Native power path" && item.evidence.contains("execute mutation gate")
     }));
+    assert!(readiness
+        .items
+        .iter()
+        .any(|item| { item.name == "Localization" && item.evidence.contains("publish") }));
 }
 
 #[test]

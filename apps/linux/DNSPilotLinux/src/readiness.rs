@@ -73,7 +73,7 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Localization",
-                "English/Vietnamese primary app, permission, and guided-settings surfaces are implemented.",
+                "English/Vietnamese primary app, permission, guided-settings, publish-check, and native app help surfaces are implemented.",
             ),
             item(
                 "Packaging and publish checklist",

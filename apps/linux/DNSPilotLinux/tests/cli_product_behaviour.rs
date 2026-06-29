@@ -458,6 +458,40 @@ fn cli_app_model_renders_main_window_sections_without_tray_requirement() {
 }
 
 #[test]
+fn cli_app_model_localizes_vietnamese_help_copy() {
+    let output = binary()
+        .args(["app-model", "--package", "flatpak", "--lang", "vi"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Tray: optional"));
+    assert!(stdout.contains("Tray không bắt buộc"));
+    assert!(stdout.contains("Chạy đo kiểm"));
+    assert!(stdout.contains("Hồ sơ DNS"));
+    assert!(stdout.contains("Thêm, sửa, xoá"));
+    assert!(stdout.contains("Không tự động đổi DNS hệ thống"));
+}
+
+#[test]
+fn cli_publish_check_localizes_vietnamese_release_steps() {
+    let output = binary()
+        .args(["publish-check", "--package", "snap", "--lang", "vi"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Gói: Snap"));
+    assert!(stdout.contains("Cổng tự động:"));
+    assert!(stdout.contains("Kiểm thử gói cục bộ:"));
+    assert!(stdout.contains("Cổng thủ công:"));
+    assert!(stdout.contains("Ghi chú an toàn:"));
+    assert!(stdout.contains("không tự động đổi DNS hệ thống"));
+}
+
+#[test]
 fn cli_apply_plan_renders_native_helper_contract_for_deb_profile() {
     let store = temp_path("apply-plan");
     let add = binary()
@@ -531,10 +565,10 @@ fn cli_publish_check_outputs_package_specific_manual_steps() {
     let stdout = String::from_utf8(flatpak.stdout).unwrap();
     assert!(stdout.contains("DNS Pilot Linux Publish Check"));
     assert!(stdout.contains("Gói: Flatpak"));
-    assert!(stdout.contains("Automated gate"));
+    assert!(stdout.contains("Cổng tự động"));
     assert!(stdout.contains("Flatpak Builder"));
     assert!(stdout.contains("Flathub credentials"));
-    assert!(stdout.contains("does not mutate system DNS"));
+    assert!(stdout.contains("không tự động đổi DNS hệ thống"));
 
     let deb = binary()
         .args([

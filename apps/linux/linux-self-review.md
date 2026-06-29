@@ -23,7 +23,7 @@
 | Vietnam/default suites | Covered | suite catalog tests |
 | Capability detection without real DNS mutation | Covered | detector snapshot/runtime path, CLI `detect` |
 | Native app permission model | Covered as view-model/CLI | `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
-| English/Vietnamese localization | Covered for Linux shell surface | `i18n.rs`, i18n behavior tests |
+| English/Vietnamese localization | Covered for Linux shell/native app/publish surfaces | `i18n.rs`, `native_app.rs`, `publish.rs`, i18n behavior tests |
 | Packaging/publish readiness | Covered as policy templates/checklist | `packaging/**`, packaging policy tests, `linux-publish-checklist.md` |
 
 ## Counterarguments And Resolution
@@ -50,7 +50,7 @@
    Valid. The tests assert policy invariants and file presence, but Flatpak Builder, appstreamcli, desktop-file-validate, snapcraft, debuild, and rpmbuild still need to run on Linux.
 
 8. **Counterargument: Vietnamese coverage is not app-wide translation.**
-   Partially valid. The Linux shell now supports English/Vietnamese strings for primary native app, permission, and CLI surfaces. Full GUI copy coverage should expand when the GTK/Qt adapter lands.
+   Partially valid. The Linux shell now supports English/Vietnamese strings for primary native app labels/help, permission, guided settings, publish-check, and CLI surfaces. Full renderer-specific copy should expand when the GTK/Qt adapter lands.
 
 ## Remaining Risks
 

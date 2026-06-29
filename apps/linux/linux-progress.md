@@ -18,8 +18,8 @@ package release.
 - Custom plain DNS profile add/edit/delete/list and file-backed persistence are
   implemented.
 - Store-safe guidance and native power package plans are separated.
-- English/Vietnamese strings cover primary native app, permission, and CLI
-  surfaces.
+- English/Vietnamese strings cover primary native app labels/help, permission,
+  guided settings, publish-check, and CLI surfaces.
 - Packaging templates exist for Flatpak, Snap, deb, rpm, shared desktop/AppStream
   metadata, icon, native helper install paths, and polkit policy.
 - `publish-check` CLI emits package-specific automated gates, local package QA
