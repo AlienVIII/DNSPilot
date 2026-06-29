@@ -78,11 +78,32 @@ Baseline PNG assets are already present at:
 
 Replace them only if final branding changes. Then copy
 `Packaging\Package.Store.appxmanifest.template` to the real package manifest
-used by Visual Studio/MSIX packaging and replace:
-- `Identity Name`
-- `Publisher`
-- `Version`
-- asset paths if branding files differ
+through the preparation script.
+
+## Generate Store Manifest
+From repo root on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps\windows\Prepare-WindowsStorePackage.ps1 `
+  -IdentityName "DNSPilot.Windows.Store" `
+  -Publisher "CN=Contoso LLC" `
+  -Version "1.0.0.0" `
+  -CliPath "target\release\dnspilot-cli.exe"
+```
+
+Replace:
+- `-IdentityName` with the Partner Center package identity if Microsoft assigns a different value.
+- `-Publisher` with the exact Partner Center publisher subject; the sample value is not valid for DNS Pilot.
+- `-Version` with the four-part Store package version.
+- `-CliPath` with the built release helper path.
+
+The script writes:
+
+```text
+apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Packaging\Package.Store.appxmanifest
+```
+
+It also copies `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj` when `-CliPath` is supplied.
 
 ## Store Submission Notes
 - Host `apps/windows/windows-privacy.md` as the public Privacy policy URL before submission.

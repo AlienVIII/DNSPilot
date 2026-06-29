@@ -11,6 +11,7 @@
 - Native shell localization uses WinUI `.resw` resources in `Strings/en-US` and `Strings/vi-VN` with `x:Uid` hooks in `MainWindow.xaml`.
 - Dynamic Windows shell text follows `CurrentUICulture` for progress, validation, failure reports, apply checklist, history rows, and tray labels.
 - Store packaging readiness is documented through `Packaging/Package.Store.appxmanifest.template`; the live package manifest still needs Partner Center identity, version, and publisher metadata.
+- `Prepare-WindowsStorePackage.ps1` generates `Package.Store.appxmanifest` from the template and can copy the release `dnspilot-cli.exe` into the app project.
 - Baseline Store logo/tile/splash PNG assets now exist; replace only if final branding changes.
 - Privacy policy draft, Store listing copy, support copy, and certification notes live in `windows-privacy.md` and `windows-store-listing.md`.
 - Packaged helper path is explicit: copy `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj`; the app project copies it to output when present.

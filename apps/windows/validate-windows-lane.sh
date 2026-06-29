@@ -5,7 +5,12 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
 echo "== Windows core tests =="
-dotnet run --project apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj
+dotnet build apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj
+test_binary="apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/bin/Debug/net8.0/DNSPilotWindows.Core.Tests"
+if [[ ! -x "$test_binary" ]]; then
+  test_binary="${test_binary}.exe"
+fi
+"$test_binary"
 
 echo "== Windows core solution build =="
 dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx
@@ -28,8 +33,9 @@ xaml="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/MainWindow.xaml"
 en_resw="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Strings/en-US/Resources.resw"
 vi_resw="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Strings/vi-VN/Resources.resw"
 package_template="apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Packaging/Package.Store.appxmanifest.template"
+package_prep="apps/windows/Prepare-WindowsStorePackage.ps1"
 
-for required in "$xaml" "$en_resw" "$vi_resw" "$package_template"; do
+for required in "$xaml" "$en_resw" "$vi_resw" "$package_template" "$package_prep"; do
   test -f "$required"
 done
 
@@ -39,6 +45,8 @@ grep -q 'name="AppDisplayName"' "$vi_resw"
 grep -q 'ms-resource:AppDisplayName' "$package_template"
 grep -q 'Name="internetClient"' "$package_template"
 grep -q 'Name="runFullTrust"' "$package_template"
+grep -q 'Package.Store.appxmanifest.template' "$package_prep"
+grep -q 'Version must use four numeric parts' "$package_prep"
 
 echo "== Windows App SDK build probe =="
 if dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx; then

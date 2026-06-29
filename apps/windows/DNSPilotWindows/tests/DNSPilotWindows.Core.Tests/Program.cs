@@ -819,6 +819,7 @@ internal sealed class WindowsCoreTestSuite
         var privacy = File.ReadAllText(Path.Combine(windowsRoot, "windows-privacy.md"));
         var listing = File.ReadAllText(Path.Combine(windowsRoot, "windows-store-listing.md"));
         var publish = File.ReadAllText(Path.Combine(windowsRoot, "windows-publish.md"));
+        var packagePrep = File.ReadAllText(Path.Combine(windowsRoot, "Prepare-WindowsStorePackage.ps1"));
 
         Assert.Contains("Privacy Policy Draft", privacy);
         Assert.Contains("DNS queries", privacy);
@@ -839,7 +840,21 @@ internal sealed class WindowsCoreTestSuite
 
         Assert.Contains("windows-privacy.md", publish);
         Assert.Contains("windows-store-listing.md", publish);
+        Assert.Contains("Prepare-WindowsStorePackage.ps1", publish);
+        Assert.Contains("-IdentityName", publish);
+        Assert.Contains("-Publisher", publish);
+        Assert.Contains("-Version", publish);
         Assert.Contains("Partner Center Properties", publish);
+
+        Assert.Contains("[Parameter(Mandatory = $true)]", packagePrep);
+        Assert.Contains("$IdentityName", packagePrep);
+        Assert.Contains("$Publisher", packagePrep);
+        Assert.Contains("$Version", packagePrep);
+        Assert.Contains("Package.Store.appxmanifest.template", packagePrep);
+        Assert.Contains("Package.Store.appxmanifest", packagePrep);
+        Assert.Contains("REPLACE_WITH_PARTNER_CENTER_PUBLISHER", packagePrep);
+        Assert.Contains("Version must use four numeric parts", packagePrep);
+        Assert.Contains("Generated Store package manifest", packagePrep);
     }
 
     private static string FindRepoRoot()
