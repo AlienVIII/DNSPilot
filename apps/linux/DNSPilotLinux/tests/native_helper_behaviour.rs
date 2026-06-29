@@ -74,6 +74,29 @@ fn native_helper_request_json_runs_mock_lifecycle_without_writing_dns() {
     assert!(stdout.contains("Native helper mock execution"));
     assert!(stdout.contains("snapshot:NetworkManager"));
     assert!(stdout.contains("authorize:io.dnspilot.DNSPilot.apply-dns"));
-    assert!(stdout.contains("write:NetworkManager:1.1.1.1"));
+    assert!(stdout.contains("would-write:NetworkManager:1.1.1.1"));
     assert!(stdout.contains("DNS writes executed: no"));
+}
+
+#[test]
+fn native_helper_request_json_rejects_execute_mode_without_backend() {
+    let request = r#"{
+        "schema_version": 1,
+        "polkit_action_id": "io.dnspilot.DNSPilot.apply-dns",
+        "resolver_stack": "networkmanager",
+        "servers": ["1.1.1.1"],
+        "rollback_snapshot": true,
+        "validate_after_apply": true,
+        "mutation_mode": "execute",
+        "confirm_system_dns_mutation": true
+    }"#;
+
+    let output = helper_binary()
+        .args(["--request-json", request])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("execution backend is not enabled"));
 }

@@ -164,7 +164,7 @@ dnspilot-linux-shell permissions --package deb --network-manager --polkit --syst
 dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --package deb --network-manager --polkit --system-resolver-probe --profile-id local --resolver-family auto
 dnspilot-native-helper --contract
 dnspilot-native-helper --dry-run --stack networkmanager --server 1.1.1.1
-dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true}'
+dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
 ```
 
 Expected:
@@ -172,7 +172,9 @@ Expected:
 - native apply plan is offered only when NetworkManager or systemd-resolved plus
   polkit are detected,
 - native helper contract/dry-run/request protocol works without writing DNS,
-- polkit prompt appears before any DNS write,
+- execute-mode requests require `confirm_system_dns_mutation: true` and stay
+  disabled until the native write backend passes package QA,
+- polkit prompt appears before any DNS write after the backend is enabled,
 - current/system resolver validation can run after apply if supported.
 
 ## rpm Native Power QA
@@ -210,5 +212,6 @@ sudo dnf install ./dnspilot-0.1.0-*.rpm
   builds still need package-tool validation on Linux.
 - The native UI adapter is represented by app view-model and desktop metadata;
   GTK/libadwaita or Qt binding remains a separate implementation step.
-- The native power helper contract is implemented as a non-mutating apply
-  plan/helper dry run; resolver write execution is not implemented in this lane.
+- The native power helper contract is implemented with a non-mutating dry-run
+  lifecycle and an execute mutation gate; resolver write backend/package QA is
+  still required before real DNS mutation is enabled.

@@ -24,8 +24,8 @@ package release.
   metadata, icon, native helper install paths, and polkit policy.
 - Native helper contract binary supports contract and dry-run inspection without
   DNS mutation.
-- Native helper request JSON and mock executor lifecycle cover snapshot,
-  authorization, write, flush, validation, and rollback sequencing without DNS
+- Native helper request JSON covers snapshot, authorization, would-write, flush,
+  validation, rollback sequencing, and an execute mutation gate without DNS
   mutation.
 
 ## Validation
@@ -36,7 +36,8 @@ package release.
 
 - Native GUI stack decision: GTK/libadwaita or Qt.
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.
-- NetworkManager/systemd-resolved write execution if the Power path proceeds.
+- NetworkManager/systemd-resolved write backend and Linux package QA before
+  enabling real DNS mutation.
 
 ## Source Of Truth
 

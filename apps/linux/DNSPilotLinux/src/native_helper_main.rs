@@ -1,6 +1,6 @@
 use dnspilot_linux_shell::native_power::{
-    execute_native_apply_request, parse_native_apply_request_json, NativeHelperExecutor,
-    NativeHelperRunError, NativeResolverStack, DNS_APPLY_POLKIT_ACTION_ID,
+    parse_native_apply_request_json, NativeHelperApplyRequest, NativeMutationMode,
+    NativeResolverStack, DNS_APPLY_POLKIT_ACTION_ID,
 };
 use std::env;
 use std::process;
@@ -49,10 +49,13 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, String> {
             let json = request_json.ok_or_else(|| "--request-json is required".to_string())?;
             let request = parse_native_apply_request_json(&json)
                 .map_err(|error| format!("invalid request: {error:?}"))?;
-            let mut executor = DryRunExecutor::default();
-            execute_native_apply_request(&request, &mut executor)
-                .map_err(|error| format!("mock execution failed: {error:?}"))?;
-            Ok(render_mock_execution(&executor.events))
+            if request.mutation_mode == NativeMutationMode::Execute {
+                return Err(
+                    "execution backend is not enabled in this helper build; run Linux package QA before enabling real DNS mutation"
+                        .to_string(),
+                );
+            }
+            Ok(render_mock_execution(&request))
         }
     }
 }
@@ -92,13 +95,23 @@ fn render_dry_run(stack: NativeResolverStack, servers: &[String]) -> String {
     .join("\n")
 }
 
-fn render_mock_execution(events: &[String]) -> String {
+fn render_mock_execution(request: &NativeHelperApplyRequest) -> String {
     let mut lines = vec![
         "Native helper mock execution".to_string(),
         "Dry run: yes".to_string(),
         "Events:".to_string(),
     ];
-    lines.extend(events.iter().map(|event| format!("- {event}")));
+    lines.push(format!("- snapshot:{:?}", request.resolver_stack));
+    lines.push(format!("- authorize:{}", request.polkit_action_id));
+    lines.push(format!(
+        "- would-write:{:?}:{}",
+        request.resolver_stack,
+        request.servers.join(",")
+    ));
+    lines.push(format!("- flush:{:?}", request.resolver_stack));
+    if request.validate_after_apply {
+        lines.push(format!("- validate:{:?}", request.resolver_stack));
+    }
     lines.push("DNS writes executed: no".to_string());
     lines.join("\n")
 }
@@ -114,55 +127,4 @@ fn parse_stack(value: &str) -> Result<NativeResolverStack, String> {
 fn next_arg(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<String, String> {
     args.next()
         .ok_or_else(|| format!("{flag} requires a value"))
-}
-
-#[derive(Default)]
-struct DryRunExecutor {
-    events: Vec<String>,
-}
-
-impl NativeHelperExecutor for DryRunExecutor {
-    fn snapshot_existing_dns(
-        &mut self,
-        stack: NativeResolverStack,
-    ) -> Result<(), NativeHelperRunError> {
-        self.events.push(format!("snapshot:{stack:?}"));
-        Ok(())
-    }
-
-    fn authorize(&mut self, action_id: &str) -> Result<(), NativeHelperRunError> {
-        self.events.push(format!("authorize:{action_id}"));
-        Ok(())
-    }
-
-    fn write_dns(
-        &mut self,
-        stack: NativeResolverStack,
-        servers: &[String],
-    ) -> Result<(), NativeHelperRunError> {
-        self.events
-            .push(format!("write:{stack:?}:{}", servers.join(",")));
-        Ok(())
-    }
-
-    fn flush_resolver_cache(
-        &mut self,
-        stack: NativeResolverStack,
-    ) -> Result<(), NativeHelperRunError> {
-        self.events.push(format!("flush:{stack:?}"));
-        Ok(())
-    }
-
-    fn validate_current_resolver(
-        &mut self,
-        stack: NativeResolverStack,
-    ) -> Result<(), NativeHelperRunError> {
-        self.events.push(format!("validate:{stack:?}"));
-        Ok(())
-    }
-
-    fn rollback_dns(&mut self, stack: NativeResolverStack) -> Result<(), NativeHelperRunError> {
-        self.events.push(format!("rollback:{stack:?}"));
-        Ok(())
-    }
 }

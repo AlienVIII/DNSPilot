@@ -1,6 +1,6 @@
 use dnspilot_linux_shell::native_power::{
     execute_native_apply_request, parse_native_apply_request_json, NativeHelperExecutor,
-    NativeHelperRunError, NativeResolverStack, DNS_APPLY_POLKIT_ACTION_ID,
+    NativeHelperRunError, NativeMutationMode, NativeResolverStack, DNS_APPLY_POLKIT_ACTION_ID,
 };
 
 #[test]
@@ -19,8 +19,69 @@ fn native_helper_request_json_parses_stack_servers_and_safety_flags() {
 
     assert_eq!(request.resolver_stack, NativeResolverStack::NetworkManager);
     assert_eq!(request.servers, vec!["1.1.1.1", "9.9.9.9"]);
+    assert_eq!(request.mutation_mode, NativeMutationMode::DryRun);
+    assert!(!request.confirm_system_dns_mutation);
     assert!(request.rollback_snapshot);
     assert!(request.validate_after_apply);
+}
+
+#[test]
+fn native_helper_request_json_requires_confirmation_for_execute_mode() {
+    let error = parse_native_apply_request_json(&format!(
+        r#"{{
+            "schema_version": 1,
+            "polkit_action_id": "{DNS_APPLY_POLKIT_ACTION_ID}",
+            "resolver_stack": "networkmanager",
+            "servers": ["1.1.1.1"],
+            "rollback_snapshot": true,
+            "validate_after_apply": true,
+            "mutation_mode": "execute"
+        }}"#
+    ))
+    .unwrap_err();
+
+    assert_eq!(error, NativeHelperRunError::MutationNotConfirmed);
+}
+
+#[test]
+fn native_helper_request_json_accepts_confirmed_execute_mode() {
+    let request = parse_native_apply_request_json(&format!(
+        r#"{{
+            "schema_version": 1,
+            "polkit_action_id": "{DNS_APPLY_POLKIT_ACTION_ID}",
+            "resolver_stack": "systemd-resolved",
+            "servers": ["2606:4700:4700::1111"],
+            "rollback_snapshot": true,
+            "validate_after_apply": true,
+            "mutation_mode": "execute",
+            "confirm_system_dns_mutation": true
+        }}"#
+    ))
+    .unwrap();
+
+    assert_eq!(request.mutation_mode, NativeMutationMode::Execute);
+    assert!(request.confirm_system_dns_mutation);
+}
+
+#[test]
+fn native_helper_executor_refuses_dry_run_requests() {
+    let request = parse_native_apply_request_json(&format!(
+        r#"{{
+            "schema_version": 1,
+            "polkit_action_id": "{DNS_APPLY_POLKIT_ACTION_ID}",
+            "resolver_stack": "networkmanager",
+            "servers": ["1.1.1.1"],
+            "rollback_snapshot": true,
+            "validate_after_apply": false
+        }}"#
+    ))
+    .unwrap();
+    let mut executor = RecordingExecutor::default();
+
+    let error = execute_native_apply_request(&request, &mut executor).unwrap_err();
+
+    assert_eq!(error, NativeHelperRunError::MutationNotConfirmed);
+    assert!(executor.events.is_empty());
 }
 
 #[test]
@@ -61,7 +122,9 @@ fn native_helper_executor_runs_authorized_write_sequence() {
             "resolver_stack": "networkmanager",
             "servers": ["1.1.1.1"],
             "rollback_snapshot": true,
-            "validate_after_apply": true
+            "validate_after_apply": true,
+            "mutation_mode": "execute",
+            "confirm_system_dns_mutation": true
         }}"#
     ))
     .unwrap();
@@ -92,7 +155,9 @@ fn native_helper_executor_rolls_back_after_write_failure() {
             "resolver_stack": "systemd-resolved",
             "servers": ["2606:4700:4700::1111"],
             "rollback_snapshot": true,
-            "validate_after_apply": true
+            "validate_after_apply": true,
+            "mutation_mode": "execute",
+            "confirm_system_dns_mutation": true
         }}"#
     ))
     .unwrap();

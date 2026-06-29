@@ -59,6 +59,12 @@ pub enum NativeApplyError {
     NoServersForSelectedFamily,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NativeMutationMode {
+    DryRun,
+    Execute,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NativeHelperApplyRequest {
     pub resolver_stack: NativeResolverStack,
@@ -66,6 +72,8 @@ pub struct NativeHelperApplyRequest {
     pub servers: Vec<String>,
     pub rollback_snapshot: bool,
     pub validate_after_apply: bool,
+    pub mutation_mode: NativeMutationMode,
+    pub confirm_system_dns_mutation: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,8 +88,10 @@ pub enum NativeHelperRunError {
     UnsupportedSchema,
     InvalidPolkitAction,
     InvalidResolverStack,
+    InvalidMutationMode,
     NoServers,
     RollbackSnapshotRequired,
+    MutationNotConfirmed,
     SnapshotFailed(String),
     AuthorizationFailed(String),
     WriteFailed(String),
@@ -166,6 +176,20 @@ pub fn parse_native_apply_request_json(
         return Err(NativeHelperRunError::RollbackSnapshotRequired);
     }
 
+    let mutation_mode = value
+        .get("mutation_mode")
+        .and_then(Value::as_str)
+        .map(parse_mutation_mode)
+        .transpose()?
+        .unwrap_or(NativeMutationMode::DryRun);
+    let confirm_system_dns_mutation = value
+        .get("confirm_system_dns_mutation")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if mutation_mode == NativeMutationMode::Execute && !confirm_system_dns_mutation {
+        return Err(NativeHelperRunError::MutationNotConfirmed);
+    }
+
     Ok(NativeHelperApplyRequest {
         resolver_stack,
         polkit_action_id: polkit_action_id.to_string(),
@@ -175,6 +199,8 @@ pub fn parse_native_apply_request_json(
             .get("validate_after_apply")
             .and_then(Value::as_bool)
             .unwrap_or(false),
+        mutation_mode,
+        confirm_system_dns_mutation,
     })
 }
 
@@ -182,6 +208,11 @@ pub fn execute_native_apply_request(
     request: &NativeHelperApplyRequest,
     executor: &mut impl NativeHelperExecutor,
 ) -> Result<NativeHelperRunResult, NativeHelperRunError> {
+    if request.mutation_mode != NativeMutationMode::Execute || !request.confirm_system_dns_mutation
+    {
+        return Err(NativeHelperRunError::MutationNotConfirmed);
+    }
+
     executor.snapshot_existing_dns(request.resolver_stack)?;
     executor.authorize(&request.polkit_action_id)?;
 
@@ -299,6 +330,14 @@ fn parse_native_stack(value: &str) -> Option<NativeResolverStack> {
         "networkmanager" | "network-manager" | "nm" => Some(NativeResolverStack::NetworkManager),
         "systemd-resolved" | "resolved" => Some(NativeResolverStack::SystemdResolved),
         _ => None,
+    }
+}
+
+fn parse_mutation_mode(value: &str) -> Result<NativeMutationMode, NativeHelperRunError> {
+    match value {
+        "dry-run" | "dry_run" | "preview" => Ok(NativeMutationMode::DryRun),
+        "execute" => Ok(NativeMutationMode::Execute),
+        _ => Err(NativeHelperRunError::InvalidMutationMode),
     }
 }
 
