@@ -13,6 +13,8 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
   `eas.json`.
 - `patch-package` applies an Expo SDK 56 `expo-modules-jsi` Swift fix required
   for Xcode 26 Simulator builds. Remove it after Expo ships the upstream fix.
+- `expo-dev-client` is included for installable development builds; Expo Go is
+  still usable for bridge-only UI testing.
 
 ## Run
 
@@ -37,6 +39,12 @@ Native local builds use:
 ```bash
 npm run ios
 npm run android
+```
+
+For a development build installed on a real device, start Metro with:
+
+```bash
+npm run start:dev-client
 ```
 
 ## Verify

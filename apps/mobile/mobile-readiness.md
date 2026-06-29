@@ -30,6 +30,9 @@
 - Native build smoke: covered by local iOS Simulator build and Android
   `assembleDebug`; `patch-package` carries the required Expo SDK 56/Xcode 26
   `expo-modules-jsi` Swift patch until upstream removes it.
+- Development client flow: covered by `expo-dev-client`, launcher-mode config,
+  and a `npm run start:dev-client` LAN script for installable real-device
+  development builds.
 - Real-device setup UX: covered by an in-app Device Setup evaluator that checks
   localhost vs LAN/emulator bridge URLs, OS permission expectations, and
   store-safe DNS mutation policy before benchmark testing.
@@ -68,7 +71,8 @@
 1. Run `npm run bridge` from `apps/mobile/DNSPilotMobile`.
 2. Copy the printed `Bridge URL: http://<mac-lan-ip>:8787` for physical device
    testing.
-3. Run `npm start` or `npx expo start --lan --port 8082`.
+3. Run `npm start` for Expo Go, or `npm run start:dev-client` for an installed
+   development build.
 4. Use `http://localhost:8787` on web/iOS Simulator. Use the Mac LAN URL for a
    physical phone. Use `http://10.0.2.2:8787` for Android emulator if needed.
 5. Overview: switch Auto/English/Tiếng Việt, choose the correct Device Setup
@@ -92,6 +96,7 @@
 ## Validation Commands
 - `npm run verify`
 - `npm run postinstall`
+- `npm run start:dev-client`
 - `npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache`
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`
 - `npm test`

@@ -29,6 +29,8 @@ compile. It is not yet the final public-store architecture.
 - Native build path is smoke-tested locally with iOS Simulator and Android
   `assembleDebug`; SDK 56 Xcode 26 support is stabilized through a
   `patch-package` patch for `expo-modules-jsi@56.0.10`.
+- EAS development builds include `expo-dev-client`; the local real-device
+  command is `npm run start:dev-client`.
 
 ## Validation
 
@@ -37,6 +39,7 @@ compile. It is not yet the final public-store architecture.
 - `npm test`: pass.
 - `npm run typecheck`: pass after `npm ci`.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
+- `npx expo install --check`: pass with `expo-dev-client`.
 - `npx expo run:ios --configuration Debug --device "iPhone 16e" --no-bundler --no-install --no-build-cache`:
   pass on Xcode 26.0.1 iOS Simulator.
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:

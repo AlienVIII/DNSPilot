@@ -7,6 +7,8 @@
 - Local native build smoke passes for iOS Simulator and Android debug. The
   app carries a `patch-package` patch for `expo-modules-jsi@56.0.10` so Expo SDK
   56 compiles on Xcode 26. Remove it after Expo ships the upstream fix.
+- EAS development builds include `expo-dev-client`; use `npm run
+  start:dev-client` after installing the build on a device.
 - The app remains store-safe: no iOS plain system DNS switch, no Android silent
   Private DNS mutation, no Android `VpnService`, and no "apply fastest DNS" or
   internet speed claim.
@@ -23,9 +25,10 @@
 3. Copy the printed `Bridge URL: http://<mac-lan-ip>:8787`.
 4. In another terminal, run:
    ```bash
-   npx expo start --lan --port 8082
+   npm run start:dev-client
    ```
-5. Open the app on the device with Expo Go or a development build.
+5. Open the installed development build on the device. Expo Go remains usable
+   for bridge-only UI checks, but the development build is the native smoke path.
 6. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
    titles, validation errors, and guided settings copy update.
 7. Overview > Device Setup: choose the real-device target. Confirm localhost is
@@ -53,6 +56,7 @@
 1. Run local gates:
    ```bash
    npm run verify
+   npx expo install --check
    npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache
    npx expo prebuild --platform android --no-install
    ./android/gradlew -p android assembleDebug

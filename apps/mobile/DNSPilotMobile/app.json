@@ -46,6 +46,15 @@
     "plugins": [
       "expo-router",
       [
+        "expo-dev-client",
+        {
+          "launchMode": "launcher",
+          "toolsButton": true,
+          "skipOnboarding": false,
+          "showMenuAtLaunch": true
+        }
+      ],
+      [
         "expo-localization",
         {
           "supportedLocales": {
