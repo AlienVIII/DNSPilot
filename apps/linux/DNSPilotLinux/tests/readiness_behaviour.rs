@@ -23,7 +23,8 @@ fn release_readiness_marks_main_linux_goals_as_code_ready() {
         .items
         .iter()
         .any(|item| item.name == "Packaging and publish checklist"
-            && item.status == ReadinessStatus::Ready));
+            && item.status == ReadinessStatus::Ready
+            && item.evidence.contains("publish-check")));
     assert!(readiness
         .external_requirements
         .iter()
@@ -45,4 +46,5 @@ fn readiness_report_is_copyable_and_separates_manual_publish_work() {
     assert!(report.contains("signing"));
     assert!(report.contains("execute mutation gate"));
     assert!(report.contains("manual Linux package QA"));
+    assert!(report.contains("publish-check"));
 }

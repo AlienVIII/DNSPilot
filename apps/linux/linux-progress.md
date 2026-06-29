@@ -22,6 +22,8 @@ package release.
   surfaces.
 - Packaging templates exist for Flatpak, Snap, deb, rpm, shared desktop/AppStream
   metadata, icon, native helper install paths, and polkit policy.
+- `publish-check` CLI emits package-specific automated gates, local package QA
+  steps, manual credential/signing gates, and safety notes.
 - Native helper contract binary supports contract and dry-run inspection without
   DNS mutation.
 - Native helper request JSON covers snapshot, authorization, would-write, flush,

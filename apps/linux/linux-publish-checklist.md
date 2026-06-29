@@ -43,6 +43,8 @@ Smoke the native-facing surfaces:
 ```sh
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell detect
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell readiness
+apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell publish-check --package flatpak
+apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell publish-check --package deb --network-manager --polkit --system-resolver-probe
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell app-model --package flatpak --lang vi
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell permissions --package snap
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell permissions --package deb --network-manager --polkit --system-resolver-probe

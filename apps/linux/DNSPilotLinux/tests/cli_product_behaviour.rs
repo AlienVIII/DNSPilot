@@ -520,6 +520,43 @@ fn cli_readiness_outputs_code_ready_and_manual_publish_requirements() {
     assert!(stdout.contains("store credentials"));
 }
 
+#[test]
+fn cli_publish_check_outputs_package_specific_manual_steps() {
+    let flatpak = binary()
+        .args(["publish-check", "--package", "flatpak", "--lang", "vi"])
+        .output()
+        .unwrap();
+
+    assert!(flatpak.status.success());
+    let stdout = String::from_utf8(flatpak.stdout).unwrap();
+    assert!(stdout.contains("DNS Pilot Linux Publish Check"));
+    assert!(stdout.contains("Gói: Flatpak"));
+    assert!(stdout.contains("Automated gate"));
+    assert!(stdout.contains("Flatpak Builder"));
+    assert!(stdout.contains("Flathub credentials"));
+    assert!(stdout.contains("does not mutate system DNS"));
+
+    let deb = binary()
+        .args([
+            "publish-check",
+            "--package",
+            "deb",
+            "--network-manager",
+            "--polkit",
+            "--system-resolver-probe",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(deb.status.success());
+    let stdout = String::from_utf8(deb.stdout).unwrap();
+    assert!(stdout.contains("Package: deb"));
+    assert!(stdout.contains("debuild -us -uc"));
+    assert!(stdout.contains("polkit policy"));
+    assert!(stdout.contains("execute mutation gate"));
+    assert!(stdout.contains("real Linux package QA"));
+}
+
 #[cfg(unix)]
 fn make_executable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;
