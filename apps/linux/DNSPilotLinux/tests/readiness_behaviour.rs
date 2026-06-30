@@ -32,10 +32,17 @@ fn release_readiness_marks_main_linux_goals_as_code_ready() {
     assert!(readiness.items.iter().any(|item| {
         item.name == "Native power path" && item.evidence.contains("execute mutation gate")
     }));
+    assert!(readiness.items.iter().any(|item| {
+        item.name == "Native app surface" && item.evidence.contains("dnspilot-linux-gui")
+    }));
     assert!(readiness
         .items
         .iter()
         .any(|item| { item.name == "Localization" && item.evidence.contains("publish") }));
+    assert!(!readiness
+        .external_requirements
+        .iter()
+        .any(|requirement| requirement.contains("GTK/libadwaita or Qt")));
 }
 
 #[test]

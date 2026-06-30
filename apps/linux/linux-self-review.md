@@ -22,14 +22,14 @@
 | IPv4/IPv6 and A/AAAA controls | Covered | settings/app/session tests |
 | Vietnam/default suites | Covered | suite catalog tests |
 | Capability detection without real DNS mutation | Covered | detector snapshot/runtime path, CLI `detect` |
-| Native app permission model | Covered as view-model/CLI | `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
+| Native app permission model | Covered as GUI/view-model/CLI | `gui_main.rs`, `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
 | English/Vietnamese localization | Covered for Linux shell/native app/publish surfaces | `i18n.rs`, `native_app.rs`, `publish.rs`, i18n behavior tests |
 | Packaging/publish readiness | Covered as policy templates/checklist | `packaging/**`, packaging policy tests, `linux-publish-checklist.md` |
 
 ## Counterarguments And Resolution
 
 1. **Counterargument: A CLI harness is not a finished Linux GUI.**
-   Valid. The lane now has product-grade app/session models, localized native app view-models, persistence, runner boundary, desktop metadata, and CLI surfaces, but no GTK/libadwaita or Qt rendering adapter. This remains the largest product gap before a real end-user GUI can be called complete.
+   Resolved for this lane. `dnspilot-linux-gui` is now the desktop launcher, uses the existing app/session, storage, runner, diagnostics, permission, and localization modules, and does not depend on tray integration. Final Linux package QA still has to validate the window on GNOME/Wayland.
 
 2. **Counterargument: Capability detection can be wrong on some distros.**
    Valid. Detection is intentionally conservative and non-mutating. It checks sandbox markers, resolver-stack tools, paths, and polkit availability. Later distro QA must validate real packaging behavior.
@@ -50,19 +50,19 @@
    Valid. The tests assert policy invariants and file presence, but Flatpak Builder, appstreamcli, desktop-file-validate, snapcraft, debuild, and rpmbuild still need to run on Linux.
 
 8. **Counterargument: Vietnamese coverage is not app-wide translation.**
-   Partially valid. The Linux shell now supports English/Vietnamese strings for primary native app labels/help, permission, guided settings, publish-check, and CLI surfaces. Full renderer-specific copy should expand when the GTK/Qt adapter lands.
+   Partially valid. The Linux shell and GUI now support English/Vietnamese strings for primary native app labels/help, permission, guided settings, publish-check, and CLI surfaces. Remaining untranslated package-tool terms are intentionally kept copyable.
 
 ## Remaining Risks
 
 - Real Flatpak/Snap/deb/rpm builds are not validated in this lane.
 - NetworkManager D-Bus and systemd-resolved write backend is not enabled.
 - Native helper packaging/install paths exist, but real helper authorization/write execution still needs Linux package QA before enabling mutation.
-- Native GUI stack/rendering adapter remains undecided.
+- Native GUI compiles in this lane, but real GNOME/Wayland rendering still needs Linux package QA.
 - Distro-specific settings handoff text may need UX refinement after QA.
 
 ## Recommended Next Phase
 
-1. Select Linux native UI stack: GTK/libadwaita or Qt.
-2. Bind the UI to the existing app/session, storage, runner, diagnostics, and guide modules.
-3. Implement native power helper execution behind explicit deb/rpm packaging.
-4. Add package-level QA fixtures for Flatpak, Snap, deb, and rpm.
+1. Run package-level QA fixtures for Flatpak, Snap, deb, and rpm.
+2. Validate the GUI on GNOME/Wayland and common X11 fallback sessions.
+3. Implement native power helper write backend behind explicit deb/rpm packaging after QA.
+4. Collect screenshots, release notes, signing credentials, and store metadata for submission.

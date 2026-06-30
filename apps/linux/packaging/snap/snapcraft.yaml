@@ -12,7 +12,7 @@ confinement: strict
 
 apps:
   dnspilot:
-    command: bin/dnspilot-linux-shell
+    command: bin/dnspilot-linux-gui
     desktop: usr/share/applications/io.dnspilot.DNSPilot.desktop
     plugs:
       - network
@@ -26,6 +26,7 @@ parts:
     plugin: dump
     source: ../snap-payload
     organize:
+      dnspilot-linux-gui: bin/dnspilot-linux-gui
       dnspilot-linux-shell: bin/dnspilot-linux-shell
       io.dnspilot.DNSPilot.desktop: usr/share/applications/io.dnspilot.DNSPilot.desktop
       io.dnspilot.DNSPilot.metainfo.xml: usr/share/metainfo/io.dnspilot.DNSPilot.metainfo.xml

@@ -45,14 +45,22 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness
 ```
 
 The readiness report marks scoped Linux code goals as ready and separates
-manual package QA, store credentials, signing, screenshots, release notes, GUI
-adapter choice, and real resolver-write QA as external release work.
+manual package QA, store credentials, signing, screenshots, release notes, and
+real resolver-write QA as external release work.
 
 ## Native App Surface
 
-The Linux shell exposes a native app view-model for the eventual GTK/libadwaita
-or Qt adapter. The main app surface is the primary UX; tray integration is
+`dnspilot-linux-gui` is the Linux desktop launcher. It binds the app/session,
+profile storage, benchmark runner, diagnostics, permissions, settings, and
+localization surfaces into a tray-independent main window. Tray integration is
 optional and never required for GNOME/Wayland.
+
+GUI launch/build example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-linux-gui
+cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
+```
 
 CLI app-model example:
 
@@ -65,7 +73,7 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- app-model \
   --lang vi
 ```
 
-The view-model includes:
+The GUI and view-model include:
 
 - benchmark,
 - profile management,
@@ -73,8 +81,9 @@ The view-model includes:
 - diagnostics/debug report,
 - permissions.
 
-English and Vietnamese are supported for the Linux shell's primary app and
-permission surfaces. Guided settings also supports `--lang en|vi`.
+English and Vietnamese are supported for primary app labels/help, permission
+surfaces, guided settings, and publish-check surfaces. Some package tool names
+stay in English because they are command names.
 
 ## Permissions
 
@@ -139,7 +148,8 @@ Every run can produce a copyable debug report with:
 - resolver statuses,
 - capability notes.
 
-The Linux CLI harness renders this report from mocked inputs:
+The GUI displays diagnostics after plan/run actions. The Linux CLI harness also
+renders this report from mocked inputs for automated QA:
 
 ```sh
 cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- \

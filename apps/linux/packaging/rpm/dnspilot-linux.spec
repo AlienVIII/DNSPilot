@@ -18,6 +18,7 @@ stack and polkit authorization are available.
 %build
 
 %install
+install -Dm755 dnspilot-linux-gui %{buildroot}%{_bindir}/dnspilot-linux-gui
 install -Dm755 dnspilot-linux-shell %{buildroot}%{_bindir}/dnspilot-linux-shell
 install -Dm755 dnspilot-native-helper %{buildroot}%{_libexecdir}/dnspilot/dnspilot-native-helper
 install -Dm644 io.dnspilot.DNSPilot.desktop %{buildroot}%{_datadir}/applications/io.dnspilot.DNSPilot.desktop
@@ -26,6 +27,7 @@ install -Dm644 io.dnspilot.DNSPilot.svg %{buildroot}%{_datadir}/icons/hicolor/sc
 install -Dm644 io.dnspilot.DNSPilot.apply.policy %{buildroot}%{_datadir}/polkit-1/actions/io.dnspilot.DNSPilot.apply.policy
 
 %files
+%{_bindir}/dnspilot-linux-gui
 %{_bindir}/dnspilot-linux-shell
 %{_libexecdir}/dnspilot/dnspilot-native-helper
 %{_datadir}/applications/io.dnspilot.DNSPilot.desktop

@@ -1,3 +1,4 @@
+dnspilot-linux-gui usr/bin/
 dnspilot-linux-shell usr/bin/
 dnspilot-native-helper usr/libexec/dnspilot/
 io.dnspilot.DNSPilot.desktop usr/share/applications/

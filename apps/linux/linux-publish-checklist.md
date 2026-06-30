@@ -38,6 +38,12 @@ Release binary:
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
 ```
 
+Expected release binaries:
+
+- `target/release/dnspilot-linux-gui` for the desktop launcher,
+- `target/release/dnspilot-linux-shell` for CLI inspection/QA,
+- `target/release/dnspilot-native-helper` for native deb/rpm helper contract.
+
 Smoke the native-facing surfaces:
 
 ```sh
@@ -108,6 +114,7 @@ desktop-file-validate apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop
 
 ```sh
 mkdir -p apps/linux/packaging/snap-payload
+cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui apps/linux/packaging/snap-payload/
 cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell apps/linux/packaging/snap-payload/
 cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop apps/linux/packaging/snap-payload/
 cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.metainfo.xml apps/linux/packaging/snap-payload/
@@ -212,8 +219,8 @@ sudo dnf install ./dnspilot-0.1.0-*.rpm
 
 - The checked-in packaging files are policy templates; real Flatpak/Snap/deb/rpm
   builds still need package-tool validation on Linux.
-- The native UI adapter is represented by app view-model and desktop metadata;
-  GTK/libadwaita or Qt binding remains a separate implementation step.
+- The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
+  still needs package-tool validation on Linux.
 - The native power helper contract is implemented with a non-mutating dry-run
   lifecycle and an execute mutation gate; resolver write backend/package QA is
   still required before real DNS mutation is enabled.

@@ -57,7 +57,7 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Native app surface",
-                "Main-window view model, localized primary actions, desktop metadata, and tray-optional invariant are present.",
+                "dnspilot-linux-gui main window, localized primary actions/help, desktop metadata, and tray-optional invariant are present.",
             ),
             item(
                 "Custom DNS profiles",
@@ -83,7 +83,6 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
         external_requirements: vec![
             "Flatpak/Snap/deb/rpm real package QA on Linux hardware or VM.",
             "store credentials, signing, screenshots, release notes, and final metadata review.",
-            "GTK/libadwaita or Qt rendering adapter if a graphical shell is selected for the release artifact.",
             "Native resolver write backend and Linux QA before enabling real DNS mutation in deb/rpm.",
         ],
     }
