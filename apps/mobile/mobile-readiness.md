@@ -15,8 +15,8 @@
   iOS/iPadOS profile/settings guidance, Android settings/Private DNS guidance,
   protected-network suppression, copy DNS servers actions, and native Open
   Settings actions.
-- Tablet layouts: covered by shared adaptive layout helpers and two-column
-  flows on wide screens.
+- Tablet layouts: covered by shared adaptive layout helpers, two-column flows on
+  wide screens, and unlocked orientation for native portrait/landscape checks.
 - IPv4/IPv6 and A/AAAA controls: covered by benchmark IP-family controls and
   help text.
 - Vietnam/default suites: covered when the core catalog exposes
@@ -88,8 +88,8 @@
    invalid forms are disabled before bridge calls.
 10. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
    switches to protect-current-dns when required.
-11. Tablet: validate iPad and Android tablet layouts are multi-column, not
-    stretched phone views.
+11. Tablet: rotate iPad and Android tablet portrait/landscape and validate the
+    layout stays multi-column, not a stretched phone view.
 12. Accessibility: with VoiceOver/TalkBack enabled, confirm buttons, segmented
     choices, switches, inputs, and selected chips announce their label and state.
 

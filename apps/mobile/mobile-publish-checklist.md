@@ -49,8 +49,8 @@
     portal. Expected behavior is `protect-current-dns` or guide-only steps, not
     system mutation. Use Copy DNS servers and Open Settings; expected behavior
     is user-controlled OS settings, not an in-app DNS switch.
-14. iPad/Android tablet: confirm the layout uses multi-column native tablet
-    width and does not stretch a phone UI.
+14. iPad/Android tablet: rotate portrait/landscape and confirm the layout uses
+    multi-column native tablet width instead of stretching a phone UI.
 
 ## Native Build Smoke
 1. Run local gates:
