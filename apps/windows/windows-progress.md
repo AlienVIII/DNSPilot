@@ -4,8 +4,8 @@
 
 The Windows lane meets the current store-safe core/view-model requirement:
 benchmark, recommendation handoff, Settings guidance, profiles, history,
-localization, package scaffolding, and tray models are implemented. Real WinUI,
-MSIX, tray, and Store behavior still require a Windows host.
+localization, single-project MSIX scaffolding, and tray models are implemented.
+Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 
 ## Requirement Coverage
 
@@ -27,8 +27,9 @@ MSIX, tray, and Store behavior still require a Windows host.
 - Profile and history add/update/delete/list/clear flows use CLI contract
   runners and management row models.
 - WinUI host, tray host, native localization resources, Store MSIX manifest
-  template, Store manifest preparation script, baseline package assets, bundled
-  CLI locator, and publish/QA runbooks are present.
+  template, top-level `Package.appxmanifest`, MSIX launch/publish profiles,
+  Store manifest preparation script, baseline package assets, bundled CLI
+  locator, and publish/QA runbooks are present.
 - Privacy policy draft, Store listing copy, support text, and certification
   notes are present for Partner Center preparation.
 

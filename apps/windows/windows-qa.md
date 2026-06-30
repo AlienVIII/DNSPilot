@@ -6,15 +6,15 @@
 - `apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/bin/Debug/net8.0/DNSPilotWindows.Core.Tests`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, privacy/listing docs, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, privacy/listing docs, MSIX project/profile wiring, package manifest, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
 - Build the CLI helper: `cargo build --release -p dnspilot-cli`.
 - For local unpackaged QA, set `DNSPILOT_CLI_PATH` or copy the helper beside `DNSPilotWindows.App.csproj`.
-- Generate the Store manifest with `powershell -ExecutionPolicy Bypass -File apps\windows\Prepare-WindowsStorePackage.ps1 -IdentityName <PartnerCenterIdentity> -Publisher <PartnerCenterPublisher> -Version <x.y.z.w> -CliPath target\release\dnspilot-cli.exe`.
+- Generate the Store manifest with `powershell -ExecutionPolicy Bypass -File apps\windows\Prepare-WindowsStorePackage.ps1 -IdentityName <PartnerCenterIdentity> -Publisher <PartnerCenterPublisher> -Version <x.y.z.w> -CliPath target\release\dnspilot-cli.exe`. This writes `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Package.appxmanifest`.
 - From repo root, run `powershell -ExecutionPolicy Bypass -File apps\windows\Validate-WindowsLane.ps1 -Configuration Release`.
-- If running checks manually, run `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx -c Release`.
+- If running checks manually, run `dotnet build apps\windows\DNSPilotWindows\DNSPilotWindows.WinUI.slnx -c Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true`.
 
 ## Manual Windows UI Flow
 - Launch DNS Pilot.

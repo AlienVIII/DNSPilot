@@ -10,8 +10,8 @@
 - Tray quick actions are modeled in core and hosted in the WinUI app through a NotifyIcon context menu.
 - Native shell localization uses WinUI `.resw` resources in `Strings/en-US` and `Strings/vi-VN` with `x:Uid` hooks in `MainWindow.xaml`.
 - Dynamic Windows shell text follows `CurrentUICulture` for progress, validation, failure reports, apply checklist, history rows, and tray labels.
-- Store packaging readiness is documented through `Packaging/Package.Store.appxmanifest.template`; the live package manifest still needs Partner Center identity, version, and publisher metadata.
-- `Prepare-WindowsStorePackage.ps1` generates `Package.Store.appxmanifest` from the template and can copy the release `dnspilot-cli.exe` into the app project.
+- Store packaging readiness uses single-project MSIX: top-level `Package.appxmanifest`, `Properties\launchSettings.json`, `Properties\PublishProfiles\win10-x64.pubxml`, and `Packaging\Package.Store.appxmanifest.template`.
+- `Prepare-WindowsStorePackage.ps1` generates `Package.appxmanifest` from the template with Partner Center identity/version/publisher metadata and can copy the release `dnspilot-cli.exe` into the app project.
 - Baseline Store logo/tile/splash PNG assets now exist; replace only if final branding changes.
 - Privacy policy draft, Store listing copy, support copy, and certification notes live in `windows-privacy.md` and `windows-store-listing.md`.
 - Packaged helper path is explicit: copy `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj`; the app project copies it to output when present.
@@ -42,4 +42,4 @@
 - Record Core CLI needs in `windows-core-cli-request.md`.
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
-- Publish path and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
+- Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.

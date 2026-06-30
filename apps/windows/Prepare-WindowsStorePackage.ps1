@@ -10,7 +10,7 @@ param(
 
     [string]$PublisherDisplayName = "DNS Pilot",
     [string]$CliPath = "",
-    [string]$OutputPath = "apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Packaging/Package.Store.appxmanifest"
+    [string]$OutputPath = "apps/windows/DNSPilotWindows/app/DNSPilotWindows.App/Package.appxmanifest"
 )
 
 $ErrorActionPreference = "Stop"
@@ -68,10 +68,10 @@ else {
 }
 
 $manifest.Save($resolvedOutputPath)
-$generated = Get-Content -Raw -Path $OutputPath
+$generated = Get-Content -Raw -Path $resolvedOutputPath
 
 if ($generated -match 'REPLACE_WITH_PARTNER_CENTER_PUBLISHER') {
     throw "Generated manifest still contains the Partner Center publisher placeholder."
 }
 
-Write-Host "Generated Store package manifest: $OutputPath"
+Write-Host "Generated Store package manifest: $resolvedOutputPath"

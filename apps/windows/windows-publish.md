@@ -2,10 +2,12 @@
 
 ## BLUF
 - Store build stays `asInvoker`: no UAC, no silent DNS mutation, no adapter write API.
-- Native permissions are declared in the MSIX package template: `internetClient` plus `runFullTrust` for packaged desktop/WinUI + bundled CLI/tray.
+- Native permissions are declared in the MSIX package manifest/template: `internetClient` plus `runFullTrust` for packaged desktop/WinUI + bundled CLI/tray.
+- Single-project MSIX wiring is present: `Package.appxmanifest`, MSIX launch profile, and `Properties\PublishProfiles\win10-x64.pubxml`.
 - Remaining publish work requires a real Windows machine, Microsoft Store/Partner Center access, signing identity, and final asset approval/branding decision.
 
 ## Microsoft References
+- Single-project MSIX packaging for Windows App SDK apps: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/single-project-msix
 - App capabilities and restricted capability review: https://learn.microsoft.com/en-us/windows/uwp/packaging/app-capability-declarations
 - Localized `.resw`, `x:Uid`, and `ms-resource` manifest strings: https://learn.microsoft.com/en-us/windows/uwp/app-resources/localize-strings-ui-manifest
 - Windows Settings URI list, including `ms-settings:network-advancedsettings`: https://learn.microsoft.com/en-us/windows/apps/develop/launch/launch-settings
@@ -49,7 +51,7 @@ Expected:
 - 23 Windows core tests pass.
 - Core solution builds.
 - Store-safe static scan passes.
-- Localization and package template checks pass.
+- Localization, package manifest, MSIX launch profile, and package template checks pass.
 - WinUI solution builds on Windows.
 
 ## Manual Real-Device QA
@@ -78,8 +80,8 @@ Baseline PNG assets are already present at:
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\SplashScreen.png`
 
 Replace them only if final branding changes. Then copy
-`Packaging\Package.Store.appxmanifest.template` to the real package manifest
-through the preparation script.
+`Packaging\Package.Store.appxmanifest.template` values into top-level
+`Package.appxmanifest` through the preparation script.
 
 ## Generate Store Manifest
 From repo root on Windows:
@@ -101,10 +103,21 @@ Replace:
 The script writes:
 
 ```text
-apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Packaging\Package.Store.appxmanifest
+apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Package.appxmanifest
 ```
 
 It also copies `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj` when `-CliPath` is supplied.
+
+## Build MSIX Package
+From repo root on Windows after manifest generation:
+
+```powershell
+dotnet build apps\windows\DNSPilotWindows\DNSPilotWindows.WinUI.slnx -c Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true
+```
+
+The app project uses `Properties\PublishProfiles\win10-x64.pubxml`. Signing is
+left disabled in the committed profile so release signing stays an explicit
+Partner Center/certificate gate.
 
 ## Store Submission Notes
 - Host `apps/windows/windows-privacy.md` as the public Privacy policy URL before submission.

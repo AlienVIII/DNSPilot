@@ -780,10 +780,33 @@ internal sealed class WindowsCoreTestSuite
         Assert.DoesNotContain("requireAdministrator", packageTemplate);
         Assert.DoesNotContain("highestAvailable", packageTemplate);
 
+        var packageManifest = File.ReadAllText(Path.Combine(appRoot, "Package.appxmanifest"));
+        Assert.Contains("ms-resource:AppDisplayName", packageManifest);
+        Assert.Contains("ms-resource:AppDescription", packageManifest);
+        Assert.Contains("Name=\"DNSPilot.Windows.Store\"", packageManifest);
+        Assert.Contains("Name=\"internetClient\"", packageManifest);
+        Assert.Contains("Name=\"runFullTrust\"", packageManifest);
+        Assert.Contains("Executable=\"DNSPilotWindows.App.exe\"", packageManifest);
+        Assert.DoesNotContain("REPLACE_WITH_PARTNER_CENTER_PUBLISHER", packageManifest);
+        Assert.DoesNotContain("requireAdministrator", packageManifest);
+        Assert.DoesNotContain("highestAvailable", packageManifest);
+
         var projectFile = File.ReadAllText(Path.Combine(appRoot, "DNSPilotWindows.App.csproj"));
         Assert.Contains("PRIResource Include=\"Strings\\**\\*.resw\"", projectFile);
         Assert.Contains("Content Include=\"dnspilot-cli.exe\"", projectFile);
         Assert.Contains("CopyToOutputDirectory=\"PreserveNewest\"", projectFile);
+        Assert.Contains("<EnableMsixTooling>true</EnableMsixTooling>", projectFile);
+        Assert.Contains("<EnableDefaultPriItems>false</EnableDefaultPriItems>", projectFile);
+        Assert.Contains("<PublishProfile>Properties\\PublishProfiles\\win10-$(Platform).pubxml</PublishProfile>", projectFile);
+
+        var launchSettings = File.ReadAllText(Path.Combine(appRoot, "Properties", "launchSettings.json"));
+        Assert.Contains("\"commandName\": \"MsixPackage\"", launchSettings);
+
+        var publishProfile = File.ReadAllText(Path.Combine(appRoot, "Properties", "PublishProfiles", "win10-x64.pubxml"));
+        Assert.Contains("<GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>", publishProfile);
+        Assert.Contains("<AppxBundle>Never</AppxBundle>", publishProfile);
+        Assert.Contains("<AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>", publishProfile);
+        Assert.Contains("<AppxPackageDir>AppPackages\\</AppxPackageDir>", publishProfile);
 
         var assetsRoot = Path.Combine(appRoot, "Assets");
         AssertPngDimensions(Path.Combine(assetsRoot, "StoreLogo.png"), 50, 50);
@@ -851,11 +874,14 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("$Publisher", packagePrep);
         Assert.Contains("$Version", packagePrep);
         Assert.Contains("Package.Store.appxmanifest.template", packagePrep);
-        Assert.Contains("Package.Store.appxmanifest", packagePrep);
+        Assert.Contains("Package.appxmanifest", packagePrep);
         Assert.Contains("REPLACE_WITH_PARTNER_CENTER_PUBLISHER", packagePrep);
         Assert.Contains("Version must use four numeric parts", packagePrep);
         Assert.Contains("IsPathRooted", packagePrep);
+        Assert.Contains("Get-Content -Raw -Path $resolvedOutputPath", packagePrep);
         Assert.Contains("Generated Store package manifest", packagePrep);
+        Assert.Contains("Package.appxmanifest", publish);
+        Assert.Contains("GenerateAppxPackageOnBuild=true", publish);
     }
 
     private static string FindRepoRoot()

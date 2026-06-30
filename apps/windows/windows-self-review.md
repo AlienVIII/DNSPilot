@@ -3,7 +3,7 @@
 ## BLUF
 - Store-safe scope is coherent: benchmark, copy guidance, Settings handoff, profiles, history, tray actions.
 - The biggest remaining risk is not missing core logic; it is unverified Windows App SDK/MSIX/tray runtime behavior.
-- Native shell localization and Store packaging scaffolding are now present, but real Windows layout/package validation remains mandatory.
+- Native shell localization and single-project MSIX packaging scaffolding are now present, but real Windows layout/package validation remains mandatory.
 - Power edition must stay separate. Do not add admin DNS mutation to this Store lane.
 
 ## Counterarguments
@@ -50,7 +50,7 @@
 ## Current Evidence
 - `bash apps/windows/validate-windows-lane.sh` runs core tests, core build, store-safe static checks, and a WinUI build probe.
 - Automated tests cover benchmark commands, live control previews, system DNS validation, progress/failure diagnostics, completed resolver statuses, apply guidance, structured benchmark recommendation reports and UI hooks, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
-- Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, Store manifest preparation script, PNG asset dimensions, bundled CLI copy rule, privacy draft, Store listing copy, and certification notes.
+- Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, top-level `Package.appxmanifest`, MSIX launch/publish profile wiring, Store manifest preparation script, PNG asset dimensions, bundled CLI copy rule, privacy draft, Store listing copy, and certification notes.
 - Store-safe static scan currently finds no DNS mutation or admin-elevation implementation in `apps/windows/DNSPilotWindows`.
 - XML well-formed checks pass for `MainWindow.xaml`, both `.resw` files, and the Store package manifest template.
 
