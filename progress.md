@@ -143,6 +143,7 @@ DNS handling, and platform capability reporting.
 - [x] [132] v0.1 macOS bundle version gate — generate and validate release version/build metadata.
 - [x] [133] v0.1 system DNS validation progress/history — persist post-apply validation runs with visible progress.
 - [x] [134] v0.1 system DNS validation canonical payload — expose summary/runs schema without dropping legacy compatibility.
+- [x] [135] v0.1 macOS non-mutating goal smoke — verify main flows without DNS mutation or signing credentials.
 
 ---
 
@@ -6480,6 +6481,45 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 135: v0.1 macOS Non-Mutating Goal Smoke
+
+**Status:** Complete
+**Files changed:** `script/smoke_macos_goal_flows.sh`, `script/preflight_macos_release.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `docs/core-cli-backlog.md`, `docs/gaming-connectivity.md`, `docs/release-checklist.md`, `progress.md`
+
+### What changed
+
+Added a local smoke harness for the six macOS product goals that does not mutate
+system DNS. The default mode checks store-safe apply-plan, Power apply-plan
+contract, System DNS validation progress/history, and saved history lookup.
+Optional modes cover live DNS-only/DNS+TCP/Game Ping probes and Store/Power
+bundle validation while restoring the Store-safe bundle afterward.
+
+### Edge Cases / Caveats
+
+- `--include-network` can fail on offline, firewalled, captive portal, or
+  restricted networks; it is evidence for current-network behavior, not a
+  release invariant.
+- `--include-bundles` launches sandbox bundles and validates mode flags, but it
+  does not press admin apply/flush buttons and does not replace Power manual QA.
+
+### Verification
+
+```text
+bash -n script/smoke_macos_goal_flows.sh script/preflight_macos_release.sh
+Result: passed
+
+./script/smoke_macos_goal_flows.sh
+Result: passed
+
+./script/smoke_macos_goal_flows.sh --include-network
+Result: passed
+
+./script/smoke_macos_goal_flows.sh --include-bundles
+Result: passed; Store-safe bundle restored
 ```
 
 ---

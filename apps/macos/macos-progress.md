@@ -30,11 +30,18 @@ edition only and explicitly gated.
   privacy manifest readiness.
 - Local bundle validation requires macOS target, version/build metadata,
   sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
+- Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan
+  contract, System DNS validation progress/history, optional live DNS/Game Ping
+  probes, and optional Store/Power bundle mode checks.
 
 ## Validation
 
 - `swift test --package-path apps/macos/DNSPilotMac`: pass.
 - `cargo test --workspace --tests`: pass for shared CLI/core consumed by macOS.
+- `./script/smoke_macos_goal_flows.sh --include-network`: pass on current
+  network.
+- `./script/smoke_macos_goal_flows.sh --include-bundles`: pass; restores
+  Store-safe bundle afterward.
 
 ## Remaining Gates
 

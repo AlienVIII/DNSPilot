@@ -40,6 +40,40 @@ Expected:
 - The bundle validator passes.
 - Local bundle warnings are only ad-hoc signing warnings.
 
+## Non-Mutating Goal Smoke
+
+Run this when checking the six main product goals without changing system DNS:
+
+```bash
+cd /Users/aart/Projects/Desktop/dnspilot-macos
+./script/smoke_macos_goal_flows.sh
+```
+
+Expected:
+
+- Store-safe apply-plan remains guided and non-mutating.
+- Power apply-plan is capability-only and does not trigger an admin prompt.
+- System DNS validation emits progress and saves local history.
+
+Optional live/network checks:
+
+```bash
+./script/smoke_macos_goal_flows.sh --include-network
+```
+
+This also runs DNS-only, DNS+TCP, and Dota 2 SEA Game Ping probes. It can fail
+on offline, firewalled, captive portal, or heavily restricted networks.
+
+Optional bundle-mode checks:
+
+```bash
+./script/smoke_macos_goal_flows.sh --include-bundles
+```
+
+This launches Store-safe and Power sandbox bundles, validates bundle structure,
+then restores a Store-safe bundle. It does not press Power apply/flush buttons
+and does not mutate DNS.
+
 ## App Store Manual Steps
 
 1. Confirm bundle identity and app record.

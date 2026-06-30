@@ -74,7 +74,8 @@ run_step "Shell syntax" \
     script/build_and_run.sh \
     script/validate_macos_bundle.sh \
     script/package_macos_distribution.sh \
-    script/preflight_macos_release.sh
+    script/preflight_macos_release.sh \
+    script/smoke_macos_goal_flows.sh
 
 if (( ! SKIP_CARGO )); then
   run_step "Rust workspace tests" cargo test --workspace --tests
