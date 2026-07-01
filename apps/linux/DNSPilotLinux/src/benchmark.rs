@@ -132,7 +132,7 @@ pub fn run_benchmark_with_runner(
     plan: LinuxBenchmarkPlan,
     runner: &dyn CoreCliRunner,
 ) -> LinuxBenchmarkRunResult {
-    let mut process = process_for_plan(&plan);
+    let mut process = benchmark_process_for_plan(&plan);
     process.start_step(ProcessStepId::DetectCapabilities);
     process.complete_step(
         ProcessStepId::DetectCapabilities,
@@ -276,7 +276,7 @@ fn parse_progress_line(line: &str) -> Option<CoreCliProgressEvent> {
     }
 }
 
-fn process_for_plan(plan: &LinuxBenchmarkPlan) -> LinuxBenchmarkProcessViewModel {
+pub fn benchmark_process_for_plan(plan: &LinuxBenchmarkPlan) -> LinuxBenchmarkProcessViewModel {
     let resolvers =
         if plan.mode == BenchmarkMode::CurrentSystemResolver && plan.resolvers.is_empty() {
             vec![("system", "Current system resolver")]

@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | Capability matrix: Flatpak, Snap, deb/rpm | Covered | `capabilities.rs`, `detect.rs`, capability tests |
 | Benchmark modes: DNS only, DNS + TCP, current resolver | Covered | `benchmark.rs`, app/session tests, runner tests |
-| Process UI: idle/running/success/failed per step/resolver | Covered | `process.rs`, diagnostics tests |
+| Process UI: idle/running/success/failed per step/resolver | Covered | `process.rs`, GUI process table, diagnostics tests |
 | Result diagnostics and copyable debug report | Covered | `diagnostics.rs`, CLI/report tests |
 | Guided settings only for store/sandbox builds | Covered | settings/guide tests |
 | Native power path plan | Covered as helper contract plus explicit mutation gate/backend | `settings.rs`, `native_power.rs`, `native_helper_main.rs`, `guide` CLI, `apply-plan` CLI |
@@ -29,7 +29,7 @@
 ## Counterarguments And Resolution
 
 1. **Counterargument: A CLI harness is not a finished Linux GUI.**
-   Resolved for this lane. `dnspilot-linux-gui` is now the desktop launcher, uses the existing app/session, storage, runner, diagnostics, permission, and localization modules, and does not depend on tray integration. Final Linux package QA still has to validate the window on GNOME/Wayland.
+   Resolved for this lane. `dnspilot-linux-gui` is now the desktop launcher, uses the existing app/session, storage, runner, process-status, diagnostics, permission, and localization modules, and does not depend on tray integration. Final Linux package QA still has to validate the window on GNOME/Wayland.
 
 2. **Counterargument: Capability detection can be wrong on some distros.**
    Valid. Detection is intentionally conservative and non-mutating. It checks sandbox markers, resolver-stack tools, paths, and polkit availability. Later distro QA must validate real packaging behavior.

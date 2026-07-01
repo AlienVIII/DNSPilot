@@ -34,6 +34,12 @@ pub enum TextKey {
     CopyDebugReport,
     RunBenchmark,
     ManageProfiles,
+    Process,
+    Overall,
+    Step,
+    Resolver,
+    Status,
+    Detail,
 }
 
 pub fn localized_text(key: TextKey, language: Language) -> &'static str {
@@ -59,5 +65,17 @@ pub fn localized_text(key: TextKey, language: Language) -> &'static str {
         (TextKey::RunBenchmark, Language::Vietnamese) => "Chạy đo kiểm",
         (TextKey::ManageProfiles, Language::English) => "Manage DNS profiles",
         (TextKey::ManageProfiles, Language::Vietnamese) => "Quản lý hồ sơ DNS",
+        (TextKey::Process, Language::English) => "Process",
+        (TextKey::Process, Language::Vietnamese) => "Tiến trình",
+        (TextKey::Overall, Language::English) => "Overall",
+        (TextKey::Overall, Language::Vietnamese) => "Tổng quan",
+        (TextKey::Step, Language::English) => "Step",
+        (TextKey::Step, Language::Vietnamese) => "Bước",
+        (TextKey::Resolver, Language::English) => "Resolver",
+        (TextKey::Resolver, Language::Vietnamese) => "Resolver",
+        (TextKey::Status, Language::English) => "Status",
+        (TextKey::Status, Language::Vietnamese) => "Trạng thái",
+        (TextKey::Detail, Language::English) => "Detail",
+        (TextKey::Detail, Language::Vietnamese) => "Chi tiết",
     }
 }

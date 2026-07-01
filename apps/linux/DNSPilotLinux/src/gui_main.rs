@@ -1,6 +1,7 @@
 use dnspilot_linux_shell::app::LinuxAppSession;
 use dnspilot_linux_shell::benchmark::{
-    build_core_cli_command, run_benchmark_with_runner, ProcessCoreCliRunner,
+    benchmark_process_for_plan, build_core_cli_command, run_benchmark_with_runner,
+    ProcessCoreCliRunner,
 };
 use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxCapabilityViewModel,
@@ -9,6 +10,9 @@ use dnspilot_linux_shell::detect::detect_linux_environment;
 use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, NativeAppSectionKind};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
+use dnspilot_linux_shell::process::{
+    process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind,
+};
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
 use dnspilot_linux_shell::settings::{
     dns_record_family_controls, resolver_address_family_controls, settings_actions,
@@ -49,6 +53,7 @@ struct DnsPilotGui {
     core_cli_path: String,
     status: String,
     diagnostics: String,
+    process: Option<LinuxBenchmarkProcessViewModel>,
     profile_id: String,
     profile_name: String,
     profile_ipv4: String,
@@ -80,6 +85,7 @@ impl DnsPilotGui {
             core_cli_path: "dnspilot-cli".to_string(),
             status: "Ready".to_string(),
             diagnostics: String::new(),
+            process: None,
             profile_id: String::new(),
             profile_name: String::new(),
             profile_ipv4: String::new(),
@@ -161,6 +167,7 @@ impl DnsPilotGui {
         match session.build_plan() {
             Ok(plan) => {
                 let command = build_core_cli_command(&self.core_cli_path, &plan);
+                self.process = Some(benchmark_process_for_plan(&plan));
                 self.diagnostics = format!(
                     "Core command:\n{} {}",
                     command.program,
@@ -169,6 +176,7 @@ impl DnsPilotGui {
                 self.status = "Benchmark plan ready".to_string();
             }
             Err(issues) => {
+                self.process = None;
                 self.status = issues.join("; ");
             }
         }
@@ -186,6 +194,7 @@ impl DnsPilotGui {
                     plan,
                     &runner,
                 );
+                self.process = Some(result.process.clone());
                 self.diagnostics = result.debug_report;
                 if let Some(payload) = result.final_payload {
                     self.diagnostics.push_str("\n\nFinal payload:\n");
@@ -197,6 +206,7 @@ impl DnsPilotGui {
                     .unwrap_or_else(|| "Benchmark finished".to_string());
             }
             Err(issues) => {
+                self.process = None;
                 self.status = issues.join("; ");
             }
         }
@@ -313,6 +323,15 @@ impl DnsPilotGui {
                 self.run_benchmark();
             }
         });
+
+        ui.separator();
+        if let Some(process) = self
+            .process
+            .clone()
+            .or_else(|| self.current_process_preview())
+        {
+            self.process_ui(ui, &process);
+        }
     }
 
     fn profiles_ui(&mut self, ui: &mut egui::Ui) {
@@ -392,6 +411,46 @@ impl DnsPilotGui {
                 .desired_rows(24)
                 .desired_width(f32::INFINITY),
         );
+    }
+
+    fn current_process_preview(&self) -> Option<LinuxBenchmarkProcessViewModel> {
+        self.build_session()
+            .build_plan()
+            .ok()
+            .map(|plan| benchmark_process_for_plan(&plan))
+    }
+
+    fn process_ui(&self, ui: &mut egui::Ui, process: &LinuxBenchmarkProcessViewModel) {
+        ui.heading(localized_text(TextKey::Process, self.language));
+        ui.label(format!(
+            "{}: {}",
+            localized_text(TextKey::Overall, self.language),
+            status_label(process.overall_status())
+        ));
+
+        egui::Grid::new("process_status_grid")
+            .striped(true)
+            .show(ui, |ui| {
+                ui.strong(localized_text(TextKey::Step, self.language));
+                ui.strong(localized_text(TextKey::Status, self.language));
+                ui.strong(localized_text(TextKey::Detail, self.language));
+                ui.end_row();
+
+                for row in process_rows(process) {
+                    let label = match row.kind {
+                        ProcessRowKind::Step => row.label,
+                        ProcessRowKind::Resolver => format!(
+                            "{}: {}",
+                            localized_text(TextKey::Resolver, self.language),
+                            row.label
+                        ),
+                    };
+                    ui.label(label);
+                    ui.label(row.status);
+                    ui.label(row.detail.unwrap_or_else(|| "-".to_string()));
+                    ui.end_row();
+                }
+            });
     }
 }
 

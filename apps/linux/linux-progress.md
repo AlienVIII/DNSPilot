@@ -16,7 +16,7 @@ package release.
 - Benchmark planning covers DNS-only, DNS+TCP, and current/system resolver
   validation with mode gating.
 - Process state covers idle/running/success/failed steps, resolver rows,
-  diagnostics, and copyable debug reports.
+  diagnostics, copyable debug reports, and the GUI benchmark process table.
 - Custom plain DNS profile add/edit/delete/list and file-backed persistence are
   implemented.
 - Store-safe guidance and native power package plans are separated.

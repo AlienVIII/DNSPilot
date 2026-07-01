@@ -46,6 +46,10 @@ cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
 cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-linux-gui
 ```
 
+In the GUI, the Benchmark tab is the primary no-tray workflow. It shows
+capability-gated benchmark modes, selected DNS profiles, suite/domain controls,
+IPv4/IPv6 and A/AAAA controls, a process status table, and copyable diagnostics.
+
 Release binaries:
 
 ```sh
