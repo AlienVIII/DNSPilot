@@ -15,8 +15,9 @@
 - Capability detection can be mocked so automated tests can run without Linux distro/package access.
 
 ## Open Questions
-- GTK4/libadwaita or Qt?
-- Exact native UI stack remains open.
+- `eframe/egui` is the current Linux app stack for this lane; GTK4/libadwaita
+  or Qt can be revisited only if later distro QA requires deeper desktop
+  integration.
 - Real native resolver write execution exists behind the helper execute gate and still needs Linux package QA before release/default enablement.
 - Exact store credentials, signing keys, screenshots, and final package build hosts remain external.
 
