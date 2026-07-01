@@ -126,8 +126,8 @@ public struct ProductGoalReadinessViewModel: Equatable, Sendable {
             title: "Apply selected DNS",
             status: .storeSafeGuided,
             summary: "Selected plain DNS profiles can be copied and opened in macOS Network Settings after confirmation.",
-            caveat: "True one-click system mutation is available only in Power edition paths such as DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, or a future privileged helper.",
-            entryPoint: "Catalog > selected plain DNS profile > Apply, or Power Apply when explicitly enabled.",
+            caveat: "True one-click system mutation requires Direct Admin Actions opt-in, DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, or a future privileged helper outside the App Store path.",
+            entryPoint: "Catalog > selected plain DNS profile > Apply, or Apply Now (Admin) when explicitly enabled.",
             validationEvidence: "Guided apply policy tests plus MacOSPowerDNSActionRunnerTests for disabled-by-default admin apply."
         ),
         ProductGoalReadinessRow(
@@ -135,8 +135,8 @@ public struct ProductGoalReadinessViewModel: Equatable, Sendable {
             title: "Flush DNS",
             status: .storeSafeGuided,
             summary: "DNS Pilot provides a confirmed, copyable flush checklist for the current macOS build.",
-            caveat: "Real cache flush requires admin authorization through DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, or a trusted helper outside the store-safe app.",
-            entryPoint: "Menu Bar > Flush DNS, Benchmark System DNS validation, or Power Flush when explicitly enabled.",
+            caveat: "Real cache flush requires Direct Admin Actions opt-in, DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, or a trusted helper outside the App Store path.",
+            entryPoint: "Menu Bar > Flush DNS, Benchmark System DNS validation, or Flush Now (Admin) when explicitly enabled.",
             validationEvidence: "StoreSafeDNSActionViewModel and MacOSPowerDNSActionRunnerTests cover guided and admin paths."
         ),
         ProductGoalReadinessRow(
@@ -183,8 +183,8 @@ public struct ProductGoalReadinessViewModel: Equatable, Sendable {
             title: "Áp dụng DNS đã chọn",
             status: .storeSafeGuided,
             summary: "Profile DNS thường có thể copy và mở macOS Network Settings sau xác nhận.",
-            caveat: "Đổi DNS hệ thống một-click thật chỉ có trong Power edition qua DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, hoặc helper đáng tin cậy ngoài Store build.",
-            entryPoint: "Catalog > chọn plain DNS profile > Apply, hoặc Power Apply khi đã bật rõ ràng.",
+            caveat: "Đổi DNS hệ thống một-click thật cần bật Direct Admin Actions, DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, hoặc helper đáng tin cậy ngoài App Store path.",
+            entryPoint: "Catalog > chọn plain DNS profile > Apply, hoặc Apply Now (Admin) khi đã bật rõ ràng.",
             validationEvidence: "Guided apply policy tests và MacOSPowerDNSActionRunnerTests kiểm tra admin apply mặc định tắt."
         ),
         ProductGoalReadinessRow(
@@ -192,8 +192,8 @@ public struct ProductGoalReadinessViewModel: Equatable, Sendable {
             title: "Flush DNS",
             status: .storeSafeGuided,
             summary: "DNS Pilot cung cấp checklist flush có xác nhận và copy được cho macOS hiện tại.",
-            caveat: "Flush cache thật cần admin authorization qua DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, hoặc trusted helper ngoài Store build.",
-            entryPoint: "Menu Bar > Flush DNS, Benchmark System DNS validation, hoặc Power Flush khi đã bật rõ ràng.",
+            caveat: "Flush cache thật cần bật Direct Admin Actions, DNSPilotPowerActionsEnabled=true, DNSPILOT_ENABLE_POWER_ACTIONS=1, hoặc trusted helper ngoài App Store path.",
+            entryPoint: "Menu Bar > Flush DNS, Benchmark System DNS validation, hoặc Flush Now (Admin) khi đã bật rõ ràng.",
             validationEvidence: "StoreSafeDNSActionViewModel và MacOSPowerDNSActionRunnerTests kiểm tra guided/admin paths."
         ),
         ProductGoalReadinessRow(

@@ -17,9 +17,12 @@ validation to distribution.
 ### Power edition
 
 - Direct install only.
-- Plain DNS apply/flush can ask for administrator approval when
-  the app bundle has `DNSPilotPowerActionsEnabled=true` or
-  `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+- Plain DNS apply/flush can ask for administrator approval when Direct Admin
+  Actions are enabled in the app, the app bundle has
+  `DNSPilotPowerActionsEnabled=true`, or `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+- The first-run setup and Permissions screen must explain that macOS has no
+  System Settings pre-toggle for plain DNS edits; the native permission point is
+  the administrator prompt shown at Apply/Flush time.
 - Not App Store-safe as implemented today.
 - Needs separate signing/review positioning and manual QA on real network
   services before distribution.

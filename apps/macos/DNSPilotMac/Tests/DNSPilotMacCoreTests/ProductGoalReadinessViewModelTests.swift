@@ -41,14 +41,14 @@ final class ProductGoalReadinessViewModelTests: XCTestCase {
 
         XCTAssertEqual(apply?.status, .storeSafeGuided)
         XCTAssertEqual(apply?.statusLabel, "Store-safe guided")
-        XCTAssertTrue(apply?.caveat.contains("Power edition") == true)
+        XCTAssertTrue(apply?.caveat.contains("Direct Admin Actions") == true)
         XCTAssertTrue(apply?.caveat.contains("DNSPilotPowerActionsEnabled") == true)
         XCTAssertTrue(apply?.caveat.contains("DNSPILOT_ENABLE_POWER_ACTIONS") == true)
         XCTAssertTrue(apply?.entryPoint.contains("Catalog") == true)
         XCTAssertTrue(apply?.validationEvidence.contains("MacOSPowerDNSActionRunnerTests") == true)
 
         XCTAssertEqual(flush?.status, .storeSafeGuided)
-        XCTAssertTrue(flush?.caveat.contains("admin") == true)
+        XCTAssertTrue(flush?.caveat.contains("Direct Admin Actions") == true)
         XCTAssertTrue(flush?.caveat.contains("DNSPilotPowerActionsEnabled") == true)
         XCTAssertTrue(flush?.caveat.contains("DNSPILOT_ENABLE_POWER_ACTIONS") == true)
         XCTAssertTrue(flush?.entryPoint.contains("Menu Bar") == true)

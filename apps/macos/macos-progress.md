@@ -4,8 +4,8 @@
 
 macOS is the UX lead lane and currently has the most complete native shell. The
 store-safe path is implemented around benchmark, guidance, copy/open settings,
-flush guidance, and system-DNS validation. Direct DNS mutation remains Power
-edition only and explicitly gated.
+flush guidance, and system-DNS validation. Direct DNS mutation is available only
+behind explicit Direct Admin/Power opt-in and macOS administrator approval.
 
 ## Requirement Coverage
 
@@ -19,12 +19,16 @@ edition only and explicitly gated.
   visible progress and saved history.
 - Store-safe flush copies commands instead of running privileged mutations.
 - Catalog rows can launch confirmed store-safe apply for plain DNS profiles.
+- First-run setup and the Permissions screen explain macOS permission reality:
+  there is no System Settings pre-toggle for plain DNS edits; Direct Admin
+  Actions are an explicit in-app/Power opt-in and macOS asks for administrator
+  approval at Apply/Flush time.
 - Product Goals list all six acceptance goals with concrete app entry points,
   validation evidence, and EN/VI localized user-facing copy.
 - English/Vietnamese localization covers primary native surfaces.
 - Power actions are disabled by default and require
-  `DNSPilotPowerActionsEnabled`, `DNSPILOT_ENABLE_POWER_ACTIONS`, or a Power
-  edition bundle switch.
+  Direct Admin Actions setup opt-in, `DNSPilotPowerActionsEnabled`,
+  `DNSPILOT_ENABLE_POWER_ACTIONS`, or a Power edition bundle switch.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
   are present; the Publish screen also surfaces local release preflight and
   privacy manifest readiness.
@@ -42,6 +46,8 @@ edition only and explicitly gated.
   network.
 - `./script/smoke_macos_goal_flows.sh --include-bundles`: pass; restores
   Store-safe bundle afterward.
+- `./script/preflight_macos_release.sh --include-power`: pass; validates Rust,
+  Swift, Store-safe bundle, Power bundle, and restores Store-safe bundle.
 
 ## Remaining Gates
 

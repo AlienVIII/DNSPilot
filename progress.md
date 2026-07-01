@@ -144,6 +144,7 @@ DNS handling, and platform capability reporting.
 - [x] [133] v0.1 system DNS validation progress/history — persist post-apply validation runs with visible progress.
 - [x] [134] v0.1 system DNS validation canonical payload — expose summary/runs schema without dropping legacy compatibility.
 - [x] [135] v0.1 macOS non-mutating goal smoke — verify main flows without DNS mutation or signing credentials.
+- [x] [136] v0.1 macOS native permission and direct admin setup — first-run setup plus in-app Direct Admin Apply/Flush opt-in.
 
 ---
 
@@ -6481,6 +6482,43 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 136: v0.1 macOS Native Permission And Direct Admin Setup
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added first-run setup and an actionable Permissions screen for the native macOS
+flow. DNS Pilot now explains that macOS has no System Settings pre-toggle for
+plain DNS edits, then lets direct-install users explicitly enable Direct Admin
+Actions so Apply Now (Admin) and Flush Now (Admin) appear inside the app.
+
+### Edge Cases / Caveats
+
+- Direct Admin Actions still require macOS administrator approval at action
+  time and can change the active network service DNS.
+- Store-safe mode remains guided by default and should be used for App Store
+  positioning.
+- Managed, VPN, captive portal, or corporate DNS networks should keep current
+  DNS unless the user deliberately opts into admin mutation.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+Result: 251 passed, 0 failed
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+First-run screenshot smoke
+Result: setup sheet displayed in Guided mode by default with Direct Admin opt-in.
 ```
 
 ---

@@ -75,9 +75,8 @@ Expected behavior:
   Settings; they do not silently change system DNS.
 - Flush DNS in the store-safe build copies a checklist and does not execute
   administrator commands.
-- Power admin actions are disabled unless launched outside the store path with
-  `DNSPilotPowerActionsEnabled=true` in the app bundle or
-  `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+- Direct Admin/Power actions are outside the store path. They must remain off
+  for App Store review and are documented separately for direct-install builds.
 
 ## Privacy Notes
 

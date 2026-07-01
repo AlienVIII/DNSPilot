@@ -25,15 +25,20 @@ extension MacOSPowerDNSActionRunnerError: LocalizedError {
 public enum MacOSPowerDNSActionConfiguration {
     public static let environmentFlag = "DNSPILOT_ENABLE_POWER_ACTIONS"
     public static let bundleInfoKey = "DNSPilotPowerActionsEnabled"
+    public static let userDefaultsKey = "DNSPilotDirectAdminActionsEnabled"
 
     public static func isEnabled(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        bundleInfoValue: Any? = Bundle.main.object(forInfoDictionaryKey: bundleInfoKey)
+        bundleInfoValue: Any? = Bundle.main.object(forInfoDictionaryKey: bundleInfoKey),
+        userDefaultValue: Bool = UserDefaults.standard.bool(forKey: userDefaultsKey)
     ) -> Bool {
         if let environmentValue = environment[environmentFlag] {
             return isTruthy(environmentValue)
         }
-        return isTruthy(bundleInfoValue)
+        if isTruthy(bundleInfoValue) {
+            return true
+        }
+        return userDefaultValue
     }
 
     private static func isTruthy(_ value: Any?) -> Bool {
