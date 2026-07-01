@@ -16,6 +16,9 @@ Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
   progress/failure diagnostics. Toolbar Quick forces DNS+TCP, in-panel Run
   uses the current preview, and Validate DNS forces system-DNS validation while
   preserving relevant controls.
+- Persisted custom plain DNS profiles from `profile-list` are merged into the
+  benchmark catalog, surfaced as selectable resolver profiles, and can be used
+  in DNS-only or DNS+TCP runs.
 - Benchmark success diagnostics now parse CLI benchmark-result JSON into a
   localized structured copyable recommendation report with health, reasons,
   resolver metrics, warning, and saved history ID.
@@ -25,7 +28,8 @@ Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 - Store-safe apply guidance copies DNS servers/checklists and opens Windows
   Network Settings without admin DNS mutation.
 - Profile and history add/update/delete/list/clear flows use CLI contract
-  runners and management row models.
+  runners and management row models. Built-in profile update/delete is blocked
+  by profile ID before any CLI mutation call.
 - WinUI host, tray host, native localization resources, Store MSIX manifest
   template, top-level `Package.appxmanifest`, MSIX launch/publish profiles,
   Store manifest preparation script, baseline package assets, bundled CLI

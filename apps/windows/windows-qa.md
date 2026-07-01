@@ -6,7 +6,7 @@
 - `apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/bin/Debug/net8.0/DNSPilotWindows.Core.Tests`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, privacy/listing docs, MSIX project/profile wiring, package manifest, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, persisted custom profile merge into the benchmark catalog, resolver profile selection, built-in profile mutation guards, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, privacy/listing docs, MSIX project/profile wiring, package manifest, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -22,6 +22,8 @@
 - Confirm the app launches without UAC/admin prompt.
 - Confirm English and Vietnamese localized UI labels render by switching Windows app/display language or using the Windows language override available during QA.
 - Change benchmark mode, record family, resolver address family, and timeout controls before running; expected: command preview and idle process rows update immediately.
+- Select and unselect resolver profiles in the Benchmark panel; expected: DNS-only and DNS + TCP command preview uses exactly the selected plain DNS profiles, including custom profiles loaded from `profile-list`.
+- Unselect all resolver profiles and run DNS-only or DNS + TCP; expected: benchmark is blocked with copyable diagnostics instead of launching the CLI without resolvers.
 - Use in-panel `Run benchmark`; expected: it runs the current command preview exactly.
 - Run toolbar `Quick benchmark`; expected: it forces DNS + TCP quick mode while preserving selected A/AAAA, resolver address family, and numeric controls.
 - After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
@@ -36,8 +38,8 @@
 - Manually paste DNS servers into Windows Settings; expected: app does not perform the mutation for the user.
 - Return to DNS Pilot and run `Validate DNS`; expected: current/system DNS benchmark reflects the user-applied resolver path or reports a copyable reason.
 - Preview a custom DNS profile save; expected: valid profiles produce `profile-add`, invalid IPv4/IPv6 show validation errors.
-- Add/update/delete a custom DNS profile; expected: no UAC prompt, profile list refreshes, built-in profiles are not mutated by the app.
-- Select a built-in profile and try update/delete; expected: blocked with diagnostics, no CLI mutation call succeeds.
+- Add/update/delete a custom DNS profile; expected: no UAC prompt, profile list refreshes, the custom profile appears in Benchmark resolver profiles, and it can be selected for a run.
+- Select a built-in profile or type a built-in profile ID and try update/delete; expected: blocked with diagnostics before any CLI mutation call.
 - Select a history row and delete selected; expected: the row is removed after refresh.
 - Refresh storage; expected: saved profiles and history rows reload from the CLI-backed SQLite store.
 - Clear history; expected: history rows empty after refresh.

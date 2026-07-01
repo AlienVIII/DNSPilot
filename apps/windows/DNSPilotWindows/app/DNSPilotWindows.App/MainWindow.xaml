@@ -126,6 +126,12 @@
                             <NumberBox x:Name="TcpTargetsBox" x:Uid="TcpTargetsBox" Grid.Column="3" Header="TCP targets/domain" Value="4" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
                         </Grid>
 
+                        <ListView x:Name="BenchmarkProfilesList" x:Uid="BenchmarkProfilesList" Header="Resolver profiles" SelectionMode="Multiple" MaxHeight="140" SelectionChanged="BenchmarkProfiles_SelectionChanged">
+                            <ToolTipService.ToolTip>
+                                <ToolTip x:Uid="BenchmarkProfilesTooltip" Content="Select plain DNS profiles to include in DNS-only or DNS + TCP benchmarks." />
+                            </ToolTipService.ToolTip>
+                        </ListView>
+
                         <TextBlock x:Uid="CommandPreviewHeader" Text="Command preview" FontWeight="SemiBold" />
                         <TextBox x:Name="CommandPreviewBox" IsReadOnly="True" TextWrapping="Wrap" MinHeight="76" />
                         <StackPanel Orientation="Horizontal" Spacing="8">

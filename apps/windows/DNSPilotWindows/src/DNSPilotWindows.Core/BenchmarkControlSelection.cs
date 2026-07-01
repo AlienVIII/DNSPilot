@@ -7,7 +7,8 @@ public sealed record BenchmarkControlSelection(
     int Attempts,
     int DnsTimeoutMs,
     int TcpTimeoutMs,
-    int TcpTargetsPerDomain);
+    int TcpTargetsPerDomain,
+    IReadOnlyList<string>? SelectedProfileIds = null);
 
 public static class BenchmarkControlPlanFactory
 {
@@ -52,11 +53,7 @@ public static class BenchmarkControlPlanFactory
         };
         var selectedProfiles = mode == BenchmarkMode.SystemDnsValidation
             ? Array.Empty<string>()
-            : catalog.Profiles
-                .Where(profile => profile.Protocol == DnsProtocol.Plain)
-                .Take(3)
-                .Select(profile => profile.Id)
-                .ToArray();
+            : SelectedPlainProfileIds(catalog, selection.SelectedProfileIds);
 
         return new BenchmarkPlanViewModel(
             catalog,
@@ -70,5 +67,30 @@ public static class BenchmarkControlPlanFactory
             recordFamily: recordFamily,
             resolverAddressFamily: resolverFamily,
             mode: mode);
+    }
+
+    private static IReadOnlyList<string> SelectedPlainProfileIds(
+        CatalogSnapshot catalog,
+        IReadOnlyList<string>? selectedProfileIds)
+    {
+        var plainProfileIds = catalog.Profiles
+            .Where(profile => profile.Protocol == DnsProtocol.Plain)
+            .Select(profile => profile.Id)
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (selectedProfileIds is null)
+        {
+            return catalog.Profiles
+                .Where(profile => plainProfileIds.Contains(profile.Id))
+                .Take(3)
+                .Select(profile => profile.Id)
+                .ToArray();
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        return selectedProfileIds
+            .Where(profileId => plainProfileIds.Contains(profileId))
+            .Where(profileId => seen.Add(profileId))
+            .ToArray();
     }
 }

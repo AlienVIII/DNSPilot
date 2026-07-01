@@ -28,6 +28,9 @@ internal sealed class WindowsCoreTestSuite
         Run("CLI contract runners invoke catalog, capabilities, apply-plan, profile, and history commands", CliContractRunnersInvokeCommands);
         Run("Profile and history list decoders map persisted rows for management UI", ProfileAndHistoryListDecodersMapRows);
         Run("Windows shell can hydrate from CLI payloads for catalog, policy, apply, profiles, and history", WindowsShellHydratesFromCliPayloads);
+        Run("Windows shell merges persisted custom profiles into benchmark catalog", WindowsShellMergesPersistedProfilesIntoBenchmarkCatalog);
+        Run("Benchmark control selection can target custom DNS profiles", BenchmarkControlSelectionCanTargetCustomProfiles);
+        Run("Profile management guards built-in update and delete by profile ID", ProfileManagementGuardsBuiltInMutationById);
         Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
@@ -518,13 +521,85 @@ internal sealed class WindowsCoreTestSuite
             profiles,
             history);
 
-        Assert.Equal("Cloudflare", shell.Catalog.Profiles.Single().Name);
+        Assert.Equal("Cloudflare", shell.Catalog.Profiles.First(profile => profile.Id == "cloudflare").Name);
         Assert.Equal("guided-settings", shell.StorePlatformCapability.Apply);
         Assert.Equal("desktop-admin-service", shell.PowerPlatformCapability.Apply);
         Assert.Equal("1.1.1.1\r\n1.0.0.1\r\n2606:4700:4700::1111\r\n2606:4700:4700::1001", shell.ApplyGuidance.CopyableDnsServers);
         Assert.Equal(2, shell.ProfileRows.Count);
         Assert.Equal("Lab DNS", shell.ProfileRows.Last().Name);
         Assert.Equal("Recommended: Cloudflare", shell.HistoryRows.Single().RecommendationLabel);
+    }
+
+    private static void WindowsShellMergesPersistedProfilesIntoBenchmarkCatalog()
+    {
+        var shell = WindowsShellViewModel.CreateLoaded(
+            "profiles.sqlite",
+            CatalogJsonDecoder.Decode(SampleJson.Catalog),
+            CapabilityMatrixJsonDecoder.Decode(SampleJson.Capabilities),
+            ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan),
+            ProfileListJsonDecoder.Decode(SampleJson.ProfileList),
+            BenchmarkHistoryJsonDecoder.Decode(SampleJson.HistoryList));
+
+        Assert.Equal(2, shell.Catalog.Profiles.Count);
+        Assert.Equal("Lab DNS", shell.Catalog.Profiles.Single(profile => profile.Id == "lab-dns").Name);
+        Assert.Equal("custom", shell.Catalog.Profiles.Single(profile => profile.Id == "lab-dns").UseCase);
+        Assert.Equal(2, shell.BenchmarkProfileOptions.Count);
+        Assert.True(shell.BenchmarkProfileOptions.Single(profile => profile.Id == "lab-dns").CanBenchmark);
+    }
+
+    private static void BenchmarkControlSelectionCanTargetCustomProfiles()
+    {
+        var shell = WindowsShellViewModel.CreateLoaded(
+            "profiles.sqlite",
+            CatalogJsonDecoder.Decode(SampleJson.Catalog),
+            CapabilityMatrixJsonDecoder.Decode(SampleJson.Capabilities),
+            ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan),
+            ProfileListJsonDecoder.Decode(SampleJson.ProfileList),
+            BenchmarkHistoryJsonDecoder.Decode(SampleJson.HistoryList));
+
+        var customOnly = shell.BuildBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 0,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 2,
+            DnsTimeoutMs: 800,
+            TcpTimeoutMs: 1_000,
+            TcpTargetsPerDomain: 4,
+            SelectedProfileIds: new[] { "lab-dns" }));
+
+        Assert.SequenceEqual(
+            new[] { "compare", "--resolver", "lab-dns=1.1.1.1:53", "--domain", "github.com", "--domain", "microsoft.com", "--attempts", "2", "--ip-family", "both", "--timeout-ms", "800" },
+            customOnly.CommandArguments);
+
+        var emptySelection = shell.BuildBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 0,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 2,
+            DnsTimeoutMs: 800,
+            TcpTimeoutMs: 1_000,
+            TcpTargetsPerDomain: 4,
+            SelectedProfileIds: Array.Empty<string>()));
+
+        Assert.False(emptySelection.Validation.CanRun, "Expected an explicit empty resolver selection to block benchmark run.");
+        Assert.Contains("Select at least one plain DNS profile.", string.Join("\n", emptySelection.Validation.Issues));
+    }
+
+    private static void ProfileManagementGuardsBuiltInMutationById()
+    {
+        var management = new ProfileManagementViewModel(ProfileListJsonDecoder.Decode(SampleJson.ProfileList));
+
+        var updateBuiltIn = management.ValidateMutation(ProfileMutationKind.Update, "cloudflare");
+        var deleteBuiltIn = management.ValidateMutation(ProfileMutationKind.Delete, "cloudflare");
+        var updateCustom = management.ValidateMutation(ProfileMutationKind.Update, "lab-dns");
+        var deleteMissing = management.ValidateMutation(ProfileMutationKind.Delete, "missing-profile");
+
+        Assert.False(updateBuiltIn.CanMutate, "Built-in profile update must be blocked even when typed manually.");
+        Assert.False(deleteBuiltIn.CanMutate, "Built-in profile delete must be blocked even when typed manually.");
+        Assert.True(updateCustom.CanMutate, "Custom profile update should be allowed.");
+        Assert.False(deleteMissing.CanMutate, "Unknown profile delete should be blocked.");
+        Assert.Contains("Built-in profiles cannot be updated", string.Join("\n", updateBuiltIn.Issues));
+        Assert.Contains("Profile not found: missing-profile", string.Join("\n", deleteMissing.Issues));
     }
 
     private static void BenchmarkResultDecoderBuildsApplyPlanRequest()
@@ -652,6 +727,7 @@ internal sealed class WindowsCoreTestSuite
             "DnsTimeoutBox",
             "TcpTimeoutBox",
             "TcpTargetsBox",
+            "BenchmarkProfilesList",
             "CommandPreviewHeader",
             "RunBenchmarkText",
             "CopyCommandText",
@@ -692,6 +768,7 @@ internal sealed class WindowsCoreTestSuite
         }
 
         Assert.Contains("SelectionChanged=\"BenchmarkSelection_Changed\"", xaml);
+        Assert.Contains("SelectionChanged=\"BenchmarkProfiles_SelectionChanged\"", xaml);
         Assert.Contains("ValueChanged=\"BenchmarkNumber_ValueChanged\"", xaml);
         Assert.Contains("Click=\"RunBenchmark_Click\"", xaml);
         Assert.Contains("x:Name=\"RecommendationSummaryText\"", xaml);
@@ -728,6 +805,7 @@ internal sealed class WindowsCoreTestSuite
             "DnsTimeoutBox.Header",
             "TcpTimeoutBox.Header",
             "TcpTargetsBox.Header",
+            "BenchmarkProfilesList.Header",
             "CommandPreviewHeader.Text",
             "RunBenchmarkText.Text",
             "CopyCommandText.Text",

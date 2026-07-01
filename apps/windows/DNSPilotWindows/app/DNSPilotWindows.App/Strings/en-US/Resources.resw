@@ -120,6 +120,12 @@
   <data name="TcpTargetsBox.Header" xml:space="preserve">
     <value>TCP targets/domain</value>
   </data>
+  <data name="BenchmarkProfilesList.Header" xml:space="preserve">
+    <value>Resolver profiles</value>
+  </data>
+  <data name="BenchmarkProfilesTooltip.Content" xml:space="preserve">
+    <value>Select plain DNS profiles to include in DNS-only or DNS + TCP benchmarks.</value>
+  </data>
   <data name="CommandPreviewHeader.Text" xml:space="preserve">
     <value>Command preview</value>
   </data>
