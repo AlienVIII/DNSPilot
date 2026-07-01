@@ -3,7 +3,7 @@
 ## Decisions
 - Treat iOS/iPadOS and Android as separate capability surfaces.
 - Use settings/profile guidance before any VPN/proxy design.
-- Use Expo SDK 56 for the first shared mobile test shell.
+- Use Expo SDK 57 for the shared mobile test shell.
 - Bind to existing core/CLI through a local Node bridge for Expo Go testing.
 - Stream foreground benchmark progress through bridge jobs; keep this as a dev
   bridge capability until native Rust/platform adapters are chosen.

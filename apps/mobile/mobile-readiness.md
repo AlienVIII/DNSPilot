@@ -30,9 +30,10 @@
 - Native build metadata: covered for iOS bundle ID/build number, Android package
   ID/version code, EN/VI supported locales, iOS Local Network permission text,
   Android normal network permissions, and EAS build profiles.
-- Native build smoke: covered by local iOS Simulator build and Android
-  `assembleDebug`; `patch-package` carries the required Expo SDK 56/Xcode 26
-  `expo-modules-jsi` Swift patch until upstream removes it.
+- Native build smoke: covered by local Android `assembleDebug`; the app is on
+  Expo SDK 57 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.0` Swift
+  compatibility patch for Xcode 26. iOS Simulator smoke is blocked locally until
+  the iOS 26.5 Simulator runtime is installed for Xcode 26.6.
 - Development client flow: covered by `expo-dev-client`, launcher-mode config,
   and a `npm run start:dev-client` LAN script for installable real-device
   development builds.
@@ -67,7 +68,8 @@
 
 ## Remaining Blockers
 - iOS/iPadOS: real-device validation, Local Network prompt behavior, Apple
-  signing/provisioning, and App Store Connect setup are manual.
+  signing/provisioning, App Store Connect setup, and this machine's missing iOS
+  26.5 Simulator runtime for Xcode 26.6 are manual.
 - Android: real-device validation, Play Console setup, first manual upload if
   required by Play, and Private DNS settings validation are manual.
 - Both: a public store build that must work without a developer Mac requires a
@@ -108,6 +110,7 @@
 ## Validation Commands
 - `npm run verify`
 - `npm run postinstall`
+- `npx expo-doctor@latest`
 - `npm run start:dev-client`
 - `npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache`
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`
@@ -115,3 +118,7 @@
 - `npm run typecheck`
 - `npx expo export --platform web`
 - `git diff --check`
+
+Current iOS local smoke blocker: Xcode 26.6 exposes iOS Simulator SDK 26.5, but
+only iOS 26.0 Simulator runtime is installed. Install iOS 26.5 Simulator runtime
+from Xcode > Settings > Components, then rerun the iOS command above.

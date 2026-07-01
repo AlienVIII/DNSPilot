@@ -4,20 +4,39 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
 
 ## Stack
 
-- Expo SDK 56 with Expo Router.
+- Expo SDK 57 with Expo Router, React Native 0.86, and React 19.2.
 - Local Node bridge at `server/dev-server.mjs`.
 - Rust remains source of truth through `cargo run -p dnspilot-cli`.
 - Dev SQLite lives at `.dnspilot/dnspilot.sqlite`.
 - English/Vietnamese UI via `expo-localization`.
 - Native build metadata is configured in `app.json`; EAS profiles are in
   `eas.json`.
-- `patch-package` applies an Expo SDK 56 `expo-modules-jsi` Swift fix required
-  for Xcode 26 Simulator builds. Remove it after Expo ships the upstream fix.
+- `patch-package` applies a narrow Expo SDK 57 `expo-modules-jsi` Swift
+  compatibility fix required for Xcode 26 Simulator builds. Remove it after Expo
+  ships the upstream fix.
 - `expo-dev-client` is included for installable development builds; Expo Go is
   still usable for bridge-only UI testing.
 - First-open System Access sheet checks Local Network/network access, OS-gated
   DNS apply, and DNS flush limitations. Guided apply actions copy values and
   open OS Settings; they do not silently mutate system DNS.
+
+## Install
+
+```bash
+npm install
+npx expo-doctor@latest
+npx expo install --check
+```
+
+`npm install` runs `patch-package` and reapplies the current
+`expo-modules-jsi@57.0.0` Xcode 26 compatibility patch.
+
+After Expo SDK changes, prefer Expo's resolver instead of hand-pinning native
+packages:
+
+```bash
+npx expo install expo@^57.0.0 --fix
+```
 
 ## Run
 
@@ -56,10 +75,12 @@ Before real-device QA or EAS builds, run:
 
 ```bash
 npm run verify
+npx expo-doctor@latest
 ```
 
 This runs unit tests, TypeScript, Expo config export, web export, Expo install
-checks, and the high-severity production dependency audit.
+checks, and the high-severity production dependency audit. `expo-doctor` then
+validates SDK package alignment and native config health.
 
 Local native smoke commands:
 
@@ -68,6 +89,10 @@ npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler 
 npx expo prebuild --platform android --no-install
 ./android/gradlew -p android assembleDebug
 ```
+
+The iOS Simulator command requires a Simulator runtime matching the selected
+Xcode SDK. With Xcode 26.6, install the iOS 26.5 Simulator runtime from Xcode >
+Settings > Components before rerunning the iOS smoke command.
 
 ## Real Device Notes
 

@@ -76,7 +76,10 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "extra": {
       "dnspilotBridgeUrl": "http://localhost:8787",
