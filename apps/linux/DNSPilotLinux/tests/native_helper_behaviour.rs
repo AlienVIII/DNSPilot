@@ -15,6 +15,7 @@ fn native_helper_prints_polkit_contract_without_dns_mutation() {
     assert!(stdout.contains("NetworkManager D-Bus"));
     assert!(stdout.contains("systemd-resolved D-Bus"));
     assert!(stdout.contains("does not mutate DNS without an explicit apply request"));
+    assert!(stdout.contains("--allow-system-dns-mutation"));
 }
 
 #[test]
@@ -79,7 +80,7 @@ fn native_helper_request_json_runs_mock_lifecycle_without_writing_dns() {
 }
 
 #[test]
-fn native_helper_request_json_rejects_execute_mode_without_backend() {
+fn native_helper_request_json_rejects_execute_mode_without_explicit_flag() {
     let request = r#"{
         "schema_version": 1,
         "polkit_action_id": "io.dnspilot.DNSPilot.apply-dns",
@@ -98,5 +99,5 @@ fn native_helper_request_json_rejects_execute_mode_without_backend() {
 
     assert!(!output.status.success());
     let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("execution backend is not enabled"));
+    assert!(stderr.contains("--allow-system-dns-mutation is required"));
 }

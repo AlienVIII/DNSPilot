@@ -174,6 +174,7 @@ dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --pack
 dnspilot-native-helper --contract
 dnspilot-native-helper --dry-run --stack networkmanager --server 1.1.1.1
 dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
+dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"execute","confirm_system_dns_mutation":true}'
 ```
 
 Expected:
@@ -181,9 +182,10 @@ Expected:
 - native apply plan is offered only when NetworkManager or systemd-resolved plus
   polkit are detected,
 - native helper contract/dry-run/request protocol works without writing DNS,
-- execute-mode requests require `confirm_system_dns_mutation: true` and stay
-  disabled until the native write backend passes package QA,
-- polkit prompt appears before any DNS write after the backend is enabled,
+- execute-mode requests require `confirm_system_dns_mutation: true` plus
+  `--allow-system-dns-mutation`; without the flag they fail before writes,
+- polkit prompt appears before any DNS write when the explicit mutation flag is
+  used,
 - current/system resolver validation can run after apply if supported.
 
 ## rpm Native Power QA
@@ -221,6 +223,6 @@ sudo dnf install ./dnspilot-0.1.0-*.rpm
   builds still need package-tool validation on Linux.
 - The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
   still needs package-tool validation on Linux.
-- The native power helper contract is implemented with a non-mutating dry-run
-  lifecycle and an execute mutation gate; resolver write backend/package QA is
-  still required before real DNS mutation is enabled.
+- The native power helper contract includes a non-mutating dry-run lifecycle and
+  an explicit execute mutation gate. Real DNS mutation still requires Linux
+  package QA before it is enabled by default or submitted for release.

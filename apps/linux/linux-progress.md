@@ -31,6 +31,9 @@ package release.
 - Native helper request JSON covers snapshot, authorization, would-write, flush,
   validation, rollback sequencing, and an execute mutation gate without DNS
   mutation.
+- Native helper command backend supports explicit deb/rpm execution through
+  NetworkManager/systemd-resolved host commands after polkit and
+  `--allow-system-dns-mutation`.
 
 ## Validation
 
@@ -40,13 +43,13 @@ package release.
 - `cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release`: pass.
 - `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness`: pass.
-- `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- publish-check --package flatpak --lang vi`: pass.
+- `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- publish-check --package deb --network-manager --polkit --system-resolver-probe`: pass.
 
 ## Remaining Gates
 
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.
-- NetworkManager/systemd-resolved write backend and Linux package QA before
-  enabling real DNS mutation.
+- Linux package QA before publishing or enabling real DNS mutation by default in
+  deb/rpm.
 
 ## Source Of Truth
 

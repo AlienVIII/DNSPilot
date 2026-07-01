@@ -53,7 +53,7 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Native power path",
-                "deb/rpm apply-plan, native-helper request protocol, execute mutation gate, and mock dry-run lifecycle require resolver stack plus polkit and include rollback/validation.",
+                "deb/rpm apply-plan, native-helper request protocol, command backend, execute mutation gate, and --allow-system-dns-mutation guard require resolver stack plus polkit and include rollback/validation.",
             ),
             item(
                 "Native app surface",
@@ -83,7 +83,7 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
         external_requirements: vec![
             "Flatpak/Snap/deb/rpm real package QA on Linux hardware or VM.",
             "store credentials, signing, screenshots, release notes, and final metadata review.",
-            "Native resolver write backend and Linux QA before enabling real DNS mutation in deb/rpm.",
+            "Linux package QA before publishing or enabling real DNS mutation by default in deb/rpm.",
         ],
     }
 }

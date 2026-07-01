@@ -16,7 +16,7 @@
 | Process UI: idle/running/success/failed per step/resolver | Covered | `process.rs`, diagnostics tests |
 | Result diagnostics and copyable debug report | Covered | `diagnostics.rs`, CLI/report tests |
 | Guided settings only for store/sandbox builds | Covered | settings/guide tests |
-| Native power path plan | Covered as helper contract plus mutation gate, not enabled mutation | `settings.rs`, `native_power.rs`, `native_helper_main.rs`, `guide` CLI, `apply-plan` CLI |
+| Native power path plan | Covered as helper contract plus explicit mutation gate/backend | `settings.rs`, `native_power.rs`, `native_helper_main.rs`, `guide` CLI, `apply-plan` CLI |
 | Tray optional | Covered as invariant | capability/report output and native app model say tray optional |
 | Custom DNS profile add/edit/delete | Covered | in-memory store plus file-backed CLI commands |
 | IPv4/IPv6 and A/AAAA controls | Covered | settings/app/session tests |
@@ -37,8 +37,8 @@
 3. **Counterargument: deb/rpm without resolver stack gets diagnostics-only, not guided settings.**
    Intentional. Guided settings are reserved for store/sandbox builds. Native packages without NetworkManager/systemd-resolved plus polkit should not pretend to have an apply path.
 
-4. **Counterargument: Real DNS apply is still not implemented.**
-   Valid and intentional. Real DNS apply belongs to a native power package with NetworkManager D-Bus, systemd-resolved, and polkit. Current lane includes the helper binary contract, request protocol, dry-run lifecycle, execute mutation gate, resolver-stack selection, polkit action id, rollback/validation steps, and safeguards, not privileged writes.
+4. **Counterargument: Real DNS apply is too risky without Linux QA.**
+   Resolved for code scope. Real DNS apply remains native-power only and now has a command backend behind `confirm_system_dns_mutation` plus `--allow-system-dns-mutation`, with polkit, snapshot, write, flush, validation, and rollback sequencing. Linux package QA still has to validate it on real NetworkManager/systemd-resolved hosts before release.
 
 5. **Counterargument: Current/system resolver validation is not universally available.**
    Valid. It remains capability-gated. Unsupported mode requests fail before core CLI execution.
@@ -55,8 +55,7 @@
 ## Remaining Risks
 
 - Real Flatpak/Snap/deb/rpm builds are not validated in this lane.
-- NetworkManager D-Bus and systemd-resolved write backend is not enabled.
-- Native helper packaging/install paths exist, but real helper authorization/write execution still needs Linux package QA before enabling mutation.
+- Native helper packaging/install paths and command backend exist, but real helper authorization/write execution still needs Linux package QA before enabling mutation by default.
 - Native GUI compiles in this lane, but real GNOME/Wayland rendering still needs Linux package QA.
 - Distro-specific settings handoff text may need UX refinement after QA.
 
@@ -64,5 +63,4 @@
 
 1. Run package-level QA fixtures for Flatpak, Snap, deb, and rpm.
 2. Validate the GUI on GNOME/Wayland and common X11 fallback sessions.
-3. Implement native power helper write backend behind explicit deb/rpm packaging after QA.
-4. Collect screenshots, release notes, signing credentials, and store metadata for submission.
+3. Collect screenshots, release notes, signing credentials, and store metadata for submission.

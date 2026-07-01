@@ -261,8 +261,9 @@ Its current dry-run surface proves stack/server routing and explicitly reports
 that no DNS writes were executed. The request JSON path validates the polkit
 action id, resolver stack, servers, rollback requirement, validation flag, and
 mutation mode. `execute` requests require `confirm_system_dns_mutation: true`;
-the current helper binary still rejects execute mode until a package-QA-backed
-NetworkManager/systemd-resolved backend is enabled.
+the helper binary also requires `--allow-system-dns-mutation` before it runs the
+NetworkManager/systemd-resolved command backend. Without that flag, execute
+requests fail before any DNS write.
 
 ## Custom Profiles
 

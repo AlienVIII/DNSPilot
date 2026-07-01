@@ -65,7 +65,7 @@ pub fn publish_check(
                 "Build with debuild -us -uc after wiring release binaries into the Debian tree.",
                 "Install the .deb on a Linux VM or hardware target.",
                 "Verify NetworkManager/systemd-resolved detection, helper install path, and polkit policy.",
-                "Exercise native helper dry-run and execute mutation gate before enabling real DNS writes.",
+                "Exercise native helper dry-run, execute guard, polkit prompt, rollback, and validation before release.",
             ],
             manual_gates: vec![
                 "real Linux package QA.",
@@ -82,7 +82,7 @@ pub fn publish_check(
                 "Build with rpmbuild -ba apps/linux/packaging/rpm/dnspilot-linux.spec.",
                 "Install the RPM on a Linux VM or hardware target.",
                 "Verify NetworkManager/systemd-resolved detection, helper install path, and polkit policy.",
-                "Exercise native helper dry-run and execute mutation gate before enabling real DNS writes.",
+                "Exercise native helper dry-run, execute guard, polkit prompt, rollback, and validation before release.",
             ],
             manual_gates: vec![
                 "real Linux package QA.",
@@ -183,21 +183,21 @@ fn native_safety_notes(language: Language, package_label: &'static str) -> Vec<&
         Language::English => match package_label {
             "deb" => vec![
                 "deb is the native power path; real DNS mutation requires resolver stack plus polkit.",
-                "The execute mutation gate must stay closed until native write backend QA passes.",
+                "The execute mutation gate must stay closed by default until Linux package QA passes.",
             ],
             _ => vec![
                 "rpm is the native power path; real DNS mutation requires resolver stack plus polkit.",
-                "The execute mutation gate must stay closed until native write backend QA passes.",
+                "The execute mutation gate must stay closed by default until Linux package QA passes.",
             ],
         },
         Language::Vietnamese => match package_label {
             "deb" => vec![
                 "deb là native power path; đổi DNS thật cần resolver stack và polkit.",
-                "execute mutation gate phải đóng cho tới khi backend ghi DNS pass QA.",
+                "execute mutation gate mặc định phải đóng cho tới khi gói Linux pass QA.",
             ],
             _ => vec![
                 "rpm là native power path; đổi DNS thật cần resolver stack và polkit.",
-                "execute mutation gate phải đóng cho tới khi backend ghi DNS pass QA.",
+                "execute mutation gate mặc định phải đóng cho tới khi gói Linux pass QA.",
             ],
         },
     }
