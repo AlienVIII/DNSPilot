@@ -122,18 +122,22 @@ private struct DirectAdminActionsPanel: View {
     let compact: Bool
     @State private var isConfirmingEnable = false
 
+    private var isDirectAdminAvailable: Bool {
+        MacOSPowerDNSActionConfiguration.isBuildCapable()
+    }
+
     private var isEffectiveEnabled: Bool {
         MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
     }
 
-    private var isEnabledByLaunch: Bool {
-        MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: false)
+    private var isForcedByLaunch: Bool {
+        MacOSPowerDNSActionConfiguration.isForcedEnabled()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
             Label(
-                isEffectiveEnabled ? "Direct Admin Actions enabled" : "Guided mode active",
+                stateLabel,
                 systemImage: isEffectiveEnabled ? "bolt.shield" : "lock.shield"
             )
             .font(compact ? .body.weight(.semibold) : .headline)
@@ -146,8 +150,8 @@ private struct DirectAdminActionsPanel: View {
 
             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                 if isEffectiveEnabled {
-                    if isEnabledByLaunch {
-                        Label("Enabled by Power build or launch flag", systemImage: "info.circle")
+                    if isForcedByLaunch {
+                        Label("Enabled by launch flag", systemImage: "info.circle")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
@@ -157,11 +161,23 @@ private struct DirectAdminActionsPanel: View {
                             Label("Disable Direct Admin Actions", systemImage: "lock")
                         }
                     }
-                } else {
+                } else if isDirectAdminAvailable {
                     Button {
                         isConfirmingEnable = true
                     } label: {
                         Label("Enable Direct Admin Actions...", systemImage: "bolt.shield")
+                    }
+                } else {
+                    Label("Power/direct-install build required", systemImage: "shippingbox")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if userEnabledPowerActions {
+                        Button(role: .destructive) {
+                            userEnabledPowerActions = false
+                        } label: {
+                            Label("Clear Direct Admin Preference", systemImage: "xmark.circle")
+                        }
                     }
                 }
 
@@ -186,11 +202,24 @@ private struct DirectAdminActionsPanel: View {
         }
     }
 
+    private var stateLabel: String {
+        if isEffectiveEnabled {
+            return "Direct Admin Actions enabled"
+        }
+        if isDirectAdminAvailable {
+            return "Direct Admin Actions available"
+        }
+        return "Guided mode active"
+    }
+
     private var detailText: String {
         if isEffectiveEnabled {
             return "Apply Now (Admin) and Flush Now (Admin) are visible where a safe DNS plan is available. macOS still asks for administrator approval before changing DNS or flushing cache."
         }
-        return "DNS Pilot will only copy DNS/apply steps and open Network Settings. Turn this on when you want direct in-app Apply/Flush on this Mac."
+        if isDirectAdminAvailable {
+            return "This Power/direct-install build can run Apply/Flush inside the app after explicit opt-in. macOS asks for administrator approval at action time."
+        }
+        return "This Store-safe build only copies DNS/apply steps and opens Network Settings. Use a Power/direct-install build when this Mac should allow direct in-app Apply/Flush."
     }
 }
 
@@ -1769,7 +1798,8 @@ private struct PermissionReadinessDetailView: View {
 
     private var viewModel: MacOSPermissionReadinessViewModel {
         MacOSPermissionReadinessViewModel(
-            isPowerActionsEnabled: MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
+            isPowerActionsEnabled: MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions),
+            isDirectAdminAvailable: MacOSPowerDNSActionConfiguration.isBuildCapable()
         )
     }
 

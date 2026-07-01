@@ -17,9 +17,11 @@ validation to distribution.
 ### Power edition
 
 - Direct install only.
-- Plain DNS apply/flush can ask for administrator approval when Direct Admin
-  Actions are enabled in the app, the app bundle has
-  `DNSPilotPowerActionsEnabled=true`, or `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+- Plain DNS apply/flush can ask for administrator approval when a
+  Power/direct-install app bundle has `DNSPilotPowerActionsEnabled=true` and the
+  user explicitly enables Direct Admin Actions in the app.
+- `DNSPILOT_ENABLE_POWER_ACTIONS=1` is a local/dev force path; it bypasses the
+  in-app opt-in and must not be used for App Store builds.
 - The first-run setup and Permissions screen must explain that macOS has no
   System Settings pre-toggle for plain DNS edits; the native permission point is
   the administrator prompt shown at Apply/Flush time.
@@ -165,8 +167,12 @@ The preflight restores a Store-safe bundle after optional Power validation so
 `dist/DNSPilotMac.app` is not left Power-enabled by accident.
 
 2. Confirm UI behavior.
-   - `Apply Now (Admin)` appears only in Power mode.
-   - `Flush Now (Admin)` appears only in Power mode.
+   - Store-safe builds show guided mode only and cannot enable admin actions
+     from UserDefaults alone.
+   - `Apply Now (Admin)` appears only after Power capability plus explicit
+     opt-in, or with `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+   - `Flush Now (Admin)` appears only after Power capability plus explicit
+     opt-in, or with `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
    - Store-safe copy/open actions remain available.
 
 3. Package Power edition when direct-install signing assets are available:

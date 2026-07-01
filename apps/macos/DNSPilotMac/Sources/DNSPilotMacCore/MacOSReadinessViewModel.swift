@@ -51,7 +51,7 @@ public struct MacOSReadinessRow: Equatable, Identifiable, Sendable {
 public struct MacOSPermissionReadinessViewModel: Equatable, Sendable {
     public let rows: [MacOSReadinessRow]
 
-    public init(isPowerActionsEnabled: Bool) {
+    public init(isPowerActionsEnabled: Bool, isDirectAdminAvailable: Bool = false) {
         rows = [
             MacOSReadinessRow(
                 id: "network-client",
@@ -69,17 +69,13 @@ public struct MacOSPermissionReadinessViewModel: Equatable, Sendable {
                 id: "admin-apply-flush",
                 title: "Admin apply / flush",
                 status: isPowerActionsEnabled ? .ready : .manual,
-                detail: isPowerActionsEnabled
-                    ? "Direct admin actions are available. DNS Pilot asks for administrator approval only when you press Apply Now or Flush Now."
-                    : "Enable Direct Admin Actions in DNS Pilot setup/settings, use a Power bundle, or launch with DNSPILOT_ENABLE_POWER_ACTIONS=1 to apply/flush inside the app."
+                detail: Self.adminDetail(isPowerActionsEnabled: isPowerActionsEnabled, isDirectAdminAvailable: isDirectAdminAvailable)
             ),
             MacOSReadinessRow(
                 id: "power-mode-flag",
                 title: "Direct admin mode",
                 status: isPowerActionsEnabled ? .ready : .manual,
-                detail: isPowerActionsEnabled
-                    ? "Apply Now and Flush Now buttons are enabled by in-app opt-in, bundle Info.plist, or DNSPILOT_ENABLE_POWER_ACTIONS."
-                    : "Use the DNS Pilot setup prompt or Settings to opt into Direct Admin Actions. Keep this off for App Store-safe builds."
+                detail: Self.directAdminModeDetail(isPowerActionsEnabled: isPowerActionsEnabled, isDirectAdminAvailable: isDirectAdminAvailable)
             ),
             MacOSReadinessRow(
                 id: "no-silent-mutation",
@@ -97,6 +93,26 @@ public struct MacOSPermissionReadinessViewModel: Equatable, Sendable {
         }
         lines.append("macOS has no pre-grant System Settings toggle for plain DNS edits; direct actions request administrator approval only at the moment of apply/flush.")
         return lines.joined(separator: "\n")
+    }
+
+    private static func adminDetail(isPowerActionsEnabled: Bool, isDirectAdminAvailable: Bool) -> String {
+        if isPowerActionsEnabled {
+            return "Direct admin actions are available. DNS Pilot asks for administrator approval only when you press Apply Now or Flush Now."
+        }
+        if isDirectAdminAvailable {
+            return "Direct Admin Actions are available in this Power/direct-install build but still need explicit setup/settings opt-in."
+        }
+        return "This Store-safe build does not expose Direct Admin Actions. Use guided Settings steps, a Power bundle with DNSPilotPowerActionsEnabled=true, or launch with DNSPILOT_ENABLE_POWER_ACTIONS=1."
+    }
+
+    private static func directAdminModeDetail(isPowerActionsEnabled: Bool, isDirectAdminAvailable: Bool) -> String {
+        if isPowerActionsEnabled {
+            return "Apply Now and Flush Now buttons are enabled by explicit opt-in or DNSPILOT_ENABLE_POWER_ACTIONS."
+        }
+        if isDirectAdminAvailable {
+            return "Use the DNS Pilot setup prompt or Settings to opt into Direct Admin Actions for this Power/direct-install build."
+        }
+        return "Unavailable in the App Store-safe build; Direct Admin Actions are reserved for direct-install Power distribution."
     }
 }
 

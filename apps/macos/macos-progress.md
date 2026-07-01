@@ -5,7 +5,8 @@
 macOS is the UX lead lane and currently has the most complete native shell. The
 store-safe path is implemented around benchmark, guidance, copy/open settings,
 flush guidance, and system-DNS validation. Direct DNS mutation is available only
-behind explicit Direct Admin/Power opt-in and macOS administrator approval.
+in Power/direct-install capable builds after explicit Direct Admin opt-in, or a
+local force flag, and still requires macOS administrator approval.
 
 ## Requirement Coverage
 
@@ -21,14 +22,15 @@ behind explicit Direct Admin/Power opt-in and macOS administrator approval.
 - Catalog rows can launch confirmed store-safe apply for plain DNS profiles.
 - First-run setup and the Permissions screen explain macOS permission reality:
   there is no System Settings pre-toggle for plain DNS edits; Direct Admin
-  Actions are an explicit in-app/Power opt-in and macOS asks for administrator
-  approval at Apply/Flush time.
+  Actions are unavailable in Store-safe builds, available only in Power/direct-
+  install builds, and macOS asks for administrator approval at Apply/Flush time.
 - Product Goals list all six acceptance goals with concrete app entry points,
   validation evidence, and EN/VI localized user-facing copy.
 - English/Vietnamese localization covers primary native surfaces.
-- Power actions are disabled by default and require
-  Direct Admin Actions setup opt-in, `DNSPilotPowerActionsEnabled`,
-  `DNSPILOT_ENABLE_POWER_ACTIONS`, or a Power edition bundle switch.
+- Power actions are disabled by default. Store-safe builds cannot enable them
+  from a stale preference alone; Power/direct-install builds require
+  `DNSPilotPowerActionsEnabled` plus Direct Admin opt-in, while
+  `DNSPILOT_ENABLE_POWER_ACTIONS=1` is the local/dev force path.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
   are present; the Publish screen also surfaces local release preflight and
   privacy manifest readiness.

@@ -3,7 +3,10 @@ import XCTest
 
 final class MacOSReadinessViewModelTests: XCTestCase {
     func testPermissionReadinessExplainsAskAsNeededPowerFlow() {
-        let viewModel = MacOSPermissionReadinessViewModel(isPowerActionsEnabled: true)
+        let viewModel = MacOSPermissionReadinessViewModel(
+            isPowerActionsEnabled: true,
+            isDirectAdminAvailable: true
+        )
 
         XCTAssertEqual(viewModel.rows.map(\.id), [
             "network-client",
@@ -20,13 +23,27 @@ final class MacOSReadinessViewModelTests: XCTestCase {
     }
 
     func testPermissionReadinessMarksPowerFlagManualWhenDisabled() {
-        let viewModel = MacOSPermissionReadinessViewModel(isPowerActionsEnabled: false)
+        let viewModel = MacOSPermissionReadinessViewModel(
+            isPowerActionsEnabled: false,
+            isDirectAdminAvailable: true
+        )
 
         XCTAssertEqual(viewModel.rows.first { $0.id == "admin-apply-flush" }?.status, .manual)
-        XCTAssertTrue(viewModel.rows.first { $0.id == "admin-apply-flush" }?.detail.contains("Direct Admin Actions") == true)
+        XCTAssertTrue(viewModel.rows.first { $0.id == "admin-apply-flush" }?.detail.contains("available in this Power/direct-install build") == true)
         XCTAssertEqual(viewModel.rows.first { $0.id == "power-mode-flag" }?.status, .manual)
         XCTAssertTrue(viewModel.rows.first { $0.id == "power-mode-flag" }?.detail.contains("setup") == true)
         XCTAssertTrue(viewModel.rows.first { $0.id == "system-dns-settings" }?.detail.contains("does not provide a System Settings toggle") == true)
+    }
+
+    func testPermissionReadinessDoesNotOfferDirectAdminInStoreSafeBuild() {
+        let viewModel = MacOSPermissionReadinessViewModel(
+            isPowerActionsEnabled: false,
+            isDirectAdminAvailable: false
+        )
+
+        XCTAssertEqual(viewModel.rows.first { $0.id == "admin-apply-flush" }?.status, .manual)
+        XCTAssertTrue(viewModel.rows.first { $0.id == "admin-apply-flush" }?.detail.contains("Store-safe build does not expose Direct Admin Actions") == true)
+        XCTAssertTrue(viewModel.rows.first { $0.id == "power-mode-flag" }?.detail.contains("Unavailable in the App Store-safe build") == true)
     }
 
     func testPublishReadinessSeparatesStoreAndPowerEditionWork() {

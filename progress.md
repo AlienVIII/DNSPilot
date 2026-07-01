@@ -145,6 +145,7 @@ DNS handling, and platform capability reporting.
 - [x] [134] v0.1 system DNS validation canonical payload — expose summary/runs schema without dropping legacy compatibility.
 - [x] [135] v0.1 macOS non-mutating goal smoke — verify main flows without DNS mutation or signing credentials.
 - [x] [136] v0.1 macOS native permission and direct admin setup — first-run setup plus in-app Direct Admin Apply/Flush opt-in.
+- [x] [137] v0.1 macOS Store-safe direct-admin gate — prevent UserDefaults-only admin enablement in Store-safe builds.
 
 ---
 
@@ -6486,6 +6487,42 @@ Result: 2 passed, 0 failed
 
 ---
 
+## Chunk 137: v0.1 macOS Store-Safe Direct-Admin Gate
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Separated Direct Admin capability from user opt-in. A stale or manually written
+UserDefaults value can no longer enable Apply Now (Admin) or Flush Now (Admin)
+inside the Store-safe bundle. Power/direct-install bundles can expose the opt-in
+only when `DNSPilotPowerActionsEnabled=true`; `DNSPILOT_ENABLE_POWER_ACTIONS=1`
+remains a local/dev force path.
+
+### Edge Cases / Caveats
+
+- This intentionally trades convenience for App Store safety: default Store-safe
+  runs stay guided even if a previous dev preference says Direct Admin enabled.
+- Power builds still require real manual QA because admin Apply/Flush can mutate
+  the active network service DNS.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSPowerDNSActionRunnerTests --filter MacOSReadinessViewModelTests --filter ProductGoalReadinessViewModelTests
+Result: 19 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 253 passed, 0 failed
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Store-safe bundle has no Power switch, Power bundle has the
+Power switch, and the final artifact is restored to Store-safe.
+```
+
+---
+
 ## Chunk 136: v0.1 macOS Native Permission And Direct Admin Setup
 
 **Status:** Complete
@@ -6518,7 +6555,7 @@ Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
 bundle validation, and Store-safe restore passed.
 
 First-run screenshot smoke
-Result: setup sheet displayed in Guided mode by default with Direct Admin opt-in.
+Result: setup sheet displayed in Guided mode by default; Direct Admin availability is gated by the Store-safe/Power split in Chunk 137.
 ```
 
 ---

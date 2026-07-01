@@ -86,19 +86,27 @@ final class MacOSPowerDNSActionRunnerTests: XCTestCase {
     }
 
     func testBundleInfoCanEnablePowerEditionWithoutTerminalEnvironment() {
-        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: true, userDefaultValue: false))
-        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: "yes", userDefaultValue: false))
+        XCTAssertFalse(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: true, userDefaultValue: false))
+        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: true, userDefaultValue: true))
+        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: "yes", userDefaultValue: true))
         XCTAssertFalse(MacOSPowerDNSActionConfiguration.isEnabled(environment: [:], bundleInfoValue: false, userDefaultValue: false))
     }
 
-    func testUserOptInCanEnableDirectAdminActionsWithoutPowerBundle() {
-        XCTAssertTrue(
+    func testUserOptInCannotEnableDirectAdminActionsWithoutPowerBundle() {
+        XCTAssertFalse(
             MacOSPowerDNSActionConfiguration.isEnabled(
                 environment: [:],
                 bundleInfoValue: nil,
                 userDefaultValue: true
             )
         )
+    }
+
+    func testBuildCapabilityRequiresPowerBundleOrLaunchFlag() {
+        XCTAssertFalse(MacOSPowerDNSActionConfiguration.isBuildCapable(environment: [:], bundleInfoValue: nil))
+        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isBuildCapable(environment: [:], bundleInfoValue: true))
+        XCTAssertTrue(MacOSPowerDNSActionConfiguration.isBuildCapable(environment: ["DNSPILOT_ENABLE_POWER_ACTIONS": "1"], bundleInfoValue: nil))
+        XCTAssertFalse(MacOSPowerDNSActionConfiguration.isBuildCapable(environment: ["DNSPILOT_ENABLE_POWER_ACTIONS": "0"], bundleInfoValue: true))
     }
 
     func testEnvironmentFlagOverridesBundlePowerEditionSwitch() {

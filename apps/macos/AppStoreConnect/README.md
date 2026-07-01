@@ -75,8 +75,9 @@ Expected behavior:
   Settings; they do not silently change system DNS.
 - Flush DNS in the store-safe build copies a checklist and does not execute
   administrator commands.
-- Direct Admin/Power actions are outside the store path. They must remain off
-  for App Store review and are documented separately for direct-install builds.
+- Direct Admin/Power actions are outside the store path. The Store-safe build
+  must not expose an in-app path to enable administrator DNS mutation; Power
+  behavior is documented separately for direct-install builds.
 
 ## Privacy Notes
 
