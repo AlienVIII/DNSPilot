@@ -25,11 +25,11 @@ test("iOS guidance stays store-safe and profile/settings based", () => {
   assert.ok(guidance.steps.some((step) => step.includes("1.1.1.1")));
   assert.deepEqual(
     guidance.actions.map((action) => action.kind),
-    ["copy", "open-settings"]
+    ["prepare-os-apply", "copy", "open-settings", "retest-system-dns"]
   );
   assert.equal(guidance.actions[0].value, "1.1.1.1, 1.0.0.1");
   assert.doesNotMatch(guidance.claims.join(" "), /fastest|speed improvement|silent/i);
-  assert.doesNotMatch(JSON.stringify(guidance.actions), /apply|mutate|vpn/i);
+  assert.doesNotMatch(JSON.stringify(guidance.actions), /silent|mutate|vpn/i);
 });
 
 test("Android guidance uses settings and avoids VpnService or silent mutation", () => {
@@ -53,9 +53,35 @@ test("Android guidance uses settings and avoids VpnService or silent mutation", 
   assert.ok(guidance.steps.some((step) => step.includes("Private DNS")));
   assert.deepEqual(
     guidance.actions.map((action) => action.kind),
-    ["copy", "open-settings"]
+    ["prepare-os-apply", "copy", "open-settings", "retest-system-dns"]
   );
+  assert.equal(guidance.actions[0].target, "android-network-settings");
+  assert.equal(guidance.actions[0].value, "1.1.1.1, 1.0.0.1");
   assert.doesNotMatch(guidance.steps.join(" "), /VpnService|silent/i);
+});
+
+test("iOS guidance exposes app settings and retest without pretending to mutate DNS", () => {
+  const guidance = buildSettingsGuidance({
+    platform: "ios",
+    applyPlan: {
+      platform: "ios",
+      apply_capability: "apple-network-extension-dns-settings",
+      disposition: "guide-only",
+      profile_name: "Cloudflare",
+      tested_resolver: "1.1.1.1",
+      dns_servers: ["1.1.1.1", "1.0.0.1"],
+      can_apply: false,
+      notes: [],
+    },
+  });
+
+  assert.deepEqual(
+    guidance.actions.map((action) => action.kind),
+    ["prepare-os-apply", "copy", "open-settings", "retest-system-dns"]
+  );
+  assert.equal(guidance.actions[0].target, "ios-app-settings");
+  assert.equal(guidance.canMutateSystemDns, false);
+  assert.doesNotMatch(JSON.stringify(guidance.actions), /silent|VpnService/i);
 });
 
 test("protected network guidance suppresses apply flow", () => {

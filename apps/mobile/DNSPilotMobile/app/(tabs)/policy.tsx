@@ -1,5 +1,4 @@
 import * as Clipboard from 'expo-clipboard';
-import * as Linking from 'expo-linking';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -21,6 +20,7 @@ import {
   palette,
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
+import { openNativeSettings } from '@/src/utils/native-settings';
 import { buildSettingsGuidance, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type MobilePlatform = 'ios' | 'android-play';
@@ -123,12 +123,32 @@ export default function PolicyScreen() {
   }
 
   async function runGuidanceAction(action: SettingsGuidance['actions'][number]) {
+    if (action.kind === 'prepare-os-apply') {
+      await Clipboard.setStringAsync(action.value);
+      await openNativeSettings(action.target);
+      setSettingsActionStatus(t('settings.action.prepared'));
+      return;
+    }
     if (action.kind === 'copy') {
       await Clipboard.setStringAsync(action.value);
       setSettingsActionStatus(t('settings.action.copied'));
       return;
     }
-    await Linking.openSettings();
+    if (action.kind === 'open-settings') {
+      await openNativeSettings(action.target);
+      setSettingsActionStatus(t('settings.action.openedSettings'));
+      return;
+    }
+    setSettingsActionStatus(t('settings.action.retesting'));
+    const next = await runAction('systemBenchmark', {
+      platform,
+      domains: ['github.com', 'expo.dev'],
+      attempts: 1,
+      ipFamily: 'both',
+      timeoutMs: 800,
+    });
+    setResults((current) => ({ ...current, systemBenchmark: next }));
+    setSettingsActionStatus(t('settings.action.retested'));
   }
 
   return (

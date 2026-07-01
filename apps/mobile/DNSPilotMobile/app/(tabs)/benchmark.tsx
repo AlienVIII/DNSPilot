@@ -1,5 +1,4 @@
 import * as Clipboard from 'expo-clipboard';
-import * as Linking from 'expo-linking';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -21,6 +20,7 @@ import {
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 import { compactList } from '@/src/utils/forms';
+import { openNativeSettings } from '@/src/utils/native-settings';
 import { buildApplyPlanRequest, type ApplyPlanRequest } from '@/src/view-models/benchmark-guidance';
 import { buildBenchmarkPlan, suggestedSuites } from '@/src/view-models/benchmark-plan';
 import {
@@ -128,6 +128,25 @@ export default function BenchmarkScreen() {
       }),
     [attempts, benchmarkPlatform, connectTimeoutMs, domains, ipFamily, maxTargets, mode, saveHistory, selectedProfiles, suiteId, suites, timeoutMs, tlsEnabled]
   );
+  const systemRetestPlan = useMemo(
+    () =>
+      buildBenchmarkPlan({
+        mode: 'systemBenchmark',
+        selectedProfiles: [],
+        suites,
+        suiteId,
+        domains,
+        attempts,
+        ipFamily,
+        timeoutMs,
+        connectTimeoutMs,
+        maxTargets,
+        tlsEnabled: false,
+        benchmarkPlatform: guidancePlatform,
+        saveHistory: false,
+      }),
+    [attempts, connectTimeoutMs, domains, guidancePlatform, ipFamily, maxTargets, suiteId, suites, timeoutMs]
+  );
   const suiteSuggestions = useMemo(() => suggestedSuites(suites), [suites]);
 
   useEffect(() => {
@@ -203,12 +222,26 @@ export default function BenchmarkScreen() {
   }
 
   async function runGuidanceAction(action: SettingsGuidance['actions'][number]) {
+    if (action.kind === 'prepare-os-apply') {
+      await Clipboard.setStringAsync(action.value);
+      await openNativeSettings(action.target);
+      setSettingsActionStatus(t('settings.action.prepared'));
+      return;
+    }
     if (action.kind === 'copy') {
       await Clipboard.setStringAsync(action.value);
       setSettingsActionStatus(t('settings.action.copied'));
       return;
     }
-    await Linking.openSettings();
+    if (action.kind === 'open-settings') {
+      await openNativeSettings(action.target);
+      setSettingsActionStatus(t('settings.action.openedSettings'));
+      return;
+    }
+    setSettingsActionStatus(t('settings.action.retesting'));
+    const next = await runAction('systemBenchmark', systemRetestPlan.payload);
+    setGuidancePayload(next);
+    setSettingsActionStatus(t('settings.action.retested'));
   }
 
   const resultData = result?.data as Record<string, unknown> | undefined;

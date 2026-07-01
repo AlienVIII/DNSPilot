@@ -15,6 +15,9 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
   for Xcode 26 Simulator builds. Remove it after Expo ships the upstream fix.
 - `expo-dev-client` is included for installable development builds; Expo Go is
   still usable for bridge-only UI testing.
+- First-open System Access sheet checks Local Network/network access, OS-gated
+  DNS apply, and DNS flush limitations. Guided apply actions copy values and
+  open OS Settings; they do not silently mutate system DNS.
 
 ## Run
 
@@ -74,6 +77,8 @@ npx expo prebuild --platform android --no-install
   network access.
 - The app does not silently mutate system DNS and does not use Android
   `VpnService`.
+- Mobile OSes do not expose a store-safe third-party DNS cache flush API; use
+  System DNS retest after user-controlled settings/profile changes.
 - Publish and store-review steps are tracked in
   `../mobile-publish-checklist.md`.
 

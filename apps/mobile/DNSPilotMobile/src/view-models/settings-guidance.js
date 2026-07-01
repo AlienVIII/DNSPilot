@@ -7,7 +7,8 @@ export function buildSettingsGuidance({ platform, applyPlan, locale = "en" }) {
   const profileName = plan.profile_name ?? "selected DNS profile";
   const t = (key, params = {}) => translate(locale, key, params);
   const servers = dnsServers.join(", ") || t("settings.noneAvailable");
-  const actions = dnsServers.length > 0 ? guidanceActions({ servers, t }) : [openSettingsAction(t)];
+  const target = settingsTargetFor({ platform, plan });
+  const actions = dnsServers.length > 0 ? guidanceActions({ platform, servers, target, t }) : [openSettingsAction({ target, t }), retestAction(t)];
 
   if (plan.disposition === "protect-current-dns") {
     return {
@@ -54,22 +55,46 @@ export function buildSettingsGuidance({ platform, applyPlan, locale = "en" }) {
   };
 }
 
-function guidanceActions({ servers, t }) {
+function guidanceActions({ platform, servers, target, t }) {
   return [
+    {
+      id: "prepare-os-apply",
+      kind: "prepare-os-apply",
+      label: platform === "android-play" ? t("settings.action.applyAndroid") : t("settings.action.prepareIos"),
+      value: servers,
+      target,
+    },
     {
       id: "copy-dns-servers",
       kind: "copy",
       label: t("settings.action.copyDns"),
       value: servers,
     },
-    openSettingsAction(t),
+    openSettingsAction({ target, t }),
+    retestAction(t),
   ];
 }
 
-function openSettingsAction(t) {
+function openSettingsAction({ target, t }) {
   return {
     id: "open-settings",
     kind: "open-settings",
     label: t("settings.action.openSettings"),
+    target,
   };
+}
+
+function retestAction(t) {
+  return {
+    id: "retest-system-dns",
+    kind: "retest-system-dns",
+    label: t("settings.action.retestSystemDns"),
+  };
+}
+
+function settingsTargetFor({ platform, plan }) {
+  if (platform === "android-play") {
+    return plan.private_dns_hostname || plan.dot_hostname ? "android-private-dns" : "android-network-settings";
+  }
+  return "ios-app-settings";
 }

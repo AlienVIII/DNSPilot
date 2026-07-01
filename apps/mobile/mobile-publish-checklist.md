@@ -12,6 +12,9 @@
 - The app remains store-safe: no iOS plain system DNS switch, no Android silent
   Private DNS mutation, no Android `VpnService`, and no "apply fastest DNS" or
   internet speed claim.
+- First-open System Access shows permission/apply/flush status. Apply actions
+  copy DNS values and open OS settings; DNS flush is explicitly unsupported on
+  mobile consumer OS APIs.
 - Core/CLI coverage is exercised through the local bridge. A public store build
   that must work without a developer Mac still needs a native Rust adapter or an
   approved backend/bridge decision.
@@ -29,27 +32,33 @@
    ```
 5. Open the installed development build on the device. Expo Go remains usable
    for bridge-only UI checks, but the development build is the native smoke path.
-6. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
+6. Overview: confirm the first-open System Access sheet appears. iOS should
+   offer App Settings for Local Network recovery. Android should offer Network
+   Settings for user-controlled DNS changes.
+7. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
    titles, validation errors, and guided settings copy update.
-7. Overview > Device Setup: choose the real-device target. Confirm localhost is
+8. Overview > Device Setup: choose the real-device target. Confirm localhost is
    rejected for physical phones, Android emulator recommends `10.0.2.2`, and
    store-safe policy says no silent DNS mutation/VpnService.
-8. Overview: paste the Mac LAN bridge URL, tap Refresh, then confirm Bridge is
+9. Overview: paste the Mac LAN bridge URL, tap Refresh, then confirm Bridge is
    up and profiles/suites/capabilities/history load.
-9. iOS/iPadOS: when prompted for Local Network, tap Allow. If the prompt does
+10. iOS/iPadOS: when prompted for Local Network, tap Allow. If the prompt does
    not appear, check Settings > Privacy & Security > Local Network.
-10. Android: no dangerous runtime permission prompt is expected for normal
+11. Android: no dangerous runtime permission prompt is expected for normal
    network access.
-11. Benchmark: run DNS Compare, Path Compare, Single DNS, Single Path, and
+12. Benchmark: run DNS Compare, Path Compare, Single DNS, Single Path, and
     System DNS validation. Confirm per-step/per-resolver status, elapsed time,
     failed step/reason on failures, debug report, and Copy report.
-12. Storage: add, edit, and delete plain DNS, DoH, DoT profiles, and custom
+13. Guided settings: tap Apply in OS DNS settings / Prepare DNS profile/settings.
+    Expected behavior is copy values + open settings + retest, not silent apply
+    or DNS cache flush.
+14. Storage: add, edit, and delete plain DNS, DoH, DoT profiles, and custom
     domain suites. Invalid forms must disable actions before bridge calls.
-13. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive
+15. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive
     portal. Expected behavior is `protect-current-dns` or guide-only steps, not
     system mutation. Use Copy DNS servers and Open Settings; expected behavior
     is user-controlled OS settings, not an in-app DNS switch.
-14. iPad/Android tablet: rotate portrait/landscape and confirm the layout uses
+16. iPad/Android tablet: rotate portrait/landscape and confirm the layout uses
     multi-column native tablet width instead of stretching a phone UI.
 
 ## Native Build Smoke

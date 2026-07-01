@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Modal, Text, View } from 'react-native';
 
 import { compactJson } from '@/src/api/dnspilot';
 import { AdaptiveColumns, Button, CodeBlock, ErrorBanner, Metric, Pill, Row, Screen, Section, Segmented, TextField, palette } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
+import { openNativeSettings } from '@/src/utils/native-settings';
 import { buildDeviceSetupPlan, deviceTargets, normalizeBridgeUrl, type DeviceTarget, type DeviceSetupStatus } from '@/src/view-models/device-setup';
+import type { Translator } from '@/src/view-models/localization';
+import { buildSystemAccessPrompt, type SystemAccessPrompt, type SystemAccessStatus } from '@/src/view-models/system-access';
 
 const defaultDeviceTarget = process.env.EXPO_OS === 'android' ? 'android-device' : process.env.EXPO_OS === 'web' ? 'web' : 'ios-device';
 
@@ -24,10 +27,12 @@ export default function OverviewScreen() {
     languagePreference,
     setLanguagePreference,
     languageOptions,
+    locale,
     t,
   } = useDNSPilot();
   const [urlDraft, setUrlDraft] = useState(bridgeUrl);
   const [deviceTarget, setDeviceTarget] = useState<DeviceTarget>(defaultDeviceTarget);
+  const [systemPromptVisible, setSystemPromptVisible] = useState(true);
   const [sample, setSample] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
   const normalizedBridgeUrl = normalizeBridgeUrl(urlDraft);
@@ -39,6 +44,15 @@ export default function OverviewScreen() {
         health,
       }),
     [deviceTarget, health, urlDraft]
+  );
+  const systemAccessPrompt = useMemo(
+    () =>
+      buildSystemAccessPrompt({
+        platform: deviceTarget,
+        bridgeStatus: health?.ok ? 'success' : error ? 'failed' : 'unknown',
+        locale,
+      }),
+    [deviceTarget, error, health?.ok, locale]
   );
   const targetOptions = useMemo(
     () =>
@@ -75,6 +89,13 @@ export default function OverviewScreen() {
 
   return (
     <Screen>
+      <SystemAccessModal
+        visible={systemPromptVisible && systemAccessPrompt.shouldPrompt}
+        prompt={systemAccessPrompt}
+        t={t}
+        onClose={() => setSystemPromptVisible(false)}
+        onOpenSettings={(target) => openNativeSettings(target).catch(() => undefined)}
+      />
       <Section
         title={t('overview.title')}
         subtitle={t('overview.subtitle')}>
@@ -188,6 +209,13 @@ function statusTone(status: DeviceSetupStatus) {
   return 'neutral';
 }
 
+function systemAccessTone(status: SystemAccessStatus) {
+  if (status === 'ready') return 'green';
+  if (status === 'unsupported') return 'red';
+  if (status === 'needs-action' || status === 'os-gated') return 'amber';
+  return 'neutral';
+}
+
 function SetupStatusCard({ title, status, statusLabel, text }: { title: string; status: DeviceSetupStatus; statusLabel: string; text: string }) {
   return (
     <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, flexGrow: 1, gap: 8, minWidth: 220, padding: 12 }}>
@@ -201,5 +229,57 @@ function SetupStatusCard({ title, status, statusLabel, text }: { title: string; 
         {text}
       </Text>
     </View>
+  );
+}
+
+function SystemAccessModal({
+  visible,
+  prompt,
+  t,
+  onClose,
+  onOpenSettings,
+}: {
+  visible: boolean;
+  prompt: SystemAccessPrompt;
+  t: Translator;
+  onClose: () => void;
+  onOpenSettings: (target: SystemAccessPrompt['actions'][number]['target']) => void;
+}) {
+  return (
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
+      <View style={{ backgroundColor: 'rgba(15, 23, 42, 0.42)', flex: 1, justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: palette.background, borderTopLeftRadius: 8, borderTopRightRadius: 8, gap: 14, padding: 16 }}>
+          <View style={{ gap: 4 }}>
+            <Text selectable style={{ color: palette.text, fontSize: 22, fontWeight: '800' }}>
+              {prompt.title}
+            </Text>
+            <Text selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>
+              {prompt.summary}
+            </Text>
+          </View>
+          <View style={{ gap: 8 }}>
+            {prompt.checks.map((check) => (
+              <View key={check.id} style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 6, padding: 12 }}>
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
+                  <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
+                    {check.label}
+                  </Text>
+                  <Pill label={t(`systemAccess.status.${check.status}`)} tone={systemAccessTone(check.status)} />
+                </View>
+                <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+                  {check.detail}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Row>
+            {prompt.actions.map((action) => (
+              <Button key={action.id} label={action.label} onPress={() => onOpenSettings(action.target)} variant="secondary" />
+            ))}
+            <Button label={t('common.continue')} onPress={onClose} />
+          </Row>
+        </View>
+      </View>
+    </Modal>
   );
 }

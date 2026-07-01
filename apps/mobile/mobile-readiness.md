@@ -13,8 +13,11 @@
   local form validation, custom tag preservation, catalog merge, and history.
 - Guided DNS settings/profile flow: covered by core apply-plan payloads,
   iOS/iPadOS profile/settings guidance, Android settings/Private DNS guidance,
-  protected-network suppression, copy DNS servers actions, and native Open
-  Settings actions.
+  protected-network suppression, one-tap copy-and-open OS settings actions, and
+  native Open Settings actions.
+- Native-style access prompt: covered on app open with Local Network/network
+  access checks, OS-gated DNS apply status, and explicit DNS flush unsupported
+  status.
 - Tablet layouts: covered by shared adaptive layout helpers, two-column flows on
   wide screens, and unlocked orientation for native portrait/landscape checks.
 - IPv4/IPv6 and A/AAAA controls: covered by benchmark IP-family controls and
@@ -52,6 +55,9 @@
   adapter.
 - Guided settings is intentionally conservative. It may feel less powerful than
   desktop DNS switching, but that is the correct consumer mobile policy stance.
+- "Apply" on mobile means user-approved OS settings/profile flow. The app can
+  prepare values and open the right settings surface, but it cannot silently
+  mutate iOS DNS settings, Android Private DNS, or flush system DNS cache.
 - Live progress is implemented as foreground polling. This avoids background
   scheduler risk, but long worst-case benchmarks still need the app to stay
   open.
@@ -78,19 +84,25 @@
 5. Overview: switch Auto/English/Tiếng Việt, choose the correct Device Setup
    target, confirm localhost is rejected for physical phones, paste the Mac LAN
    URL, refresh bridge, and confirm profiles/suites/capabilities/history load.
-6. If iOS asks for Local Network, allow it for bridge testing.
-7. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare
+6. On first open, confirm System Access appears. iOS: tap Open App Settings if
+   Local Network was denied. Android: tap Open Network Settings and confirm it
+   lands in Android network/DNS settings.
+7. If iOS asks for Local Network, allow it for bridge testing.
+8. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare
    and Path Compare, confirm live progress rows, final result, copy report, and
    guided settings plan.
-8. Benchmark System DNS: choose iOS or Android, run with a suite/domain, confirm
+9. Guided settings: tap Apply in OS DNS settings / Prepare DNS profile/settings.
+   Expected behavior: DNS values are copied and Settings opens; no silent DNS
+   mutation occurs. Tap Retest System DNS after returning.
+10. Benchmark System DNS: choose iOS or Android, run with a suite/domain, confirm
    system validation result and diagnostics.
-9. Storage: add/update/delete plain, DoH, DoT profiles and domain suites; confirm
+11. Storage: add/update/delete plain, DoH, DoT profiles and domain suites; confirm
    invalid forms are disabled before bridge calls.
-10. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
+12. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
    switches to protect-current-dns when required.
-11. Tablet: rotate iPad and Android tablet portrait/landscape and validate the
+13. Tablet: rotate iPad and Android tablet portrait/landscape and validate the
     layout stays multi-column, not a stretched phone view.
-12. Accessibility: with VoiceOver/TalkBack enabled, confirm buttons, segmented
+14. Accessibility: with VoiceOver/TalkBack enabled, confirm buttons, segmented
     choices, switches, inputs, and selected chips announce their label and state.
 
 ## Validation Commands

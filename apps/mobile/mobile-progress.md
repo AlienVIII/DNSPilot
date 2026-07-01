@@ -17,6 +17,9 @@ compile. It is not yet the final public-store architecture.
   reports.
 - Guided settings covers iOS/iPadOS profile/settings guidance and Android
   settings/Private DNS guidance without silent DNS mutation or VpnService.
+- First-open System Access prompt covers Local Network/network permission
+  recovery, OS-gated DNS apply, one-tap copy-and-open Settings actions, and
+  explicit DNS flush unsupported status.
 - Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
   validation, and custom tag preservation.
 - Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,

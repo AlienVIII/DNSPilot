@@ -6,6 +6,13 @@ export type SettingsGuidance = {
   claims: string[];
   actions: (
     | {
+        id: 'prepare-os-apply';
+        kind: 'prepare-os-apply';
+        label: string;
+        value: string;
+        target: 'ios-app-settings' | 'android-network-settings' | 'android-private-dns';
+      }
+    | {
         id: 'copy-dns-servers';
         kind: 'copy';
         label: string;
@@ -14,6 +21,12 @@ export type SettingsGuidance = {
     | {
         id: 'open-settings';
         kind: 'open-settings';
+        label: string;
+        target: 'ios-app-settings' | 'android-network-settings' | 'android-private-dns';
+      }
+    | {
+        id: 'retest-system-dns';
+        kind: 'retest-system-dns';
         label: string;
       }
   )[];
