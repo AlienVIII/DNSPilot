@@ -30,6 +30,9 @@
 - Policy UI now derives store-safe guided flows from apply-plan payloads:
   iOS/iPadOS DNS Settings profile guidance, Android settings/Private DNS
   guidance, and protect-current-dns suppression.
+- First-open System Access now has native-feel actions: iOS App Settings,
+  Android Private DNS/network Settings, and foreground System DNS retest from
+  the sheet. It still does not apply DNS silently or flush system DNS cache.
 - Shared UI now uses phone/tablet/expanded breakpoints to avoid stretched phone
   layouts on iPad and Android tablets; key forms use two-column adaptive
   sections when width allows it.

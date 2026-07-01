@@ -1,5 +1,18 @@
 export type SystemAccessStatus = 'ready' | 'unknown' | 'needs-action' | 'os-gated' | 'unsupported';
 
+export type SystemAccessAction =
+  | {
+      id: string;
+      kind: 'open-settings';
+      target: 'ios-app-settings' | 'android-app-settings' | 'android-network-settings' | 'android-private-dns';
+      label: string;
+    }
+  | {
+      id: string;
+      kind: 'retest-system-dns';
+      label: string;
+    };
+
 export type SystemAccessPrompt = {
   shouldPrompt: boolean;
   title: string;
@@ -10,12 +23,7 @@ export type SystemAccessPrompt = {
     status: SystemAccessStatus;
     detail: string;
   }[];
-  actions: {
-    id: string;
-    kind: 'open-settings';
-    target: 'ios-app-settings' | 'android-app-settings' | 'android-network-settings' | 'android-private-dns';
-    label: string;
-  }[];
+  actions: SystemAccessAction[];
 };
 
 export function buildSystemAccessPrompt(input: {

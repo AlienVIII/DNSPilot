@@ -17,8 +17,8 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
 - `expo-dev-client` is included for installable development builds; Expo Go is
   still usable for bridge-only UI testing.
 - First-open System Access sheet checks Local Network/network access, OS-gated
-  DNS apply, and DNS flush limitations. Guided apply actions copy values and
-  open OS Settings; they do not silently mutate system DNS.
+  DNS apply, and DNS flush limitations. It opens App Settings, Android Private
+  DNS/network Settings, and System DNS retest without silently mutating DNS.
 
 ## Install
 

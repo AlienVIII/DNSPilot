@@ -7,7 +7,7 @@ import { useDNSPilot } from '@/src/state/dnspilot-context';
 import { openNativeSettings } from '@/src/utils/native-settings';
 import { buildDeviceSetupPlan, deviceTargets, normalizeBridgeUrl, type DeviceTarget, type DeviceSetupStatus } from '@/src/view-models/device-setup';
 import type { Translator } from '@/src/view-models/localization';
-import { buildSystemAccessPrompt, type SystemAccessPrompt, type SystemAccessStatus } from '@/src/view-models/system-access';
+import { buildSystemAccessPrompt, type SystemAccessAction, type SystemAccessPrompt, type SystemAccessStatus } from '@/src/view-models/system-access';
 
 const defaultDeviceTarget = process.env.EXPO_OS === 'android' ? 'android-device' : process.env.EXPO_OS === 'web' ? 'web' : 'ios-device';
 
@@ -33,6 +33,8 @@ export default function OverviewScreen() {
   const [urlDraft, setUrlDraft] = useState(bridgeUrl);
   const [deviceTarget, setDeviceTarget] = useState<DeviceTarget>(defaultDeviceTarget);
   const [systemPromptVisible, setSystemPromptVisible] = useState(true);
+  const [systemActionStatus, setSystemActionStatus] = useState<string | null>(null);
+  const [systemActionWorking, setSystemActionWorking] = useState(false);
   const [sample, setSample] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
   const normalizedBridgeUrl = normalizeBridgeUrl(urlDraft);
@@ -87,14 +89,50 @@ export default function OverviewScreen() {
     }
   }
 
+  async function runSystemAccessAction(action: SystemAccessAction) {
+    if (action.kind === 'open-settings') {
+      try {
+        await openNativeSettings(action.target);
+        setSystemActionStatus(t('systemAccess.settings.opened'));
+      } catch {
+        setSystemActionStatus(t('systemAccess.settings.failed'));
+      }
+      return;
+    }
+
+    if (systemActionWorking) {
+      return;
+    }
+    setSystemActionWorking(true);
+    setSystemActionStatus(t('systemAccess.retest.running'));
+    try {
+      await runAction('systemBenchmark', {
+        domains: ['cloudflare.com', 'google.com'],
+        attempts: 1,
+        ipFamily: 'both',
+        timeoutMs: 800,
+        dnsTimeoutMs: 800,
+        platform: systemBenchmarkPlatformForTarget(deviceTarget),
+        saveHistory: false,
+      });
+      setSystemActionStatus(t('systemAccess.retest.done'));
+    } catch {
+      setSystemActionStatus(t('systemAccess.retest.failed'));
+    } finally {
+      setSystemActionWorking(false);
+    }
+  }
+
   return (
     <Screen>
       <SystemAccessModal
         visible={systemPromptVisible && systemAccessPrompt.shouldPrompt}
         prompt={systemAccessPrompt}
+        status={systemActionStatus}
         t={t}
+        working={systemActionWorking}
         onClose={() => setSystemPromptVisible(false)}
-        onOpenSettings={(target) => openNativeSettings(target).catch(() => undefined)}
+        onAction={runSystemAccessAction}
       />
       <Section
         title={t('overview.title')}
@@ -216,6 +254,10 @@ function systemAccessTone(status: SystemAccessStatus) {
   return 'neutral';
 }
 
+function systemBenchmarkPlatformForTarget(target: DeviceTarget) {
+  return target === 'android-device' || target === 'android-emulator' ? 'android-play' : 'ios';
+}
+
 function SetupStatusCard({ title, status, statusLabel, text }: { title: string; status: DeviceSetupStatus; statusLabel: string; text: string }) {
   return (
     <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, flexGrow: 1, gap: 8, minWidth: 220, padding: 12 }}>
@@ -235,15 +277,19 @@ function SetupStatusCard({ title, status, statusLabel, text }: { title: string; 
 function SystemAccessModal({
   visible,
   prompt,
+  status,
   t,
+  working,
   onClose,
-  onOpenSettings,
+  onAction,
 }: {
   visible: boolean;
   prompt: SystemAccessPrompt;
+  status?: string | null;
   t: Translator;
+  working: boolean;
   onClose: () => void;
-  onOpenSettings: (target: SystemAccessPrompt['actions'][number]['target']) => void;
+  onAction: (action: SystemAccessAction) => void;
 }) {
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
@@ -272,9 +318,23 @@ function SystemAccessModal({
               </View>
             ))}
           </View>
+          {status ? (
+            <View style={{ backgroundColor: palette.blueSoft, borderColor: '#bfdbfe', borderRadius: 8, borderWidth: 1, padding: 10 }}>
+              <Text selectable style={{ color: palette.slate, fontSize: 12, lineHeight: 17 }}>
+                {status}
+              </Text>
+            </View>
+          ) : null}
           <Row>
             {prompt.actions.map((action) => (
-              <Button key={action.id} label={action.label} onPress={() => onOpenSettings(action.target)} variant="secondary" />
+              <Button
+                key={action.id}
+                label={action.label}
+                onPress={() => onAction(action)}
+                variant="secondary"
+                disabled={working && action.kind !== 'retest-system-dns'}
+                loading={working && action.kind === 'retest-system-dns'}
+              />
             ))}
             <Button label={t('common.continue')} onPress={onClose} />
           </Row>

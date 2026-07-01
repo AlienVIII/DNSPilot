@@ -12,6 +12,12 @@ export function buildSystemAccessPrompt({ platform, bridgeStatus = "unknown", lo
     actions: isAndroid
       ? [
           {
+            id: "open-private-dns",
+            kind: "open-settings",
+            target: "android-private-dns",
+            label: t("systemAccess.action.openPrivateDns"),
+          },
+          {
             id: "open-network-settings",
             kind: "open-settings",
             target: "android-network-settings",
@@ -23,6 +29,7 @@ export function buildSystemAccessPrompt({ platform, bridgeStatus = "unknown", lo
             target: "android-app-settings",
             label: t("systemAccess.action.openAppSettings"),
           },
+          retestSystemDnsAction(t),
         ]
       : [
           {
@@ -31,6 +38,7 @@ export function buildSystemAccessPrompt({ platform, bridgeStatus = "unknown", lo
             target: "ios-app-settings",
             label: t("systemAccess.action.openAppSettings"),
           },
+          retestSystemDnsAction(t),
         ],
   };
 }
@@ -82,5 +90,13 @@ function dnsFlushCheck(t) {
     label: t("systemAccess.check.dnsFlush"),
     status: "unsupported",
     detail: t("systemAccess.detail.dnsFlush"),
+  };
+}
+
+function retestSystemDnsAction(t) {
+  return {
+    id: "retest-system-dns",
+    kind: "retest-system-dns",
+    label: t("systemAccess.action.retestSystemDns"),
   };
 }

@@ -16,8 +16,9 @@
   protected-network suppression, one-tap copy-and-open OS settings actions, and
   native Open Settings actions.
 - Native-style access prompt: covered on app open with Local Network/network
-  access checks, OS-gated DNS apply status, and explicit DNS flush unsupported
-  status.
+  access checks, OS-gated DNS apply status, iOS App Settings, Android Private
+  DNS/network Settings, in-sheet System DNS retest, and explicit DNS flush
+  unsupported status.
 - Tablet layouts: covered by shared adaptive layout helpers, two-column flows on
   wide screens, and unlocked orientation for native portrait/landscape checks.
 - IPv4/IPv6 and A/AAAA controls: covered by benchmark IP-family controls and
@@ -87,8 +88,9 @@
    target, confirm localhost is rejected for physical phones, paste the Mac LAN
    URL, refresh bridge, and confirm profiles/suites/capabilities/history load.
 6. On first open, confirm System Access appears. iOS: tap Open App Settings if
-   Local Network was denied. Android: tap Open Network Settings and confirm it
-   lands in Android network/DNS settings.
+   Local Network was denied, return to the app, then tap Retest System DNS.
+   Android: tap Open Private DNS, confirm Android opens Private DNS or falls
+   back to network settings, return to the app, then tap Retest System DNS.
 7. If iOS asks for Local Network, allow it for bridge testing.
 8. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare
    and Path Compare, confirm live progress rows, final result, copy report, and
