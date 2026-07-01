@@ -28,7 +28,8 @@
 - Benchmark controls now share a core plan factory so command preview and idle process rows update as mode/A-AAAA/resolver-family/timeouts change.
 - Toolbar Quick forces DNS+TCP quick plan, in-panel Run uses the current preview, and toolbar Validate DNS forces system-DNS validation while preserving selected A/AAAA/attempts/timeout.
 - Completed benchmark progress now preserves final per-resolver success/degraded/failed details.
-- Profile rows now expose edit/delete safety state; only `use_case=custom` profiles are treated as editable/deletable by the Windows shell.
+- Persisted plain DNS profiles from `profile-list` are merged into the benchmark catalog, exposed in the Benchmark resolver profile picker, and preserved across apply-guidance refreshes when still valid.
+- Profile rows now expose edit/delete safety state; only `use_case=custom` profiles are treated as editable/deletable by the Windows shell, and built-in update/delete is blocked by profile ID before any CLI mutation call.
 - `Validate-WindowsLane.ps1` is the Windows-host validation entrypoint; `validate-windows-lane.sh` remains useful from macOS.
 
 ## Open Questions
