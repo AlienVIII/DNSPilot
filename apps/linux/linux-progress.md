@@ -10,8 +10,8 @@ package release.
 ## Requirement Coverage
 
 - Rust shell package under `apps/linux/DNSPilotLinux`.
-- `dnspilot-linux-gui` eframe/egui main window is the desktop launcher and works
-  without tray as the primary GNOME/Wayland-safe surface.
+- `dnspilot-linux-gui` eframe/egui 0.35 main window is the desktop launcher and
+  works without tray as the primary GNOME/Wayland-safe surface.
 - Capability model covers Flatpak, Snap, deb, and rpm.
 - Benchmark planning covers DNS-only, DNS+TCP, and current/system resolver
   validation with mode gating.
@@ -34,6 +34,8 @@ package release.
 - Native helper command backend supports explicit deb/rpm execution through
   NetworkManager/systemd-resolved host commands after polkit and
   `--allow-system-dns-mutation`.
+- `apps/linux/README.md` is the Linux entrypoint for install, build, run,
+  smoke, profile, native helper, and package QA steps.
 
 ## Validation
 

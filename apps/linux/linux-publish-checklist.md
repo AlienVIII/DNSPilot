@@ -4,6 +4,8 @@
 
 This lane is ready for automated Rust validation and later real-device package
 QA. It does not require manual distro/package testing before handoff.
+Start with `apps/linux/README.md` for install, build, run, smoke, and native
+helper commands.
 
 Current package split:
 

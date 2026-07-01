@@ -31,7 +31,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "DNS Pilot",
         options,
-        Box::new(|_creation_context| Box::new(DnsPilotGui::new())),
+        Box::new(|_creation_context| Ok(Box::new(DnsPilotGui::new()))),
     )
 }
 
@@ -204,22 +204,21 @@ impl DnsPilotGui {
 }
 
 impl eframe::App for DnsPilotGui {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading(localized_text(TextKey::AppTitle, self.language));
-                ui.separator();
-                ui.label(format!("Package: {}", self.capability.package_kind.label()));
-                ui.separator();
-                ui.selectable_value(&mut self.language, Language::English, "EN");
-                ui.selectable_value(&mut self.language, Language::Vietnamese, "VI");
-            });
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        ui.add_space(8.0);
+        ui.horizontal(|ui| {
+            ui.heading(localized_text(TextKey::AppTitle, self.language));
+            ui.separator();
+            ui.label(format!("Package: {}", self.capability.package_kind.label()));
+            ui.separator();
+            ui.selectable_value(&mut self.language, Language::English, "EN");
+            ui.selectable_value(&mut self.language, Language::Vietnamese, "VI");
         });
+        ui.separator();
 
-        egui::SidePanel::left("sections")
-            .resizable(false)
-            .default_width(190.0)
-            .show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.set_width(210.0);
                 let model = build_native_app_model(&self.capability, self.language);
                 ui.label(model.tray_note);
                 ui.separator();
@@ -231,12 +230,14 @@ impl eframe::App for DnsPilotGui {
                 ui.label(format!("Status: {}", self.status));
             });
 
-        egui::CentralPanel::default().show(ctx, |ui| match self.active_section {
-            NativeAppSectionKind::Benchmark => self.benchmark_ui(ui),
-            NativeAppSectionKind::Profiles => self.profiles_ui(ui),
-            NativeAppSectionKind::Settings => self.settings_ui(ui),
-            NativeAppSectionKind::Diagnostics => self.diagnostics_ui(ui),
-            NativeAppSectionKind::Permissions => self.permissions_ui(ui),
+            ui.separator();
+            ui.vertical(|ui| match self.active_section {
+                NativeAppSectionKind::Benchmark => self.benchmark_ui(ui),
+                NativeAppSectionKind::Profiles => self.profiles_ui(ui),
+                NativeAppSectionKind::Settings => self.settings_ui(ui),
+                NativeAppSectionKind::Diagnostics => self.diagnostics_ui(ui),
+                NativeAppSectionKind::Permissions => self.permissions_ui(ui),
+            });
         });
     }
 }
@@ -373,7 +374,7 @@ impl DnsPilotGui {
             .button(localized_text(TextKey::CopyDebugReport, self.language))
             .clicked()
         {
-            ui.output_mut(|output| output.copied_text = self.diagnostics.clone());
+            ui.ctx().copy_text(self.diagnostics.clone());
         }
         ui.add(
             egui::TextEdit::multiline(&mut self.diagnostics)
