@@ -146,6 +146,7 @@ DNS handling, and platform capability reporting.
 - [x] [135] v0.1 macOS non-mutating goal smoke — verify main flows without DNS mutation or signing credentials.
 - [x] [136] v0.1 macOS native permission and direct admin setup — first-run setup plus in-app Direct Admin Apply/Flush opt-in.
 - [x] [137] v0.1 macOS Store-safe direct-admin gate — prevent UserDefaults-only admin enablement in Store-safe builds.
+- [x] [138] v0.1 dependency refresh and README runbook — update Rust deps and document install/run/preflight paths.
 
 ---
 
@@ -6483,6 +6484,50 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 138: v0.1 Dependency Refresh And README Runbook
+
+**Status:** Complete
+**Files changed:** `Cargo.lock`, `crates/dnspilot-core/Cargo.toml`, `README.md`, `progress.md`
+
+### What changed
+
+Updated the shared Rust dependency set to current compatible/latest constrained
+versions, including `rusqlite 0.40.1`, `thiserror 2.0.18`,
+`rustls 0.23.41`, and `webpki-roots 1.0.8`. Added README setup instructions
+for requirements, dependency install/resolve, Store-safe app run, verified
+sandbox run, Power/direct-install manual QA, and release preflight.
+
+### Edge Cases / Caveats
+
+- `rusqlite 0.40` pulls newer transitive SQLite/wasm-related crates; kept only
+  after full Rust and macOS preflight passed.
+- Power run instructions remain a manual admin/DNS mutation gate and are not
+  App Store-safe.
+
+### Verification
+
+```text
+cargo update
+Result: no packages behind latest constraints after manifest bump.
+
+cargo test --workspace --tests
+Result: passed.
+
+swift package update --package-path apps/macos/DNSPilotMac
+Result: already up-to-date.
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+./script/smoke_macos_goal_flows.sh --include-network
+Result: passed; store-safe apply-plan, Power apply-plan contract, System DNS
+validation/history, live DNS-only, live DNS+TCP, and Dota 2 SEA Game Ping smoke
+passed.
 ```
 
 ---
