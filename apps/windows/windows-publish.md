@@ -48,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File apps\windows\Validate-WindowsLane.ps1 -
 ```
 
 Expected:
-- 26 Windows core tests pass.
+- 27 Windows core tests pass.
 - Core solution builds.
 - Store-safe static scan passes.
 - Localization, package manifest, MSIX launch profile, and package template checks pass.

@@ -36,6 +36,7 @@ internal sealed class WindowsCoreTestSuite
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
         Run("Windows publish docs include privacy, listing, and certification copy", WindowsPublishDocsIncludePrivacyListingAndCertificationCopy);
+        Run("Windows README documents install, run, validation, and package steps", WindowsReadmeDocumentsInstallRunValidationAndPackageSteps);
         Run("Windows dynamic shell text follows current UI culture", WindowsDynamicShellTextFollowsCurrentUiCulture);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
@@ -960,6 +961,32 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("Generated Store package manifest", packagePrep);
         Assert.Contains("Package.appxmanifest", publish);
         Assert.Contains("GenerateAppxPackageOnBuild=true", publish);
+    }
+
+    private static void WindowsReadmeDocumentsInstallRunValidationAndPackageSteps()
+    {
+        var repoRoot = FindRepoRoot();
+        var readme = File.ReadAllText(Path.Combine(repoRoot, "apps", "windows", "README.md"));
+
+        Assert.Contains("# DNS Pilot Windows", readme);
+        Assert.Contains("## Requirements", readme);
+        Assert.Contains("## Install Dependencies", readme);
+        Assert.Contains("dotnet restore apps\\windows\\DNSPilotWindows\\DNSPilotWindows.slnx", readme);
+        Assert.Contains("cargo build --release -p dnspilot-cli", readme);
+        Assert.Contains("DNSPILOT_CLI_PATH", readme);
+        Assert.Contains("## Validate", readme);
+        Assert.Contains("Validate-WindowsLane.ps1 -Configuration Release", readme);
+        Assert.Contains("bash apps/windows/validate-windows-lane.sh", readme);
+        Assert.Contains("## Run The App", readme);
+        Assert.Contains("dotnet run --project apps\\windows\\DNSPilotWindows\\app\\DNSPilotWindows.App\\DNSPilotWindows.App.csproj", readme);
+        Assert.Contains("MsixPackage", readme);
+        Assert.Contains("## Build Store Package", readme);
+        Assert.Contains("Prepare-WindowsStorePackage.ps1", readme);
+        Assert.Contains("GenerateAppxPackageOnBuild=true", readme);
+        Assert.Contains("## Package Updates", readme);
+        Assert.Contains("dotnet list apps\\windows\\DNSPilotWindows\\app\\DNSPilotWindows.App\\DNSPilotWindows.App.csproj package --outdated", readme);
+        Assert.Contains("no UAC prompt", readme);
+        Assert.Contains("no silent DNS mutation", readme);
     }
 
     private static string FindRepoRoot()
