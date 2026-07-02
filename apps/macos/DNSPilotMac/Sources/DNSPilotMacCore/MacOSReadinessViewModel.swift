@@ -51,7 +51,7 @@ public struct MacOSReadinessRow: Equatable, Identifiable, Sendable {
 public struct MacOSPermissionReadinessViewModel: Equatable, Sendable {
     public let rows: [MacOSReadinessRow]
 
-    public init(isPowerActionsEnabled: Bool) {
+    public init(isPowerActionsEnabled: Bool, isDirectAdminAvailable: Bool = false) {
         rows = [
             MacOSReadinessRow(
                 id: "network-client",
@@ -63,21 +63,19 @@ public struct MacOSPermissionReadinessViewModel: Equatable, Sendable {
                 id: "system-dns-settings",
                 title: "System DNS settings",
                 status: .manual,
-                detail: "Store-safe builds open macOS Network Settings when user action is required; macOS does not provide a pre-grant permission for plain DNS edits."
+                detail: "macOS does not provide a System Settings toggle that pre-grants plain DNS edits to an app. Store-safe builds open Network Settings when user action is required."
             ),
             MacOSReadinessRow(
                 id: "admin-apply-flush",
                 title: "Admin apply / flush",
-                status: .manual,
-                detail: "Power builds ask for administrator approval only when you press Apply Now or Flush Now."
+                status: isPowerActionsEnabled ? .ready : .manual,
+                detail: Self.adminDetail(isPowerActionsEnabled: isPowerActionsEnabled, isDirectAdminAvailable: isDirectAdminAvailable)
             ),
             MacOSReadinessRow(
                 id: "power-mode-flag",
-                title: "Power edition switch",
+                title: "Direct admin mode",
                 status: isPowerActionsEnabled ? .ready : .manual,
-                detail: isPowerActionsEnabled
-                    ? "Power admin actions are enabled for this launch by bundle Info.plist or DNSPILOT_ENABLE_POWER_ACTIONS."
-                    : "Build with DNSPilotPowerActionsEnabled=true or launch with DNSPILOT_ENABLE_POWER_ACTIONS=1 to expose admin apply/flush actions."
+                detail: Self.directAdminModeDetail(isPowerActionsEnabled: isPowerActionsEnabled, isDirectAdminAvailable: isDirectAdminAvailable)
             ),
             MacOSReadinessRow(
                 id: "no-silent-mutation",
@@ -93,8 +91,28 @@ public struct MacOSPermissionReadinessViewModel: Equatable, Sendable {
         for row in rows {
             lines.append("- \(row.statusLabel): \(row.title) - \(row.detail)")
         }
-        lines.append("Power actions request administrator approval only at the moment of apply/flush.")
+        lines.append("macOS has no pre-grant System Settings toggle for plain DNS edits; direct actions request administrator approval only at the moment of apply/flush.")
         return lines.joined(separator: "\n")
+    }
+
+    private static func adminDetail(isPowerActionsEnabled: Bool, isDirectAdminAvailable: Bool) -> String {
+        if isPowerActionsEnabled {
+            return "Direct admin actions are available. DNS Pilot asks for administrator approval only when you press Apply Now or Flush Now."
+        }
+        if isDirectAdminAvailable {
+            return "Direct Admin Actions are available in this Power/direct-install build but still need explicit setup/settings opt-in."
+        }
+        return "This Store-safe build does not expose Direct Admin Actions. Use guided Settings steps, a Power bundle with DNSPilotPowerActionsEnabled=true, or launch with DNSPILOT_ENABLE_POWER_ACTIONS=1."
+    }
+
+    private static func directAdminModeDetail(isPowerActionsEnabled: Bool, isDirectAdminAvailable: Bool) -> String {
+        if isPowerActionsEnabled {
+            return "Apply Now and Flush Now buttons are enabled by explicit opt-in or DNSPILOT_ENABLE_POWER_ACTIONS."
+        }
+        if isDirectAdminAvailable {
+            return "Use the DNS Pilot setup prompt or Settings to opt into Direct Admin Actions for this Power/direct-install build."
+        }
+        return "Unavailable in the App Store-safe build; Direct Admin Actions are reserved for direct-install Power distribution."
     }
 }
 
@@ -114,6 +132,18 @@ public struct MacOSPublishReadinessViewModel: Equatable, Sendable {
                 title: "App Store sandbox",
                 status: .ready,
                 detail: "Store entitlement templates keep App Sandbox enabled and allow outbound network client access."
+            ),
+            MacOSReadinessRow(
+                id: "release-preflight",
+                title: "Release preflight",
+                status: .ready,
+                detail: "Run ./script/preflight_macos_release.sh before signing or upload; add --include-power only when validating direct-install Power bundles."
+            ),
+            MacOSReadinessRow(
+                id: "privacy-manifest",
+                title: "Privacy manifest",
+                status: .ready,
+                detail: "PrivacyInfo.xcprivacy declares no tracking, no collected data, and UserDefaults reason CA92.1 for local settings."
             ),
             MacOSReadinessRow(
                 id: "release-signing",

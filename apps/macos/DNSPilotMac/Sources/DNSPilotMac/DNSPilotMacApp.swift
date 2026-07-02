@@ -31,6 +31,7 @@ private enum DNSPilotWindowID {
 
 private struct DNSPilotSettingsView: View {
     @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
+    @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
 
     private var localizer: DNSPilotLocalizer {
         DNSPilotLocalizer(languageCode: languageCode)
@@ -53,8 +54,7 @@ private struct DNSPilotSettingsView: View {
             }
 
             Section {
-                Label(powerActionsLabel, systemImage: MacOSPowerDNSActionConfiguration.isEnabled() ? "bolt.shield" : "lock.shield")
-                    .foregroundStyle(.secondary)
+                DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: true)
             } header: {
                 Text(localizer.text(.powerActions))
             }
@@ -63,11 +63,163 @@ private struct DNSPilotSettingsView: View {
         .padding(DNSPilotDesign.Spacing.panel)
         .frame(width: 460)
     }
+}
 
-    private var powerActionsLabel: String {
-        MacOSPowerDNSActionConfiguration.isEnabled()
-            ? localizer.text(.powerActionsEnabled)
-            : localizer.text(.powerActionsDisabled)
+private struct PermissionSetupSheet: View {
+    let localizer: DNSPilotLocalizer
+    @Binding var userEnabledPowerActions: Bool
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+            HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.row) {
+                Image(systemName: "lock.shield")
+                    .font(.largeTitle)
+                    .foregroundStyle(DNSPilotDesign.Palette.accent)
+                    .frame(width: 42)
+
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Text("DNS Pilot Setup")
+                        .font(.title2.weight(.semibold))
+                    Text("Check what DNS Pilot can do now, then choose whether this Mac should allow direct admin Apply/Flush inside the app.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                Label("Benchmark access is ready; DNS and TCP checks use normal outbound networking.", systemImage: "checkmark.circle")
+                    .foregroundStyle(DNSPilotDesign.Palette.success)
+                Label("macOS has no System Settings toggle that grants plain DNS editing to an app before use.", systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
+                Label("Direct Apply/Flush asks for administrator approval only when you press the admin button.", systemImage: "person.badge.key")
+                    .foregroundStyle(.secondary)
+            }
+
+            DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: false)
+
+            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                Spacer()
+
+                Button("Use Guided Mode") {
+                    userEnabledPowerActions = false
+                    isPresented = false
+                }
+
+                Button("Done") {
+                    isPresented = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(DNSPilotDesign.Spacing.panel)
+        .frame(width: 620)
+    }
+}
+
+private struct DirectAdminActionsPanel: View {
+    @Binding var userEnabledPowerActions: Bool
+    let compact: Bool
+    @State private var isConfirmingEnable = false
+
+    private var isDirectAdminAvailable: Bool {
+        MacOSPowerDNSActionConfiguration.isBuildCapable()
+    }
+
+    private var isEffectiveEnabled: Bool {
+        MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
+    }
+
+    private var isForcedByLaunch: Bool {
+        MacOSPowerDNSActionConfiguration.isForcedEnabled()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            Label(
+                stateLabel,
+                systemImage: isEffectiveEnabled ? "bolt.shield" : "lock.shield"
+            )
+            .font(compact ? .body.weight(.semibold) : .headline)
+            .foregroundStyle(isEffectiveEnabled ? DNSPilotDesign.Palette.success : .secondary)
+
+            Text(detailText)
+                .font(compact ? .caption : .callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                if isEffectiveEnabled {
+                    if isForcedByLaunch {
+                        Label("Enabled by launch flag", systemImage: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button(role: .destructive) {
+                            userEnabledPowerActions = false
+                        } label: {
+                            Label("Disable Direct Admin Actions", systemImage: "lock")
+                        }
+                    }
+                } else if isDirectAdminAvailable {
+                    Button {
+                        isConfirmingEnable = true
+                    } label: {
+                        Label("Enable Direct Admin Actions...", systemImage: "bolt.shield")
+                    }
+                } else {
+                    Label("Power/direct-install build required", systemImage: "shippingbox")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if userEnabledPowerActions {
+                        Button(role: .destructive) {
+                            userEnabledPowerActions = false
+                        } label: {
+                            Label("Clear Direct Admin Preference", systemImage: "xmark.circle")
+                        }
+                    }
+                }
+
+                Button {
+                    openNetworkSettings()
+                } label: {
+                    Label("Open Network Settings", systemImage: "gearshape")
+                }
+            }
+        }
+        .confirmationDialog(
+            "Enable Direct Admin Actions?",
+            isPresented: $isConfirmingEnable,
+            titleVisibility: .visible
+        ) {
+            Button("Enable Direct Admin Actions") {
+                userEnabledPowerActions = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("DNS Pilot will show Apply Now (Admin) and Flush Now (Admin). macOS will ask for administrator approval at action time, and the app may change the active network service DNS. Keep this off on managed, corporate, VPN, or App Store-safe builds.")
+        }
+    }
+
+    private var stateLabel: String {
+        if isEffectiveEnabled {
+            return "Direct Admin Actions enabled"
+        }
+        if isDirectAdminAvailable {
+            return "Direct Admin Actions available"
+        }
+        return "Guided mode active"
+    }
+
+    private var detailText: String {
+        if isEffectiveEnabled {
+            return "Apply Now (Admin) and Flush Now (Admin) are visible where a safe DNS plan is available. macOS still asks for administrator approval before changing DNS or flushing cache."
+        }
+        if isDirectAdminAvailable {
+            return "This Power/direct-install build can run Apply/Flush inside the app after explicit opt-in. macOS asks for administrator approval at action time."
+        }
+        return "This Store-safe build only copies DNS/apply steps and opens Network Settings. Use a Power/direct-install build when this Mac should allow direct in-app Apply/Flush."
     }
 }
 
@@ -131,11 +283,15 @@ private struct StoreSafeGuidedApplyConfirmationModifier: ViewModifier {
 private struct StoreSafeFlushConfirmationModifier: ViewModifier {
     @Binding var isPresented: Bool
     private let guidance = StoreSafeDNSFlushGuidanceViewModel()
-    private let powerActionViewModel = MacOSPowerDNSActionViewModel(
-        isEnabled: MacOSPowerDNSActionConfiguration.isEnabled()
-    )
+    @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var powerActionAlert: PowerDNSActionAlert?
     @State private var isRunningPowerFlush = false
+
+    private var powerActionViewModel: MacOSPowerDNSActionViewModel {
+        MacOSPowerDNSActionViewModel(
+            isEnabled: MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
+        )
+    }
 
     func body(content: Content) -> some View {
         content
@@ -202,12 +358,16 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
 private struct PowerDNSApplyButton: View {
     let profileName: String?
     let dnsServers: [String]
-    private let powerActionViewModel = MacOSPowerDNSActionViewModel(
-        isEnabled: MacOSPowerDNSActionConfiguration.isEnabled()
-    )
+    @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var isShowingConfirmation = false
     @State private var isRunningApply = false
     @State private var powerActionAlert: PowerDNSActionAlert?
+
+    private var powerActionViewModel: MacOSPowerDNSActionViewModel {
+        MacOSPowerDNSActionViewModel(
+            isEnabled: MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
+        )
+    }
 
     var body: some View {
         if let applyButtonLabel = powerActionViewModel.applyButtonLabel, !dnsServers.isEmpty {
@@ -276,6 +436,10 @@ private extension View {
     func storeSafeFlushConfirmation(isPresented: Binding<Bool>) -> some View {
         modifier(StoreSafeFlushConfirmationModifier(isPresented: isPresented))
     }
+}
+
+private enum DNSPilotOnboardingPreferences {
+    static let permissionSetupSeenKey = "DNSPilotPermissionSetupSeen"
 }
 
 @MainActor
@@ -490,8 +654,11 @@ private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate
 private struct DNSPilotShellView: View {
     @ObservedObject var navigation: DNSPilotNavigationModel
     @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
+    @AppStorage(DNSPilotOnboardingPreferences.permissionSetupSeenKey) private var hasSeenPermissionSetup = false
+    @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var catalogViewModel = CatalogViewModel()
     @State private var hasRequestedStorageCatalogRefresh = false
+    @State private var isShowingPermissionSetup = false
 
     private let capabilityViewModel = CapabilityMatrixViewModel()
     private var localizer: DNSPilotLocalizer {
@@ -560,6 +727,11 @@ private struct DNSPilotShellView: View {
             }
         }
         .onAppear {
+            if !hasSeenPermissionSetup {
+                hasSeenPermissionSetup = true
+                navigation.selection = .permissions
+                isShowingPermissionSetup = true
+            }
             guard !hasRequestedStorageCatalogRefresh else {
                 return
             }
@@ -592,6 +764,13 @@ private struct DNSPilotShellView: View {
             Text(guidedApplyConfirmation(for: snapshot).message)
         }
         .storeSafeFlushConfirmation(isPresented: $navigation.isShowingFlushDNSConfirmation)
+        .sheet(isPresented: $isShowingPermissionSetup) {
+            PermissionSetupSheet(
+                localizer: localizer,
+                userEnabledPowerActions: $userEnabledPowerActions,
+                isPresented: $isShowingPermissionSetup
+            )
+        }
     }
 
     private func refreshCatalogFromStorage() {
@@ -1510,7 +1689,10 @@ private struct CustomDNSSaveStatusView: View {
 private struct CapabilityMatrixDetailView: View {
     let viewModel: CapabilityMatrixViewModel
     let localizer: DNSPilotLocalizer
-    private let productGoalReadiness = ProductGoalReadinessViewModel()
+
+    private var productGoalReadiness: ProductGoalReadinessViewModel {
+        ProductGoalReadinessViewModel(localizer: localizer)
+    }
 
     var body: some View {
         ScrollView {
@@ -1561,7 +1743,7 @@ private struct ProductGoalReadinessSection: View {
                 .font(.headline)
 
             ForEach(viewModel.rows) { row in
-                ProductGoalReadinessRowView(row: row)
+                ProductGoalReadinessRowView(row: row, localizer: localizer)
             }
         }
     }
@@ -1569,11 +1751,12 @@ private struct ProductGoalReadinessSection: View {
 
 private struct ProductGoalReadinessRowView: View {
     let row: ProductGoalReadinessRow
+    let localizer: DNSPilotLocalizer
 
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: DNSPilotDesign.Spacing.row, verticalSpacing: 2) {
             GridRow {
-                Label(row.statusLabel, systemImage: row.systemImage)
+                Label(row.status.localizedLabel(localizer: localizer), systemImage: row.systemImage)
                     .foregroundStyle(statusColor)
                     .frame(width: 150, alignment: .leading)
                     .help(row.caveat)
@@ -1584,6 +1767,12 @@ private struct ProductGoalReadinessRowView: View {
                     Text(row.summary)
                         .foregroundStyle(.secondary)
                     Text(row.caveat)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(localizer.text(.entryPoint)): \(row.entryPoint)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(localizer.text(.validationEvidence)): \(row.validationEvidence)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1604,21 +1793,59 @@ private struct ProductGoalReadinessRowView: View {
 
 private struct PermissionReadinessDetailView: View {
     let localizer: DNSPilotLocalizer
-    private let viewModel = MacOSPermissionReadinessViewModel(
-        isPowerActionsEnabled: MacOSPowerDNSActionConfiguration.isEnabled()
-    )
+    @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
+    @State private var isShowingSetup = false
+
+    private var viewModel: MacOSPermissionReadinessViewModel {
+        MacOSPermissionReadinessViewModel(
+            isPowerActionsEnabled: MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions),
+            isDirectAdminAvailable: MacOSPowerDNSActionConfiguration.isBuildCapable()
+        )
+    }
 
     var body: some View {
-        MacOSReadinessDetailView(
-            title: localizer.text(.permissions),
-            subtitle: localizer.text(.permissionsSubtitle),
-            rows: viewModel.rows,
-            copyText: viewModel.copyText,
-            primaryActionLabel: localizer.text(.openNetworkSettings),
-            primaryActionSystemImage: "gearshape",
-            primaryAction: openNetworkSettings,
-            copyLabel: localizer.text(.copyChecklist)
-        )
+        ScrollView {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Text(localizer.text(.permissions))
+                        .font(.title2.weight(.semibold))
+                    Text(localizer.text(.permissionsSubtitle))
+                        .foregroundStyle(.secondary)
+                }
+
+                DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: false)
+
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
+                    ForEach(viewModel.rows) { row in
+                        MacOSReadinessRowView(row: row)
+                    }
+                }
+
+                HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Button {
+                        isShowingSetup = true
+                    } label: {
+                        Label("Open Setup", systemImage: "lock.shield")
+                    }
+
+                    Button {
+                        copyToPasteboard(viewModel.copyText)
+                    } label: {
+                        Label(localizer.text(.copyChecklist), systemImage: "doc.on.doc")
+                    }
+                }
+            }
+            .padding(DNSPilotDesign.Spacing.panel)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(DNSPilotDesign.Palette.background)
+        .sheet(isPresented: $isShowingSetup) {
+            PermissionSetupSheet(
+                localizer: localizer,
+                userEnabledPowerActions: $userEnabledPowerActions,
+                isPresented: $isShowingSetup
+            )
+        }
     }
 }
 

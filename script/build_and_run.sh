@@ -5,6 +5,8 @@ MODE="${1:-run}"
 APP_NAME="DNSPilotMac"
 BUNDLE_ID="com.dnspilot.mac"
 MIN_SYSTEM_VERSION="14.0"
+APP_VERSION="${DNSPILOT_APP_VERSION:-0.1.0}"
+APP_BUILD="${DNSPILOT_APP_BUILD:-1}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SWIFT_PACKAGE_DIR="$ROOT_DIR/apps/macos/DNSPilotMac"
@@ -18,6 +20,7 @@ APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 CLI_NAME="dnspilot-cli"
 POWER_EDITION="${DNSPILOT_POWER_EDITION:-0}"
+PRIVACY_MANIFEST="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy"
 
 truthy() {
   case "$(printf "%s" "$1" | tr '[:upper:]' '[:lower:]')" in
@@ -37,6 +40,7 @@ rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$APP_HELPERS"
 cp "$BUILD_BINARY" "$APP_BINARY"
 cp "$CLI_BINARY" "$APP_HELPERS/$CLI_NAME"
+cp "$PRIVACY_MANIFEST" "$APP_RESOURCES/PrivacyInfo.xcprivacy"
 chmod +x "$APP_BINARY" "$APP_HELPERS/$CLI_NAME"
 
 cat >"$INFO_PLIST" <<PLIST
@@ -52,6 +56,10 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$APP_NAME</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$APP_VERSION</string>
+  <key>CFBundleVersion</key>
+  <string>$APP_BUILD</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
   <key>NSPrincipalClass</key>

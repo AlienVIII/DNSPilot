@@ -6,6 +6,8 @@ APP_BUNDLE="$ROOT_DIR/dist/DNSPilotMac.app"
 APP_NAME="DNSPilotMac"
 CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
+APP_VERSION_PATTERN='^[0-9]+(\.[0-9]+){1,2}$'
+APP_BUILD_PATTERN='^[0-9]+$'
 ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
 HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
 DISTRIBUTION=0
@@ -46,6 +48,7 @@ INFO_PLIST="$APP_BUNDLE/Contents/Info.plist"
 APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 HELPER_BINARY="$APP_BUNDLE/Contents/Library/Helpers/$CLI_NAME"
 LEGACY_HELPER="$APP_BUNDLE/Contents/Resources/$CLI_NAME"
+PRIVACY_MANIFEST="$APP_BUNDLE/Contents/Resources/PrivacyInfo.xcprivacy"
 
 failures=0
 
@@ -97,6 +100,20 @@ else
   fail "LSMinimumSystemVersion expected $EXPECTED_MIN_SYSTEM_VERSION, got ${minimum_system_version:-missing}"
 fi
 
+app_version="$(plist_value "$INFO_PLIST" "CFBundleShortVersionString")"
+if [[ "$app_version" =~ $APP_VERSION_PATTERN ]]; then
+  pass "CFBundleShortVersionString is $app_version"
+else
+  fail "CFBundleShortVersionString must be semantic numeric version, got ${app_version:-missing}"
+fi
+
+app_build="$(plist_value "$INFO_PLIST" "CFBundleVersion")"
+if [[ "$app_build" =~ $APP_BUILD_PATTERN ]]; then
+  pass "CFBundleVersion is $app_build"
+else
+  fail "CFBundleVersion must be a numeric build number, got ${app_build:-missing}"
+fi
+
 power_actions_enabled="$(plist_value "$INFO_PLIST" "DNSPilotPowerActionsEnabled")"
 if [[ "$power_actions_enabled" == "true" ]]; then
   if (( POWER_EDITION )); then
@@ -135,6 +152,32 @@ if [[ ! -e "$LEGACY_HELPER" ]]; then
   pass "legacy Resources CLI helper is absent"
 else
   fail "legacy Resources CLI helper should not be bundled"
+fi
+
+if [[ -f "$PRIVACY_MANIFEST" ]] && plutil -lint "$PRIVACY_MANIFEST" >/dev/null; then
+  pass "privacy manifest is valid"
+else
+  fail "PrivacyInfo.xcprivacy is missing or invalid"
+fi
+
+if plist_bool_is_true "$PRIVACY_MANIFEST" "NSPrivacyTracking"; then
+  fail "privacy manifest must not declare tracking for the current store-safe build"
+else
+  pass "privacy manifest declares no tracking"
+fi
+
+if /usr/libexec/PlistBuddy -c "Print :NSPrivacyCollectedDataTypes:0" "$PRIVACY_MANIFEST" >/dev/null 2>&1; then
+  fail "privacy manifest should declare no collected data types for this local-only build"
+else
+  pass "privacy manifest declares no collected data types"
+fi
+
+user_defaults_reason="$(plist_value "$PRIVACY_MANIFEST" "NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0")"
+user_defaults_category="$(plist_value "$PRIVACY_MANIFEST" "NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPIType")"
+if [[ "$user_defaults_category" == "NSPrivacyAccessedAPICategoryUserDefaults" && "$user_defaults_reason" == "CA92.1" ]]; then
+  pass "privacy manifest declares UserDefaults required-reason API"
+else
+  fail "privacy manifest must declare UserDefaults reason CA92.1"
 fi
 
 if [[ -f "$ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$ENTITLEMENTS_TEMPLATE" >/dev/null; then

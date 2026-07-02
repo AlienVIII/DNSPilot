@@ -17,9 +17,14 @@ validation to distribution.
 ### Power edition
 
 - Direct install only.
-- Plain DNS apply/flush can ask for administrator approval when
-  the app bundle has `DNSPilotPowerActionsEnabled=true` or
-  `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+- Plain DNS apply/flush can ask for administrator approval when a
+  Power/direct-install app bundle has `DNSPilotPowerActionsEnabled=true` and the
+  user explicitly enables Direct Admin Actions in the app.
+- `DNSPILOT_ENABLE_POWER_ACTIONS=1` is a local/dev force path; it bypasses the
+  in-app opt-in and must not be used for App Store builds.
+- The first-run setup and Permissions screen must explain that macOS has no
+  System Settings pre-toggle for plain DNS edits; the native permission point is
+  the administrator prompt shown at Apply/Flush time.
 - Not App Store-safe as implemented today.
 - Needs separate signing/review positioning and manual QA on real network
   services before distribution.
@@ -30,9 +35,7 @@ Run before any signing or upload work:
 
 ```bash
 cd /Users/aart/Projects/Desktop/dnspilot-macos
-cargo test --workspace --tests
-swift test --package-path apps/macos/DNSPilotMac
-./script/build_and_run.sh --sandbox-verify
+./script/preflight_macos_release.sh
 ```
 
 Expected:
@@ -41,6 +44,40 @@ Expected:
 - Swift tests pass.
 - The bundle validator passes.
 - Local bundle warnings are only ad-hoc signing warnings.
+
+## Non-Mutating Goal Smoke
+
+Run this when checking the six main product goals without changing system DNS:
+
+```bash
+cd /Users/aart/Projects/Desktop/dnspilot-macos
+./script/smoke_macos_goal_flows.sh
+```
+
+Expected:
+
+- Store-safe apply-plan remains guided and non-mutating.
+- Power apply-plan is capability-only and does not trigger an admin prompt.
+- System DNS validation emits progress and saves local history.
+
+Optional live/network checks:
+
+```bash
+./script/smoke_macos_goal_flows.sh --include-network
+```
+
+This also runs DNS-only, DNS+TCP, and Dota 2 SEA Game Ping probes. It can fail
+on offline, firewalled, captive portal, or heavily restricted networks.
+
+Optional bundle-mode checks:
+
+```bash
+./script/smoke_macos_goal_flows.sh --include-bundles
+```
+
+This launches Store-safe and Power sandbox bundles, validates bundle structure,
+then restores a Store-safe bundle. It does not press Power apply/flush buttons
+and does not mutate DNS.
 
 ## App Store Manual Steps
 
@@ -56,12 +93,18 @@ Expected:
 3. Confirm entitlements.
    - Required now: App Sandbox and outbound network client.
    - Current template: `apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements`.
+   - Privacy manifest: `apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy`.
+     It declares no tracking, no collected data, and UserDefaults reason
+     `CA92.1` for app-local settings.
    - Do not include Power/admin behavior in the App Store edition.
    - If Apple NetworkExtension DNS Settings is added later, request/verify the
      entitlement before submitting.
 
 4. Build/export a signed app bundle.
    - Use release signing, not ad-hoc signing.
+   - Set release metadata when needed:
+     `DNSPILOT_APP_VERSION=<marketing version>` and
+     `DNSPILOT_APP_BUILD=<numeric build>`.
    - Sign nested helper with `DNSPilotHelper.entitlements`.
    - Sign app bundle with `DNSPilotMac.entitlements`.
    - Packaging driver:
@@ -87,6 +130,8 @@ Expected:
 
 6. Prepare App Store metadata.
    - Start from `apps/macos/AppStoreConnect/README.md`.
+   - Support page draft: `apps/macos/AppStoreConnect/SupportPage.md`.
+   - Privacy policy draft: `apps/macos/AppStoreConnect/PrivacyPolicy.md`.
    - Explain DNS benchmarking and connection-path estimates.
    - State that the app does not claim full internet speed improvement.
    - State that store builds do not silently change system DNS.
@@ -112,9 +157,22 @@ Expected:
 DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
 ```
 
+Or include Power bundle validation in the local release gate:
+
+```bash
+./script/preflight_macos_release.sh --include-power
+```
+
+The preflight restores a Store-safe bundle after optional Power validation so
+`dist/DNSPilotMac.app` is not left Power-enabled by accident.
+
 2. Confirm UI behavior.
-   - `Apply Now (Admin)` appears only in Power mode.
-   - `Flush Now (Admin)` appears only in Power mode.
+   - Store-safe builds show guided mode only and cannot enable admin actions
+     from UserDefaults alone.
+   - `Apply Now (Admin)` appears only after Power capability plus explicit
+     opt-in, or with `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
+   - `Flush Now (Admin)` appears only after Power capability plus explicit
+     opt-in, or with `DNSPILOT_ENABLE_POWER_ACTIONS=1`.
    - Store-safe copy/open actions remain available.
 
 3. Package Power edition when direct-install signing assets are available:
@@ -139,6 +197,6 @@ DNSPILOT_INSTALLER_IDENTITY="<installer signing identity>" \
 
 - Release signing identity and provisioning profile are not present in this
   worktree.
-- Final App Store screenshots, support URL, marketing URL, and Apple account
-  privacy answers are not present here.
+- Final App Store screenshots, hosted support/privacy URLs, optional marketing
+  URL, and Apple account privacy answers are not present here.
 - Power edition needs real manual DNS mutation QA before public distribution.

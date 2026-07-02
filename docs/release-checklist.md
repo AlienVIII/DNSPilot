@@ -12,6 +12,10 @@
 ## Engineering
 - Rust workspace tests pass.
 - macOS Swift tests pass.
+- macOS non-mutating goal smoke passes:
+  `./script/smoke_macos_goal_flows.sh`.
+- Optional macOS live goal smoke passes on a normal network:
+  `./script/smoke_macos_goal_flows.sh --include-network`.
 - Linux lane tests pass.
 - Mobile unit tests and TypeScript typecheck pass.
 - Windows lane core/build/static validation passes on macOS; Windows App SDK

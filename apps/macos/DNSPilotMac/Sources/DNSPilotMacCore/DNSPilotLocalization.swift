@@ -124,6 +124,8 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case copyNextStep
     case copyDNSServers
     case copyApplyChecklist
+    case entryPoint
+    case validationEvidence
 }
 
 public struct DNSPilotLocalizer: Equatable, Sendable {
@@ -243,6 +245,8 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .copyNextStep: "Copy Next Step",
         .copyDNSServers: "Copy DNS Servers",
         .copyApplyChecklist: "Copy Apply Checklist",
+        .entryPoint: "Entry point",
+        .validationEvidence: "Validation",
     ]
 
     private static let vietnamese: [DNSPilotTextKey: String] = [
@@ -342,5 +346,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .copyNextStep: "Copy bước tiếp theo",
         .copyDNSServers: "Copy DNS servers",
         .copyApplyChecklist: "Copy checklist áp dụng",
+        .entryPoint: "Điểm thao tác",
+        .validationEvidence: "Bằng chứng kiểm tra",
     ]
 }

@@ -66,10 +66,59 @@ fn system_benchmark_command_outputs_system_dns_validation_payload() {
     assert_eq!(json["scope"], "system-dns-validation");
     assert_eq!(json["metrics"]["profile_id"], "system-dns");
     assert_eq!(json["samples"].as_array().expect("samples array").len(), 1);
+    assert_eq!(json["summary"]["measurement_scope"], "dns-only");
+    assert_eq!(json["summary"]["mode"], "fastest-raw-dns");
+    assert_eq!(json["summary"]["can_recommend"], false);
+    assert_eq!(json["summary"]["recommended_profile_id"], Value::Null);
+    assert_eq!(json["summary"]["resolver_count"], 1);
+    assert_eq!(json["summary"]["domain_count"], 1);
+    assert_eq!(json["summary"]["attempts_per_record"], 1);
+    assert_eq!(json["summary"]["ip_family"], "ipv4-only");
+    assert_eq!(json["runs"][0]["profile_id"], "system-dns");
+    assert_eq!(json["runs"][0]["resolver"], "macOS system resolver");
+    assert_eq!(json["runs"][0]["metrics"]["profile_id"], "system-dns");
+    assert_eq!(json["recommendation"], Value::Null);
     assert_eq!(
         json["preflight"]["flush_requirement"],
         "recommended-before-test"
     );
+}
+
+#[test]
+fn system_benchmark_command_can_emit_progress_jsonl() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "system-benchmark",
+            "--domain",
+            "localhost",
+            "--attempts",
+            "1",
+            "--ip-family",
+            "ipv4-only",
+            "--timeout-ms",
+            "500",
+            "--progress-jsonl",
+        ])
+        .output()
+        .expect("run dnspilot-cli system-benchmark");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
+    let events = stderr
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).expect("progress line should be json"))
+        .collect::<Vec<_>>();
+
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0]["type"], "resolver_started");
+    assert_eq!(events[1]["type"], "resolver_finished");
+    assert_eq!(events[0]["profile_id"], "system-dns");
+    assert_eq!(events[0]["resolver"], "macOS system resolver");
 }
 
 #[test]

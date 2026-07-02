@@ -53,7 +53,7 @@ final class BenchmarkResultDecoderTests: XCTestCase {
         XCTAssertEqual(result.runs[0].metrics.failureRate, 1.0)
     }
 
-    func testDecoderAdaptsSystemDNSValidationPayload() throws {
+    func testDecoderMapsSystemDNSValidationCanonicalPayload() throws {
         let result = try BenchmarkResultJSONDecoder.decode(systemDNSValidationJSON)
 
         XCTAssertEqual(result.summary.measurementScope, .dnsOnly)
@@ -75,6 +75,19 @@ final class BenchmarkResultDecoderTests: XCTestCase {
         XCTAssertNil(result.recommendation)
         XCTAssertNil(result.savedHistoryID)
         XCTAssertTrue(result.warning.contains("System DNS validation"))
+    }
+
+    func testDecoderStillAdaptsLegacySystemDNSValidationPayload() throws {
+        let result = try BenchmarkResultJSONDecoder.decode(legacySystemDNSValidationJSON)
+
+        XCTAssertEqual(result.summary.measurementScope, .dnsOnly)
+        XCTAssertEqual(result.summary.mode, .fastestRawDNS)
+        XCTAssertEqual(result.summary.health, .degraded)
+        XCTAssertEqual(result.summary.primaryIssue, "partial-failure")
+        XCTAssertFalse(result.summary.canRecommend)
+        XCTAssertEqual(result.runs[0].profileID, "system-dns")
+        XCTAssertEqual(result.runs[0].resolver, "macOS system resolver")
+        XCTAssertNil(result.recommendation)
     }
 }
 
@@ -237,6 +250,80 @@ private let pathCompareNoRecommendationJSON = """
 """
 
 private let systemDNSValidationJSON = """
+{
+  "scope": "system-dns-validation",
+  "summary": {
+    "measurement_scope": "dns-only",
+    "mode": "fastest-raw-dns",
+    "health": "degraded",
+    "primary_issue": "partial-failure",
+    "can_recommend": false,
+    "safety_notes": [
+      "Flush macOS DNS cache before validation.",
+      "System DNS validation does not produce a resolver recommendation."
+    ],
+    "resolver_count": 1,
+    "domain_count": 2,
+    "attempts_per_record": 1,
+    "timeout_ms": 800,
+    "recommended_profile_id": null,
+    "ip_family": "both"
+  },
+  "runs": [
+    {
+      "profile_id": "system-dns",
+      "resolver": "macOS system resolver",
+      "metrics": {
+        "profile_id": "system-dns",
+        "median_dns_latency_ms": 32.0,
+        "p95_dns_latency_ms": 75.0,
+        "failure_rate": 0.25,
+        "timeout_rate": 0.0,
+        "median_connect_latency_ms": null,
+        "ipv4_health": 1.0,
+        "ipv6_health": 0.5,
+        "priority_fit": 1.0
+      },
+      "caveats": [
+        "Flush macOS DNS cache before validation.",
+        "System DNS validation does not produce a resolver recommendation."
+      ]
+    }
+  ],
+  "recommendation": null,
+  "saved_history_id": null,
+  "preflight": {
+    "scope": "system-dns-validation",
+    "platform": "macos-store",
+    "status": "manual-required",
+    "can_run_benchmark": true,
+    "can_apply_dns": false,
+    "requires_admin": false,
+    "notes": ["Flush macOS DNS cache before validation."]
+  },
+  "metrics": {
+    "profile_id": "system-dns",
+    "median_dns_latency_ms": 32.0,
+    "p95_dns_latency_ms": 75.0,
+    "failure_rate": 0.25,
+    "timeout_rate": 0.0,
+    "median_connect_latency_ms": null,
+    "ipv4_health": 1.0,
+    "ipv6_health": 0.5,
+    "priority_fit": 1.0
+  },
+  "samples": [
+    {"domain":"example.com","record_type":"A","transaction_id":24576,"elapsed_ms":31,"outcome":"success"},
+    {"domain":"example.com","record_type":"AAAA","transaction_id":24577,"elapsed_ms":34,"outcome":"success"},
+    {"domain":"github.com","record_type":"A","transaction_id":24578,"elapsed_ms":28,"outcome":"success"},
+    {"domain":"github.com","record_type":"AAAA","transaction_id":24579,"elapsed_ms":null,"outcome":"timeout"}
+  ],
+  "ip_family": "both",
+  "warning": "System DNS validation measures the OS resolver path after DNS changes."
+}
+"""
+
+private let legacySystemDNSValidationJSON = """
 {
   "scope": "system-dns-validation",
   "preflight": {

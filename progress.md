@@ -134,6 +134,19 @@ DNS handling, and platform capability reporting.
 - [x] [123] v0.1 macOS App Store metadata template — add review notes, privacy notes, and screenshot checklist.
 - [x] [124] v0.1 macOS distribution packaging script — sign, validate, and package release bundle when identities are provided.
 - [x] [125] v0.1 macOS Power edition bundle switch — enable direct-install admin apply/flush from bundle metadata.
+- [x] [126] v0.1 macOS product goal acceptance evidence — localize and show entry points plus validation proof for the six main goals.
+- [x] [127] v0.1 macOS release preflight gate — provide one local command for tests and bundle validation before signing/upload.
+- [x] [128] v0.1 macOS publish preflight readiness — surface the preflight gate in the native Publish screen.
+- [x] [129] v0.1 macOS privacy manifest gate — bundle and validate PrivacyInfo.xcprivacy for App Store readiness.
+- [x] [130] v0.1 macOS privacy manifest readiness — surface privacy manifest status in the native Publish screen.
+- [x] [131] v0.1 macOS support and privacy page drafts — add hostable App Store support/privacy source text.
+- [x] [132] v0.1 macOS bundle version gate — generate and validate release version/build metadata.
+- [x] [133] v0.1 system DNS validation progress/history — persist post-apply validation runs with visible progress.
+- [x] [134] v0.1 system DNS validation canonical payload — expose summary/runs schema without dropping legacy compatibility.
+- [x] [135] v0.1 macOS non-mutating goal smoke — verify main flows without DNS mutation or signing credentials.
+- [x] [136] v0.1 macOS native permission and direct admin setup — first-run setup plus in-app Direct Admin Apply/Flush opt-in.
+- [x] [137] v0.1 macOS Store-safe direct-admin gate — prevent UserDefaults-only admin enablement in Store-safe builds.
+- [x] [138] v0.1 dependency refresh and README runbook — update Rust deps and document install/run/preflight paths.
 
 ---
 
@@ -6164,6 +6177,469 @@ Result: macOS Store-safe bundle structural validation passed
 
 git diff --check
 Result: passed
+```
+
+---
+
+## Chunk 126: v0.1 macOS Product Goal Acceptance Evidence
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/DNSPilotLocalization.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Product Goals now show the concrete app entry point and test/validation evidence
+for all six main goals. The section also uses English/Vietnamese localized goal
+copy and localized status labels, so the scope can be audited from the app
+without relying on chat history.
+
+### Edge Cases / Caveats
+
+- Apply/flush evidence stays honest: Store-safe remains guided, while Power
+  direct apply/flush remains explicit and manual-QA gated.
+- Game Ping is still presented as a DNS + TCP estimate, not ICMP or in-match UDP
+  latency.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter ProductGoalReadinessViewModelTests
+Result: 5 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
+```
+
+---
+
+## Chunk 127: v0.1 macOS Release Preflight Gate
+
+**Status:** Complete
+**Files changed:** `script/preflight_macos_release.sh`, `apps/macos/PUBLISHING.md`, `progress.md`
+
+### What changed
+
+Added a single macOS release preflight command that runs shell syntax checks,
+Rust tests, Swift tests, and Store-safe sandbox bundle validation before any
+signing or App Store upload work. The script can also include Power bundle
+validation explicitly with `--include-power`.
+
+### Edge Cases / Caveats
+
+- The default preflight stays Store-safe; Power validation must be requested
+  deliberately.
+- When Power validation is included, the script rebuilds Store-safe at the end
+  so `dist/DNSPilotMac.app` is not left in a Power-enabled state by accident.
+- This does not replace manual signing identity, App Store Connect, screenshot,
+  privacy-answer, or real Power DNS mutation QA gates.
+
+### Verification
+
+```text
+bash -n script/preflight_macos_release.sh
+Result: passed
+
+./script/preflight_macos_release.sh --include-power
+Result: Rust workspace tests passed; macOS Swift tests passed; Store-safe
+bundle validation passed; Power bundle validation passed; Store-safe bundle
+restored and validated.
+```
+
+---
+
+## Chunk 128: v0.1 macOS Publish Preflight Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The native Publish readiness screen now includes the local release preflight as
+a ready item. Its copyable checklist points to
+`./script/preflight_macos_release.sh` and the optional `--include-power` path.
+
+### Edge Cases / Caveats
+
+- Preflight remains local validation only; signing identities, App Store Connect
+  fields, screenshots, and real Power DNS mutation QA remain manual gates.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
+```
+
+---
+
+## Chunk 129: v0.1 macOS Privacy Manifest Gate
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy`, `script/build_and_run.sh`, `script/validate_macos_bundle.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/AppStoreConnect/README.md`, `progress.md`
+
+### What changed
+
+Added a bundled `PrivacyInfo.xcprivacy` for the macOS app. The local bundle
+builder copies it into `Contents/Resources`, and the bundle validator now fails
+if the manifest is missing, invalid, declares tracking, declares collected data,
+or omits the UserDefaults required-reason API entry.
+
+### Edge Cases / Caveats
+
+- The manifest reflects the current store-safe build: no tracking, no collected
+  data, and UserDefaults reason `CA92.1` for app-local settings.
+- Publisher still must confirm final App Store privacy answers if telemetry,
+  crash reporting, accounts, sync, or remote catalog updates are added later.
+
+### Verification
+
+```text
+bash -n script/build_and_run.sh script/validate_macos_bundle.sh
+Result: passed
+
+plutil -lint apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed, including privacy manifest checks
+
+./script/preflight_macos_release.sh --skip-cargo --include-power
+Result: macOS Swift tests passed; Store-safe bundle validation passed; Power
+bundle validation passed; Store-safe bundle restored and validated; privacy
+manifest checks passed in all bundle modes
+```
+
+---
+
+## Chunk 130: v0.1 macOS Privacy Manifest Readiness
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The native Publish readiness screen now shows `PrivacyInfo.xcprivacy` as a ready
+item, including no tracking, no collected data, and UserDefaults reason
+`CA92.1`.
+
+### Edge Cases / Caveats
+
+- App Store Connect privacy answers still need final publisher confirmation
+  before upload.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests
+Result: 3 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
+
+git diff --check
+Result: passed
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed
+```
+
+---
+
+## Chunk 131: v0.1 macOS Support and Privacy Page Drafts
+
+**Status:** Complete
+**Files changed:** `apps/macos/AppStoreConnect/SupportPage.md`, `apps/macos/AppStoreConnect/PrivacyPolicy.md`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `progress.md`
+
+### What changed
+
+Added hostable support and privacy policy draft pages for the current Store-safe
+macOS build. App Store notes and publishing docs now point to those source files
+and narrow the remaining manual work to replacing contact placeholders and
+hosting public URLs.
+
+### Edge Cases / Caveats
+
+- The drafts match the current build only. They must be reviewed again if
+  telemetry, crash reporting, accounts, sync, remote catalog updates, or backend
+  services are added later.
+
+### Verification
+
+```text
+git diff --check
+Result: passed
+```
+
+---
+
+## Chunk 132: v0.1 macOS Bundle Version Gate
+
+**Status:** Complete
+**Files changed:** `script/build_and_run.sh`, `script/validate_macos_bundle.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Generated macOS bundles now include `CFBundleShortVersionString` and
+`CFBundleVersion`, defaulting to `0.1.0` and `1`. The bundle validator now fails
+if the marketing version is missing/non-numeric-semantic or if build number is
+missing/non-numeric.
+
+### Edge Cases / Caveats
+
+- Release builders can override values with `DNSPILOT_APP_VERSION` and
+  `DNSPILOT_APP_BUILD`.
+- App Store Connect still owns final submitted version/build sequencing.
+
+### Verification
+
+```text
+bash -n script/build_and_run.sh script/validate_macos_bundle.sh
+Result: passed
+
+git diff --check
+Result: passed
+
+DNSPILOT_APP_VERSION=1.2.3 DNSPILOT_APP_BUILD=42 ./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed with version 1.2.3 build 42
+
+./script/build_and_run.sh --sandbox-verify
+Result: macOS Store-safe bundle structural validation passed with default version 0.1.0 build 1
+```
+
+---
+
+## Chunk 133: v0.1 System DNS Validation Progress/History
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `crates/dnspilot-cli/tests/cli_storage_behaviour.rs`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkPlanViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/BenchmarkProgressViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkProgressViewModelTests.swift`, `apps/macos/macos-core-cli-request.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+`system-benchmark` now supports `--progress-jsonl`, `--save-db`, and
+`--history-id`. macOS System DNS validation now requests progress events, saves
+post-apply validation runs to local history, and shows the Saving history step
+instead of treating this mode as stateless.
+
+### Edge Cases / Caveats
+
+- History stores System DNS validation under the existing `dns-only` history
+  scope with resolver profile `system-dns`; a future schema can add a dedicated
+  scope without blocking v0.1 UX.
+- System DNS validation still measures the OS resolver path only. Browser Secure
+  DNS, VPN, MDM, captive portal, DNS cache, and app-specific behavior can
+  distort the result.
+
+### Verification
+
+```text
+cargo test --workspace --tests
+Result: passed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 249 passed, 0 failed
+```
+
+---
+
+## Chunk 134: v0.1 System DNS Validation Canonical Payload
+
+**Status:** Complete
+**Files changed:** `crates/dnspilot-cli/src/main.rs`, `crates/dnspilot-cli/tests/cli_benchmark_behaviour.rs`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/BenchmarkResultDecoderTests.swift`, `apps/macos/macos-core-cli-request.md`, `progress.md`
+
+### What changed
+
+`system-benchmark` now emits the same UI-ready result shape as compare commands:
+`summary`, `runs`, `recommendation: null`, `saved_history_id`, preflight, and
+warning. The legacy `scope`, `metrics`, and `samples` fields remain so older
+macOS adapters can still decode the payload.
+
+### Edge Cases / Caveats
+
+- System DNS validation deliberately sets `can_recommend=false`; validating the
+  currently configured resolver path should not become an automatic DNS-change
+  recommendation.
+- macOS keeps the legacy adapter only for backward compatibility with old CLI
+  payloads.
+
+### Verification
+
+```text
+cargo test -p dnspilot-cli --test cli_benchmark_behaviour system_benchmark_command_outputs_system_dns_validation_payload
+Result: passed
+
+swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
+Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 138: v0.1 Dependency Refresh And README Runbook
+
+**Status:** Complete
+**Files changed:** `Cargo.lock`, `crates/dnspilot-core/Cargo.toml`, `README.md`, `progress.md`
+
+### What changed
+
+Updated the shared Rust dependency set to current compatible/latest constrained
+versions, including `rusqlite 0.40.1`, `thiserror 2.0.18`,
+`rustls 0.23.41`, and `webpki-roots 1.0.8`. Added README setup instructions
+for requirements, dependency install/resolve, Store-safe app run, verified
+sandbox run, Power/direct-install manual QA, and release preflight.
+
+### Edge Cases / Caveats
+
+- `rusqlite 0.40` pulls newer transitive SQLite/wasm-related crates; kept only
+  after full Rust and macOS preflight passed.
+- Power run instructions remain a manual admin/DNS mutation gate and are not
+  App Store-safe.
+
+### Verification
+
+```text
+cargo update
+Result: no packages behind latest constraints after manifest bump.
+
+cargo test --workspace --tests
+Result: passed.
+
+swift package update --package-path apps/macos/DNSPilotMac
+Result: already up-to-date.
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+./script/smoke_macos_goal_flows.sh --include-network
+Result: passed; store-safe apply-plan, Power apply-plan contract, System DNS
+validation/history, live DNS-only, live DNS+TCP, and Dota 2 SEA Game Ping smoke
+passed.
+```
+
+---
+
+## Chunk 137: v0.1 macOS Store-Safe Direct-Admin Gate
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Separated Direct Admin capability from user opt-in. A stale or manually written
+UserDefaults value can no longer enable Apply Now (Admin) or Flush Now (Admin)
+inside the Store-safe bundle. Power/direct-install bundles can expose the opt-in
+only when `DNSPilotPowerActionsEnabled=true`; `DNSPILOT_ENABLE_POWER_ACTIONS=1`
+remains a local/dev force path.
+
+### Edge Cases / Caveats
+
+- This intentionally trades convenience for App Store safety: default Store-safe
+  runs stay guided even if a previous dev preference says Direct Admin enabled.
+- Power builds still require real manual QA because admin Apply/Flush can mutate
+  the active network service DNS.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSPowerDNSActionRunnerTests --filter MacOSReadinessViewModelTests --filter ProductGoalReadinessViewModelTests
+Result: 19 passed, 0 failed
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 253 passed, 0 failed
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Store-safe bundle has no Power switch, Power bundle has the
+Power switch, and the final artifact is restored to Store-safe.
+```
+
+---
+
+## Chunk 136: v0.1 macOS Native Permission And Direct Admin Setup
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/ProductGoalReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/ProductGoalReadinessViewModelTests.swift`, `apps/macos/AppStoreConnect/README.md`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+Added first-run setup and an actionable Permissions screen for the native macOS
+flow. DNS Pilot now explains that macOS has no System Settings pre-toggle for
+plain DNS edits, then lets direct-install users explicitly enable Direct Admin
+Actions so Apply Now (Admin) and Flush Now (Admin) appear inside the app.
+
+### Edge Cases / Caveats
+
+- Direct Admin Actions still require macOS administrator approval at action
+  time and can change the active network service DNS.
+- Store-safe mode remains guided by default and should be used for App Store
+  positioning.
+- Managed, VPN, captive portal, or corporate DNS networks should keep current
+  DNS unless the user deliberately opts into admin mutation.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac
+Result: 251 passed, 0 failed
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+First-run screenshot smoke
+Result: setup sheet displayed in Guided mode by default; Direct Admin availability is gated by the Store-safe/Power split in Chunk 137.
+```
+
+---
+
+## Chunk 135: v0.1 macOS Non-Mutating Goal Smoke
+
+**Status:** Complete
+**Files changed:** `script/smoke_macos_goal_flows.sh`, `script/preflight_macos_release.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `docs/core-cli-backlog.md`, `docs/gaming-connectivity.md`, `docs/release-checklist.md`, `progress.md`
+
+### What changed
+
+Added a local smoke harness for the six macOS product goals that does not mutate
+system DNS. The default mode checks store-safe apply-plan, Power apply-plan
+contract, System DNS validation progress/history, and saved history lookup.
+Optional modes cover live DNS-only/DNS+TCP/Game Ping probes and Store/Power
+bundle validation while restoring the Store-safe bundle afterward.
+
+### Edge Cases / Caveats
+
+- `--include-network` can fail on offline, firewalled, captive portal, or
+  restricted networks; it is evidence for current-network behavior, not a
+  release invariant.
+- `--include-bundles` launches sandbox bundles and validates mode flags, but it
+  does not press admin apply/flush buttons and does not replace Power manual QA.
+
+### Verification
+
+```text
+bash -n script/smoke_macos_goal_flows.sh script/preflight_macos_release.sh
+Result: passed
+
+./script/smoke_macos_goal_flows.sh
+Result: passed
+
+./script/smoke_macos_goal_flows.sh --include-network
+Result: passed
+
+./script/smoke_macos_goal_flows.sh --include-bundles
+Result: passed; Store-safe bundle restored
 ```
 
 ---

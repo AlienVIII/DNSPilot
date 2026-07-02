@@ -1004,6 +1004,56 @@ fn benchmark_command_can_save_history_to_sqlite() {
 }
 
 #[test]
+fn system_benchmark_command_can_save_history_to_sqlite() {
+    let db_path = std::env::temp_dir().join(format!(
+        "dnspilot-system-benchmark-history-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = fs::remove_file(&db_path);
+
+    let benchmark = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "system-benchmark",
+            "--domain",
+            "localhost",
+            "--attempts",
+            "1",
+            "--ip-family",
+            "ipv4-only",
+            "--timeout-ms",
+            "500",
+            "--save-db",
+            db_path.to_str().expect("utf8 path"),
+            "--history-id",
+            "system-run-1",
+        ])
+        .output()
+        .expect("run dnspilot-cli system-benchmark");
+
+    assert!(
+        benchmark.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&benchmark.stderr)
+    );
+    let benchmark_stdout = String::from_utf8(benchmark.stdout).expect("stdout should be utf8");
+    let benchmark_json: Value =
+        serde_json::from_str(&benchmark_stdout).expect("stdout should be json");
+    assert_eq!(benchmark_json["saved_history_id"], "system-run-1");
+
+    let history = list_history(&db_path);
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0]["id"], "system-run-1");
+    assert_eq!(history[0]["scope"], "dns-only");
+    assert_eq!(history[0]["resolver_profile_ids"][0], "system-dns");
+    assert_eq!(
+        history[0]["notes"][0],
+        "Saved by system-benchmark CLI for System DNS validation."
+    );
+
+    let _ = fs::remove_file(db_path);
+}
+
+#[test]
 fn history_delete_command_removes_saved_history_record() {
     let db_path = std::env::temp_dir().join(format!(
         "dnspilot-history-delete-{}.sqlite",

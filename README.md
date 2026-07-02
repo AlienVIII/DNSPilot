@@ -8,6 +8,63 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 
+## Development Setup
+
+### Requirements
+
+- macOS 14+ to run the native macOS app.
+- Xcode Command Line Tools with Swift 6 support.
+- Rust stable toolchain with Cargo.
+- Network access for live DNS/TCP/Game Ping probes.
+
+### Install Dependencies
+
+```sh
+rustup update
+cargo fetch
+swift package resolve --package-path apps/macos/DNSPilotMac
+```
+
+SwiftPM currently has no external package dependencies; the command is still
+safe to run and verifies package resolution.
+
+### Run The macOS App
+
+Store-safe development run:
+
+```sh
+./script/build_and_run.sh run
+```
+
+Store-safe verified run with local ad-hoc sandbox signing:
+
+```sh
+./script/build_and_run.sh --sandbox-verify
+```
+
+Direct-install Power run for manual admin Apply/Flush QA:
+
+```sh
+DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
+```
+
+After launching the Power bundle, open Setup or Permissions, enable Direct
+Admin Actions, then use `Apply Now (Admin)` or `Flush Now (Admin)`. macOS asks
+for administrator approval at action time. Do not use this path for the App
+Store edition.
+
+### Test And Preflight
+
+```sh
+cargo test --workspace --tests
+swift test --package-path apps/macos/DNSPilotMac
+./script/preflight_macos_release.sh
+./script/preflight_macos_release.sh --include-power
+```
+
+`--include-power` validates the Power bundle and restores the final local
+artifact to Store-safe mode afterward.
+
 ## Current Scope
 
 - Built-in DNS provider catalog.
@@ -28,11 +85,11 @@ macOS publishing steps live in `apps/macos/PUBLISHING.md`.
   portal networks.
 - macOS Product Goals readiness panel summarizing supported, store-safe guided,
   and estimate-only features with explicit caveats.
-- macOS Power DNS action runner for future direct-install builds, disabled by
-  default and gated behind the `DNSPilotPowerActionsEnabled` bundle key or
-  `DNSPILOT_ENABLE_POWER_ACTIONS`.
-- macOS Power apply/flush UI entry points appear only when
-  Power actions are explicitly enabled.
+- macOS Direct Admin/Power DNS action runner for direct-install builds,
+  disabled by default and gated behind `DNSPilotPowerActionsEnabled` plus
+  in-app opt-in, or the local/dev `DNSPILOT_ENABLE_POWER_ACTIONS=1` force path.
+- macOS Power apply/flush UI entry points appear only when the build is
+  Power-capable and Direct Admin Actions are explicitly enabled.
 - Versioned storage snapshot contract for profiles, test suites, and benchmark
   history.
 - SQLite storage backend for saving/loading the versioned snapshot.
@@ -222,12 +279,12 @@ macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 - macOS Capabilities screen includes Product Goals readiness, making fastest
   DNS, balanced recommendation, guided apply, guided flush, saved domains, and
   game checks visible with their current product limits.
-- macOS Power DNS action runner can apply plain DNS to the active network
-  service and flush DNS through an administrator AppleScript prompt when
-  explicitly enabled; store-safe UI remains guided by default.
+- macOS Direct Admin DNS action runner can apply plain DNS to the active network
+  service and flush DNS through an administrator AppleScript prompt only in
+  Power-capable builds after explicit opt-in; store-safe UI remains guided.
 - macOS Benchmark/Catalog Power buttons can apply selected DNS with explicit
-  confirmation when Power edition is enabled; Flush DNS dialogs can
-  run an administrator flush or copy the store-safe checklist.
+  confirmation when Direct Admin Actions are enabled; Flush DNS dialogs can run
+  an administrator flush or copy the store-safe checklist.
 - macOS Capabilities/Product Goals surfaces include the macOS Power path so
   store-safe and direct-install behavior stay visibly separated.
 - macOS Permissions and Publish readiness screens explain ask-as-needed
@@ -288,10 +345,11 @@ macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 - Incremental normalized SQLite tables beyond the current snapshot backend.
 - Direct Rust FFI bindings for the macOS SwiftUI shell.
 - Kotlin/Compose, WinUI, GTK/libadwaita shells.
-- Platform apply adapters.
-- Desktop power edition admin/helper paths.
+- Apply adapters for Windows/Linux/mobile.
+- Privileged helper/service installers beyond the current macOS direct-admin
+  AppleScript adapter.
 
-## Commands
+## Common Commands
 
 ```sh
 cargo test -p dnspilot-core
