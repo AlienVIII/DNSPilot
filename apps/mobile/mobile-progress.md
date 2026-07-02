@@ -4,9 +4,9 @@
 
 The mobile lane meets the current test-shell requirement: it validates DNSPilot
 UX, bridge contracts, mobile policy limits, guided settings, localization, and
-device setup flows. Android debug builds compile on SDK 57; iOS Simulator smoke
-is blocked on this machine by an Xcode Simulator runtime mismatch. It is not yet
-the final public-store architecture.
+device setup flows. Android debug builds compile on SDK 57, and iOS Simulator
+build/install/launch smoke now passes with Xcode 26.6 + iOS 26.5 runtime. It is
+not yet the final public-store architecture.
 
 ## Requirement Coverage
 
@@ -34,7 +34,7 @@ the final public-store architecture.
 - Native build path is smoke-tested locally with Android `assembleDebug`; the
   app is on Expo SDK 57 / React Native 0.86 and carries a narrow
   `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26. iOS
-  Simulator smoke needs a matching iOS 26.5 runtime for local Xcode 26.6.
+  Simulator build/install/launch is smoke-tested on an iOS 26.5 simulator.
 - EAS development builds include `expo-dev-client`; the local real-device
   command is `npm run start:dev-client`.
 
@@ -47,18 +47,18 @@ the final public-store architecture.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
 - `npx expo install --check`: pass with `expo-dev-client`.
 - `npx expo-doctor@latest`: pass.
-- `npx expo run:ios --configuration Debug --device "iPhone 16e" --no-bundler --no-install --no-build-cache`:
-  blocked locally because Xcode 26.6 exposes iOS Simulator SDK 26.5 while only
-  the iOS 26.0 Simulator runtime is installed; install iOS 26.5 runtime and
-  rerun.
+- `npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache`:
+  build pass. The app was installed/launched with `simctl`, then loaded through
+  `npm run start:dev-client` on port 8082; screenshot confirmed the first-open
+  System Access sheet.
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:
   pass with SDK 36/JDK 17.
 
 ## Remaining Gates
 
 - Real-device QA on physical iOS/iPadOS and Android devices.
-- iOS 26.5 Simulator runtime for local Xcode 26.6 smoke, Apple/Google signing,
-  store setup, and Local Network/Private DNS manual checks.
+- Apple/Google signing, store setup, real-device QA, and Local Network/Private
+  DNS manual checks.
 - Native Rust adapter, approved backend, or another release runtime decision.
 - Dependency audit: Expo tooling currently pulls vulnerable `uuid <11.1.1`; npm's
   force fix is breaking.

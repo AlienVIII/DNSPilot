@@ -33,6 +33,9 @@
 - First-open System Access now has native-feel actions: iOS App Settings,
   Android Private DNS/network Settings, and foreground System DNS retest from
   the sheet. It still does not apply DNS silently or flush system DNS cache.
+- iOS Simulator smoke now passes locally with Xcode 26.6 + iOS 26.5 runtime:
+  `iPhone 17e` build succeeds, install/launch works via `simctl`, and JS app
+  loads through the development client on Metro port 8082.
 - Shared UI now uses phone/tablet/expanded breakpoints to avoid stretched phone
   layouts on iPad and Android tablets; key forms use two-column adaptive
   sections when width allows it.
