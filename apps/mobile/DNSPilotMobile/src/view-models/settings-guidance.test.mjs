@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildSettingsGuidance } from "./settings-guidance.js";
+import { buildSettingsGuidance, guidanceActionStatus } from "./settings-guidance.js";
 
 test("iOS guidance stays store-safe and profile/settings based", () => {
   const guidance = buildSettingsGuidance({
@@ -126,4 +126,17 @@ test("Vietnamese iOS guidance localizes user-facing steps", () => {
   assert.ok(guidance.steps.some((step) => step.includes("profile DNS Settings")));
   assert.ok(guidance.steps.some((step) => step.includes("1.1.1.1")));
   assert.doesNotMatch(guidance.claims.join(" "), /silent|speed improvement|fastest/i);
+});
+
+test("guidance action status reports progress, success, and failure in the selected locale", () => {
+  assert.equal(
+    guidanceActionStatus({ actionKind: "retest-system-dns", phase: "running", locale: "en" }),
+    "Retesting System DNS..."
+  );
+  assert.equal(
+    guidanceActionStatus({ actionKind: "open-settings", phase: "success", locale: "en" }),
+    "Settings opened."
+  );
+  assert.match(guidanceActionStatus({ actionKind: "copy", phase: "failed", locale: "en" }), /Action failed/);
+  assert.match(guidanceActionStatus({ actionKind: "prepare-os-apply", phase: "failed", locale: "vi" }), /Thao tác thất bại/);
 });

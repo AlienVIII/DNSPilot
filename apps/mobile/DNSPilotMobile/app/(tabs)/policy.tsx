@@ -21,7 +21,7 @@ import {
 } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 import { openNativeSettings } from '@/src/utils/native-settings';
-import { buildSettingsGuidance, type SettingsGuidance } from '@/src/view-models/settings-guidance';
+import { buildSettingsGuidance, guidanceActionStatus, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type MobilePlatform = 'ios' | 'android-play';
 type GateHealth = 'healthy' | 'degraded' | 'failed' | 'inconclusive';
@@ -41,6 +41,7 @@ export default function PolicyScreen() {
   const [working, setWorking] = useState(false);
   const [results, setResults] = useState<Record<string, BridgeResult>>({});
   const [settingsActionStatus, setSettingsActionStatus] = useState<string | null>(null);
+  const [settingsActionWorking, setSettingsActionWorking] = useState(false);
 
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
   const selectedProfile = plainProfiles.find((profile) => profile.id === profileId);
@@ -123,32 +124,35 @@ export default function PolicyScreen() {
   }
 
   async function runGuidanceAction(action: SettingsGuidance['actions'][number]) {
-    if (action.kind === 'prepare-os-apply') {
-      await Clipboard.setStringAsync(action.value);
-      await openNativeSettings(action.target);
-      setSettingsActionStatus(t('settings.action.prepared'));
+    if (settingsActionWorking) {
       return;
     }
-    if (action.kind === 'copy') {
-      await Clipboard.setStringAsync(action.value);
-      setSettingsActionStatus(t('settings.action.copied'));
-      return;
+    setSettingsActionWorking(true);
+    setSettingsActionStatus(guidanceActionStatus({ actionKind: action.kind, phase: 'running', locale }));
+    try {
+      if (action.kind === 'prepare-os-apply') {
+        await Clipboard.setStringAsync(action.value);
+        await openNativeSettings(action.target);
+      } else if (action.kind === 'copy') {
+        await Clipboard.setStringAsync(action.value);
+      } else if (action.kind === 'open-settings') {
+        await openNativeSettings(action.target);
+      } else {
+        const next = await runAction('systemBenchmark', {
+          platform,
+          domains: ['github.com', 'expo.dev'],
+          attempts: 1,
+          ipFamily: 'both',
+          timeoutMs: 800,
+        });
+        setResults((current) => ({ ...current, systemBenchmark: next }));
+      }
+      setSettingsActionStatus(guidanceActionStatus({ actionKind: action.kind, phase: 'success', locale }));
+    } catch {
+      setSettingsActionStatus(guidanceActionStatus({ actionKind: action.kind, phase: 'failed', locale }));
+    } finally {
+      setSettingsActionWorking(false);
     }
-    if (action.kind === 'open-settings') {
-      await openNativeSettings(action.target);
-      setSettingsActionStatus(t('settings.action.openedSettings'));
-      return;
-    }
-    setSettingsActionStatus(t('settings.action.retesting'));
-    const next = await runAction('systemBenchmark', {
-      platform,
-      domains: ['github.com', 'expo.dev'],
-      attempts: 1,
-      ipFamily: 'both',
-      timeoutMs: 800,
-    });
-    setResults((current) => ({ ...current, systemBenchmark: next }));
-    setSettingsActionStatus(t('settings.action.retested'));
   }
 
   return (
@@ -221,9 +225,16 @@ export default function PolicyScreen() {
             {guidance.actions.length > 0 ? (
               <Row>
                 {guidance.actions.map((action) => (
-                  <Button key={action.id} label={action.label} onPress={() => runGuidanceAction(action).catch(() => undefined)} variant="secondary" />
+                  <Button
+                    key={action.id}
+                    label={action.label}
+                    onPress={() => runGuidanceAction(action)}
+                    variant="secondary"
+                    disabled={settingsActionWorking}
+                    loading={settingsActionWorking && action.kind === 'retest-system-dns'}
+                  />
                 ))}
-                {settingsActionStatus ? <Pill label={settingsActionStatus} tone="green" /> : null}
+                {settingsActionStatus ? <Pill label={settingsActionStatus} tone={settingsActionStatus === t('settings.action.failed') ? 'red' : 'green'} /> : null}
               </Row>
             ) : null}
           </View>

@@ -13,9 +13,9 @@
 - The app remains store-safe: no iOS plain system DNS switch, no Android silent
   Private DNS mutation, no Android `VpnService`, and no "apply fastest DNS" or
   internet speed claim.
-- First-open System Access shows permission/apply/flush status. Apply actions
-  copy DNS values and open OS settings; DNS flush is explicitly unsupported on
-  mobile consumer OS APIs.
+- First-open System Access shows permission/apply/flush status, opens iOS App
+  Settings or Android Private DNS/network Settings, and can retest System DNS.
+  DNS flush is explicitly unsupported on mobile consumer OS APIs.
 - Core/CLI coverage is exercised through the local bridge. A public store build
   that must work without a developer Mac still needs a native Rust adapter or an
   approved backend/bridge decision.
@@ -34,8 +34,8 @@
 5. Open the installed development build on the device. Expo Go remains usable
    for bridge-only UI checks, but the development build is the native smoke path.
 6. Overview: confirm the first-open System Access sheet appears. iOS should
-   offer App Settings for Local Network recovery. Android should offer Network
-   Settings for user-controlled DNS changes.
+   offer App Settings plus Retest System DNS. Android should offer Private DNS,
+   Network Settings, App Settings, and Retest System DNS.
 7. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
    titles, validation errors, and guided settings copy update.
 8. Overview > Device Setup: choose the real-device target. Confirm localhost is
@@ -51,8 +51,8 @@
     System DNS validation. Confirm per-step/per-resolver status, elapsed time,
     failed step/reason on failures, debug report, and Copy report.
 13. Guided settings: tap Apply in OS DNS settings / Prepare DNS profile/settings.
-    Expected behavior is copy values + open settings + retest, not silent apply
-    or DNS cache flush.
+    Expected behavior is copy values + open settings + retest with visible
+    success/failure status, not silent apply or DNS cache flush.
 14. Storage: add, edit, and delete plain DNS, DoH, DoT profiles, and custom
     domain suites. Invalid forms must disable actions before bridge calls.
 15. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive

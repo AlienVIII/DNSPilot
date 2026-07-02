@@ -98,3 +98,23 @@ function settingsTargetFor({ platform, plan }) {
   }
   return "ios-app-settings";
 }
+
+export function guidanceActionStatus({ actionKind, phase, locale = "en" }) {
+  const t = (key) => translate(locale, key);
+  if (phase === "running") {
+    return actionKind === "retest-system-dns" ? t("settings.action.retesting") : t("settings.action.working");
+  }
+  if (phase === "failed") {
+    return t("settings.action.failed");
+  }
+  if (actionKind === "prepare-os-apply") {
+    return t("settings.action.prepared");
+  }
+  if (actionKind === "copy") {
+    return t("settings.action.copied");
+  }
+  if (actionKind === "open-settings") {
+    return t("settings.action.openedSettings");
+  }
+  return t("settings.action.retested");
+}

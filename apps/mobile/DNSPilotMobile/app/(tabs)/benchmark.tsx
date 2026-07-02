@@ -30,7 +30,7 @@ import {
   type ResolverDiagnostic,
 } from '@/src/view-models/benchmark-diagnostics';
 import { translateKnownError } from '@/src/view-models/localization';
-import { buildSettingsGuidance, type SettingsGuidance } from '@/src/view-models/settings-guidance';
+import { buildSettingsGuidance, guidanceActionStatus, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type Mode = 'compare' | 'pathCompare' | 'benchmark' | 'pathEstimate' | 'systemBenchmark';
 type IpFamily = 'both' | 'ipv4-only' | 'ipv6-only';
@@ -59,6 +59,7 @@ export default function BenchmarkScreen() {
   const [guidanceWorking, setGuidanceWorking] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [settingsActionStatus, setSettingsActionStatus] = useState<string | null>(null);
+  const [settingsActionWorking, setSettingsActionWorking] = useState(false);
   const [vpnActive, setVpnActive] = useState(false);
   const [mdmProfileActive, setMdmProfileActive] = useState(false);
   const [corporateDnsDetected, setCorporateDnsDetected] = useState(false);
@@ -222,26 +223,29 @@ export default function BenchmarkScreen() {
   }
 
   async function runGuidanceAction(action: SettingsGuidance['actions'][number]) {
-    if (action.kind === 'prepare-os-apply') {
-      await Clipboard.setStringAsync(action.value);
-      await openNativeSettings(action.target);
-      setSettingsActionStatus(t('settings.action.prepared'));
+    if (settingsActionWorking) {
       return;
     }
-    if (action.kind === 'copy') {
-      await Clipboard.setStringAsync(action.value);
-      setSettingsActionStatus(t('settings.action.copied'));
-      return;
+    setSettingsActionWorking(true);
+    setSettingsActionStatus(guidanceActionStatus({ actionKind: action.kind, phase: 'running', locale }));
+    try {
+      if (action.kind === 'prepare-os-apply') {
+        await Clipboard.setStringAsync(action.value);
+        await openNativeSettings(action.target);
+      } else if (action.kind === 'copy') {
+        await Clipboard.setStringAsync(action.value);
+      } else if (action.kind === 'open-settings') {
+        await openNativeSettings(action.target);
+      } else {
+        const next = await runAction('systemBenchmark', systemRetestPlan.payload);
+        setGuidancePayload(next);
+      }
+      setSettingsActionStatus(guidanceActionStatus({ actionKind: action.kind, phase: 'success', locale }));
+    } catch {
+      setSettingsActionStatus(guidanceActionStatus({ actionKind: action.kind, phase: 'failed', locale }));
+    } finally {
+      setSettingsActionWorking(false);
     }
-    if (action.kind === 'open-settings') {
-      await openNativeSettings(action.target);
-      setSettingsActionStatus(t('settings.action.openedSettings'));
-      return;
-    }
-    setSettingsActionStatus(t('settings.action.retesting'));
-    const next = await runAction('systemBenchmark', systemRetestPlan.payload);
-    setGuidancePayload(next);
-    setSettingsActionStatus(t('settings.action.retested'));
   }
 
   const resultData = result?.data as Record<string, unknown> | undefined;
@@ -438,9 +442,16 @@ export default function BenchmarkScreen() {
                 {guidance.actions.length > 0 ? (
                   <Row>
                     {guidance.actions.map((action) => (
-                      <Button key={action.id} label={action.label} onPress={() => runGuidanceAction(action).catch(() => undefined)} variant="secondary" />
+                      <Button
+                        key={action.id}
+                        label={action.label}
+                        onPress={() => runGuidanceAction(action)}
+                        variant="secondary"
+                        disabled={settingsActionWorking}
+                        loading={settingsActionWorking && action.kind === 'retest-system-dns'}
+                      />
                     ))}
-                    {settingsActionStatus ? <Pill label={settingsActionStatus} tone="green" /> : null}
+                    {settingsActionStatus ? <Pill label={settingsActionStatus} tone={settingsActionStatus === t('settings.action.failed') ? 'red' : 'green'} /> : null}
                   </Row>
                 ) : null}
                 {guidancePayload ? <CodeBlock text={compactJson(guidancePayload.data, 2200)} /> : null}

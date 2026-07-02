@@ -38,3 +38,9 @@ export function buildSettingsGuidance(input: {
   applyPlan?: unknown;
   locale?: string;
 }): SettingsGuidance;
+
+export function guidanceActionStatus(input: {
+  actionKind: SettingsGuidance['actions'][number]['kind'];
+  phase: 'running' | 'success' | 'failed';
+  locale?: string;
+}): string;
