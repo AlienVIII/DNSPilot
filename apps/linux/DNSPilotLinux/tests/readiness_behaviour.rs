@@ -23,11 +23,32 @@ fn release_readiness_marks_main_linux_goals_as_code_ready() {
         .items
         .iter()
         .any(|item| item.name == "Packaging and publish checklist"
-            && item.status == ReadinessStatus::Ready));
+            && item.status == ReadinessStatus::Ready
+            && item.evidence.contains("publish-check")));
     assert!(readiness
         .external_requirements
         .iter()
         .any(|requirement| { requirement.contains("Flatpak/Snap/deb/rpm real package QA") }));
+    assert!(readiness.items.iter().any(|item| {
+        item.name == "Native power path"
+            && item.evidence.contains("command backend")
+            && item.evidence.contains("--allow-system-dns-mutation")
+    }));
+    assert!(readiness.items.iter().any(|item| {
+        item.name == "Native app surface" && item.evidence.contains("dnspilot-linux-gui")
+    }));
+    assert!(readiness
+        .items
+        .iter()
+        .any(|item| { item.name == "Localization" && item.evidence.contains("publish") }));
+    assert!(!readiness
+        .external_requirements
+        .iter()
+        .any(|requirement| requirement.contains("GTK/libadwaita or Qt")));
+    assert!(!readiness
+        .external_requirements
+        .iter()
+        .any(|requirement| requirement.contains("write backend")));
 }
 
 #[test]
@@ -40,4 +61,8 @@ fn readiness_report_is_copyable_and_separates_manual_publish_work() {
     assert!(report.contains("Manual/external requirements:"));
     assert!(report.contains("store credentials"));
     assert!(report.contains("signing"));
+    assert!(report.contains("execute mutation gate"));
+    assert!(report.contains("--allow-system-dns-mutation"));
+    assert!(report.contains("manual Linux package QA"));
+    assert!(report.contains("publish-check"));
 }

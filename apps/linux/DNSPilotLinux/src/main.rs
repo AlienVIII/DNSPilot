@@ -16,6 +16,7 @@ use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
 use dnspilot_linux_shell::process::LinuxBenchmarkProcessViewModel;
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
+use dnspilot_linux_shell::publish::{publish_check, render_publish_check};
 use dnspilot_linux_shell::readiness::{linux_release_readiness, render_readiness_report};
 use dnspilot_linux_shell::settings::{
     native_power_path_plan, DnsRecordFamily, ResolverAddressFamily,
@@ -48,6 +49,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
         Some("detect") => run_detect(args.into_iter().skip(1)),
         Some("permissions") => run_permissions(args.into_iter().skip(1)),
         Some("app-model") => run_app_model(args.into_iter().skip(1)),
+        Some("publish-check") => run_publish_check(args.into_iter().skip(1)),
         Some("apply-plan") => run_apply_plan(args.into_iter().skip(1)),
         Some("readiness") => Ok(render_readiness_report(&linux_release_readiness())),
         _ => run_legacy_report(args),
@@ -262,6 +264,13 @@ fn run_app_model(args: impl IntoIterator<Item = String>) -> Result<String, CliEr
     let capability = capability_view_model(config.to_probe());
     let model = build_native_app_model(&capability, config.language);
     Ok(render_native_app_model(&model))
+}
+
+fn run_publish_check(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
+    let config = SurfaceConfig::parse(args)?;
+    let capability = capability_view_model(config.to_probe());
+    let check = publish_check(&capability, config.language);
+    Ok(render_publish_check(&check))
 }
 
 fn run_apply_plan(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {

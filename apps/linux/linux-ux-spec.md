@@ -45,14 +45,22 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness
 ```
 
 The readiness report marks scoped Linux code goals as ready and separates
-manual package QA, store credentials, signing, screenshots, release notes, GUI
-adapter choice, and real resolver-write QA as external release work.
+manual package QA, store credentials, signing, screenshots, release notes, and
+real resolver-write QA as external release work.
 
 ## Native App Surface
 
-The Linux shell exposes a native app view-model for the eventual GTK/libadwaita
-or Qt adapter. The main app surface is the primary UX; tray integration is
+`dnspilot-linux-gui` is the Linux desktop launcher. It binds the app/session,
+profile storage, benchmark runner, diagnostics, permissions, settings, and
+localization surfaces into a tray-independent main window. Tray integration is
 optional and never required for GNOME/Wayland.
+
+GUI launch/build example:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-linux-gui
+cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
+```
 
 CLI app-model example:
 
@@ -65,7 +73,7 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- app-model \
   --lang vi
 ```
 
-The view-model includes:
+The GUI and view-model include:
 
 - benchmark,
 - profile management,
@@ -73,8 +81,9 @@ The view-model includes:
 - diagnostics/debug report,
 - permissions.
 
-English and Vietnamese are supported for the Linux shell's primary app and
-permission surfaces. Guided settings also supports `--lang en|vi`.
+English and Vietnamese are supported for primary app labels/help, permission
+surfaces, guided settings, and publish-check surfaces. Some package tool names
+stay in English because they are command names.
 
 ## Permissions
 
@@ -139,7 +148,8 @@ Every run can produce a copyable debug report with:
 - resolver statuses,
 - capability notes.
 
-The Linux CLI harness renders this report from mocked inputs:
+The GUI displays diagnostics after plan/run actions. The Linux CLI harness also
+renders this report from mocked inputs for automated QA:
 
 ```sh
 cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- \
@@ -230,6 +240,30 @@ The apply plan rejects Flatpak/Snap, requires a supported resolver stack plus
 polkit, selects NetworkManager before systemd-resolved when both are available,
 filters DNS servers by IPv4/IPv6 selection, requires rollback snapshot, and
 includes post-apply current/system resolver validation when supported.
+
+Native helper contract examples:
+
+```sh
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-native-helper -- --contract
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-native-helper -- \
+  --dry-run \
+  --stack networkmanager \
+  --server 1.1.1.1 \
+  --server 9.9.9.9
+
+cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-native-helper -- \
+  --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
+```
+
+The helper contract binary is packaged only for native deb/rpm power builds.
+Its current dry-run surface proves stack/server routing and explicitly reports
+that no DNS writes were executed. The request JSON path validates the polkit
+action id, resolver stack, servers, rollback requirement, validation flag, and
+mutation mode. `execute` requests require `confirm_system_dns_mutation: true`;
+the helper binary also requires `--allow-system-dns-mutation` before it runs the
+NetworkManager/systemd-resolved command backend. Without that flag, execute
+requests fail before any DNS write.
 
 ## Custom Profiles
 

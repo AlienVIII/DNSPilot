@@ -2,7 +2,9 @@ use dnspilot_linux_shell::capabilities::{
     capability_view_model, BenchmarkMode, LinuxEnvironmentProbe, LinuxPackageKind,
 };
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
-use dnspilot_linux_shell::process::{LinuxBenchmarkProcessViewModel, ProcessStatus, ProcessStepId};
+use dnspilot_linux_shell::process::{
+    process_rows, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus, ProcessStepId,
+};
 
 fn probe(package_kind: LinuxPackageKind) -> LinuxEnvironmentProbe {
     LinuxEnvironmentProbe {
@@ -120,4 +122,29 @@ fn diagnostic_report_is_copyable_and_includes_capability_and_process_details() {
     assert!(report.contains("Run DNS benchmark: failed - DNS benchmark failed"));
     assert!(report.contains("Cloudflare: failed - DNS timeout"));
     assert!(report.contains("Flatpak build is store-safe"));
+}
+
+#[test]
+fn process_rows_expose_steps_and_resolvers_for_gui_status_table() {
+    let mut process = LinuxBenchmarkProcessViewModel::new(
+        BenchmarkMode::DnsOnly,
+        vec![("cloudflare", "Cloudflare")],
+    );
+    process.start_step(ProcessStepId::RunDnsBenchmark);
+    process.complete_resolver("cloudflare", "12 ms");
+
+    let rows = process_rows(&process);
+
+    assert!(rows.iter().any(|row| {
+        row.kind == ProcessRowKind::Step
+            && row.label == "Run DNS benchmark"
+            && row.status == "running"
+            && row.detail.is_none()
+    }));
+    assert!(rows.iter().any(|row| {
+        row.kind == ProcessRowKind::Resolver
+            && row.label == "Cloudflare"
+            && row.status == "success"
+            && row.detail.as_deref() == Some("12 ms")
+    }));
 }

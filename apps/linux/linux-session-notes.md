@@ -9,15 +9,16 @@
 
 ## Context
 - Linux shell package lives at `apps/linux/DNSPilotLinux`.
-- Current implementation includes view-models, storage, CLI profile management, CLI plan/run/guide surfaces, and runner boundary.
-- Current implementation also includes English/Vietnamese native app view-models, permission plans, native apply-plan contract, packaging templates, desktop/AppStream metadata, icon, and polkit policy template.
+- Current implementation includes view-models, storage, GUI process table, CLI profile management, CLI plan/run/guide surfaces, and runner boundary.
+- Current implementation also includes English/Vietnamese native app view-models, permission plans, native apply-plan contract, native helper contract binary, packaging templates, desktop/AppStream metadata, icon, and polkit policy template.
 - It does not mutate system DNS by itself; real DNS apply remains native power package work behind NetworkManager/systemd-resolved plus polkit.
 - Capability detection can be mocked so automated tests can run without Linux distro/package access.
 
 ## Open Questions
-- GTK4/libadwaita or Qt?
-- Exact native UI stack remains open.
-- Exact Linux native apply helper execution remains open; the non-mutating apply-plan contract is implemented.
+- `eframe/egui` is the current Linux app stack for this lane; GTK4/libadwaita
+  or Qt can be revisited only if later distro QA requires deeper desktop
+  integration.
+- Real native resolver write execution exists behind the helper execute gate and still needs Linux package QA before release/default enablement.
 - Exact store credentials, signing keys, screenshots, and final package build hosts remain external.
 
 ## Handoff

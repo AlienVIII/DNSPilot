@@ -9,6 +9,7 @@ pub mod native_power;
 pub mod permissions;
 pub mod process;
 pub mod profiles;
+pub mod publish;
 pub mod readiness;
 pub mod settings;
 pub mod storage;

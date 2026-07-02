@@ -31,6 +31,14 @@ fn vietnamese_strings_are_available_for_native_app_core_actions() {
         localized_text(TextKey::CopyDebugReport, Language::Vietnamese),
         "Sao chép báo cáo debug"
     );
+    assert_eq!(
+        localized_text(TextKey::Process, Language::Vietnamese),
+        "Tiến trình"
+    );
+    assert_eq!(
+        localized_text(TextKey::Status, Language::Vietnamese),
+        "Trạng thái"
+    );
 }
 
 #[test]

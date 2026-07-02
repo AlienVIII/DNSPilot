@@ -53,11 +53,11 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Native power path",
-                "deb/rpm apply-plan requires resolver stack plus polkit and includes rollback/validation.",
+                "deb/rpm apply-plan, native-helper request protocol, command backend, execute mutation gate, and --allow-system-dns-mutation guard require resolver stack plus polkit and include rollback/validation.",
             ),
             item(
                 "Native app surface",
-                "Main-window view model, localized primary actions, desktop metadata, and tray-optional invariant are present.",
+                "dnspilot-linux-gui main window, localized primary actions/help, desktop metadata, and tray-optional invariant are present.",
             ),
             item(
                 "Custom DNS profiles",
@@ -73,18 +73,17 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Localization",
-                "English/Vietnamese primary app, permission, and guided-settings surfaces are implemented.",
+                "English/Vietnamese primary app, permission, guided-settings, publish-check, and native app help surfaces are implemented.",
             ),
             item(
                 "Packaging and publish checklist",
-                "Flatpak/Snap store-safe templates, deb/rpm native-power templates, AppStream, desktop file, icon, polkit policy, and publish checklist are present.",
+                "Flatpak/Snap store-safe templates, deb/rpm native-power templates, helper install paths, AppStream, desktop file, icon, polkit policy, publish-check CLI, and publish checklist are present.",
             ),
         ],
         external_requirements: vec![
             "Flatpak/Snap/deb/rpm real package QA on Linux hardware or VM.",
             "store credentials, signing, screenshots, release notes, and final metadata review.",
-            "GTK/libadwaita or Qt rendering adapter if a graphical shell is selected for the release artifact.",
-            "Native resolver write execution QA before enabling real DNS mutation in deb/rpm.",
+            "Linux package QA before publishing or enabling real DNS mutation by default in deb/rpm.",
         ],
     }
 }

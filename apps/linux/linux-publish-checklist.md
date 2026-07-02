@@ -4,6 +4,8 @@
 
 This lane is ready for automated Rust validation and later real-device package
 QA. It does not require manual distro/package testing before handoff.
+Start with `apps/linux/README.md` for install, build, run, smoke, and native
+helper commands.
 
 Current package split:
 
@@ -38,11 +40,19 @@ Release binary:
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
 ```
 
+Expected release binaries:
+
+- `target/release/dnspilot-linux-gui` for the desktop launcher,
+- `target/release/dnspilot-linux-shell` for CLI inspection/QA,
+- `target/release/dnspilot-native-helper` for native deb/rpm helper contract.
+
 Smoke the native-facing surfaces:
 
 ```sh
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell detect
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell readiness
+apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell publish-check --package flatpak
+apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell publish-check --package deb --network-manager --polkit --system-resolver-probe
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell app-model --package flatpak --lang vi
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell permissions --package snap
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell permissions --package deb --network-manager --polkit --system-resolver-probe
@@ -106,6 +116,7 @@ desktop-file-validate apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop
 
 ```sh
 mkdir -p apps/linux/packaging/snap-payload
+cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui apps/linux/packaging/snap-payload/
 cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell apps/linux/packaging/snap-payload/
 cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop apps/linux/packaging/snap-payload/
 cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.metainfo.xml apps/linux/packaging/snap-payload/
@@ -162,13 +173,21 @@ pkcheck --version
 dnspilot-linux-shell detect
 dnspilot-linux-shell permissions --package deb --network-manager --polkit --system-resolver-probe
 dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --package deb --network-manager --polkit --system-resolver-probe --profile-id local --resolver-family auto
+dnspilot-native-helper --contract
+dnspilot-native-helper --dry-run --stack networkmanager --server 1.1.1.1
+dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
+dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"execute","confirm_system_dns_mutation":true}'
 ```
 
 Expected:
 
 - native apply plan is offered only when NetworkManager or systemd-resolved plus
   polkit are detected,
-- polkit prompt appears before any DNS write,
+- native helper contract/dry-run/request protocol works without writing DNS,
+- execute-mode requests require `confirm_system_dns_mutation: true` plus
+  `--allow-system-dns-mutation`; without the flag they fail before writes,
+- polkit prompt appears before any DNS write when the explicit mutation flag is
+  used,
 - current/system resolver validation can run after apply if supported.
 
 ## rpm Native Power QA
@@ -204,7 +223,8 @@ sudo dnf install ./dnspilot-0.1.0-*.rpm
 
 - The checked-in packaging files are policy templates; real Flatpak/Snap/deb/rpm
   builds still need package-tool validation on Linux.
-- The native UI adapter is represented by app view-model and desktop metadata;
-  GTK/libadwaita or Qt binding remains a separate implementation step.
-- The native power helper contract is implemented as a non-mutating apply plan;
-  resolver write execution is not implemented in this lane.
+- The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
+  still needs package-tool validation on Linux.
+- The native power helper contract includes a non-mutating dry-run lifecycle and
+  an explicit execute mutation gate. Real DNS mutation still requires Linux
+  package QA before it is enabled by default or submitted for release.

@@ -42,12 +42,20 @@ fn snap_manifest_stays_strict_and_avoids_privileged_network_manager_plug() {
 #[test]
 fn native_package_templates_install_polkit_policy_for_dns_apply() {
     let deb = read_packaging_file("packaging/deb/control");
+    let deb_install = read_packaging_file("packaging/deb/dnspilot.install");
     let rpm = read_packaging_file("packaging/rpm/dnspilot-linux.spec");
     let policy = read_packaging_file("packaging/polkit/io.dnspilot.DNSPilot.apply.policy");
 
     assert!(deb.contains("policykit-1") || deb.contains("polkitd"));
     assert!(deb.contains("network-manager") || deb.contains("systemd-resolved"));
+    assert!(deb_install.contains("dnspilot-linux-gui usr/bin/"));
+    assert!(deb_install.contains("dnspilot-linux-shell usr/bin/"));
+    assert!(deb_install.contains("dnspilot-native-helper usr/libexec/dnspilot/"));
+    assert!(deb_install.contains("io.dnspilot.DNSPilot.apply.policy usr/share/polkit-1/actions/"));
     assert!(rpm.contains("Requires: polkit"));
+    assert!(rpm.contains("install -Dm755 dnspilot-linux-gui"));
+    assert!(rpm.contains("%{_bindir}/dnspilot-linux-gui"));
+    assert!(rpm.contains("%{_libexecdir}/dnspilot/dnspilot-native-helper"));
     assert!(rpm.contains("polkit-1/actions/io.dnspilot.DNSPilot.apply.policy"));
     assert!(policy.contains("io.dnspilot.DNSPilot.apply-dns"));
     assert!(policy.contains("<allow_active>auth_admin_keep</allow_active>"));
@@ -60,6 +68,7 @@ fn shared_desktop_metadata_is_localized_and_launchable() {
 
     assert!(desktop.contains("Name=DNS Pilot"));
     assert!(desktop.contains("Comment[vi]="));
+    assert!(desktop.contains("Exec=dnspilot-linux-gui"));
     assert!(desktop.contains("Categories=Network;Utility;"));
     assert!(desktop.contains("Terminal=false"));
     assert!(metainfo.contains("<id>io.dnspilot.DNSPilot</id>"));
@@ -67,4 +76,20 @@ fn shared_desktop_metadata_is_localized_and_launchable() {
         .contains("<launchable type=\"desktop-id\">io.dnspilot.DNSPilot.desktop</launchable>"));
     assert!(metainfo.contains("<content_rating type=\"oars-1.1\" />"));
     assert!(metainfo.contains("xml:lang=\"vi\""));
+}
+
+#[test]
+fn store_package_templates_launch_gui_binary_and_keep_shell_for_qa() {
+    let flatpak = read_packaging_file("packaging/flatpak/io.dnspilot.DNSPilot.yml");
+    let snap = read_packaging_file("packaging/snap/snapcraft.yaml");
+    let cargo = fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
+        .expect("expected Cargo.toml to be readable");
+
+    assert!(cargo.contains("name = \"dnspilot-linux-gui\""));
+    assert!(flatpak.contains("command: dnspilot-linux-gui"));
+    assert!(flatpak.contains("install -Dm755 dnspilot-linux-gui /app/bin/dnspilot-linux-gui"));
+    assert!(flatpak.contains("install -Dm755 dnspilot-linux-shell /app/bin/dnspilot-linux-shell"));
+    assert!(snap.contains("command: bin/dnspilot-linux-gui"));
+    assert!(snap.contains("dnspilot-linux-gui: bin/dnspilot-linux-gui"));
+    assert!(snap.contains("dnspilot-linux-shell: bin/dnspilot-linux-shell"));
 }

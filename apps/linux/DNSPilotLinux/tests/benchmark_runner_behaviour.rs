@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 
 use dnspilot_linux_shell::benchmark::{
-    build_core_cli_command, parse_progress_jsonl, run_benchmark_with_runner, CoreCliCommand,
-    CoreCliProgressStatus, CoreCliRunOutput, CoreCliRunner, LinuxBenchmarkPlan,
-    ProcessCoreCliRunner, ResolverSelection,
+    benchmark_process_for_plan, build_core_cli_command, parse_progress_jsonl,
+    run_benchmark_with_runner, CoreCliCommand, CoreCliProgressStatus, CoreCliRunOutput,
+    CoreCliRunner, LinuxBenchmarkPlan, ProcessCoreCliRunner, ResolverSelection,
 };
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, BenchmarkMode, LinuxEnvironmentProbe, LinuxPackageKind,
@@ -122,6 +122,30 @@ fn system_resolver_plan_builds_system_benchmark_command_without_resolver_specs()
         .args
         .windows(2)
         .any(|args| args == ["--ip-family", "both"]));
+}
+
+#[test]
+fn benchmark_process_preview_builds_idle_rows_from_plan() {
+    let process = benchmark_process_for_plan(&plan(BenchmarkMode::DnsAndTcp));
+
+    assert_eq!(process.mode, BenchmarkMode::DnsAndTcp);
+    assert_eq!(process.resolvers[0].label, "Cloudflare");
+    assert!(process
+        .steps
+        .iter()
+        .all(|step| step.status == ProcessStatus::Idle));
+    assert!(process
+        .resolvers
+        .iter()
+        .all(|resolver| resolver.status == ProcessStatus::Idle));
+
+    let mut system_plan = plan(BenchmarkMode::CurrentSystemResolver);
+    system_plan.resolvers.clear();
+    let system_process = benchmark_process_for_plan(&system_plan);
+
+    assert_eq!(system_process.resolvers.len(), 1);
+    assert_eq!(system_process.resolvers[0].id, "system");
+    assert_eq!(system_process.resolvers[0].label, "Current system resolver");
 }
 
 #[test]

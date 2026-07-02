@@ -41,6 +41,20 @@ pub struct LinuxBenchmarkProcessViewModel {
     pub resolvers: Vec<ResolverProgressViewModel>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProcessRowKind {
+    Step,
+    Resolver,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessRowViewModel {
+    pub kind: ProcessRowKind,
+    pub label: String,
+    pub status: &'static str,
+    pub detail: Option<String>,
+}
+
 impl LinuxBenchmarkProcessViewModel {
     pub fn new(mode: BenchmarkMode, resolvers: Vec<(&str, &str)>) -> Self {
         let steps = steps_for_mode(mode)
@@ -155,6 +169,33 @@ pub fn status_label(status: ProcessStatus) -> &'static str {
         ProcessStatus::Success => "success",
         ProcessStatus::Failed => "failed",
     }
+}
+
+pub fn process_rows(process: &LinuxBenchmarkProcessViewModel) -> Vec<ProcessRowViewModel> {
+    let mut rows: Vec<ProcessRowViewModel> = process
+        .steps
+        .iter()
+        .map(|step| ProcessRowViewModel {
+            kind: ProcessRowKind::Step,
+            label: step.label.clone(),
+            status: status_label(step.status),
+            detail: step.detail.clone(),
+        })
+        .collect();
+
+    rows.extend(
+        process
+            .resolvers
+            .iter()
+            .map(|resolver| ProcessRowViewModel {
+                kind: ProcessRowKind::Resolver,
+                label: resolver.label.clone(),
+                status: status_label(resolver.status),
+                detail: resolver.detail.clone(),
+            }),
+    );
+
+    rows
 }
 
 fn steps_for_mode(mode: BenchmarkMode) -> Vec<ProcessStepId> {
