@@ -14,7 +14,8 @@ Last integration pass: 2026-07-02.
   scripts.
 - Mobile is a store-safe Expo bridge shell for UX and policy validation, not the
   final public-store runtime architecture. It includes System Access recovery,
-  native settings actions, Expo SDK 57, and Android debug build evidence.
+  native settings actions, Expo SDK 57, Android debug build evidence, and
+  recorded iOS Simulator build/install/launch smoke evidence.
 - Linux is code-complete for native app/session logic with an egui desktop
   launcher, helper contract/dry-run protocol, packaging policy templates, and
   package readiness commands; it still needs real package QA.
