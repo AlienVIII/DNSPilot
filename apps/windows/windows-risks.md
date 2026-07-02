@@ -23,4 +23,4 @@
 ## Release Risks
 - Signing, MSIX packaging, and Store capability declarations.
 - Windows App SDK package versions should be rechecked during release hardening.
-- Final Store assets and Partner Center metadata are placeholders until real publisher identity and branding files are supplied.
+- Baseline Store assets and listing/privacy drafts exist; final publisher identity, hosted URLs, signing, and Partner Center metadata still require real account access.

@@ -2,10 +2,12 @@
 
 ## BLUF
 - Store build stays `asInvoker`: no UAC, no silent DNS mutation, no adapter write API.
-- Native permissions are declared in the MSIX package template: `internetClient` plus `runFullTrust` for packaged desktop/WinUI + bundled CLI/tray.
-- Remaining publish work requires a real Windows machine, Microsoft Store/Partner Center access, signing identity, and final assets.
+- Native permissions are declared in the MSIX package manifest/template: `internetClient` plus `runFullTrust` for packaged desktop/WinUI + bundled CLI/tray.
+- Single-project MSIX wiring is present: `Package.appxmanifest`, MSIX launch profile, and `Properties\PublishProfiles\win10-x64.pubxml`.
+- Remaining publish work requires a real Windows machine, Microsoft Store/Partner Center access, signing identity, and final asset approval/branding decision.
 
 ## Microsoft References
+- Single-project MSIX packaging for Windows App SDK apps: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/single-project-msix
 - App capabilities and restricted capability review: https://learn.microsoft.com/en-us/windows/uwp/packaging/app-capability-declarations
 - Localized `.resw`, `x:Uid`, and `ms-resource` manifest strings: https://learn.microsoft.com/en-us/windows/uwp/app-resources/localize-strings-ui-manifest
 - Windows Settings URI list, including `ms-settings:network-advancedsettings`: https://learn.microsoft.com/en-us/windows/apps/develop/launch/launch-settings
@@ -32,10 +34,11 @@ From repo root on Windows:
 
 ```powershell
 cargo build --release -p dnspilot-cli
-Copy-Item target\release\dnspilot-cli.exe apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\dnspilot-cli.exe -Force
 ```
 
-The app project copies `dnspilot-cli.exe` to output when that file exists beside `DNSPilotWindows.App.csproj`.
+`Prepare-WindowsStorePackage.ps1 -CliPath target\release\dnspilot-cli.exe`
+copies the helper beside `DNSPilotWindows.App.csproj`. The app project then
+copies `dnspilot-cli.exe` to output when that file exists.
 
 ## Validate Before Manual QA
 From repo root:
@@ -45,10 +48,10 @@ powershell -ExecutionPolicy Bypass -File apps\windows\Validate-WindowsLane.ps1 -
 ```
 
 Expected:
-- 22 Windows core tests pass.
+- 27 Windows core tests pass.
 - Core solution builds.
 - Store-safe static scan passes.
-- Localization and package template checks pass.
+- Localization, package manifest, MSIX launch profile, and package template checks pass.
 - WinUI solution builds on Windows.
 
 ## Manual Real-Device QA
@@ -56,6 +59,7 @@ Run `apps/windows/windows-qa.md` end to end. Minimum release gate:
 - Launch app without UAC.
 - Confirm English and Vietnamese resource smoke by switching Windows display/app language or by forcing app language during QA if available.
 - Run Quick benchmark.
+- Select a custom resolver profile after adding it and confirm the benchmark command preview uses that profile.
 - Run Validate DNS.
 - Confirm successful benchmark refreshes Apply guidance.
 - Copy DNS servers.
@@ -68,7 +72,7 @@ Run `apps/windows/windows-qa.md` end to end. Minimum release gate:
 - Confirm no silent DNS mutation happened before the manual Windows Settings step.
 
 ## Package Assets
-Create final PNG assets at:
+Baseline PNG assets are already present at:
 
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\StoreLogo.png`
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\Square44x44Logo.png`
@@ -76,17 +80,59 @@ Create final PNG assets at:
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\Wide310x150Logo.png`
 - `apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Assets\SplashScreen.png`
 
-Then copy `Packaging\Package.Store.appxmanifest.template` to the real package manifest used by Visual Studio/MSIX packaging and replace:
-- `Identity Name`
-- `Publisher`
-- `Version`
-- asset paths if branding files differ
+Replace them only if final branding changes. Then copy
+`Packaging\Package.Store.appxmanifest.template` values into top-level
+`Package.appxmanifest` through the preparation script.
+
+## Generate Store Manifest
+From repo root on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps\windows\Prepare-WindowsStorePackage.ps1 `
+  -IdentityName "DNSPilot.Windows.Store" `
+  -Publisher "CN=Contoso LLC" `
+  -Version "1.0.0.0" `
+  -CliPath "target\release\dnspilot-cli.exe"
+```
+
+Replace:
+- `-IdentityName` with the Partner Center package identity if Microsoft assigns a different value.
+- `-Publisher` with the exact Partner Center publisher subject; the sample value is not valid for DNS Pilot.
+- `-Version` with the four-part Store package version.
+- `-CliPath` with the built release helper path.
+
+The script writes:
+
+```text
+apps\windows\DNSPilotWindows\app\DNSPilotWindows.App\Package.appxmanifest
+```
+
+It also copies `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj` when `-CliPath` is supplied.
+
+## Build MSIX Package
+From repo root on Windows after manifest generation:
+
+```powershell
+dotnet build apps\windows\DNSPilotWindows\DNSPilotWindows.WinUI.slnx -c Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true
+```
+
+The app project uses `Properties\PublishProfiles\win10-x64.pubxml`. Signing is
+left disabled in the committed profile so release signing stays an explicit
+Partner Center/certificate gate.
 
 ## Store Submission Notes
-- Include a privacy policy. DNS Pilot sends DNS queries and TCP probes to selected resolvers/domains and stores profile/history data locally.
+- Host `apps/windows/windows-privacy.md` as the public Privacy policy URL before submission.
+- Use `apps/windows/windows-store-listing.md` for listing text, support copy, search terms, and certification notes.
 - In Partner Center, disclose `runFullTrust` and explain the Store-safe boundary.
 - Do not describe the Store build as one-click DNS apply. Correct wording: benchmark, copy guidance, open Windows settings, validate current DNS.
 - Keep Power edition/admin-service wording out of Store screenshots and descriptions unless published as a separate SKU/distribution.
+
+## Partner Center Properties
+- Privacy policy URL: hosted `windows-privacy.md`.
+- Support URL: support site or mail form using the support copy in `windows-store-listing.md`.
+- Website URL: product page or documentation page.
+- Category: Utilities and tools.
+- Restricted capability notes: use the `runFullTrust justification` from `windows-store-listing.md`.
 
 ## Final Publish Gate
 Only publish after all are true:

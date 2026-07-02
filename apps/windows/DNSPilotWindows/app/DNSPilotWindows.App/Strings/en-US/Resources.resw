@@ -120,6 +120,12 @@
   <data name="TcpTargetsBox.Header" xml:space="preserve">
     <value>TCP targets/domain</value>
   </data>
+  <data name="BenchmarkProfilesList.Header" xml:space="preserve">
+    <value>Resolver profiles</value>
+  </data>
+  <data name="BenchmarkProfilesTooltip.Content" xml:space="preserve">
+    <value>Select plain DNS profiles to include in DNS-only or DNS + TCP benchmarks.</value>
+  </data>
   <data name="CommandPreviewHeader.Text" xml:space="preserve">
     <value>Command preview</value>
   </data>
@@ -206,6 +212,15 @@
   </data>
   <data name="DeleteSelectedHistoryText.Text" xml:space="preserve">
     <value>Delete selected</value>
+  </data>
+  <data name="RecommendationReportHeader.Text" xml:space="preserve">
+    <value>Recommendation</value>
+  </data>
+  <data name="RecommendationResolversList.Header" xml:space="preserve">
+    <value>Resolver metrics</value>
+  </data>
+  <data name="RecommendationNotesList.Header" xml:space="preserve">
+    <value>Notes</value>
   </data>
   <data name="DiagnosticsBox.Header" xml:space="preserve">
     <value>Report</value>

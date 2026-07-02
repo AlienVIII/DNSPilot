@@ -126,10 +126,16 @@
                             <NumberBox x:Name="TcpTargetsBox" x:Uid="TcpTargetsBox" Grid.Column="3" Header="TCP targets/domain" Value="4" Minimum="1" ValueChanged="BenchmarkNumber_ValueChanged" />
                         </Grid>
 
+                        <ListView x:Name="BenchmarkProfilesList" x:Uid="BenchmarkProfilesList" Header="Resolver profiles" SelectionMode="Multiple" MaxHeight="140" SelectionChanged="BenchmarkProfiles_SelectionChanged">
+                            <ToolTipService.ToolTip>
+                                <ToolTip x:Uid="BenchmarkProfilesTooltip" Content="Select plain DNS profiles to include in DNS-only or DNS + TCP benchmarks." />
+                            </ToolTipService.ToolTip>
+                        </ListView>
+
                         <TextBlock x:Uid="CommandPreviewHeader" Text="Command preview" FontWeight="SemiBold" />
                         <TextBox x:Name="CommandPreviewBox" IsReadOnly="True" TextWrapping="Wrap" MinHeight="76" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Click="QuickBenchmark_Click">
+                            <Button Click="RunBenchmark_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <SymbolIcon Symbol="Play" />
                                     <TextBlock x:Uid="RunBenchmarkText" Text="Run benchmark" />
@@ -254,6 +260,13 @@
                                         <TextBlock x:Uid="DeleteSelectedHistoryText" Text="Delete selected" />
                                     </StackPanel>
                                 </Button>
+                            </StackPanel>
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Uid="RecommendationReportHeader" Text="Recommendation" FontWeight="SemiBold" />
+                                <TextBlock x:Name="RecommendationSummaryText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="RecommendationLineText" TextWrapping="Wrap" FontSize="16" FontWeight="SemiBold" />
+                                <ListView x:Name="RecommendationResolversList" x:Uid="RecommendationResolversList" Header="Resolver metrics" MaxHeight="140" />
+                                <ListView x:Name="RecommendationNotesList" x:Uid="RecommendationNotesList" Header="Notes" MaxHeight="120" />
                             </StackPanel>
                             <TextBox x:Name="DiagnosticsBox" x:Uid="DiagnosticsBox" Header="Report" IsReadOnly="True" TextWrapping="Wrap" MinHeight="160" />
                             <Button Click="CopyDiagnostics_Click">

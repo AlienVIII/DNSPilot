@@ -3,7 +3,7 @@
 ## BLUF
 - Store-safe scope is coherent: benchmark, copy guidance, Settings handoff, profiles, history, tray actions.
 - The biggest remaining risk is not missing core logic; it is unverified Windows App SDK/MSIX/tray runtime behavior.
-- Native shell localization and Store packaging scaffolding are now present, but real Windows layout/package validation remains mandatory.
+- Native shell localization and single-project MSIX packaging scaffolding are now present, but real Windows layout/package validation remains mandatory.
 - Power edition must stay separate. Do not add admin DNS mutation to this Store lane.
 
 ## Counterarguments
@@ -20,6 +20,7 @@
 ### "Multilingual support may be superficial"
 - Partly mitigated. Native shell labels, headers, buttons, and main tooltips are localized through `.resw` for English and Vietnamese.
 - Dynamic Windows shell text now follows `CurrentUICulture` for progress, validation issues, failure reports, apply checklist, history rows, and tray labels.
+- Structured benchmark recommendation reports also follow `CurrentUICulture` for labels and confidence/health text.
 - Remaining gap: free-text notes/errors returned by the CLI can still be English until CLI payloads expose localized display strings or stable message IDs.
 
 ### "CLI helper discovery can fail"
@@ -27,8 +28,9 @@
 - Release packaging still must guarantee `dnspilot-cli.exe` is bundled beside the app or otherwise accessible.
 
 ### "Recommendation UI is thinner than macOS"
-- Valid. Windows parses benchmark result JSON enough to refresh store-safe apply guidance, but it does not yet render full macOS-style recommendation cards.
-- Current acceptable state: diagnostics, progress rows, resolver rows, copied reports, refreshed DNS servers, and history rows are implemented.
+- Mitigated for this lane. Windows parses benchmark result JSON into a localized recommendation summary surface with selected recommendation, resolver metrics, notes, warnings, saved history ID, and a copyable report, then refreshes store-safe apply guidance.
+- Remaining risk: final spacing/wrapping still needs real WinUI layout QA on Windows.
+- Current acceptable state: diagnostics, recommendation summary, progress rows, resolver rows, copied reports, refreshed DNS servers, and history rows are implemented.
 - Benchmark controls now update command preview/process rows before run, and completed runs keep final resolver status rows visible.
 
 ### "Tray behavior may be Store-sensitive"
@@ -47,8 +49,8 @@
 
 ## Current Evidence
 - `bash apps/windows/validate-windows-lane.sh` runs core tests, core build, store-safe static checks, and a WinUI build probe.
-- Automated tests cover benchmark commands, live control previews, system DNS validation, progress/failure diagnostics, completed resolver statuses, apply guidance, profile/history management, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
-- Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, and bundled CLI copy rule.
+- Automated tests cover benchmark commands, live control previews, custom resolver profile selection, persisted profile merge into benchmark catalog, system DNS validation, progress/failure diagnostics, completed resolver statuses, apply guidance, structured benchmark recommendation reports and UI hooks, profile/history management, built-in profile mutation guards, CLI contract decoders, benchmark result parsing, and CLI executable lookup.
+- Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, top-level `Package.appxmanifest`, MSIX launch/publish profile wiring, Store manifest preparation script, PNG asset dimensions, bundled CLI copy rule, privacy draft, Store listing copy, and certification notes.
 - Store-safe static scan currently finds no DNS mutation or admin-elevation implementation in `apps/windows/DNSPilotWindows`.
 - XML well-formed checks pass for `MainWindow.xaml`, both `.resw` files, and the Store package manifest template.
 

@@ -120,6 +120,12 @@
   <data name="TcpTargetsBox.Header" xml:space="preserve">
     <value>TCP target/domain</value>
   </data>
+  <data name="BenchmarkProfilesList.Header" xml:space="preserve">
+    <value>Hồ sơ resolver</value>
+  </data>
+  <data name="BenchmarkProfilesTooltip.Content" xml:space="preserve">
+    <value>Chọn hồ sơ DNS plain để đưa vào benchmark chỉ DNS hoặc DNS + TCP.</value>
+  </data>
   <data name="CommandPreviewHeader.Text" xml:space="preserve">
     <value>Xem trước lệnh</value>
   </data>
@@ -206,6 +212,15 @@
   </data>
   <data name="DeleteSelectedHistoryText.Text" xml:space="preserve">
     <value>Xóa mục chọn</value>
+  </data>
+  <data name="RecommendationReportHeader.Text" xml:space="preserve">
+    <value>Khuyến nghị</value>
+  </data>
+  <data name="RecommendationResolversList.Header" xml:space="preserve">
+    <value>Chỉ số resolver</value>
+  </data>
+  <data name="RecommendationNotesList.Header" xml:space="preserve">
+    <value>Ghi chú</value>
   </data>
   <data name="DiagnosticsBox.Header" xml:space="preserve">
     <value>Báo cáo</value>

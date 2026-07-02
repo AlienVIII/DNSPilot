@@ -36,6 +36,15 @@ public sealed class WindowsShellViewModel
     public PlatformCapability PowerPlatformCapability { get; }
     public IReadOnlyList<ProfileManagementRow> ProfileRows { get; }
     public IReadOnlyList<BenchmarkHistoryRow> HistoryRows { get; }
+    public IReadOnlyList<BenchmarkProfileOptionRow> BenchmarkProfileOptions =>
+        Catalog.Profiles
+            .Select(profile => new BenchmarkProfileOptionRow(
+                profile.Id,
+                profile.Name,
+                profile.Protocol,
+                CanBenchmark: profile.Protocol == DnsProtocol.Plain && (profile.Ipv4Servers.Count > 0 || profile.Ipv6Servers.Count > 0),
+                Detail: BenchmarkProfileDetail(profile)))
+            .ToArray();
 
     public IReadOnlyList<BenchmarkMode> AvailableBenchmarkModes { get; } = new[]
     {
@@ -71,6 +80,16 @@ public sealed class WindowsShellViewModel
     public BenchmarkPlanViewModel BuildBenchmarkPlan(BenchmarkControlSelection selection)
     {
         return BenchmarkControlPlanFactory.Build(Catalog, selection);
+    }
+
+    public BenchmarkPlanViewModel BuildQuickBenchmarkPlan(BenchmarkControlSelection selection)
+    {
+        return BenchmarkControlPlanFactory.BuildQuickBenchmark(Catalog, selection);
+    }
+
+    public BenchmarkPlanViewModel BuildSystemDnsValidationPlan(BenchmarkControlSelection selection)
+    {
+        return BenchmarkControlPlanFactory.BuildSystemDnsValidation(Catalog, selection);
     }
 
     public static WindowsShellViewModel CreateDefault(string databasePath)
@@ -145,14 +164,15 @@ public sealed class WindowsShellViewModel
         ProfileListPayload profileList,
         BenchmarkHistoryPayload history)
     {
-        var selectedProfiles = catalog.Profiles
+        var benchmarkCatalog = MergeProfilesForBenchmark(catalog, profileList);
+        var selectedProfiles = benchmarkCatalog.Profiles
             .Where(profile => profile.Protocol == DnsProtocol.Plain && profile.Ipv4Servers.Count > 0)
             .Take(3)
             .Select(profile => profile.Id)
             .ToArray();
-        var selectedSuiteId = catalog.TestSuites.FirstOrDefault()?.Id;
+        var selectedSuiteId = benchmarkCatalog.TestSuites.FirstOrDefault()?.Id;
         var benchmarkPlan = new BenchmarkPlanViewModel(
-            catalog,
+            benchmarkCatalog,
             selectedProfiles,
             selectedSuiteId,
             customDomains: Array.Empty<string>(),
@@ -164,7 +184,7 @@ public sealed class WindowsShellViewModel
             resolverAddressFamily: ResolverAddressFamily.Automatic,
             mode: BenchmarkMode.DnsAndTcp);
         var systemDnsValidationPlan = new BenchmarkPlanViewModel(
-            catalog,
+            benchmarkCatalog,
             selectedProfileIds: Array.Empty<string>(),
             selectedSuiteId: selectedSuiteId,
             customDomains: Array.Empty<string>(),
@@ -178,15 +198,15 @@ public sealed class WindowsShellViewModel
 
         return new WindowsShellViewModel(
             databasePath,
-            catalog,
+            benchmarkCatalog,
             benchmarkPlan,
             systemDnsValidationPlan,
             ApplyGuidanceViewModel.FromPlan(applyPlan),
-            TrayQuickActionsViewModel.CreateDefault(catalog),
+            TrayQuickActionsViewModel.CreateDefault(benchmarkCatalog),
             capabilities.RequirePlatform(BenchmarkPlanViewModel.WindowsStorePlatformId),
             capabilities.RequirePlatform("windows-power"),
             new ProfileManagementViewModel(profileList).Rows,
-            new BenchmarkHistoryViewModel(history, catalog).Rows);
+            new BenchmarkHistoryViewModel(history, benchmarkCatalog).Rows);
     }
 
     public WindowsShellViewModel WithApplyPlan(ApplyPlan applyPlan)
@@ -224,6 +244,68 @@ public sealed class WindowsShellViewModel
             Flush: "desktop-admin-service",
             StoreSafe: false,
             Notes: new[] { WindowsCapabilityPolicy.PowerEdition.Notes });
+    }
+
+    private static CatalogSnapshot MergeProfilesForBenchmark(
+        CatalogSnapshot catalog,
+        ProfileListPayload profileList)
+    {
+        var profiles = new List<CatalogProfile>();
+        var indexById = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        void AddOrReplace(CatalogProfile profile)
+        {
+            if (indexById.TryGetValue(profile.Id, out var index))
+            {
+                profiles[index] = profile;
+                return;
+            }
+
+            indexById[profile.Id] = profiles.Count;
+            profiles.Add(profile);
+        }
+
+        foreach (var profile in catalog.Profiles)
+        {
+            AddOrReplace(profile);
+        }
+
+        foreach (var profile in profileList.Profiles)
+        {
+            AddOrReplace(profile);
+        }
+
+        return new CatalogSnapshot(profiles, catalog.TestSuites);
+    }
+
+    private static string BenchmarkProfileDetail(CatalogProfile profile)
+    {
+        var serverCount = profile.Ipv4Servers.Count + profile.Ipv6Servers.Count;
+        var protocol = profile.Protocol == DnsProtocol.Plain
+            ? "plain"
+            : profile.Protocol.ToString().ToLowerInvariant();
+        var source = string.IsNullOrWhiteSpace(profile.UseCase)
+            ? WindowsDisplayText.Text("built-in", "built-in")
+            : profile.UseCase;
+        return WindowsDisplayText.Text(
+            $"{protocol}, {serverCount} server(s), {source}",
+            $"{protocol}, {serverCount} server, {source}");
+    }
+}
+
+public sealed record BenchmarkProfileOptionRow(
+    string Id,
+    string Name,
+    DnsProtocol Protocol,
+    bool CanBenchmark,
+    string Detail)
+{
+    public override string ToString()
+    {
+        var availability = CanBenchmark
+            ? Detail
+            : WindowsDisplayText.Text("not benchmarkable in Store shell", "không benchmark được trong Store shell");
+        return $"{Name} ({Id}) - {availability}";
     }
 }
 

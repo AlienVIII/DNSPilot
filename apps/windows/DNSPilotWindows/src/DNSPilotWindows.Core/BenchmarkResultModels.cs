@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -45,6 +46,171 @@ public sealed record BenchmarkRecommendation(
     string Confidence,
     IReadOnlyList<string> Reasons,
     IReadOnlyList<string> Caveats);
+
+public sealed record BenchmarkResultReportViewModel(
+    string Title,
+    string SummaryLine,
+    string RecommendationLine,
+    IReadOnlyList<string> ResolverLines,
+    IReadOnlyList<string> NoteLines,
+    string CopyableReport)
+{
+    public static BenchmarkResultReportViewModel FromResult(BenchmarkResultPayload result)
+    {
+        var title = WindowsDisplayText.Text("Benchmark result", "Kết quả benchmark");
+        var summaryLine = SummaryLineFor(result.Summary);
+        var recommendationLine = RecommendationLineFor(result);
+        var resolverLines = result.Runs.Select(ResolverLineFor).ToArray();
+        var noteLines = NoteLinesFor(result).ToArray();
+
+        var lines = new List<string>
+        {
+            title,
+            summaryLine,
+        };
+
+        if (!string.IsNullOrWhiteSpace(result.Summary.PrimaryIssue)
+            && !string.Equals(result.Summary.PrimaryIssue, "none", StringComparison.OrdinalIgnoreCase))
+        {
+            lines.Add($"{WindowsDisplayText.Text("Primary issue", "Vấn đề chính")}: {result.Summary.PrimaryIssue}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.Summary.RecommendedProfileId))
+        {
+            lines.Add($"{WindowsDisplayText.Text("Recommended profile", "Hồ sơ khuyến nghị")}: {result.Summary.RecommendedProfileId}");
+        }
+
+        lines.Add(recommendationLine);
+
+        foreach (var reason in result.Recommendation?.Reasons ?? Array.Empty<string>())
+        {
+            lines.Add($"{WindowsDisplayText.Text("Reason", "Lý do")}: {reason}");
+        }
+
+        if (resolverLines.Length > 0)
+        {
+            lines.Add(WindowsDisplayText.Text("Resolvers:", "Resolver:"));
+            lines.AddRange(resolverLines.Select(line => "- " + line));
+        }
+
+        foreach (var note in noteLines)
+        {
+            lines.Add(note);
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.SavedHistoryId))
+        {
+            lines.Add($"{WindowsDisplayText.Text("Saved history", "Lịch sử đã lưu")}: {result.SavedHistoryId}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.Warning))
+        {
+            lines.Add($"{WindowsDisplayText.Text("Warning", "Cảnh báo")}: {result.Warning}");
+        }
+
+        return new BenchmarkResultReportViewModel(
+            title,
+            summaryLine,
+            recommendationLine,
+            resolverLines,
+            noteLines,
+            string.Join(Environment.NewLine, lines));
+    }
+
+    private static string SummaryLineFor(BenchmarkResultSummary summary)
+    {
+        if (WindowsDisplayText.IsVietnamese)
+        {
+            var canRecommend = summary.CanRecommend ? "có" : "không";
+            return $"Phạm vi: {summary.MeasurementScope}; Chế độ: {summary.Mode}; Sức khỏe: {WindowsDisplayText.HealthLabel(summary.Health)}; Có khuyến nghị: {canRecommend}";
+        }
+
+        return $"Scope: {summary.MeasurementScope}; Mode: {summary.Mode}; Health: {summary.Health}; Can recommend: {(summary.CanRecommend ? "yes" : "no")}";
+    }
+
+    private static string RecommendationLineFor(BenchmarkResultPayload result)
+    {
+        if (result.Recommendation is null || !result.Summary.CanRecommend)
+        {
+            return WindowsDisplayText.Text("Recommendation: none", "Khuyến nghị: không có");
+        }
+
+        return WindowsDisplayText.Text(
+            $"Recommendation: {result.Recommendation.ProfileId} ({result.Recommendation.Confidence}, score {FormatNumber(result.Recommendation.Score)})",
+            $"Khuyến nghị: {result.Recommendation.ProfileId} ({ConfidenceLabel(result.Recommendation.Confidence)}, điểm {FormatNumber(result.Recommendation.Score)})");
+    }
+
+    private static string ResolverLineFor(BenchmarkResultRun run)
+    {
+        var metrics = run.Metrics;
+        var parts = new List<string>
+        {
+            $"{WindowsDisplayText.Text("median DNS", "DNS trung vị")} {FormatDuration(metrics.MedianDnsLatencyMs)}",
+            $"{WindowsDisplayText.Text("p95 DNS", "DNS p95")} {FormatDuration(metrics.P95DnsLatencyMs)}",
+        };
+
+        if (metrics.MedianConnectLatencyMs is not null)
+        {
+            parts.Add($"{WindowsDisplayText.Text("connect", "kết nối")} {FormatDuration(metrics.MedianConnectLatencyMs)}");
+        }
+
+        parts.Add($"{WindowsDisplayText.Text("failure", "lỗi")} {FormatPercent(metrics.FailureRate)}");
+        parts.Add($"timeout {FormatPercent(metrics.TimeoutRate)}");
+        parts.Add($"IPv4 {FormatPercent(metrics.Ipv4Health)}");
+        parts.Add($"IPv6 {FormatPercent(metrics.Ipv6Health)}");
+        parts.Add($"{WindowsDisplayText.Text("priority fit", "độ khớp ưu tiên")} {FormatPercent(metrics.PriorityFit)}");
+
+        return $"{run.ProfileId} {run.Resolver} - {string.Join("; ", parts)}";
+    }
+
+    private static IEnumerable<string> NoteLinesFor(BenchmarkResultPayload result)
+    {
+        foreach (var note in result.Summary.SafetyNotes)
+        {
+            yield return $"{WindowsDisplayText.Text("Safety note", "Lưu ý an toàn")}: {note}";
+        }
+
+        foreach (var caveat in result.Recommendation?.Caveats ?? Array.Empty<string>())
+        {
+            yield return $"{WindowsDisplayText.Text("Caveat", "Lưu ý")}: {caveat}";
+        }
+
+        foreach (var run in result.Runs)
+        {
+            foreach (var caveat in run.Caveats)
+            {
+                yield return $"{WindowsDisplayText.Text("Resolver caveat", "Lưu ý resolver")} ({run.ProfileId}): {caveat}";
+            }
+        }
+    }
+
+    private static string ConfidenceLabel(string confidence)
+    {
+        return confidence switch
+        {
+            "high" => WindowsDisplayText.Text("high", "cao"),
+            "medium" => WindowsDisplayText.Text("medium", "trung bình"),
+            "low" => WindowsDisplayText.Text("low", "thấp"),
+            "inconclusive" => WindowsDisplayText.Text("inconclusive", "chưa kết luận"),
+            _ => confidence,
+        };
+    }
+
+    private static string FormatDuration(double? milliseconds)
+    {
+        return milliseconds is null ? "n/a" : $"{FormatNumber(milliseconds.Value)} ms";
+    }
+
+    private static string FormatNumber(double value)
+    {
+        return value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatPercent(double value)
+    {
+        return (value * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+}
 
 public static class BenchmarkResultJsonDecoder
 {

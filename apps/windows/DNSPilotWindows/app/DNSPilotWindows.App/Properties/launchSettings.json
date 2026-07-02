@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DNSPilotWindows.App (MSIX)": {
+      "commandName": "MsixPackage"
+    },
+    "DNSPilotWindows.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -44,12 +44,17 @@ public sealed partial class MainWindow : Window
 
     private async void QuickBenchmark_Click(object sender, RoutedEventArgs e)
     {
+        await StartBenchmarkAsync(ViewModel.BuildQuickBenchmarkPlan(CurrentBenchmarkSelection()));
+    }
+
+    private async void RunBenchmark_Click(object sender, RoutedEventArgs e)
+    {
         await StartBenchmarkAsync(BuildSelectedBenchmarkPlan());
     }
 
     private async void ValidateSystemDns_Click(object sender, RoutedEventArgs e)
     {
-        await StartBenchmarkAsync(ViewModel.SystemDnsValidationPlan);
+        await StartBenchmarkAsync(ViewModel.BuildSystemDnsValidationPlan(CurrentBenchmarkSelection()));
     }
 
     private async void CopyCommand_Click(object sender, RoutedEventArgs e)
@@ -87,6 +92,11 @@ public sealed partial class MainWindow : Window
         RefreshBenchmarkDraft();
     }
 
+    private void BenchmarkProfiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        RefreshBenchmarkDraft();
+    }
+
     private void PreviewProfileSave_Click(object sender, RoutedEventArgs e)
     {
         var form = BuildProfileForm();
@@ -109,18 +119,20 @@ public sealed partial class MainWindow : Window
     private async void UpdateProfile_Click(object sender, RoutedEventArgs e)
     {
         var selected = ProfilesList.SelectedItem as ProfileManagementRow;
-        if (selected is { CanEdit: false })
+        var form = BuildProfileForm();
+        var profileId = selected?.Id ?? ProfileIdOrDefault(form);
+        var validation = ProfileManagementViewModel.ValidateMutation(
+            ViewModel.ProfileRows,
+            ProfileMutationKind.Update,
+            profileId);
+        if (!validation.CanMutate)
         {
             ShowDiagnostics(
                 WindowsDisplayText.Text("Profile update blocked", "Đã chặn cập nhật hồ sơ"),
-                new InvalidOperationException(WindowsDisplayText.Text(
-                    "Built-in profiles cannot be edited from the Store-safe shell.",
-                    "Không thể sửa hồ sơ built-in từ Store-safe shell.")));
+                new InvalidOperationException(string.Join(Environment.NewLine, validation.Issues)));
             return;
         }
 
-        var form = BuildProfileForm();
-        var profileId = selected?.Id ?? ProfileIdOrDefault(form);
         await MutateProfileAsync(WindowsDisplayText.Text("Profile update", "Cập nhật hồ sơ"), runner => runner.Update(ViewModel.DatabasePath, profileId, form));
     }
 
@@ -129,13 +141,15 @@ public sealed partial class MainWindow : Window
         var selected = ProfilesList.SelectedItem as ProfileManagementRow;
         var form = BuildProfileForm();
         var profileId = selected?.Id ?? ProfileIdOrDefault(form);
-        if (selected is { CanDelete: false })
+        var validation = ProfileManagementViewModel.ValidateMutation(
+            ViewModel.ProfileRows,
+            ProfileMutationKind.Delete,
+            profileId);
+        if (!validation.CanMutate)
         {
             ShowDiagnostics(
                 WindowsDisplayText.Text("Profile delete blocked", "Đã chặn xóa hồ sơ"),
-                new InvalidOperationException(WindowsDisplayText.Text(
-                    "Built-in profiles cannot be deleted from the Store-safe shell.",
-                    "Không thể xóa hồ sơ built-in từ Store-safe shell.")));
+                new InvalidOperationException(string.Join(Environment.NewLine, validation.Issues)));
             return;
         }
         await MutateProfileAsync(WindowsDisplayText.Text("Profile delete", "Xóa hồ sơ"), runner => runner.Delete(ViewModel.DatabasePath, profileId));
@@ -218,6 +232,19 @@ public sealed partial class MainWindow : Window
     {
         _progressEvents.Clear();
         CommandPreviewBox.Text = FormatCommand(plan.CommandArguments);
+        if (!plan.Validation.CanRun)
+        {
+            var failure = new BenchmarkExecutionFailure(
+                BenchmarkFailureStep.PreparingBenchmark,
+                string.Join(Environment.NewLine, plan.Validation.Issues),
+                elapsed: TimeSpan.Zero,
+                debugLog: CommandPreviewBox.Text);
+            RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, failure: failure);
+            _lastDiagnostics = failure.CopyableReport(WindowsDisplayText.ModeLabel(plan.Mode));
+            DiagnosticsBox.Text = _lastDiagnostics;
+            return;
+        }
+
         RenderProgress(BenchmarkRunState.Running, plan.Mode, plan.ProgressSummary);
 
         var startedAt = DateTimeOffset.UtcNow;
@@ -241,17 +268,13 @@ public sealed partial class MainWindow : Window
 
             if (result.Succeeded)
             {
+                var benchmarkReport = TryBuildBenchmarkReport(result.StandardOutput);
                 var applyPlanMessage = await TryRefreshApplyGuidanceFromBenchmarkAsync(result.StandardOutput);
                 RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: history is not null);
-                _lastDiagnostics = string.Join(
-                    Environment.NewLine,
-                    WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
-                    $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
-                    applyPlanMessage,
-                    string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim(),
-                    string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
+                RenderRecommendationReport(benchmarkReport);
+                _lastDiagnostics = FormatBenchmarkSuccessDiagnostics(result, applyPlanMessage, benchmarkReport);
                 DiagnosticsBox.Text = _lastDiagnostics;
-                _ = LoadRuntimeContractsAsync();
+                _ = LoadRuntimeContractsAsync(resetDiagnostics: false);
                 return;
             }
 
@@ -273,14 +296,24 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void RenderStaticState()
+    private void RenderStaticState(bool resetDiagnostics = true)
     {
+        var selectedProfileIds = SelectedBenchmarkProfileIds() ?? Array.Empty<string>();
         DnsServersBox.Text = ViewModel.ApplyGuidance.CopyableDnsServers;
         ChecklistBox.Text = ViewModel.ApplyGuidance.CopyableChecklist;
+        var benchmarkProfileOptions = ViewModel.BenchmarkProfileOptions;
+        BenchmarkProfilesList.ItemsSource = benchmarkProfileOptions;
+        SelectBenchmarkProfiles(benchmarkProfileOptions, selectedProfileIds);
         ProfilesList.ItemsSource = ViewModel.ProfileRows;
         HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
             ? Array.Empty<BenchmarkHistoryRow>()
             : ViewModel.HistoryRows;
+
+        if (!resetDiagnostics)
+        {
+            return;
+        }
+
         DiagnosticsBox.Text = string.Join(
             Environment.NewLine,
             WindowsDisplayText.Text("Profile list:", "Danh sách hồ sơ:"),
@@ -295,9 +328,10 @@ public sealed partial class MainWindow : Window
             WindowsDisplayText.Text("Power edition:", "Bản Power:"),
             ViewModel.PowerPlatformCapability.Notes.FirstOrDefault() ?? ViewModel.PowerPolicy.Notes);
         _lastDiagnostics = DiagnosticsBox.Text;
+        RenderRecommendationReport(null);
     }
 
-    private async Task LoadRuntimeContractsAsync()
+    private async Task LoadRuntimeContractsAsync(bool resetDiagnostics = true)
     {
         try
         {
@@ -328,7 +362,7 @@ public sealed partial class MainWindow : Window
             });
 
             ViewModel = loaded;
-            RenderStaticState();
+            RenderStaticState(resetDiagnostics);
             RefreshBenchmarkDraft();
         }
         catch (Exception ex)
@@ -345,7 +379,7 @@ public sealed partial class MainWindow : Window
             var request = BenchmarkApplyPlanRequestFactory.MakeRequest(result);
             var applyPlan = await Task.Run(() => new ApplyPlanRunner(DefaultCliPath()).Load(request));
             ViewModel = ViewModel.WithApplyPlan(applyPlan);
-            RenderStaticState();
+            RenderStaticState(resetDiagnostics: false);
             return result.Summary.CanRecommend
                 ? WindowsDisplayText.Text(
                     $"Apply-plan refreshed for {request.profileId ?? "current DNS"}.",
@@ -357,6 +391,53 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             return WindowsDisplayText.Text("Apply-plan refresh skipped: ", "Bỏ qua cập nhật apply-plan: ") + ex.Message;
+        }
+    }
+
+    private void RenderRecommendationReport(BenchmarkResultReportViewModel? report)
+    {
+        if (report is null)
+        {
+            RecommendationSummaryText.Text = WindowsDisplayText.Text(
+                "Run a benchmark to populate recommendation diagnostics.",
+                "Chạy benchmark để hiển thị chẩn đoán khuyến nghị.");
+            RecommendationLineText.Text = "";
+            RecommendationResolversList.ItemsSource = Array.Empty<string>();
+            RecommendationNotesList.ItemsSource = Array.Empty<string>();
+            return;
+        }
+
+        RecommendationSummaryText.Text = report.SummaryLine;
+        RecommendationLineText.Text = report.RecommendationLine;
+        RecommendationResolversList.ItemsSource = report.ResolverLines;
+        RecommendationNotesList.ItemsSource = report.NoteLines;
+    }
+
+    private static string FormatBenchmarkSuccessDiagnostics(
+        BenchmarkRunResult result,
+        string applyPlanMessage,
+        BenchmarkResultReportViewModel? benchmarkReport)
+    {
+        return string.Join(
+            Environment.NewLine,
+            WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
+            $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
+            applyPlanMessage,
+            benchmarkReport?.CopyableReport
+                ?? (string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim()),
+            string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
+    }
+
+    private static BenchmarkResultReportViewModel? TryBuildBenchmarkReport(string standardOutput)
+    {
+        try
+        {
+            return BenchmarkResultReportViewModel
+                .FromResult(BenchmarkResultJsonDecoder.Decode(standardOutput));
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -436,7 +517,43 @@ public sealed partial class MainWindow : Window
             SafeNumberValue(AttemptsBox, 2),
             SafeNumberValue(DnsTimeoutBox, 800),
             SafeNumberValue(TcpTimeoutBox, 1_000),
-            SafeNumberValue(TcpTargetsBox, 4));
+            SafeNumberValue(TcpTargetsBox, 4),
+            SelectedBenchmarkProfileIds());
+    }
+
+    private IReadOnlyList<string>? SelectedBenchmarkProfileIds()
+    {
+        if (BenchmarkProfilesList is null)
+        {
+            return null;
+        }
+
+        return BenchmarkProfilesList.SelectedItems
+            .OfType<BenchmarkProfileOptionRow>()
+            .Where(row => row.CanBenchmark)
+            .Select(row => row.Id)
+            .ToArray();
+    }
+
+    private void SelectBenchmarkProfiles(
+        IReadOnlyList<BenchmarkProfileOptionRow> options,
+        IReadOnlyList<string> preferredProfileIds)
+    {
+        if (BenchmarkProfilesList is null)
+        {
+            return;
+        }
+
+        var selection = preferredProfileIds.Count == 0
+            ? options.Where(option => option.CanBenchmark).Take(3).Select(option => option.Id).ToArray()
+            : preferredProfileIds;
+        var selectedIds = selection.ToHashSet(StringComparer.Ordinal);
+
+        BenchmarkProfilesList.SelectedItems.Clear();
+        foreach (var option in options.Where(option => option.CanBenchmark && selectedIds.Contains(option.Id)))
+        {
+            BenchmarkProfilesList.SelectedItems.Add(option);
+        }
     }
 
     private void RefreshBenchmarkDraft()

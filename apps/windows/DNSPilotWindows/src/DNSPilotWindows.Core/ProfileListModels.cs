@@ -63,6 +63,17 @@ public sealed record ProfileManagementRow(
     }
 }
 
+public enum ProfileMutationKind
+{
+    Update,
+    Delete,
+}
+
+public sealed record ProfileMutationValidation(IReadOnlyList<string> Issues)
+{
+    public bool CanMutate => Issues.Count == 0;
+}
+
 public sealed class ProfileManagementViewModel
 {
     public ProfileManagementViewModel(ProfileListPayload payload)
@@ -82,6 +93,57 @@ public sealed class ProfileManagementViewModel
     }
 
     public IReadOnlyList<ProfileManagementRow> Rows { get; }
+
+    public ProfileMutationValidation ValidateMutation(ProfileMutationKind kind, string profileId)
+    {
+        return ValidateMutation(Rows, kind, profileId);
+    }
+
+    public static ProfileMutationValidation ValidateMutation(
+        IReadOnlyList<ProfileManagementRow> rows,
+        ProfileMutationKind kind,
+        string profileId)
+    {
+        var normalizedId = profileId.Trim();
+        if (normalizedId.Length == 0)
+        {
+            return new ProfileMutationValidation(new[]
+            {
+                WindowsDisplayText.Text("Profile ID is required.", "Profile ID là bắt buộc."),
+            });
+        }
+
+        var row = rows.FirstOrDefault(row => string.Equals(row.Id, normalizedId, StringComparison.Ordinal));
+        if (row is null)
+        {
+            return new ProfileMutationValidation(new[]
+            {
+                WindowsDisplayText.Text($"Profile not found: {normalizedId}", $"Không tìm thấy hồ sơ: {normalizedId}"),
+            });
+        }
+
+        if (kind == ProfileMutationKind.Update && !row.CanEdit)
+        {
+            return new ProfileMutationValidation(new[]
+            {
+                WindowsDisplayText.Text(
+                    "Built-in profiles cannot be updated from the Store-safe shell.",
+                    "Không thể cập nhật hồ sơ built-in từ Store-safe shell."),
+            });
+        }
+
+        if (kind == ProfileMutationKind.Delete && !row.CanDelete)
+        {
+            return new ProfileMutationValidation(new[]
+            {
+                WindowsDisplayText.Text(
+                    "Built-in profiles cannot be deleted from the Store-safe shell.",
+                    "Không thể xóa hồ sơ built-in từ Store-safe shell."),
+            });
+        }
+
+        return new ProfileMutationValidation(Array.Empty<string>());
+    }
 }
 
 public sealed class CustomDnsProfileRunner
