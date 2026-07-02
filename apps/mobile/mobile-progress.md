@@ -36,6 +36,8 @@ surface. It is not yet the final public-store architecture.
   app is on Expo SDK 57 / React Native 0.86 and carries a narrow
   `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26. iOS
   Simulator build/install/launch is smoke-tested on an iOS 26.5 simulator.
+- Native system appearance metadata is backed by `expo-system-ui`, so Expo
+  prebuild no longer warns about `userInterfaceStyle`.
 - EAS development builds include `expo-dev-client`; the local real-device
   command is `npm run start:dev-client`.
 - Production/preview EAS profiles exclude dev-client/dev-menu autolinking, and

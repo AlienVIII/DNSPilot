@@ -19,6 +19,8 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
   and preview profile config excludes dev-client/dev-menu autolinking before
   release manifests are generated. Expo Go is still usable for bridge-only UI
   testing.
+- `expo-system-ui` backs native automatic light/dark appearance metadata during
+  prebuild.
 - First-open System Access sheet checks Local Network/network access, OS-gated
   DNS apply, and DNS flush limitations. It opens App Settings, Android Private
   DNS/network Settings, and System DNS retest without silently mutating DNS.
