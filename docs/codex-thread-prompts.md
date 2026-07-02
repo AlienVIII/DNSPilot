@@ -21,6 +21,9 @@ Before stopping:
 - If one scope blocks on manual work, switch to another non-manual scope in the
   same lane or update docs/tests/tooling until no useful local work remains.
 - End only with exact manual steps and evidence for everything already done.
+- Instruction hygiene: actual platform paths are `apps/<os>/**`. Treat stale
+  source-tree app paths, bracket-placeholder app paths, or review-branch
+  instructions as wrong unless the repo tree proves otherwise.
 
 ## Current Branches And Paths
 
@@ -43,7 +46,7 @@ Start each lane by fetching and fast-forwarding from `origin/main` or local
 - `docs/progress.md`
 - `docs/integration-plan.md`
 - `docs/core-cli-backlog.md`
-- Lane progress/readiness/publish docs under `apps/<lane>/**`
+- Lane progress/readiness/publish docs under `apps/<os>/**`
 - Target source files and package manifests only after the docs above
 
 ## Core CLI Prompt
@@ -71,15 +74,16 @@ Read first:
 - crates/dnspilot-cli/Cargo.toml
 
 Priority:
-1. Stabilize and document progress JSONL across compare, path-compare, and
-   system-benchmark.
-2. Make system-benchmark output UI-compatible with the app result decoders:
-   summary, runs, recommendation null, platform/preflight metadata, failure
-   step/reason, and optional history/progress support when feasible.
-3. Add locale-neutral message IDs or structured issue fields for notes/errors
-   that platforms currently localize manually.
-4. Add platform flush/settings guidance payloads only when they reduce duplicated
-   platform logic.
+1. Add locale-neutral message IDs or structured issue fields for notes/errors,
+   caveats, safety notes, and guidance that platforms currently localize
+   manually.
+2. Document and harden one progress JSONL schema across compare, path-compare,
+   and system-benchmark without reopening the resolved system-benchmark UI
+   parity request.
+3. Add platform flush/settings guidance payloads only when they reduce duplicated
+   platform logic or policy inconsistency.
+4. Decide whether Linux package/resolver/polkit capability detection should stay
+   lane-local or move into Core CLI as a structured probe.
 5. Keep power/admin apply as a plan/contract until a lane has a real helper.
 
 Rules:
@@ -125,15 +129,18 @@ Read first:
 - apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/**
 
 Next work:
-1. Remove any remaining duplicated UI policy that should come from `apply-plan`,
+1. Extend local release preflight/smoke coverage around privacy manifest,
+   support/privacy copy, signed-bundle readiness fakes, and Store-safe vs Power
+   bundle mode without requiring certificates.
+2. Remove any remaining duplicated UI policy that should come from `apply-plan`,
    `preflight`, `capabilities`, or future Core CLI structured issue fields.
-2. Add mocks/fakes for signed bundle, entitlement, and App Store metadata checks
-   so publish/readiness UI can be tested without real certificates.
-3. Improve manual QA harnesses for guided apply, restore DNS, System DNS
+3. Add mocks/fakes for signed bundle, entitlement, App Store metadata, and
+   Direct Admin availability checks so readiness UI can be tested locally.
+4. Improve manual QA harnesses for guided apply, restore DNS, System DNS
    validation, Game Ping, and Power edition toggles without mutating system DNS.
-4. Update `apps/macos/macos-core-cli-request.md` when a shared contract is
+5. Update `apps/macos/macos-core-cli-request.md` only when a shared contract is
    missing; update `docs/core-cli-backlog.md` if the request affects other lanes.
-5. If signing or App Store Connect blocks progress, switch to local tests,
+6. If signing or App Store Connect blocks progress, switch to local tests,
    preview fixtures, packaging scripts, or docs.
 
 Rules:
@@ -179,17 +186,20 @@ Read first:
 - apps/mobile/DNSPilotMobile/server/dev-server.mjs
 
 Next work:
-1. Add mocked bridge fixtures for catalog, capabilities, benchmark progress,
-   apply-plan, profile/history storage, and bridge failures so mobile UI can be
-   tested without a live Rust process.
-2. Expand tests for device setup, LAN URL validation, protected-network
-   suppression, and localized guidance.
+1. Add or extend mocked bridge fixtures for catalog, capabilities, benchmark
+   progress, apply-plan, profile/history storage, system-access failures,
+   native settings actions, and bridge failures so mobile UI can be tested
+   without a live Rust process or physical device.
+2. Expand tests for System Access recovery, device setup, LAN URL validation,
+   protected-network suppression, localized guidance, and settings URL/action
+   failure states.
 3. Build a release-runtime decision doc: direct Rust native module, backend
    bridge, SwiftUI/Kotlin split shells, or stay as developer companion only.
 4. Update `apps/mobile/mobile-core-cli-request.md` for compact progress events,
-   structured mobile capability payloads, or native binding constraints.
-5. If real-device testing blocks, continue with emulator-safe mocks, export/web
-   build checks, and form/state tests.
+   structured issue/message IDs, mobile capability payloads, or native binding
+   constraints.
+5. Run export/web/build checks that do not need a physical device; if real-device
+   testing blocks, continue with emulator-safe mocks and form/state tests.
 
 Rules:
 - Do not promise iOS plain system DNS switching or Android silent DNS mutation.
@@ -236,17 +246,21 @@ Read first:
 - apps/linux/DNSPilotLinux/src/**
 
 Next work:
-1. Choose and document the first GUI adapter path: GTK/libadwaita or Qt. If the
-   toolkit is not installed, mock the adapter boundary and keep app/session tests
-   moving.
+1. Continue from the existing egui desktop launcher: add mocked GUI/app-session
+   flows for package capability states, benchmark progress/failure, profile
+   persistence, guided settings, and diagnostics-only fallbacks.
 2. Add tests/fixtures for Flatpak, Snap, deb, rpm, NetworkManager,
-   systemd-resolved, polkit present/missing, and diagnostics-only fallbacks.
+   systemd-resolved, polkit present/missing, native helper dry-run, and blocked
+   mutation gates.
 3. Expand packaging validation scripts that can run locally without publishing:
-   manifest parsing, appstream/desktop metadata checks when tools exist, and
-   graceful skips when tools are absent.
-4. Keep real DNS writes behind native-power helper contracts only.
+   manifest parsing, appstream/desktop metadata checks when tools exist, helper
+   install path checks, polkit policy checks, and graceful skips when tools are
+   absent.
+4. Keep real DNS writes behind native-power helper contracts and explicit
+   `--allow-system-dns-mutation` only.
 5. Update `apps/linux/linux-core-cli-request.md` and `docs/core-cli-backlog.md`
-   if capability detection or apply-plan contracts should move into Core CLI.
+   only if capability detection or apply-plan contracts should move into Core
+   CLI instead of staying lane-local.
 6. If real distro package build blocks, switch to tests, static validators,
    fixtures, or docs.
 
@@ -293,16 +307,19 @@ Read first:
 - apps/windows/DNSPilotWindows/DNSPilotWindows.slnx
 
 Next work:
-1. Expand core/view-model tests for WinUI-facing state: launch hydration,
+1. Expand package/static validation around Store assets, top-level
+   `Package.appxmanifest`, publish profiles, bundled CLI locator, privacy/listing
+   docs, and `Prepare-WindowsStorePackage.ps1`.
+2. Expand core/view-model tests for WinUI-facing state: launch hydration,
    benchmark result to apply guidance, profile/history edit/delete protection,
    tray quick actions, and localized dynamic strings.
-2. Add mocked `dnspilot-cli.exe` discovery/bundling fixtures so packaging logic
+3. Add mocked `dnspilot-cli.exe` discovery/bundling fixtures so packaging logic
    can be validated without Windows.
-3. Strengthen store-safe static scans for admin/DNS mutation tokens, UAC,
+4. Strengthen store-safe static scans for admin/DNS mutation tokens, UAC,
    registry/service writes, and accidental Power path leakage.
-4. Update `apps/windows/windows-core-cli-request.md` for stable message IDs,
+5. Update `apps/windows/windows-core-cli-request.md` for stable message IDs,
    settings action metadata, or power-service plan contracts.
-5. If Windows App SDK runtime blocks on macOS, keep working on core tests,
+6. If Windows App SDK runtime blocks on macOS, keep working on core tests,
    project files, manifest validation, publish docs, and PowerShell scripts.
 
 Rules:

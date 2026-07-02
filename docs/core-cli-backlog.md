@@ -1,12 +1,14 @@
 # Core CLI Backlog
 
-Last reviewed: 2026-06-30.
+Last reviewed: 2026-07-02.
 
 Core CLI already provides the main shared contracts used by platform lanes:
 catalog, capabilities, compare, path-compare, system-benchmark, preflight,
 apply-policy, apply-plan, profile storage, suite storage, history, and progress
 JSONL for direct resolver and system-DNS validation flows. Do not duplicate
 those behaviors in platform UI unless a lane doc records a temporary adapter.
+Do not reopen the old system-benchmark UI-parity request; it is resolved for
+v0.1 unless a lane records a new schema gap with failing evidence.
 
 ## Priority Requests
 
@@ -16,8 +18,8 @@ those behaviors in platform UI unless a lane doc records a temporary adapter.
    - Platforms should localize from stable IDs instead of parsing English text.
 
 2. **Progress event contract hardening**
-   - Stabilize one progress JSONL schema across DNS-only, DNS+TCP, TLS-enabled
-     path checks, and future system-DNS validation.
+   - Stabilize one documented progress JSONL schema across DNS-only, DNS+TCP,
+     TLS-enabled path checks, and system-DNS validation.
    - Include resolver ID, step, status, elapsed time, failure kind, and safe
      human/debug summaries.
 
@@ -33,6 +35,12 @@ those behaviors in platform UI unless a lane doc records a temporary adapter.
      has a real helper implementation.
    - Model macOS Power, Windows Power, and Linux deb/rpm Power separately from
      store-safe SKUs.
+
+5. **Linux capability ownership decision**
+   - Decide whether package/resolver/polkit capability detection stays in the
+     Linux lane or becomes a Core CLI structured probe.
+   - Move it into Core only if multiple lanes or CLI workflows need the same
+     payload; otherwise keep Linux-specific distro detail app-side.
 
 ## Resolved For v0.1
 
@@ -50,6 +58,8 @@ those behaviors in platform UI unless a lane doc records a temporary adapter.
 - System-DNS validation parity is available; macOS keeps only a backward
   compatibility adapter for legacy payloads.
 - Keep Power edition explicit and gated by bundle/env metadata.
+- Next shared need, if any, is structured issue/message IDs for release UI and
+  preflight copy. No open v0.1 blocker.
 
 ### Mobile
 
@@ -60,6 +70,8 @@ those behaviors in platform UI unless a lane doc records a temporary adapter.
   silent DNS mutation.
 - If native bindings become the chosen release path, document which CLI/core
   functions must be exposed through FFI/native modules.
+- Stable issue/message IDs would let mobile localize system-access and bridge
+  failures without parsing English text.
 
 ### Linux
 
@@ -68,6 +80,8 @@ those behaviors in platform UI unless a lane doc records a temporary adapter.
 - If moved into Core CLI, model Flatpak, Snap, deb, rpm, NetworkManager,
   systemd-resolved, polkit present/missing, and diagnostics-only states.
 - Keep store/sandbox guidance separate from deb/rpm native-power apply plans.
+- Keep the current native helper protocol lane-local until a second consumer
+  needs a shared Core CLI contract.
 
 ### Windows
 
