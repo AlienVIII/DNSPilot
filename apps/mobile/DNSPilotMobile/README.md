@@ -91,8 +91,9 @@ npx expo prebuild --platform android --no-install
 ```
 
 The iOS Simulator command requires a Simulator runtime matching the selected
-Xcode SDK. With Xcode 26.6, install the iOS 26.5 Simulator runtime from Xcode >
-Settings > Components before rerunning the iOS smoke command.
+Xcode SDK. With Xcode 26.6, use an iOS 26.5 Simulator such as `iPhone 17e`.
+If another process owns Metro port 8081, build with `--no-bundler`, then run
+`npm run start:dev-client` on port 8082 for JS app smoke.
 
 ## Real Device Notes
 

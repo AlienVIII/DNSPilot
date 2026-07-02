@@ -4,9 +4,9 @@
 - App config is prepared for native builds: `ios.bundleIdentifier`,
   `android.package`, version codes, EAS profiles, iOS Local Network usage text,
   Android normal network permissions, and EN/VI locale metadata.
-- Local Android debug smoke passes. iOS Simulator smoke is blocked in the current
-  local environment until the iOS 26.5 Simulator runtime is installed for Xcode
-  26.6. The app is on Expo SDK 57 / React Native 0.86 and carries a narrow
+- Local Android debug smoke passes. iOS Simulator build/install/launch smoke
+  passes with Xcode 26.6 and an iOS 26.5 runtime. The app is on Expo SDK 57 /
+  React Native 0.86 and carries a narrow
   `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26.
 - EAS development builds include `expo-dev-client`; use `npm run
   start:dev-client` after installing the build on a device.
@@ -69,7 +69,7 @@
    npm run postinstall
    npx expo-doctor@latest
    npx expo install --check
-   npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache
+   npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache
    npx expo prebuild --platform android --no-install
    ./android/gradlew -p android assembleDebug
    ```
@@ -112,9 +112,8 @@
 
 ## Remaining Manual Blockers
 - iOS-only: Apple signing/provisioning, App Store Connect setup, Local Network
-  prompt validation, local iOS 26.5 Simulator runtime installation for Xcode
-  26.6 smoke, and NetworkExtension DNS Settings entitlement only if a future
-  native DNS profile installer is added and approved.
+  prompt validation, and NetworkExtension DNS Settings entitlement only if a
+  future native DNS profile installer is added and approved.
 - Android-only: Play Console app/service account, first manual upload if Play
   API requires it, and manual Private DNS settings validation.
 - Both: real-device install/test and final store copy review.
