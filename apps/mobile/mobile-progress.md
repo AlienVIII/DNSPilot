@@ -5,8 +5,9 @@
 The mobile lane meets the current test-shell requirement: it validates DNSPilot
 UX, bridge contracts, mobile policy limits, guided settings, localization, and
 device setup flows. Android debug builds compile on SDK 57, and iOS Simulator
-build/install/launch smoke now passes with Xcode 26.6 + iOS 26.5 runtime. It is
-not yet the final public-store architecture.
+build/install/launch smoke now passes with Xcode 26.6 + iOS 26.5 runtime.
+Android production manifest generation now strips dev-client/dev-only release
+surface. It is not yet the final public-store architecture.
 
 ## Requirement Coverage
 
@@ -37,6 +38,9 @@ not yet the final public-store architecture.
   Simulator build/install/launch is smoke-tested on an iOS 26.5 simulator.
 - EAS development builds include `expo-dev-client`; the local real-device
   command is `npm run start:dev-client`.
+- Production/preview EAS profiles exclude dev-client/dev-menu autolinking, and
+  Android release manifests are checked to keep dev-only overlay/storage/vibrate
+  permissions and VPN/system-DNS mutation permissions out of store builds.
 
 ## Validation
 
@@ -51,8 +55,14 @@ not yet the final public-store architecture.
   build pass. The app was installed/launched with `simctl`, then loaded through
   `npm run start:dev-client` on port 8082; screenshot confirmed the first-open
   System Access sheet.
+- `npx expo prebuild --clean --platform ios` plus direct `xcodebuild`
+  Simulator build on `iPhone 17e` with iOS 26.5: pass after production
+  autolinking guards were added.
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:
   pass with SDK 36/JDK 17.
+- `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install && EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest`:
+  pass; release manifest grep has no `expo-dev`, dev menu/launcher,
+  overlay/storage/vibrate, VPN, or system-DNS mutation permission matches.
 
 ## Remaining Gates
 

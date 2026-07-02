@@ -39,7 +39,7 @@
     "start:dev-client": "expo start --dev-client --lan --port 8082",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --test server/*.test.mjs src/view-models/*.test.mjs",
+    "test": "node --test server/*.test.mjs src/view-models/*.test.mjs plugins/*.test.mjs",
     "postinstall": "patch-package",
     "verify": "npm test && npm run typecheck && npx expo config --type public && npx expo export --platform web && npx expo install --check && npm audit --omit=dev --audit-level=high"
   },

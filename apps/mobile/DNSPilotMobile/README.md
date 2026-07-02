@@ -9,13 +9,16 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
 - Rust remains source of truth through `cargo run -p dnspilot-cli`.
 - Dev SQLite lives at `.dnspilot/dnspilot.sqlite`.
 - English/Vietnamese UI via `expo-localization`.
-- Native build metadata is configured in `app.json`; EAS profiles are in
-  `eas.json`.
+- Native build metadata starts from `app.json`; `app.config.cjs` filters
+  development-only plugins for production/preview EAS profiles. EAS profiles
+  are in `eas.json`.
 - `patch-package` applies a narrow Expo SDK 57 `expo-modules-jsi` Swift
   compatibility fix required for Xcode 26 Simulator builds. Remove it after Expo
   ships the upstream fix.
-- `expo-dev-client` is included for installable development builds; Expo Go is
-  still usable for bridge-only UI testing.
+- `expo-dev-client` is included for installable development builds. Production
+  and preview profile config excludes dev-client/dev-menu autolinking before
+  release manifests are generated. Expo Go is still usable for bridge-only UI
+  testing.
 - First-open System Access sheet checks Local Network/network access, OS-gated
   DNS apply, and DNS flush limitations. It opens App Settings, Android Private
   DNS/network Settings, and System DNS retest without silently mutating DNS.
@@ -89,6 +92,18 @@ npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler 
 npx expo prebuild --platform android --no-install
 ./android/gradlew -p android assembleDebug
 ```
+
+Production Android release-surface check:
+
+```bash
+EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install
+EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest
+rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true
+```
+
+The final `rg` command should print no matches. Re-run the default development
+prebuild before local dev-client Android work if the ignored native project was
+last generated with a production profile.
 
 The iOS Simulator command requires a Simulator runtime matching the selected
 Xcode SDK. With Xcode 26.6, use an iOS 26.5 Simulator such as `iPhone 17e`.

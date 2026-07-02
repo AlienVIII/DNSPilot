@@ -9,7 +9,12 @@
   React Native 0.86 and carries a narrow
   `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26.
 - EAS development builds include `expo-dev-client`; use `npm run
-  start:dev-client` after installing the build on a device.
+  start:dev-client` after installing the build on a device. Production/preview
+  profiles exclude dev-client/dev-menu modules during Expo config and native
+  autolinking.
+- Android production release manifest generation is clean of dev-client,
+  dev-launcher/menu classes, dev-only overlay/storage/vibrate permissions, VPN
+  permissions, and silent system-DNS mutation permissions.
 - The app remains store-safe: no iOS plain system DNS switch, no Android silent
   Private DNS mutation, no Android `VpnService`, and no "apply fastest DNS" or
   internet speed claim.
@@ -70,9 +75,15 @@
    npx expo-doctor@latest
    npx expo install --check
    npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache
+   npx expo prebuild --clean --platform ios
+   xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build
    npx expo prebuild --platform android --no-install
    ./android/gradlew -p android assembleDebug
+   EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install
+   EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest
+   rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true
    ```
+   The final `rg` command should print no matches.
 2. Install and login:
    ```bash
    npm install --global eas-cli
