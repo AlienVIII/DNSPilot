@@ -3,6 +3,10 @@
 ## Product
 - Benchmark modes are clear and scoped.
 - Failure states show step, reason, elapsed time, and logs.
+- Primary app copy is concise: title/status/action first, details behind info,
+  tooltip, tutorial, or copy report.
+- First-run tutorial exists per platform, with a visible top-right Help/Info
+  affordance to reopen it.
 - Apply guidance is store-safe and does not imply silent DNS mutation.
 - Protected network safeguards are visible.
 - Fastest observed DNS is not presented as the same thing as the balanced/safe
@@ -34,6 +38,10 @@
 ## Platform
 - Capability matrix reviewed per OS.
 - Store policy risks documented.
+- OS provider trust checklist reviewed:
+  `docs/os-provider-trust.md`.
+- UX copy/onboarding contract reviewed:
+  `docs/ux-copy-onboarding.md`.
 - Power-edition features excluded from store builds.
 - Mobile real-device bridge/native-adapter behavior validated before mobile
   release claims.

@@ -72,23 +72,28 @@ export function AdaptiveColumns({ children }: { children: React.ReactNode }) {
 export function Section({
   title,
   subtitle,
+  action,
   children,
 }: {
   title: string;
   subtitle?: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text selectable style={styles.sectionTitle}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text selectable style={styles.sectionSubtitle}>
-            {subtitle}
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionHeader}>
+          <Text selectable style={styles.sectionTitle}>
+            {title}
           </Text>
-        ) : null}
+          {subtitle ? (
+            <Text selectable style={styles.sectionSubtitle}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {action ? <View style={styles.sectionAction}>{action}</View> : null}
       </View>
       {children}
     </View>
@@ -143,6 +148,24 @@ export function Button({
       ]}>
       {loading ? <ActivityIndicator color={variant === 'primary' ? '#fff' : palette.blue} /> : null}
       <Text style={[styles.buttonText, variant === 'primary' ? styles.buttonTextPrimary : null]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function HelpButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.helpButton, pressed ? styles.buttonPressed : null]}>
+      <Text style={styles.helpButtonText}>?</Text>
     </Pressable>
   );
 }
@@ -342,7 +365,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionHeader: {
+    flex: 1,
     gap: 3,
+  },
+  sectionHeaderRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  sectionAction: {
+    alignItems: 'flex-end',
+    paddingTop: 2,
   },
   sectionTitle: {
     color: palette.text,
@@ -402,6 +436,22 @@ const styles = StyleSheet.create({
   },
   buttonTextPrimary: {
     color: '#fff',
+  },
+  helpButton: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  helpButtonText: {
+    color: palette.blue,
+    fontSize: 18,
+    fontWeight: '900',
+    lineHeight: 22,
   },
   field: {
     flexGrow: 1,

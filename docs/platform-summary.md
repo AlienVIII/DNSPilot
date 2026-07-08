@@ -30,6 +30,12 @@ integration so future lane work starts from the same context.
 
 - Default SKU is store-safe: benchmark, explain, copy guidance, settings handoff,
   and retest. Do not silently mutate system DNS in store builds.
+- UI copy is concise by default: title/status/action inline, long explanation
+  behind info/tooltip/tutorial/copy report.
+- Each app has a first-run setup/tutorial surface and a top-right Help/Info
+  affordance to reopen it.
+- OS provider trust and signing gates are tracked in
+  `docs/os-provider-trust.md`; do not ask users to disable OS protections.
 - Power/admin DNS mutation stays explicitly gated per platform and separated
   from store-safe UX.
 - Every shell should expose the exact capability for its OS/package type rather

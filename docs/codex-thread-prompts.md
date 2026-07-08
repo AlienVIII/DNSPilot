@@ -16,6 +16,10 @@ Before stopping:
 - Use existing CLI/core contracts before writing platform-local logic.
 - Mock external/manual dependencies when that lets UI, state, packaging checks,
   or tests move forward.
+- Keep normal UI copy short. Put detail behind info icons, tooltips, tutorials,
+  or copyable reports. Follow `docs/ux-copy-onboarding.md`.
+- Put OS provider account/signing/trust gates in `docs/os-provider-trust.md`
+  instead of repeating manual release steps in chat.
 - When core support is missing, update the lane request file and
   `docs/core-cli-backlog.md`.
 - If one scope blocks on manual work, switch to another non-manual scope in the
@@ -46,6 +50,8 @@ Start each lane by fetching and fast-forwarding from `origin/main` or local
 - `docs/progress.md`
 - `docs/integration-plan.md`
 - `docs/core-cli-backlog.md`
+- `docs/os-provider-trust.md`
+- `docs/ux-copy-onboarding.md`
 - Lane progress/readiness/publish docs under `apps/<os>/**`
 - Target source files and package manifests only after the docs above
 
