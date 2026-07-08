@@ -267,10 +267,27 @@ fn run_app_model(args: impl IntoIterator<Item = String>) -> Result<String, CliEr
 }
 
 fn run_publish_check(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
-    let config = SurfaceConfig::parse(args)?;
-    let capability = capability_view_model(config.to_probe());
-    let check = publish_check(&capability, config.language);
-    Ok(render_publish_check(&check))
+    let config = PublishCheckConfig::parse(args)?;
+    match config.package_selection {
+        PublishPackageSelection::One(package_kind) => {
+            let capability = capability_view_model(config.to_probe(package_kind));
+            let check = publish_check(&capability, config.language);
+            Ok(render_publish_check(&check))
+        }
+        PublishPackageSelection::All => Ok([
+            LinuxPackageKind::Flatpak,
+            LinuxPackageKind::Snap,
+            LinuxPackageKind::Deb,
+            LinuxPackageKind::Rpm,
+        ]
+        .into_iter()
+        .map(|package_kind| {
+            let capability = capability_view_model(config.to_probe(package_kind));
+            render_publish_check(&publish_check(&capability, config.language))
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")),
+    }
 }
 
 fn run_apply_plan(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
@@ -460,6 +477,22 @@ struct SurfaceConfig {
     language: Language,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PublishPackageSelection {
+    One(LinuxPackageKind),
+    All,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PublishCheckConfig {
+    package_selection: PublishPackageSelection,
+    network_manager_available: bool,
+    systemd_resolved_available: bool,
+    polkit_available: bool,
+    system_resolver_probe_available: bool,
+    language: Language,
+}
+
 impl DetectConfig {
     fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, CliError> {
         let mut snapshot = LinuxDetectionSnapshot::empty();
@@ -527,6 +560,49 @@ impl SurfaceConfig {
     fn to_probe(&self) -> LinuxEnvironmentProbe {
         LinuxEnvironmentProbe {
             package_kind: self.package_kind,
+            network_manager_available: self.network_manager_available,
+            systemd_resolved_available: self.systemd_resolved_available,
+            polkit_available: self.polkit_available,
+            system_resolver_probe_available: self.system_resolver_probe_available,
+        }
+    }
+}
+
+impl PublishCheckConfig {
+    fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, CliError> {
+        let mut config = Self {
+            package_selection: PublishPackageSelection::One(LinuxPackageKind::Flatpak),
+            network_manager_available: false,
+            systemd_resolved_available: false,
+            polkit_available: false,
+            system_resolver_probe_available: false,
+            language: Language::English,
+        };
+        let mut args = args.into_iter();
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--package" => {
+                    config.package_selection =
+                        parse_publish_package_selection(&next_arg(&mut args, "--package")?)?
+                }
+                "--network-manager" => config.network_manager_available = true,
+                "--systemd-resolved" => config.systemd_resolved_available = true,
+                "--polkit" => config.polkit_available = true,
+                "--system-resolver-probe" => config.system_resolver_probe_available = true,
+                "--lang" => {
+                    let value = next_arg(&mut args, "--lang")?;
+                    config.language = Language::parse(&value)
+                        .ok_or_else(|| CliError::new(2, format!("unknown language: {value}")))?;
+                }
+                _ => return Err(CliError::new(2, format!("unknown argument: {arg}"))),
+            }
+        }
+        Ok(config)
+    }
+
+    fn to_probe(&self, package_kind: LinuxPackageKind) -> LinuxEnvironmentProbe {
+        LinuxEnvironmentProbe {
+            package_kind,
             network_manager_available: self.network_manager_available,
             systemd_resolved_available: self.systemd_resolved_available,
             polkit_available: self.polkit_available,
@@ -690,6 +766,13 @@ fn parse_package_kind(value: &str) -> Result<LinuxPackageKind, CliError> {
         "rpm" => Ok(LinuxPackageKind::Rpm),
         _ => Err(CliError::new(2, format!("unknown package: {value}"))),
     }
+}
+
+fn parse_publish_package_selection(value: &str) -> Result<PublishPackageSelection, CliError> {
+    if value == "all" {
+        return Ok(PublishPackageSelection::All);
+    }
+    parse_package_kind(value).map(PublishPackageSelection::One)
 }
 
 fn parse_mode(value: &str) -> Result<BenchmarkMode, CliError> {
