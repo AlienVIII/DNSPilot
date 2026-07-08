@@ -1,6 +1,10 @@
 # Core CLI Backlog
 
-Last reviewed: 2026-07-02.
+Last reviewed: 2026-07-08.
+
+Review status: OS lane requests are resolved for the current v0.1 app slice.
+Remaining items below are follow-up backlog, not blockers for the current
+store-safe desktop/mobile shells.
 
 Core CLI already provides the main shared contracts used by platform lanes:
 catalog, capabilities, compare, path-compare, system-benchmark, preflight,
