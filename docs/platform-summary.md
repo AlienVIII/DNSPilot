@@ -1,6 +1,6 @@
 # Platform Summary
 
-Last integration pass: 2026-07-02.
+Last integration pass: 2026-07-08.
 
 ## Branch Integration
 
@@ -15,6 +15,11 @@ The latest lane branches merged into `main` were:
 `worktree/core-cli` and `worktree/docs` are fast-forward lanes for shared
 contract/docs follow-up. Keep all child branches fast-forwarded from `main` after
 integration so future lane work starts from the same context.
+
+Current local branch sync status: `macos`, `mobile`, `worktree/linux`,
+`worktree/windows`, `worktree/docs`, and `worktree/core-cli` have been updated
+from `main`; `worktree/mobile` keeps its own mobile commits plus a merge from
+`main`.
 
 ## Requirement Coverage
 
