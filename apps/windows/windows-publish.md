@@ -5,6 +5,8 @@
 - Native permissions are declared in the MSIX package manifest/template: `internetClient` plus `runFullTrust` for packaged desktop/WinUI + bundled CLI/tray.
 - Single-project MSIX wiring is present: `Package.appxmanifest`, MSIX launch profile, and `Properties\PublishProfiles\win10-x64.pubxml`.
 - Remaining publish work requires a real Windows machine, Microsoft Store/Partner Center access, signing identity, and final asset approval/branding decision.
+- Shared gate references: `docs/ux-copy-onboarding.md` and
+  `docs/os-provider-trust.md`.
 
 ## Microsoft References
 - Single-project MSIX packaging for Windows App SDK apps: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/single-project-msix
@@ -121,6 +123,10 @@ left disabled in the committed profile so release signing stays an explicit
 Partner Center/certificate gate.
 
 ## Store Submission Notes
+Review `docs/os-provider-trust.md` before starting so Partner Center package
+identity, signing, restricted capability review, support/privacy URLs, and MSIX
+QA evidence can be batched once.
+
 - Host `apps/windows/windows-privacy.md` as the public Privacy policy URL before submission.
 - Use `apps/windows/windows-store-listing.md` for listing text, support copy, search terms, and certification notes.
 - In Partner Center, disclose `runFullTrust` and explain the Store-safe boundary.

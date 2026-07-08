@@ -24,6 +24,9 @@ local force flag, and still requires macOS administrator approval.
   there is no System Settings pre-toggle for plain DNS edits; Direct Admin
   Actions are unavailable in Store-safe builds, available only in Power/direct-
   install builds, and macOS asks for administrator approval at Apply/Flush time.
+- First-run setup copy is now short by default, with detailed permission
+  context behind SwiftUI `.help`; the toolbar has a `Show Setup` Help action to
+  reopen the tutorial.
 - Product Goals list all six acceptance goals with concrete app entry points,
   validation evidence, and EN/VI localized user-facing copy.
 - English/Vietnamese localization covers primary native surfaces.
@@ -56,8 +59,11 @@ local force flag, and still requires macOS administrator approval.
 - Release signing identity, provisioning, and App Store entitlement approval.
 - Signed distribution bundle validation.
 - Power-edition helper/runtime QA remains separate from the Store build.
+- OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
 
 ## Source Of Truth
 
 - Publish/release steps: `apps/macos/PUBLISHING.md`.
 - Core CLI requests: `apps/macos/macos-core-cli-request.md`.
+- Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
+- OS provider trust/manual gates: `docs/os-provider-trust.md`.

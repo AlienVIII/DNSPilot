@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Text, View } from 'react-native';
 
 import { compactJson } from '@/src/api/dnspilot';
-import { AdaptiveColumns, Button, CodeBlock, ErrorBanner, Metric, Pill, Row, Screen, Section, Segmented, TextField, palette } from '@/src/components/ui';
+import { AdaptiveColumns, Button, CodeBlock, ErrorBanner, HelpButton, Metric, Pill, Row, Screen, Section, Segmented, TextField, palette } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 import { openNativeSettings } from '@/src/utils/native-settings';
 import { buildDeviceSetupPlan, deviceTargets, normalizeBridgeUrl, type DeviceTarget, type DeviceSetupStatus } from '@/src/view-models/device-setup';
@@ -136,7 +136,8 @@ export default function OverviewScreen() {
       />
       <Section
         title={t('overview.title')}
-        subtitle={t('overview.subtitle')}>
+        subtitle={t('overview.subtitle')}
+        action={<HelpButton label={t('tutorial.openA11y')} onPress={() => setSystemPromptVisible(true)} />}>
         <Section title={t('language.title')} subtitle={t('language.subtitle')}>
           <Row>
             {languageOptions.map((option) => (
@@ -291,6 +292,8 @@ function SystemAccessModal({
   onClose: () => void;
   onAction: (action: SystemAccessAction) => void;
 }) {
+  const [expandedCheckID, setExpandedCheckID] = useState<string | null>(null);
+
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <View style={{ backgroundColor: 'rgba(15, 23, 42, 0.42)', flex: 1, justifyContent: 'flex-end' }}>
@@ -304,19 +307,25 @@ function SystemAccessModal({
             </Text>
           </View>
           <View style={{ gap: 8 }}>
-            {prompt.checks.map((check) => (
-              <View key={check.id} style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 6, padding: 12 }}>
-                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
-                  <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
-                    {check.label}
-                  </Text>
-                  <Pill label={t(`systemAccess.status.${check.status}`)} tone={systemAccessTone(check.status)} />
+            {prompt.checks.map((check) => {
+              const expanded = expandedCheckID === check.id;
+              return (
+                <View key={check.id} style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 6, padding: 12 }}>
+                  <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
+                    <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
+                      {check.label}
+                    </Text>
+                    <Pill label={t(`systemAccess.status.${check.status}`)} tone={systemAccessTone(check.status)} />
+                    <HelpButton label={t('common.moreInfo')} onPress={() => setExpandedCheckID(expanded ? null : check.id)} />
+                  </View>
+                  {expanded ? (
+                    <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+                      {check.detail}
+                    </Text>
+                  ) : null}
                 </View>
-                <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
-                  {check.detail}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
           {status ? (
             <View style={{ backgroundColor: palette.blueSoft, borderColor: '#bfdbfe', borderRadius: 8, borderWidth: 1, padding: 10 }}>

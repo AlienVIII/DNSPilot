@@ -3,6 +3,11 @@
 This document is the source of truth for getting the macOS build from local
 validation to distribution.
 
+Shared gates:
+
+- UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
+- OS provider trust/manual signing steps: `docs/os-provider-trust.md`.
+
 ## Product Split
 
 ### App Store edition
@@ -80,6 +85,10 @@ then restores a Store-safe bundle. It does not press Power apply/flush buttons
 and does not mutate DNS.
 
 ## App Store Manual Steps
+
+Review `docs/os-provider-trust.md` before starting so Apple Developer,
+App Store Connect, privacy, support URL, signing, and notarization work can be
+batched once.
 
 1. Confirm bundle identity and app record.
    - Current bundle id: `com.dnspilot.mac`.

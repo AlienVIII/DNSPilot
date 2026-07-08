@@ -2,13 +2,17 @@ using DNSPilotWindows.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 using Windows.System;
 
 namespace DNSPilotWindows.App;
 
 public sealed partial class MainWindow : Window
 {
+    private const string TutorialSeenKey = "dnspilot.setupTutorialSeen";
     private readonly List<BenchmarkProgressEvent> _progressEvents = [];
+    private bool _hasShownFirstRunTutorial;
+    private bool _tutorialOpen;
     private string _lastDiagnostics = "";
 
     public MainWindow()
@@ -19,6 +23,7 @@ public sealed partial class MainWindow : Window
         RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
         CommandPreviewBox.Text = FormatCommand(ViewModel.BenchmarkPlan.CommandArguments);
         _ = LoadRuntimeContractsAsync();
+        Activated += MainWindow_Activated;
     }
 
     public WindowsShellViewModel ViewModel { get; private set; }
@@ -80,6 +85,95 @@ public sealed partial class MainWindow : Window
     private async void OpenSettings_Click(object sender, RoutedEventArgs e)
     {
         await OpenSettingsAsync();
+    }
+
+    private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
+    {
+        if (_hasShownFirstRunTutorial
+            || HasSeenSetupTutorial()
+            || args.WindowActivationState == WindowActivationState.Deactivated)
+        {
+            return;
+        }
+
+        _hasShownFirstRunTutorial = true;
+        if (await ShowTutorialAsync())
+        {
+            MarkSetupTutorialSeen();
+        }
+    }
+
+    private async void ShowTutorial_Click(object sender, RoutedEventArgs e)
+    {
+        await ShowTutorialAsync();
+    }
+
+    private async Task<bool> ShowTutorialAsync()
+    {
+        if (_tutorialOpen || RootGrid.XamlRoot is null)
+        {
+            return false;
+        }
+
+        var content = new StackPanel { Spacing = 8 };
+        foreach (var line in new[]
+        {
+            WindowsDisplayText.Text("1. Run a benchmark.", "1. Chạy benchmark."),
+            WindowsDisplayText.Text("2. Copy/open Windows DNS settings.", "2. Copy/mở Windows DNS settings."),
+            WindowsDisplayText.Text("3. Retest System DNS.", "3. Retest DNS hệ thống."),
+            WindowsDisplayText.Text("Store build never changes DNS silently.", "Bản Store không âm thầm đổi DNS."),
+            WindowsDisplayText.Text("Partner Center trust is handled at release time.", "Chứng thực Partner Center xử lý khi release."),
+        })
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = line,
+                TextWrapping = TextWrapping.Wrap,
+            });
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = WindowsDisplayText.Text("DNSPilot Setup", "Thiết lập DNSPilot"),
+            Content = content,
+            PrimaryButtonText = WindowsDisplayText.Text("OK", "OK"),
+        };
+
+        _tutorialOpen = true;
+        try
+        {
+            await dialog.ShowAsync();
+            return true;
+        }
+        finally
+        {
+            _tutorialOpen = false;
+        }
+    }
+
+    private static bool HasSeenSetupTutorial()
+    {
+        try
+        {
+            return ApplicationData.Current.LocalSettings.Values[TutorialSeenKey] is bool seen && seen;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void MarkSetupTutorialSeen()
+    {
+        try
+        {
+            ApplicationData.Current.LocalSettings.Values[TutorialSeenKey] = true;
+        }
+        catch
+        {
+            // Unpackaged/dev launch can lack app data; session guard still prevents repeats.
+        }
     }
 
     private void BenchmarkSelection_Changed(object sender, SelectionChangedEventArgs e)

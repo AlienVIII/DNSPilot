@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="DNS Pilot">
 
-    <Grid Padding="24" RowSpacing="16" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid x:Name="RootGrid" Padding="24" RowSpacing="16" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -47,6 +47,15 @@
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <SymbolIcon Symbol="Setting" />
                         <TextBlock x:Uid="SettingsText" Text="Settings" />
+                    </StackPanel>
+                </Button>
+                <Button Click="ShowTutorial_Click">
+                    <ToolTipService.ToolTip>
+                        <ToolTip x:Uid="TutorialTooltip" Content="Show setup tutorial." />
+                    </ToolTipService.ToolTip>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <SymbolIcon Symbol="Help" />
+                        <TextBlock x:Uid="TutorialText" Text="Help" />
                     </StackPanel>
                 </Button>
             </StackPanel>

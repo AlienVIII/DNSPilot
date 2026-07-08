@@ -45,6 +45,12 @@
   <data name="SettingsText.Text" xml:space="preserve">
     <value>Cài đặt</value>
   </data>
+  <data name="TutorialTooltip.Content" xml:space="preserve">
+    <value>Mở lại hướng dẫn thiết lập.</value>
+  </data>
+  <data name="TutorialText.Text" xml:space="preserve">
+    <value>Trợ giúp</value>
+  </data>
   <data name="NavBenchmark.Content" xml:space="preserve">
     <value>Benchmark</value>
   </data>

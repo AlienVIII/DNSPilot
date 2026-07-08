@@ -22,6 +22,7 @@ use dnspilot_linux_shell::storage::FileProfileRepository;
 use dnspilot_linux_shell::suites::default_suite_catalog;
 use eframe::egui;
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 
 fn main() -> eframe::Result<()> {
@@ -54,6 +55,7 @@ struct DnsPilotGui {
     status: String,
     diagnostics: String,
     process: Option<LinuxBenchmarkProcessViewModel>,
+    show_tutorial: bool,
     profile_id: String,
     profile_name: String,
     profile_ipv4: String,
@@ -65,6 +67,11 @@ impl DnsPilotGui {
     fn new() -> Self {
         let capability = capability_view_model(detect_linux_environment());
         let store_path = profile_store_path().to_string_lossy().to_string();
+        let setup_seen_path = setup_tutorial_seen_path();
+        let show_tutorial = !has_seen_setup_tutorial(&setup_seen_path);
+        if show_tutorial {
+            mark_setup_tutorial_seen(&setup_seen_path);
+        }
         let profiles = load_or_seed_profiles(&store_path);
         let selected_profile_ids = profiles.iter().map(|profile| profile.id.clone()).collect();
         let selected_suite_id = default_suite_catalog(true)
@@ -86,6 +93,7 @@ impl DnsPilotGui {
             status: "Ready".to_string(),
             diagnostics: String::new(),
             process: None,
+            show_tutorial,
             profile_id: String::new(),
             profile_name: String::new(),
             profile_ipv4: String::new(),
@@ -215,6 +223,7 @@ impl DnsPilotGui {
 
 impl eframe::App for DnsPilotGui {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = ui.ctx().clone();
         ui.add_space(8.0);
         ui.horizontal(|ui| {
             ui.heading(localized_text(TextKey::AppTitle, self.language));
@@ -223,8 +232,29 @@ impl eframe::App for DnsPilotGui {
             ui.separator();
             ui.selectable_value(&mut self.language, Language::English, "EN");
             ui.selectable_value(&mut self.language, Language::Vietnamese, "VI");
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("?").on_hover_text("Show setup tutorial").clicked() {
+                    self.show_tutorial = true;
+                }
+            });
         });
         ui.separator();
+
+        if self.show_tutorial {
+            egui::Window::new("DNSPilot Setup")
+                .collapsible(false)
+                .resizable(false)
+                .open(&mut self.show_tutorial)
+                .show(&ctx, |ui| {
+                    ui.heading("Test, copy, retest");
+                    ui.label("1. Run a benchmark.");
+                    ui.label("2. Copy/open OS DNS settings.");
+                    ui.label("3. Retest System DNS.");
+                    ui.separator();
+                    ui.label("Sandbox packages are guidance-first.");
+                    ui.label("Power DNS apply stays explicit and package-gated.");
+                });
+        }
 
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
@@ -455,13 +485,40 @@ impl DnsPilotGui {
 }
 
 fn profile_store_path() -> PathBuf {
-    if let Ok(data_home) = env::var("XDG_DATA_HOME") {
-        return PathBuf::from(data_home).join("dnspilot/profiles.json");
-    }
-    if let Ok(home) = env::var("HOME") {
-        return PathBuf::from(home).join(".local/share/dnspilot/profiles.json");
+    if let Some(data_dir) = data_dir() {
+        return data_dir.join("profiles.json");
     }
     PathBuf::from("dnspilot-profiles.json")
+}
+
+fn setup_tutorial_seen_path() -> PathBuf {
+    if let Some(data_dir) = data_dir() {
+        return data_dir.join("setup-tutorial-seen");
+    }
+    PathBuf::from("dnspilot-setup-tutorial-seen")
+}
+
+fn data_dir() -> Option<PathBuf> {
+    if let Ok(data_home) = env::var("XDG_DATA_HOME") {
+        return Some(PathBuf::from(data_home).join("dnspilot"));
+    }
+    if let Ok(home) = env::var("HOME") {
+        return Some(PathBuf::from(home).join(".local/share/dnspilot"));
+    }
+    None
+}
+
+fn has_seen_setup_tutorial(path: &PathBuf) -> bool {
+    fs::read_to_string(path)
+        .map(|value| value.trim() == "true")
+        .unwrap_or(false)
+}
+
+fn mark_setup_tutorial_seen(path: &PathBuf) {
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let _ = fs::write(path, "true\n");
 }
 
 fn load_or_seed_profiles(path: &str) -> Vec<PlainDnsProfile> {

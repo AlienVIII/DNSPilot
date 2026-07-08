@@ -7,6 +7,11 @@ QA. It does not require manual distro/package testing before handoff.
 Start with `apps/linux/README.md` for install, build, run, smoke, and native
 helper commands.
 
+Shared gate references:
+
+- UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
+- OS provider trust/manual store steps: `docs/os-provider-trust.md`.
+
 Current package split:
 
 - Flatpak: store-safe benchmark and guided settings only.
@@ -98,6 +103,10 @@ desktop-file-validate apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop
   and capability notes.
 
 ## Flathub Submission
+
+Review `docs/os-provider-trust.md` before starting so Flathub verification,
+publisher proof, support/privacy URLs, screenshots, and package QA evidence can
+be batched once.
 
 1. Make sure Flatpak local QA passes.
 2. Add screenshots, release notes, and final AppStream metadata required by

@@ -34,6 +34,8 @@ Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
   template, top-level `Package.appxmanifest`, MSIX launch/publish profiles,
   Store manifest preparation script, baseline package assets, bundled CLI
   locator, and publish/QA runbooks are present.
+- WinUI shell now has a top-right Help button and first-run setup dialog
+  persisted through `ApplicationData.LocalSettings`.
 - Privacy policy draft, Store listing copy, support text, and certification
   notes are present for Partner Center preparation.
 
@@ -50,6 +52,7 @@ Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 - Validate MSIX packaging, tray behavior, signing, and Partner Center
   `runFullTrust` justification.
 - Ensure `dnspilot-cli.exe` is bundled or discoverable for live UI runs.
+- OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
 
 ## Source Of Truth
 
@@ -57,3 +60,5 @@ Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 - Publish steps: `apps/windows/windows-publish.md`.
 - Privacy/listing source: `apps/windows/windows-privacy.md` and
   `apps/windows/windows-store-listing.md`.
+- Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
+- OS provider trust/manual gates: `docs/os-provider-trust.md`.

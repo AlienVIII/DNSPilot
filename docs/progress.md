@@ -1,6 +1,6 @@
 # Global Progress
 
-Last integration pass: 2026-07-02.
+Last integration pass: 2026-07-08.
 
 ## Current State
 
@@ -9,6 +9,9 @@ Last integration pass: 2026-07-02.
 - Core CLI contracts cover catalog/capabilities, benchmark modes, progress,
   storage, apply-policy/apply-plan, history, custom profiles/suites, and
   system-DNS validation.
+- OS provider trust/manual gates are centralized in `docs/os-provider-trust.md`.
+- Concise copy, info affordances, and tutorial behavior are centralized in
+  `docs/ux-copy-onboarding.md`.
 - macOS is the UX lead lane and now includes privacy manifest, support/privacy
   copy, release preflight, bundle validation, and non-mutating goal smoke
   scripts.
@@ -26,21 +29,15 @@ Last integration pass: 2026-07-02.
 
 ## Validated In This Integration
 
-- `cargo test --workspace --tests`: pass.
-- `swift test --package-path apps/macos/DNSPilotMac`: pass.
+- `npm test` in `apps/mobile/DNSPilotMobile`: pass, 43/43 tests.
+- `npm run typecheck` in `apps/mobile/DNSPilotMobile`: pass.
+- `swift test --package-path apps/macos/DNSPilotMac`: pass, 253 XCTest tests
+  plus 0 Swift Testing tests.
 - `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
-- `npm ci` in `apps/mobile/DNSPilotMobile`: pass; `patch-package` applies
-  `expo-modules-jsi@57.0.0`.
-- `npm run verify` in `apps/mobile/DNSPilotMobile`: pass for test,
-  typecheck, public Expo config, web export, Expo install check, and high-severity
-  audit gate.
 - `apps/windows/validate-windows-lane.sh`: pass for core/build/static checks,
   packaging/localization/static checks, and expected macOS-only WinUI
   build-probe handling.
-- `git diff --check`: pass for current working tree docs.
-- `git diff --check origin/main..HEAD -- ':(exclude)apps/mobile/DNSPilotMobile/patches/*.patch'`:
-  pass. Raw full-range check intentionally reports required unified-diff context
-  spaces inside the patch-package file.
+- `git diff --check`: pass.
 
 ## Open Gates
 
@@ -55,6 +52,8 @@ Last integration pass: 2026-07-02.
   currently reports an Expo tooling dependency on vulnerable `uuid <11.1.1`;
   npm's suggested force fix is breaking and should be handled as a dependency
   upgrade decision, not an automatic patch.
+- Provider trust: Apple Developer, App Store Connect, Play Console, Microsoft
+  Partner Center, Flathub/Snapcraft, and distro package QA remain manual.
 
 ## Next Actions
 
@@ -62,3 +61,5 @@ Last integration pass: 2026-07-02.
 - Use `docs/platform-summary.md` as the short cross-platform source of truth.
 - Keep detailed platform release steps in `apps/<platform>/*publish*` and
   `apps/<platform>/*readiness*` docs instead of repeating them in chat.
+- Keep OS provider account/signing/manual trust steps in
+  `docs/os-provider-trust.md` and run them in one release pass.

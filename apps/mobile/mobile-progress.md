@@ -23,6 +23,8 @@ surface. It is not yet the final public-store architecture.
   recovery, OS-gated DNS apply, iOS App Settings, Android Private DNS/network
   Settings, in-sheet System DNS retest, and explicit DNS flush unsupported
   status.
+- Overview now has a top-right setup Help button; System Access rows use short
+  title/status copy with per-row info expansion for detailed policy text.
 - Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
   validation, and custom tag preservation.
 - Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,
@@ -74,8 +76,11 @@ surface. It is not yet the final public-store architecture.
 - Native Rust adapter, approved backend, or another release runtime decision.
 - Dependency audit: Expo tooling currently pulls vulnerable `uuid <11.1.1`; npm's
   force fix is breaking.
+- OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
 
 ## Source Of Truth
 
 - Main checklist and manual flow: `apps/mobile/mobile-readiness.md`.
 - Publish steps: `apps/mobile/mobile-publish-checklist.md`.
+- Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
+- OS provider trust/manual gates: `docs/os-provider-trust.md`.
