@@ -111,6 +111,9 @@ batched once.
 
 4. Build/export a signed app bundle.
    - Use release signing, not ad-hoc signing.
+   - Release signing uses hardened runtime by default through
+     `codesign --options runtime`; keep this enabled for direct distribution and
+     notarization readiness.
    - Set release metadata when needed:
      `DNSPILOT_APP_VERSION=<marketing version>` and
      `DNSPILOT_APP_BUILD=<numeric build>`.
@@ -133,6 +136,7 @@ DNSPILOT_INSTALLER_IDENTITY="<installer signing identity>" \
 Expected:
 
 - No ad-hoc signature failures.
+- Hardened runtime present on the app and bundled CLI helper.
 - App Sandbox entitlement present.
 - Helper sandbox inheritance present.
 - `LSMinimumSystemVersion` is `14.0`.

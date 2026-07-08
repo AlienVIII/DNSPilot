@@ -148,6 +148,7 @@ DNS handling, and platform capability reporting.
 - [x] [137] v0.1 macOS Store-safe direct-admin gate — prevent UserDefaults-only admin enablement in Store-safe builds.
 - [x] [138] v0.1 dependency refresh and README runbook — update Rust deps and document install/run/preflight paths.
 - [x] [139] v0.1 mobile branch catch-up and Expo alignment — merge mobile lane and pass SDK 57 verify gate.
+- [x] [140] v0.1 macOS hardened-runtime release gate — require hardened runtime for certificate-backed release packaging.
 
 ---
 
@@ -6485,6 +6486,39 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 140: v0.1 macOS Hardened-Runtime Release Gate
+
+**Status:** Complete
+**Files changed:** `script/sign_macos_bundle.sh`, `script/package_macos_distribution.sh`, `script/validate_macos_bundle.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `README.md`, `progress.md`
+
+### What changed
+
+Certificate-backed macOS release signing now defaults to hardened runtime for
+the app bundle and bundled CLI helper. Distribution validation now fails signed
+exports that do not include hardened runtime, while local ad-hoc sandbox bundles
+remain valid for development.
+
+### Edge Cases / Caveats
+
+- The release package path is intentionally strict; disabling `--options
+  runtime` is not accepted for distribution validation.
+- Real notarization/App Store upload still requires developer identities,
+  provisioning/profile setup, and Apple account access.
+
+### Verification
+
+```text
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+./script/validate_macos_bundle.sh dist/DNSPilotMac.app --distribution
+Result: failed as expected for local ad-hoc bundle; caught missing certificate
+signature and hardened runtime on app/helper.
 ```
 
 ---

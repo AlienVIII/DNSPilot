@@ -35,7 +35,8 @@ local force flag, and still requires macOS administrator approval.
   `DNSPilotPowerActionsEnabled` plus Direct Admin opt-in, while
   `DNSPILOT_ENABLE_POWER_ACTIONS=1` is the local/dev force path.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
-  are present; the Publish screen also surfaces local release preflight and
+  are present; release signing defaults to hardened runtime for certificate-
+  backed packages, and the Publish screen surfaces local release preflight and
   privacy manifest readiness.
 - Local bundle validation requires macOS target, version/build metadata,
   sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
