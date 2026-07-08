@@ -147,6 +147,7 @@ DNS handling, and platform capability reporting.
 - [x] [136] v0.1 macOS native permission and direct admin setup — first-run setup plus in-app Direct Admin Apply/Flush opt-in.
 - [x] [137] v0.1 macOS Store-safe direct-admin gate — prevent UserDefaults-only admin enablement in Store-safe builds.
 - [x] [138] v0.1 dependency refresh and README runbook — update Rust deps and document install/run/preflight paths.
+- [x] [139] v0.1 mobile branch catch-up and Expo alignment — merge mobile lane and pass SDK 57 verify gate.
 
 ---
 
@@ -6484,6 +6485,56 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 139: v0.1 Mobile Branch Catch-Up And Expo Alignment
+
+**Status:** Complete
+**Files changed:** `apps/mobile/DNSPilotMobile/package.json`, `apps/mobile/DNSPilotMobile/package-lock.json`, `apps/mobile/DNSPilotMobile/patches/expo-modules-jsi+57.0.1.patch`, `apps/mobile/DNSPilotMobile/README.md`, `apps/mobile/mobile-progress.md`, `apps/mobile/mobile-readiness.md`, `apps/mobile/mobile-publish-checklist.md`, `apps/mobile/mobile-risks.md`, `docs/progress.md`, `progress.md`
+
+### What changed
+
+Fast-forwarded `macos` with the latest `worktree/mobile` lane updates, then
+aligned Expo SDK 57 patch versions so `npx expo install --check` passes. The
+Xcode 26 compatibility patch was refreshed from `expo-modules-jsi@57.0.0` to
+`expo-modules-jsi@57.0.1`, and mobile docs now point at the current verified
+package state.
+
+### Edge Cases / Caveats
+
+- `npm audit --omit=dev --audit-level=high` passes, but moderate Expo tooling
+  audit findings remain through transitive `uuid <11.1.1`; `npm audit fix
+  --force` proposes breaking Expo changes and was intentionally not applied.
+- Mobile still needs real iOS/iPadOS/Android device QA and signing/store
+  account work before public distribution.
+
+### Verification
+
+```text
+npm ci && npm run verify
+Result: passed; 48/48 node tests, TypeScript, Expo config, web export,
+expo install --check, and high-severity audit gate passed.
+
+npx expo-doctor@latest
+Result: 20/20 checks passed.
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+./script/smoke_macos_goal_flows.sh --include-network
+Result: passed; store-safe apply-plan, Power apply-plan contract, System DNS
+validation/history, live DNS-only, live DNS+TCP, and Dota 2 SEA Game Ping smoke
+passed.
+
+cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
+Result: passed.
+
+apps/windows/validate-windows-lane.sh
+Result: passed; Windows core/static/package checks passed, with the expected
+macOS-host WinUI XamlCompiler probe failure classified by the harness.
 ```
 
 ---

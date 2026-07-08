@@ -4,8 +4,9 @@ Last integration pass: 2026-07-08.
 
 ## Current State
 
-- `main` now contains the latest active mobile, macOS, Linux, and Windows lane
-  work.
+- The current integration branch now contains the latest active mobile, macOS,
+  Linux, and Windows lane work. Local `main` and sibling worktree branches may
+  need fast-forwarding after review.
 - Core CLI contracts cover catalog/capabilities, benchmark modes, progress,
   storage, apply-policy/apply-plan, history, custom profiles/suites, and
   system-DNS validation.
@@ -29,8 +30,13 @@ Last integration pass: 2026-07-08.
 
 ## Validated In This Integration
 
-- `npm test` in `apps/mobile/DNSPilotMobile`: pass, 43/43 tests.
-- `npm run typecheck` in `apps/mobile/DNSPilotMobile`: pass.
+- `npm run verify` in `apps/mobile/DNSPilotMobile`: pass after Expo SDK 57
+  package alignment; includes 48/48 node tests, TypeScript, Expo config, web
+  export, `expo install --check`, and high-severity audit gate.
+- `./script/preflight_macos_release.sh --include-power`: pass; validates Rust,
+  Swift, Store-safe bundle, Power bundle, and Store-safe restore.
+- `./script/smoke_macos_goal_flows.sh --include-network`: pass; validates the
+  six main macOS goal flows without mutating DNS.
 - `swift test --package-path apps/macos/DNSPilotMac`: pass, 253 XCTest tests
   plus 0 Swift Testing tests.
 - `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
@@ -57,7 +63,8 @@ Last integration pass: 2026-07-08.
 
 ## Next Actions
 
-- Keep child branches fast-forwarded from `main` before new lane work.
+- Fast-forward local `main` and child branches from the current reviewed
+  integration branch before new lane work.
 - Use `docs/platform-summary.md` as the short cross-platform source of truth.
 - Keep detailed platform release steps in `apps/<platform>/*publish*` and
   `apps/<platform>/*readiness*` docs instead of repeating them in chat.

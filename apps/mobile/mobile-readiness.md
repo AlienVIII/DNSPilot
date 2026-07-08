@@ -32,7 +32,7 @@
   ID/version code, EN/VI supported locales, iOS Local Network permission text,
   Android normal network permissions, and EAS build profiles.
 - Native build smoke: covered by local Android `assembleDebug`; the app is on
-  Expo SDK 57 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.0` Swift
+  Expo SDK 57 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.1` Swift
   compatibility patch for Xcode 26. iOS Simulator build/install/launch smoke
   passes with Xcode 26.6 and an iOS 26.5 runtime.
 - Native release surface: covered for Android production manifests by excluding

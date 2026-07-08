@@ -34,13 +34,13 @@ npx expo install --check
 ```
 
 `npm install` runs `patch-package` and reapplies the current
-`expo-modules-jsi@57.0.0` Xcode 26 compatibility patch.
+`expo-modules-jsi@57.0.1` Xcode 26 compatibility patch.
 
 After Expo SDK changes, prefer Expo's resolver instead of hand-pinning native
 packages:
 
 ```bash
-npx expo install expo@^57.0.0 --fix
+npx expo install --fix
 ```
 
 ## Run

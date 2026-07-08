@@ -36,7 +36,7 @@ surface. It is not yet the final public-store architecture.
   VoiceOver/TalkBack real-device checks.
 - Native build path is smoke-tested locally with Android `assembleDebug`; the
   app is on Expo SDK 57 / React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26. iOS
+  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26. iOS
   Simulator build/install/launch is smoke-tested on an iOS 26.5 simulator.
 - Native system appearance metadata is backed by `expo-system-ui`, so Expo
   prebuild no longer warns about `userInterfaceStyle`.
@@ -48,8 +48,8 @@ surface. It is not yet the final public-store architecture.
 
 ## Validation
 
-- `npm run verify`: preferred full local gate before real-device QA or EAS
-  builds.
+- `npm run verify`: pass after Expo SDK 57 package alignment; preferred full
+  local gate before real-device QA or EAS builds.
 - `npm test`: pass.
 - `npm run typecheck`: pass after `npm ci`.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.

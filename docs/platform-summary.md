@@ -4,8 +4,8 @@ Last integration pass: 2026-07-08.
 
 ## Branch Integration
 
-`main` is the integrated source of truth for the current cross-platform slice.
-The latest lane branches merged into `main` were:
+The current integration branch is the source of truth for this
+cross-platform slice. The latest lane branches present in this branch are:
 
 - `worktree/mobile`
 - `macos`
@@ -16,10 +16,10 @@ The latest lane branches merged into `main` were:
 contract/docs follow-up. Keep all child branches fast-forwarded from `main` after
 integration so future lane work starts from the same context.
 
-Current local branch sync status: `macos`, `mobile`, `worktree/linux`,
-`worktree/windows`, `worktree/docs`, and `worktree/core-cli` have been updated
-from `main`; `worktree/mobile` keeps its own mobile commits plus a merge from
-`main`.
+Current local branch sync status: `macos` has been fast-forwarded through
+`worktree/mobile` and includes the latest active mobile lane changes. Local
+`main`, `worktree/linux`, `worktree/windows`, `worktree/docs`, and
+`worktree/core-cli` may need a fast-forward after this branch is reviewed.
 
 ## Requirement Coverage
 

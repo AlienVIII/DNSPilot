@@ -9,7 +9,7 @@
 - Local Android debug smoke passes. iOS Simulator build/install/launch smoke
   passes with Xcode 26.6 and an iOS 26.5 runtime. The app is on Expo SDK 57 /
   React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26.
+  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26.
 - EAS development builds include `expo-dev-client`; use `npm run
   start:dev-client` after installing the build on a device. Production/preview
   profiles exclude dev-client/dev-menu modules during Expo config and native
