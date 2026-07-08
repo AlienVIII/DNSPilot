@@ -4,6 +4,8 @@
 - App config is prepared for native builds: `ios.bundleIdentifier`,
   `android.package`, version codes, EAS profiles, iOS Local Network usage text,
   Android normal network permissions, and EN/VI locale metadata.
+- Shared UX/provider gate references: `docs/ux-copy-onboarding.md` and
+  `docs/os-provider-trust.md`.
 - Local Android debug smoke passes. iOS Simulator build/install/launch smoke
   passes with Xcode 26.6 and an iOS 26.5 runtime. The app is on Expo SDK 57 /
   React Native 0.86 and carries a narrow
@@ -90,6 +92,10 @@
 5. Install on real devices and repeat the real-device manual test.
 
 ## Store Submission Steps
+Review `docs/os-provider-trust.md` before starting so Apple Developer,
+App Store Connect, Play Console, signing, Data safety, privacy/support URL, and
+first-upload work can be batched once.
+
 1. Confirm `com.dnspilot.mobile` is the final iOS bundle ID and Android package
    before first submission. Android package ID cannot be changed after publish.
 2. Apple: create App Store Connect app, configure signing/provisioning, and run:

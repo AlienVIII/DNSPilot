@@ -12,6 +12,8 @@ package release.
 - Rust shell package under `apps/linux/DNSPilotLinux`.
 - `dnspilot-linux-gui` eframe/egui 0.35 main window is the desktop launcher and
   works without tray as the primary GNOME/Wayland-safe surface.
+- GUI now has a first-run setup tutorial persisted in the XDG app data path,
+  plus a top-right `?` Help button to reopen it.
 - Capability model covers Flatpak, Snap, deb, and rpm.
 - Benchmark planning covers DNS-only, DNS+TCP, and current/system resolver
   validation with mode gating.
@@ -52,8 +54,11 @@ package release.
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.
 - Linux package QA before publishing or enabling real DNS mutation by default in
   deb/rpm.
+- OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
 
 ## Source Of Truth
 
 - Critique and remaining risk: `apps/linux/linux-self-review.md`.
 - Publish steps: `apps/linux/linux-publish-checklist.md`.
+- Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
+- OS provider trust/manual gates: `docs/os-provider-trust.md`.
