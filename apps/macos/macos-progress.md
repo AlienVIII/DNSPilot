@@ -46,6 +46,8 @@ local force flag, and still requires macOS administrator approval.
 
 ## Validation
 
+- `./script/ci_macos.sh`: pass; includes Rust tests, Swift tests, sandbox
+  bundle verification, DNS-only live smoke, and DNS+TCP live smoke.
 - `swift test --package-path apps/macos/DNSPilotMac`: pass.
 - `cargo test --workspace --tests`: pass for shared CLI/core consumed by macOS.
 - `./script/smoke_macos_goal_flows.sh --include-network`: pass on current

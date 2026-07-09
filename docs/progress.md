@@ -35,6 +35,9 @@ Last integration pass: 2026-07-08.
   export, `expo install --check`, and high-severity audit gate.
 - `./script/preflight_macos_release.sh --include-power`: pass; validates Rust,
   Swift, Store-safe bundle, Power bundle, and Store-safe restore.
+- `./script/ci_macos.sh`: pass; validates Rust, Swift, local sandbox bundle,
+  DNS-only live smoke, and DNS+TCP live smoke. Distribution bundle verification
+  is skipped unless `DNSPILOT_DISTRIBUTION_BUNDLE` points to a signed export.
 - `./script/smoke_macos_goal_flows.sh --include-network`: pass; validates the
   six main macOS goal flows without mutating DNS.
 - `swift test --package-path apps/macos/DNSPilotMac`: pass, 253 XCTest tests

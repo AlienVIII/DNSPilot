@@ -150,6 +150,7 @@ DNS handling, and platform capability reporting.
 - [x] [139] v0.1 mobile branch catch-up and Expo alignment — merge mobile lane and pass SDK 57 verify gate.
 - [x] [140] v0.1 macOS hardened-runtime release gate — require hardened runtime for certificate-backed release packaging.
 - [x] [141] v0.1 macOS publish readiness hardened-runtime UI — surface hardened-runtime distribution validation in the native Publish screen.
+- [x] [142] v0.1 macOS local CI evidence — verify local CI harness including DNS-only and DNS+TCP live smokes.
 
 ---
 
@@ -6487,6 +6488,35 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 142: v0.1 macOS Local CI Evidence
+
+**Status:** Complete
+**Files changed:** `apps/macos/macos-progress.md`, `docs/progress.md`, `progress.md`
+
+### What changed
+
+Recorded the current macOS local CI evidence in lane and global progress docs.
+The CI harness passes Rust tests, Swift tests, sandbox bundle verification,
+DNS-only live smoke, and DNS+TCP live smoke. Signed distribution verification
+remains conditional on a real signed export via `DNSPILOT_DISTRIBUTION_BUNDLE`.
+
+### Edge Cases / Caveats
+
+- Live DNS smoke can still fail on offline, firewalled, VPN-restricted, captive
+  portal, or unstable networks.
+- Signed distribution validation still needs Apple signing assets and a real
+  exported app bundle.
+
+### Verification
+
+```text
+./script/ci_macos.sh
+Result: passed; distribution bundle verification skipped because
+DNSPILOT_DISTRIBUTION_BUNDLE was not set.
 ```
 
 ---
