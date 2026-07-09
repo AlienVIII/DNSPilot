@@ -149,6 +149,7 @@ DNS handling, and platform capability reporting.
 - [x] [138] v0.1 dependency refresh and README runbook — update Rust deps and document install/run/preflight paths.
 - [x] [139] v0.1 mobile branch catch-up and Expo alignment — merge mobile lane and pass SDK 57 verify gate.
 - [x] [140] v0.1 macOS hardened-runtime release gate — require hardened runtime for certificate-backed release packaging.
+- [x] [141] v0.1 macOS publish readiness hardened-runtime UI — surface hardened-runtime distribution validation in the native Publish screen.
 
 ---
 
@@ -6486,6 +6487,39 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 141: v0.1 macOS Publish Readiness Hardened-Runtime UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The native Publish readiness model now shows hardened-runtime release validation
+as a first-class ready gate. Its copyable checklist mentions
+`codesign --options runtime` and the `--distribution` validator so the in-app
+release surface matches the packaging scripts. The App Store entitlement row now
+states the current v1 entitlements and treats NetworkExtension as a future
+approved-flow dependency, not a current required claim.
+
+### Edge Cases / Caveats
+
+- Release signing identity, provisioning, notarization/App Store upload, and
+  final publisher account work remain manual gates.
+- The native row proves the release gate is visible; it does not replace signed
+  distribution validation with real Apple certificates.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests/testPublishReadinessSeparatesStoreAndPowerEditionWork
+Result: passed.
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 253 passed, 0 failed.
 ```
 
 ---

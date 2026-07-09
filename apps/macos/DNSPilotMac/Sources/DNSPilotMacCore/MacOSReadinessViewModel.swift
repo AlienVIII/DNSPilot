@@ -146,6 +146,12 @@ public struct MacOSPublishReadinessViewModel: Equatable, Sendable {
                 detail: "PrivacyInfo.xcprivacy declares no tracking, no collected data, and UserDefaults reason CA92.1 for local settings."
             ),
             MacOSReadinessRow(
+                id: "hardened-runtime",
+                title: "Hardened runtime",
+                status: .ready,
+                detail: "Release packaging signs with codesign --options runtime by default; ./script/validate_macos_bundle.sh --distribution fails app/helper exports missing hardened runtime."
+            ),
+            MacOSReadinessRow(
                 id: "release-signing",
                 title: "Release signing",
                 status: .manual,
@@ -155,7 +161,7 @@ public struct MacOSPublishReadinessViewModel: Equatable, Sendable {
                 id: "app-store-entitlements",
                 title: "App Store entitlement review",
                 status: .manual,
-                detail: "NetworkExtension DNS Settings entitlement and App Store metadata must be reviewed in Apple Developer/App Store Connect."
+                detail: "Current Store-safe build needs App Sandbox and outbound network client entitlements; request NetworkExtension DNS Settings only if an approved DNS profile apply flow is added later."
             ),
             MacOSReadinessRow(
                 id: "privacy-copy",
