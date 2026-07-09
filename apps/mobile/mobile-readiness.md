@@ -32,9 +32,9 @@
   ID/version code, EN/VI supported locales, iOS Local Network permission text,
   Android normal network permissions, and EAS build profiles.
 - Native build smoke: covered by local Android `assembleDebug`; the app is on
-  Expo SDK 57 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.0` Swift
-  compatibility patch for Xcode 26. iOS Simulator build/install/launch smoke
-  passes with Xcode 26.6 and an iOS 26.5 runtime.
+  Expo SDK 57 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.1` Swift
+  compatibility patch for Xcode 26. iOS Simulator Debug and production Release
+  build/install/launch smoke pass with Xcode 26.6 and an iOS 26.5 runtime.
 - Native release surface: covered for Android production manifests by excluding
   `expo-dev-client`, dev launcher/menu modules, dev-only overlay/storage/vibrate
   permissions, and VPN/system-DNS mutation permissions from release generation.
@@ -44,6 +44,8 @@
 - Real-device setup UX: covered by an in-app Device Setup evaluator that checks
   localhost vs LAN/emulator bridge URLs, OS permission expectations, and
   store-safe DNS mutation policy before benchmark testing.
+- Native persistence UX: covered by AsyncStorage-backed Bridge URL and manual
+  language preference persistence across restarts.
 - Native accessibility UX: covered for primary buttons, segmented controls,
   switches, text inputs, and selectable chips with labels and state metadata for
   real-device assistive technology checks.
@@ -121,6 +123,7 @@
 - `npm run start:dev-client`
 - `npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache`
 - `npx expo prebuild --clean --platform ios && xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
+- `EAS_BUILD_PROFILE=production xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Release -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`
 - `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install && EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest`
 - `rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true`
@@ -129,9 +132,10 @@
 - `npx expo export --platform web`
 - `git diff --check`
 
-Current iOS local smoke status: build passed on `iPhone 17e` with iOS 26.5.
-Because port 8081 was already owned by another process, app UI smoke used
+Current iOS local smoke status: Debug build passed on `iPhone 17e` with iOS
+26.5. Because port 8081 was already owned by another process, app UI smoke used
 `npm run start:dev-client` on port 8082 after install/launch and confirmed the
-first-open System Access sheet by screenshot. A later clean iOS prebuild plus
-direct `xcodebuild` Simulator build also passed after production autolinking
-guards were added.
+first-open System Access sheet by screenshot. A production Release simulator
+build was then installed with `simctl` and launched without the dev-client
+launcher; screenshot confirmed the first-open System Access sheet from the
+standalone app bundle.

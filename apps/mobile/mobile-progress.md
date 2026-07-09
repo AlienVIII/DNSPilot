@@ -3,11 +3,13 @@
 ## BLUF
 
 The mobile lane meets the current test-shell requirement: it validates DNSPilot
-UX, bridge contracts, mobile policy limits, guided settings, localization, and
-device setup flows. Android debug builds compile on SDK 57, and iOS Simulator
-build/install/launch smoke now passes with Xcode 26.6 + iOS 26.5 runtime.
-Android production manifest generation now strips dev-client/dev-only release
-surface. It is not yet the final public-store architecture.
+UX, bridge contracts, mobile policy limits, guided settings, localization,
+native persistence, and device setup flows. Android debug builds compile on SDK
+57, and iOS Simulator Debug plus production Release build/install/launch smoke
+passes with Xcode 26.6 + iOS 26.5 runtime. Android production manifest
+generation strips dev-client/dev-only release surface. It is not yet the final
+public-store architecture unless the bridge/back-end runtime decision is
+approved.
 
 ## Requirement Coverage
 
@@ -32,12 +34,15 @@ surface. It is not yet the final public-store architecture.
   bridge URL checks are implemented.
 - Benchmark mode/family/platform options and Storage protocol/filtering options
   localize in English/Vietnamese instead of staying hardcoded English.
+- Bridge URL and manual language choice persist with native AsyncStorage across
+  app restarts.
 - Primary controls expose accessibility labels and state metadata for
   VoiceOver/TalkBack real-device checks.
 - Native build path is smoke-tested locally with Android `assembleDebug`; the
   app is on Expo SDK 57 / React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26. iOS
-  Simulator build/install/launch is smoke-tested on an iOS 26.5 simulator.
+  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26. iOS
+  Simulator Debug and production Release build/install/launch are smoke-tested
+  on an iOS 26.5 simulator.
 - Native system appearance metadata is backed by `expo-system-ui`, so Expo
   prebuild no longer warns about `userInterfaceStyle`.
 - EAS development builds include `expo-dev-client`; the local real-device
@@ -50,7 +55,7 @@ surface. It is not yet the final public-store architecture.
 
 - `npm run verify`: preferred full local gate before real-device QA or EAS
   builds.
-- `npm test`: pass.
+- `npm test`: pass with 55 behavior/view-model/plugin tests.
 - `npm run typecheck`: pass after `npm ci`.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
 - `npx expo install --check`: pass with `expo-dev-client`.
@@ -62,6 +67,9 @@ surface. It is not yet the final public-store architecture.
 - `npx expo prebuild --clean --platform ios` plus direct `xcodebuild`
   Simulator build on `iPhone 17e` with iOS 26.5: pass after production
   autolinking guards were added.
+- `EAS_BUILD_PROFILE=production xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Release -sdk iphonesimulator -destination 'id=DD41C6AF-ED3D-4B44-AC21-1F7FC1B8204D' CODE_SIGNING_ALLOWED=NO build -quiet`:
+  pass; installed with `simctl` and screenshot confirmed the standalone app
+  opens directly into the first-open System Access sheet.
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:
   pass with SDK 36/JDK 17.
 - `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install && EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest`:
