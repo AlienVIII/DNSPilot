@@ -9,7 +9,7 @@
 - Local Android debug smoke passes. iOS Simulator build/install/launch smoke
   passes with Xcode 26.6 and an iOS 26.5 runtime. The app is on Expo SDK 57 /
   React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.0` Swift compatibility patch for Xcode 26.
+  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26.
 - EAS development builds include `expo-dev-client`; use `npm run
   start:dev-client` after installing the build on a device. Production/preview
   profiles exclude dev-client/dev-menu modules during Expo config and native
@@ -23,6 +23,8 @@
 - First-open System Access shows permission/apply/flush status, opens iOS App
   Settings or Android Private DNS/network Settings, and can retest System DNS.
   DNS flush is explicitly unsupported on mobile consumer OS APIs.
+- Manual language selection and the real-device Bridge URL persist in native
+  app storage across restarts.
 - Core/CLI coverage is exercised through the local bridge. A public store build
   that must work without a developer Mac still needs a native Rust adapter or an
   approved backend/bridge decision.
@@ -44,12 +46,14 @@
    offer App Settings plus Retest System DNS. Android should offer Private DNS,
    Network Settings, App Settings, and Retest System DNS.
 7. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
-   titles, validation errors, and guided settings copy update.
+   titles, validation errors, process status labels, and guided settings copy
+   update. Restart the app and confirm the last manual language choice remains.
 8. Overview > Device Setup: choose the real-device target. Confirm localhost is
    rejected for physical phones, Android emulator recommends `10.0.2.2`, and
    store-safe policy says no silent DNS mutation/VpnService.
 9. Overview: paste the Mac LAN bridge URL, tap Refresh, then confirm Bridge is
-   up and profiles/suites/capabilities/history load.
+   up and profiles/suites/capabilities/history load. Restart the app and
+   confirm the Bridge URL remains.
 10. iOS/iPadOS: when prompted for Local Network, tap Allow. If the prompt does
    not appear, check Settings > Privacy & Security > Local Network.
 11. Android: no dangerous runtime permission prompt is expected for normal

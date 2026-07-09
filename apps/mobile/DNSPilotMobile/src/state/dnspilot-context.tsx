@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Localization from 'expo-localization';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
@@ -19,6 +20,11 @@ import {
   startBridgeJob,
   TestSuite,
 } from '@/src/api/dnspilot';
+import {
+  deserializeAppPreferences,
+  serializeAppPreferences,
+  type AppPreferences,
+} from '@/src/view-models/app-preferences';
 import {
   createTranslator,
   languageOptions,
@@ -55,6 +61,11 @@ const defaultBridgeUrl =
   process.env.EXPO_PUBLIC_DNSPILOT_BRIDGE_URL ??
   (Constants.expoConfig?.extra?.dnspilotBridgeUrl as string | undefined) ??
   'http://localhost:8787';
+const appPreferencesStorageKey = 'dnspilot-mobile.preferences.v1';
+const defaultAppPreferences: AppPreferences = {
+  bridgeUrl: defaultBridgeUrl,
+  languagePreference: 'system',
+};
 
 function readDeviceLocales() {
   return Localization.getLocales().map((locale) => ({
@@ -66,6 +77,7 @@ function readDeviceLocales() {
 export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
   const [bridgeUrl, setBridgeUrl] = useState(defaultBridgeUrl);
   const [languagePreference, setLanguagePreference] = useState<LanguagePreference>('system');
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [deviceLocales, setDeviceLocales] = useState(readDeviceLocales);
   const [health, setHealth] = useState<DNSPilotContextValue['health']>(null);
   const [profiles, setProfiles] = useState<DNSProfile[]>([]);
@@ -76,6 +88,39 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const locale = useMemo(() => resolveLocale({ preference: languagePreference, deviceLocales }), [deviceLocales, languagePreference]);
   const t = useMemo(() => createTranslator(locale), [locale]);
+
+  React.useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(appPreferencesStorageKey)
+      .then((raw) => {
+        if (!active) return;
+        const preferences = deserializeAppPreferences(raw, defaultAppPreferences);
+        setBridgeUrl(preferences.bridgeUrl);
+        setLanguagePreference(preferences.languagePreference);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) {
+          setPreferencesLoaded(true);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!preferencesLoaded) {
+      return;
+    }
+    AsyncStorage.setItem(
+      appPreferencesStorageKey,
+      serializeAppPreferences({
+        bridgeUrl,
+        languagePreference,
+      }, defaultAppPreferences)
+    ).catch(() => undefined);
+  }, [bridgeUrl, languagePreference, preferencesLoaded]);
 
   React.useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {

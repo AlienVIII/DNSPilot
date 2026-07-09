@@ -21,6 +21,8 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
   testing.
 - `expo-system-ui` backs native automatic light/dark appearance metadata during
   prebuild.
+- `@react-native-async-storage/async-storage` persists the selected language and
+  Bridge URL so real-device QA does not reset to defaults after app restart.
 - First-open System Access sheet checks Local Network/network access, OS-gated
   DNS apply, and DNS flush limitations. It opens App Settings, Android Private
   DNS/network Settings, and System DNS retest without silently mutating DNS.
@@ -34,13 +36,13 @@ npx expo install --check
 ```
 
 `npm install` runs `patch-package` and reapplies the current
-`expo-modules-jsi@57.0.0` Xcode 26 compatibility patch.
+`expo-modules-jsi@57.0.1` Xcode 26 compatibility patch.
 
 After Expo SDK changes, prefer Expo's resolver instead of hand-pinning native
 packages:
 
 ```bash
-npx expo install expo@^57.0.0 --fix
+npx expo install --fix
 ```
 
 ## Run
@@ -59,7 +61,8 @@ npm start
 
 Use `http://localhost:8787` for web and iOS Simulator. For a physical phone,
 replace the Bridge URL in the Overview tab with the printed Mac LAN URL, for
-example `http://192.168.1.20:8787`.
+example `http://192.168.1.20:8787`. The app persists the last Bridge URL and
+manual language choice across restarts.
 
 Native local builds use:
 

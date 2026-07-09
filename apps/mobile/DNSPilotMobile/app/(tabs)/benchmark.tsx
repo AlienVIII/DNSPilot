@@ -29,7 +29,7 @@ import {
   type BenchmarkStepStatus,
   type ResolverDiagnostic,
 } from '@/src/view-models/benchmark-diagnostics';
-import { translateKnownError } from '@/src/view-models/localization';
+import { translateKnownError, type Translator } from '@/src/view-models/localization';
 import { buildSettingsGuidance, guidanceActionStatus, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type Mode = 'compare' | 'pathCompare' | 'benchmark' | 'pathEstimate' | 'systemBenchmark';
@@ -309,28 +309,32 @@ export default function BenchmarkScreen() {
 
       <Section
         title={t('benchmark.process.title')}
-        subtitle={diagnostics ? t('benchmark.process.subtitleReady', { status: diagnostics.status, reason: diagnostics.reason }) : t('benchmark.process.subtitleEmpty')}>
+        subtitle={diagnostics ? t('benchmark.process.subtitleReady', { status: t(`status.${diagnostics.status}`), reason: diagnostics.reason }) : t('benchmark.process.subtitleEmpty')}>
         {diagnostics ? (
           <>
             <Row>
-              <Metric label={t('benchmark.metric.status')} value={diagnostics.status} tone={statusTone(diagnostics.status)} />
-              <Metric label={t('benchmark.metric.failedStep')} value={diagnostics.failedStepId ?? t('benchmark.failedStepNone')} tone={diagnostics.failedStepId ? 'red' : 'green'} />
+              <Metric label={t('benchmark.metric.status')} value={t(`status.${diagnostics.status}`)} tone={statusTone(diagnostics.status)} />
+              <Metric
+                label={t('benchmark.metric.failedStep')}
+                value={diagnostics.failedStepId ? t(`benchmark.step.${diagnostics.failedStepId}`) : t('benchmark.failedStepNone')}
+                tone={diagnostics.failedStepId ? 'red' : 'green'}
+              />
               <Metric label={t('benchmark.metric.elapsed')} value={formatMs(diagnostics.elapsedMs)} tone="blue" />
             </Row>
             <View style={{ gap: 8 }}>
               {diagnostics.steps.map((step) => (
                 <View key={step.id} style={{ alignItems: 'center', backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 10, justifyContent: 'space-between', padding: 12 }}>
                   <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
-                    {step.label}
+                    {t(`benchmark.step.${step.id}`)}
                   </Text>
-                  <StatusPill status={step.status} />
+                  <StatusPill status={step.status} t={t} />
                 </View>
               ))}
             </View>
             {diagnostics.resolvers.length > 0 ? (
               <View style={{ gap: 8 }}>
                 {diagnostics.resolvers.map((resolver) => (
-                  <ResolverRow key={`${resolver.profileId}-${resolver.resolver ?? ''}`} resolver={resolver} />
+                  <ResolverRow key={`${resolver.profileId}-${resolver.resolver ?? ''}`} resolver={resolver} t={t} />
                 ))}
               </View>
             ) : null}
@@ -506,18 +510,18 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function StatusPill({ status }: { status: BenchmarkStepStatus }) {
-  return <Pill label={status} tone={statusTone(status)} />;
+function StatusPill({ status, t }: { status: BenchmarkStepStatus; t: Translator }) {
+  return <Pill label={t(`status.${status}`)} tone={statusTone(status)} />;
 }
 
-function ResolverRow({ resolver }: { resolver: ResolverDiagnostic }) {
+function ResolverRow({ resolver, t }: { resolver: ResolverDiagnostic; t: Translator }) {
   return (
     <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 6, padding: 12 }}>
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
         <Text selectable style={{ color: palette.text, flex: 1, fontSize: 14, fontWeight: '800' }}>
           {resolver.profileId}
         </Text>
-        <Pill label={resolver.status} tone={statusTone(resolver.status)} />
+        <Pill label={t(`status.${resolver.status}`)} tone={statusTone(resolver.status)} />
       </View>
       <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
         {resolver.resolver ?? 'resolver unknown'} | elapsed {formatMs(resolver.elapsedMs)} | failure {formatRate(resolver.failureRate)} | timeout {formatRate(resolver.timeoutRate)}
