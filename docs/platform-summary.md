@@ -17,7 +17,7 @@ contract/docs follow-up. Keep all child branches fast-forwarded from `main` afte
 integration so future lane work starts from the same context.
 
 Current local sync: `worktree/core-cli`, `worktree/docs`, `macos`,
-`worktree/linux`, and `worktree/windows` are at `main` commit `75593bd`; dirty
+`worktree/linux`, and `worktree/windows` are fast-forwarded to current `main`; dirty
 Linux/Windows feature files remain preserved. `worktree/mobile` is intentionally
 not synced because its gated native-DNS commit and dirty `package.json` overlap the
 integration path.
