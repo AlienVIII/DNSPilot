@@ -253,6 +253,14 @@ if grep -q "com.apple.security.get-task-allow" <<<"$app_signing_report"; then
   warn_or_fail_distribution "signed app entitlements include get-task-allow; acceptable for debug only"
 fi
 
+if (( DISTRIBUTION )); then
+  if grep -qi "runtime" <<<"$app_signing_report"; then
+    pass "signed app uses hardened runtime"
+  else
+    fail "signed app is missing hardened runtime; release signing must use codesign --options runtime"
+  fi
+fi
+
 helper_signing_report="$(codesign -dvvv --entitlements :- "$HELPER_BINARY" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$helper_signing_report"; then
   warn_or_fail_distribution "CLI helper is ad-hoc signed; release packaging must sign helper with Packaging/DNSPilotHelper.entitlements"
@@ -266,6 +274,14 @@ if grep -q "com.apple.security.inherit" <<<"$helper_signing_report"; then
   pass "signed CLI helper entitlements include sandbox inheritance"
 else
   warn_or_fail_distribution "signed CLI helper entitlements do not include sandbox inheritance; release signing must use Packaging/DNSPilotHelper.entitlements"
+fi
+
+if (( DISTRIBUTION )); then
+  if grep -qi "runtime" <<<"$helper_signing_report"; then
+    pass "signed CLI helper uses hardened runtime"
+  else
+    fail "signed CLI helper is missing hardened runtime; release signing must use codesign --options runtime"
+  fi
 fi
 
 if (( failures > 0 )); then

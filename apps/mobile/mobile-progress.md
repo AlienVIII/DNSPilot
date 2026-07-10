@@ -53,8 +53,8 @@ approved.
 
 ## Validation
 
-- `npm run verify`: preferred full local gate before real-device QA or EAS
-  builds.
+- `npm run verify`: pass after Expo SDK 57 package alignment; preferred full
+  local gate before real-device QA or EAS builds.
 - `npm test`: pass with 55 behavior/view-model/plugin tests.
 - `npm run typecheck`: pass after `npm ci`.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.

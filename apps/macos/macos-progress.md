@@ -35,8 +35,9 @@ local force flag, and still requires macOS administrator approval.
   `DNSPilotPowerActionsEnabled` plus Direct Admin opt-in, while
   `DNSPILOT_ENABLE_POWER_ACTIONS=1` is the local/dev force path.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
-  are present; the Publish screen also surfaces local release preflight and
-  privacy manifest readiness.
+  are present; release signing defaults to hardened runtime for certificate-
+  backed packages, and the Publish screen surfaces local release preflight,
+  privacy manifest readiness, and hardened-runtime distribution validation.
 - Local bundle validation requires macOS target, version/build metadata,
   sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
 - Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan
@@ -45,6 +46,8 @@ local force flag, and still requires macOS administrator approval.
 
 ## Validation
 
+- `./script/ci_macos.sh`: pass; includes Rust tests, Swift tests, sandbox
+  bundle verification, DNS-only live smoke, and DNS+TCP live smoke.
 - `swift test --package-path apps/macos/DNSPilotMac`: pass.
 - `cargo test --workspace --tests`: pass for shared CLI/core consumed by macOS.
 - `./script/smoke_macos_goal_flows.sh --include-network`: pass on current

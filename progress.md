@@ -147,6 +147,10 @@ DNS handling, and platform capability reporting.
 - [x] [136] v0.1 macOS native permission and direct admin setup — first-run setup plus in-app Direct Admin Apply/Flush opt-in.
 - [x] [137] v0.1 macOS Store-safe direct-admin gate — prevent UserDefaults-only admin enablement in Store-safe builds.
 - [x] [138] v0.1 dependency refresh and README runbook — update Rust deps and document install/run/preflight paths.
+- [x] [139] v0.1 mobile branch catch-up and Expo alignment — merge mobile lane and pass SDK 57 verify gate.
+- [x] [140] v0.1 macOS hardened-runtime release gate — require hardened runtime for certificate-backed release packaging.
+- [x] [141] v0.1 macOS publish readiness hardened-runtime UI — surface hardened-runtime distribution validation in the native Publish screen.
+- [x] [142] v0.1 macOS local CI evidence — verify local CI harness including DNS-only and DNS+TCP live smokes.
 
 ---
 
@@ -6484,6 +6488,151 @@ Result: passed
 
 swift test --package-path apps/macos/DNSPilotMac --filter BenchmarkResultDecoderTests/testDecoderMapsSystemDNSValidationCanonicalPayload --filter BenchmarkResultDecoderTests/testDecoderStillAdaptsLegacySystemDNSValidationPayload
 Result: 2 passed, 0 failed
+```
+
+---
+
+## Chunk 142: v0.1 macOS Local CI Evidence
+
+**Status:** Complete
+**Files changed:** `apps/macos/macos-progress.md`, `docs/progress.md`, `progress.md`
+
+### What changed
+
+Recorded the current macOS local CI evidence in lane and global progress docs.
+The CI harness passes Rust tests, Swift tests, sandbox bundle verification,
+DNS-only live smoke, and DNS+TCP live smoke. Signed distribution verification
+remains conditional on a real signed export via `DNSPILOT_DISTRIBUTION_BUNDLE`.
+
+### Edge Cases / Caveats
+
+- Live DNS smoke can still fail on offline, firewalled, VPN-restricted, captive
+  portal, or unstable networks.
+- Signed distribution validation still needs Apple signing assets and a real
+  exported app bundle.
+
+### Verification
+
+```text
+./script/ci_macos.sh
+Result: passed; distribution bundle verification skipped because
+DNSPILOT_DISTRIBUTION_BUNDLE was not set.
+```
+
+---
+
+## Chunk 141: v0.1 macOS Publish Readiness Hardened-Runtime UI
+
+**Status:** Complete
+**Files changed:** `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSReadinessViewModel.swift`, `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSReadinessViewModelTests.swift`, `apps/macos/macos-progress.md`, `progress.md`
+
+### What changed
+
+The native Publish readiness model now shows hardened-runtime release validation
+as a first-class ready gate. Its copyable checklist mentions
+`codesign --options runtime` and the `--distribution` validator so the in-app
+release surface matches the packaging scripts. The App Store entitlement row now
+states the current v1 entitlements and treats NetworkExtension as a future
+approved-flow dependency, not a current required claim.
+
+### Edge Cases / Caveats
+
+- Release signing identity, provisioning, notarization/App Store upload, and
+  final publisher account work remain manual gates.
+- The native row proves the release gate is visible; it does not replace signed
+  distribution validation with real Apple certificates.
+
+### Verification
+
+```text
+swift test --package-path apps/macos/DNSPilotMac --filter MacOSReadinessViewModelTests/testPublishReadinessSeparatesStoreAndPowerEditionWork
+Result: passed.
+
+swift test --package-path apps/macos/DNSPilotMac
+Result: 253 passed, 0 failed.
+```
+
+---
+
+## Chunk 140: v0.1 macOS Hardened-Runtime Release Gate
+
+**Status:** Complete
+**Files changed:** `script/sign_macos_bundle.sh`, `script/package_macos_distribution.sh`, `script/validate_macos_bundle.sh`, `apps/macos/PUBLISHING.md`, `apps/macos/macos-progress.md`, `README.md`, `progress.md`
+
+### What changed
+
+Certificate-backed macOS release signing now defaults to hardened runtime for
+the app bundle and bundled CLI helper. Distribution validation now fails signed
+exports that do not include hardened runtime, while local ad-hoc sandbox bundles
+remain valid for development.
+
+### Edge Cases / Caveats
+
+- The release package path is intentionally strict; disabling `--options
+  runtime` is not accepted for distribution validation.
+- Real notarization/App Store upload still requires developer identities,
+  provisioning/profile setup, and Apple account access.
+
+### Verification
+
+```text
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+./script/validate_macos_bundle.sh dist/DNSPilotMac.app --distribution
+Result: failed as expected for local ad-hoc bundle; caught missing certificate
+signature and hardened runtime on app/helper.
+```
+
+---
+
+## Chunk 139: v0.1 Mobile Branch Catch-Up And Expo Alignment
+
+**Status:** Complete
+**Files changed:** `apps/mobile/DNSPilotMobile/package.json`, `apps/mobile/DNSPilotMobile/package-lock.json`, `apps/mobile/DNSPilotMobile/patches/expo-modules-jsi+57.0.1.patch`, `apps/mobile/DNSPilotMobile/README.md`, `apps/mobile/mobile-progress.md`, `apps/mobile/mobile-readiness.md`, `apps/mobile/mobile-publish-checklist.md`, `apps/mobile/mobile-risks.md`, `docs/progress.md`, `progress.md`
+
+### What changed
+
+Fast-forwarded `macos` with the latest `worktree/mobile` lane updates, then
+aligned Expo SDK 57 patch versions so `npx expo install --check` passes. The
+Xcode 26 compatibility patch was refreshed from `expo-modules-jsi@57.0.0` to
+`expo-modules-jsi@57.0.1`, and mobile docs now point at the current verified
+package state.
+
+### Edge Cases / Caveats
+
+- `npm audit --omit=dev --audit-level=high` passes, but moderate Expo tooling
+  audit findings remain through transitive `uuid <11.1.1`; `npm audit fix
+  --force` proposes breaking Expo changes and was intentionally not applied.
+- Mobile still needs real iOS/iPadOS/Android device QA and signing/store
+  account work before public distribution.
+
+### Verification
+
+```text
+npm ci && npm run verify
+Result: passed; 48/48 node tests, TypeScript, Expo config, web export,
+expo install --check, and high-severity audit gate passed.
+
+npx expo-doctor@latest
+Result: 20/20 checks passed.
+
+./script/preflight_macos_release.sh --include-power
+Result: passed; Rust tests, Swift tests, Store-safe bundle validation, Power
+bundle validation, and Store-safe restore passed.
+
+./script/smoke_macos_goal_flows.sh --include-network
+Result: passed; store-safe apply-plan, Power apply-plan contract, System DNS
+validation/history, live DNS-only, live DNS+TCP, and Dota 2 SEA Game Ping smoke
+passed.
+
+cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
+Result: passed.
+
+apps/windows/validate-windows-lane.sh
+Result: passed; Windows core/static/package checks passed, with the expected
+macOS-host WinUI XamlCompiler probe failure classified by the harness.
 ```
 
 ---
