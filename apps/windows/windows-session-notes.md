@@ -30,7 +30,19 @@
 - Completed benchmark progress now preserves final per-resolver success/degraded/failed details.
 - Persisted plain DNS profiles from `profile-list` are merged into the benchmark catalog, exposed in the Benchmark resolver profile picker, and preserved across apply-guidance refreshes when still valid.
 - Profile rows now expose edit/delete safety state; only `use_case=custom` profiles are treated as editable/deletable by the Windows shell, and built-in update/delete is blocked by profile ID before any CLI mutation call.
-- `Validate-WindowsLane.ps1` is the Windows-host validation entrypoint; `validate-windows-lane.sh` remains useful from macOS.
+- Persisted domain suites from `suite-list` are merged into the benchmark catalog, exposed in the Benchmark domain suite picker, and managed through suite add/update/delete commands.
+- Initial apply guidance is blocked and empty until the runtime `apply-plan`
+  loads; CLI load failures remain fail-closed.
+- Suite duplicate validation canonicalizes case and trailing dots like Core CLI,
+  while edit/delete ownership follows the CLI's exact custom markers.
+- Profile/suite/history destructive mutations use native confirmation dialogs
+  and disable the triggering button while running.
+- Benchmark execution is single-flight across toolbar, in-panel, and tray entry
+  points.
+- Protected-network apply-plan dispositions hide DNS copy and Settings apply actions; only the protection checklist remains available.
+- `Validate-WindowsLane.ps1` is the Windows-host validation entrypoint;
+  `validate-windows-lane.sh` only tolerates the known Windows-only
+  `XamlCompiler.exe` failure on macOS.
 
 ## Open Questions
 - Store asset approval, signing, hosted privacy/support URLs, and MSIX submission metadata are not validated yet.

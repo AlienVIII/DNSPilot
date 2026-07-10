@@ -15,7 +15,9 @@
 - Catalog is consumed through `catalog`.
 - Capability matrix is consumed through `capabilities`.
 - Profile management is consumed through `profile-add`, `profile-update`, `profile-delete`, and `profile-list`.
+- Suite management is consumed through `suite-add`, `suite-update`, `suite-delete`, and `suite-list`.
 - History management is consumed through `history-list`, `history-delete --id`, and `history-clear`.
+- Protected-network apply suppression is consumed through `apply-plan` dispositions such as `protect-current-dns`.
 
 ## Required Logging
 - Process errors should include command, exit code, and safe stderr summary.

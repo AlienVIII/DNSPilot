@@ -6,7 +6,7 @@
 - `apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/bin/Debug/net8.0/DNSPilotWindows.Core.Tests`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, benchmark results, structured recommendation reports, profile-list, history-list, profile mutations, history mutations, hydrated shell state, persisted custom profile merge into the benchmark catalog, resolver profile selection, built-in profile mutation guards, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, README install/run/package instructions, privacy/listing docs, MSIX project/profile wiring, package manifest, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, protected-network apply suppression, benchmark results, structured recommendation reports, profile-list, suite-list, history-list, profile mutations, suite mutations, history mutations, hydrated shell state, persisted custom profile/suite merge into the benchmark catalog, resolver profile selection, domain suite selection, built-in profile/suite mutation guards, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, README install/run/package instructions, privacy/listing docs, MSIX project/profile wiring, package manifest, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -18,14 +18,20 @@
 
 ## Manual Windows UI Flow
 - Launch DNS Pilot.
+- Before runtime contracts finish loading, confirm Apply has no DNS servers and
+  Copy DNS/Open settings apply actions are hidden. If CLI loading fails, they
+  must remain hidden.
 - Confirm diagnostics do not report CLI contract load failure; expected: locator finds env, bundled, release, or debug CLI path.
 - Confirm the app launches without UAC/admin prompt.
 - Confirm English and Vietnamese localized UI labels render by switching Windows app/display language or using the Windows language override available during QA.
 - Change benchmark mode, record family, resolver address family, and timeout controls before running; expected: command preview and idle process rows update immediately.
 - Select and unselect resolver profiles in the Benchmark panel; expected: DNS-only and DNS + TCP command preview uses exactly the selected plain DNS profiles, including custom profiles loaded from `profile-list`.
+- Select a domain suite in the Benchmark panel; expected: command preview uses the suite domains, including custom suites loaded from `suite-list`.
 - Unselect all resolver profiles and run DNS-only or DNS + TCP; expected: benchmark is blocked with copyable diagnostics instead of launching the CLI without resolvers.
 - Use in-panel `Run benchmark`; expected: it runs the current command preview exactly.
 - Run toolbar `Quick benchmark`; expected: it forces DNS + TCP quick mode while preserving selected A/AAAA, resolver address family, and numeric controls.
+- While a benchmark is running, confirm toolbar Quick/Validate and in-panel Run
+  are disabled; a tray benchmark action must not start a second run.
 - After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
 - After successful benchmark, expected: recommendation summary, resolver metric rows, notes, and diagnostics show localized health, recommendation, reasons, warning, and saved history ID when the CLI returns benchmark-result JSON.
 - After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
@@ -39,10 +45,20 @@
 - Return to DNS Pilot and run `Validate DNS`; expected: current/system DNS benchmark reflects the user-applied resolver path or reports a copyable reason.
 - Preview a custom DNS profile save; expected: valid profiles produce `profile-add`, invalid IPv4/IPv6 show validation errors.
 - Add/update/delete a custom DNS profile; expected: no UAC prompt, profile list refreshes, the custom profile appears in Benchmark resolver profiles, and it can be selected for a run.
+- Delete a custom profile; expected: a native confirmation defaults to Cancel
+  and no mutation runs until Delete is confirmed.
 - Select a built-in profile or type a built-in profile ID and try update/delete; expected: blocked with diagnostics before any CLI mutation call.
+- Add/update/delete a custom domain suite; expected: no UAC prompt, suite list refreshes, the custom suite appears in the Benchmark domain suite picker, and it can be selected for a run.
+- Enter `Example.com, example.com.`; expected: suite Preview reports a
+  duplicate before invoking the CLI.
+- Delete a custom suite; expected: a native confirmation defaults to Cancel.
+- Select a built-in suite or type a built-in suite ID and try update/delete; expected: blocked with diagnostics before any CLI mutation call.
+- Force or mock an `apply-plan` payload with `disposition=protect-current-dns`; expected: Copy DNS and Open settings are hidden and only the protection checklist remains copyable.
 - Select a history row and delete selected; expected: the row is removed after refresh.
 - Refresh storage; expected: saved profiles and history rows reload from the CLI-backed SQLite store.
 - Clear history; expected: history rows empty after refresh.
+- Delete/clear history; expected: each destructive action requires confirmation
+  and the triggering button stays disabled until refresh finishes.
 - Open tray icon menu; expected: Quick benchmark, Validate current DNS, and Open Network Settings actions route to the same shell behavior.
 - Package/install MSIX; expected: packaged app launches, tray actions still work, and bundled `dnspilot-cli.exe` is found without setting `DNSPILOT_CLI_PATH`.
 

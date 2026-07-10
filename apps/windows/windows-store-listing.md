@@ -11,7 +11,7 @@
 Store-safe DNS benchmarking and apply guidance for Windows.
 
 ## Long Description
-DNS Pilot helps Windows users compare DNS resolver performance without requiring administrator elevation. Run DNS-only, DNS + TCP, or current/system DNS validation benchmarks, review a clear recommendation report, copy DNS servers, open Windows Network Settings, and retest after applying changes manually.
+DNS Pilot helps Windows users compare DNS resolver performance without requiring administrator elevation. Run DNS-only, DNS + TCP, or current/system DNS validation benchmarks, manage custom DNS profiles and domain suites, review a clear recommendation report, copy DNS servers, open Windows Network Settings, and retest after applying changes manually.
 
 The Store edition is intentionally safe: it does not silently change system DNS, does not request UAC, and does not call adapter DNS mutation APIs. Power/admin apply flows are kept separate from this Store package.
 
@@ -23,6 +23,7 @@ The Store edition is intentionally safe: it does not silently change system DNS,
 - Recommendation summary with resolver metrics, warnings, and copyable diagnostics.
 - Copy DNS servers and open Windows Network Settings.
 - Custom DNS profile add, update, and delete.
+- Custom domain suite add, update, and delete.
 - Local benchmark history management.
 - Tray quick actions for benchmark, DNS validation, and settings handoff.
 
@@ -50,7 +51,7 @@ DNS Pilot is a packaged desktop WinUI app. `runFullTrust` is used for the normal
 - Store build must not call `netsh`, `DnsClient`, registry DNS writes, adapter DNS mutation APIs, or elevation prompts.
 - Store screenshots and description should show copy/open-settings guidance, not direct apply.
 - Power edition/admin service language must be excluded from Store screenshots unless shipped as a separate distribution.
-- Privacy policy must disclose DNS queries, TCP connection probes, local profile/history storage, and user-shared diagnostics.
+- Privacy policy must disclose DNS queries, TCP connection probes, local profile/suite/history storage, and user-shared diagnostics.
 
 ## Partner Center Fields
 - Privacy policy URL: `REPLACE_WITH_PRIVACY_POLICY_URL`

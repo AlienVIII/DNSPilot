@@ -11,6 +11,7 @@ public sealed partial class MainWindow : Window
 {
     private const string TutorialSeenKey = "dnspilot.setupTutorialSeen";
     private readonly List<BenchmarkProgressEvent> _progressEvents = [];
+    private bool _benchmarkRunning;
     private bool _hasShownFirstRunTutorial;
     private bool _tutorialOpen;
     private string _lastDiagnostics = "";
@@ -246,7 +247,95 @@ public sealed partial class MainWindow : Window
                 new InvalidOperationException(string.Join(Environment.NewLine, validation.Issues)));
             return;
         }
-        await MutateProfileAsync(WindowsDisplayText.Text("Profile delete", "Xóa hồ sơ"), runner => runner.Delete(ViewModel.DatabasePath, profileId));
+
+        if (!await ConfirmDestructiveActionAsync(
+                WindowsDisplayText.Text("Delete DNS profile?", "Xóa hồ sơ DNS?"),
+                WindowsDisplayText.Text(
+                    $"Delete {selected?.Name ?? profileId} ({profileId})? This cannot be undone.",
+                    $"Xóa {selected?.Name ?? profileId} ({profileId})? Không thể hoàn tác."),
+                WindowsDisplayText.Text("Delete", "Xóa")))
+        {
+            return;
+        }
+
+        await RunWithButtonDisabledAsync(
+            sender,
+            () => MutateProfileAsync(
+                WindowsDisplayText.Text("Profile delete", "Xóa hồ sơ"),
+                runner => runner.Delete(ViewModel.DatabasePath, profileId)));
+    }
+
+    private void PreviewSuiteSave_Click(object sender, RoutedEventArgs e)
+    {
+        var form = BuildSuiteForm();
+
+        if (!form.Validation.CanSave)
+        {
+            DiagnosticsBox.Text = string.Join(Environment.NewLine, form.Validation.Issues);
+            return;
+        }
+
+        DiagnosticsBox.Text = FormatCommand(form.AddCommandArguments(ViewModel.DatabasePath));
+    }
+
+    private async void SaveSuite_Click(object sender, RoutedEventArgs e)
+    {
+        var form = BuildSuiteForm();
+        await MutateSuiteAsync(WindowsDisplayText.Text("Suite add", "Thêm suite"), runner => runner.Add(ViewModel.DatabasePath, form));
+    }
+
+    private async void UpdateSuite_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = SuitesList.SelectedItem as SuiteManagementRow;
+        var form = BuildSuiteForm();
+        var suiteId = selected?.Id ?? SuiteIdOrDefault(form);
+        var validation = SuiteManagementViewModel.ValidateMutation(
+            ViewModel.SuiteRows,
+            SuiteMutationKind.Update,
+            suiteId);
+        if (!validation.CanMutate)
+        {
+            ShowDiagnostics(
+                WindowsDisplayText.Text("Suite update blocked", "Đã chặn cập nhật suite"),
+                new InvalidOperationException(string.Join(Environment.NewLine, validation.Issues)));
+            return;
+        }
+
+        await MutateSuiteAsync(WindowsDisplayText.Text("Suite update", "Cập nhật suite"), runner => runner.Update(ViewModel.DatabasePath, suiteId, form));
+    }
+
+    private async void DeleteSuite_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = SuitesList.SelectedItem as SuiteManagementRow;
+        var form = BuildSuiteForm();
+        var suiteId = selected?.Id ?? SuiteIdOrDefault(form);
+        var validation = SuiteManagementViewModel.ValidateMutation(
+            ViewModel.SuiteRows,
+            SuiteMutationKind.Delete,
+            suiteId);
+        if (!validation.CanMutate)
+        {
+            ShowDiagnostics(
+                WindowsDisplayText.Text("Suite delete blocked", "Đã chặn xóa suite"),
+                new InvalidOperationException(string.Join(Environment.NewLine, validation.Issues)));
+            return;
+        }
+
+        if (!await ConfirmDestructiveActionAsync(
+                WindowsDisplayText.Text("Delete domain suite?", "Xóa suite domain?"),
+                WindowsDisplayText.Text(
+                    $"Delete {selected?.Name ?? suiteId} ({suiteId})? This cannot be undone.",
+                    $"Xóa {selected?.Name ?? suiteId} ({suiteId})? Không thể hoàn tác."),
+                WindowsDisplayText.Text("Delete", "Xóa")))
+        {
+            return;
+        }
+
+        await RunWithButtonDisabledAsync(
+            sender,
+            () => MutateSuiteAsync(
+                WindowsDisplayText.Text("Suite delete", "Xóa suite"),
+                runner => runner.Delete(ViewModel.DatabasePath, suiteId)));
     }
 
     private async void RefreshStorage_Click(object sender, RoutedEventArgs e)
@@ -256,15 +345,28 @@ public sealed partial class MainWindow : Window
 
     private async void ClearHistory_Click(object sender, RoutedEventArgs e)
     {
-        try
+        if (!await ConfirmDestructiveActionAsync(
+                WindowsDisplayText.Text("Clear benchmark history?", "Xóa toàn bộ lịch sử benchmark?"),
+                WindowsDisplayText.Text(
+                    "Delete all saved benchmark history? This cannot be undone.",
+                    "Xóa toàn bộ lịch sử benchmark đã lưu? Không thể hoàn tác."),
+                WindowsDisplayText.Text("Clear", "Xóa hết")))
         {
-            await Task.Run(() => new BenchmarkHistoryRunner(DefaultCliPath()).Clear(ViewModel.DatabasePath));
-            await LoadRuntimeContractsAsync();
+            return;
         }
-        catch (Exception ex)
+
+        await RunWithButtonDisabledAsync(sender, async () =>
         {
-            ShowDiagnostics(WindowsDisplayText.Text("Clear history failed", "Xóa lịch sử thất bại"), ex);
-        }
+            try
+            {
+                await Task.Run(() => new BenchmarkHistoryRunner(DefaultCliPath()).Clear(ViewModel.DatabasePath));
+                await LoadRuntimeContractsAsync();
+            }
+            catch (Exception ex)
+            {
+                ShowDiagnostics(WindowsDisplayText.Text("Clear history failed", "Xóa lịch sử thất bại"), ex);
+            }
+        });
     }
 
     private async void DeleteHistory_Click(object sender, RoutedEventArgs e)
@@ -279,15 +381,28 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        try
+        if (!await ConfirmDestructiveActionAsync(
+                WindowsDisplayText.Text("Delete benchmark history?", "Xóa lịch sử benchmark?"),
+                WindowsDisplayText.Text(
+                    $"Delete saved benchmark {row.Id}? This cannot be undone.",
+                    $"Xóa benchmark đã lưu {row.Id}? Không thể hoàn tác."),
+                WindowsDisplayText.Text("Delete", "Xóa")))
         {
-            await Task.Run(() => new BenchmarkHistoryRunner(DefaultCliPath()).Delete(ViewModel.DatabasePath, row.Id));
-            await LoadRuntimeContractsAsync();
+            return;
         }
-        catch (Exception ex)
+
+        await RunWithButtonDisabledAsync(sender, async () =>
         {
-            ShowDiagnostics(WindowsDisplayText.Text("Delete history failed", "Xóa lịch sử thất bại"), ex);
-        }
+            try
+            {
+                await Task.Run(() => new BenchmarkHistoryRunner(DefaultCliPath()).Delete(ViewModel.DatabasePath, row.Id));
+                await LoadRuntimeContractsAsync();
+            }
+            catch (Exception ex)
+            {
+                ShowDiagnostics(WindowsDisplayText.Text("Delete history failed", "Xóa lịch sử thất bại"), ex);
+            }
+        });
     }
 
     private void ProfilesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -303,6 +418,18 @@ public sealed partial class MainWindow : Window
         Ipv6Box.Text = string.Join(", ", row.Ipv6Servers);
     }
 
+    private void SuitesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SuitesList.SelectedItem is not SuiteManagementRow row)
+        {
+            return;
+        }
+
+        SuiteNameBox.Text = row.Name;
+        SuiteIdBox.Text = row.Id;
+        SuiteDomainsBox.Text = string.Join(", ", row.Domains);
+    }
+
     private void SectionNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (args.SelectedItem is not NavigationViewItem item || item.Tag is not string tag)
@@ -315,6 +442,7 @@ public sealed partial class MainWindow : Window
             "Benchmark" => BenchmarkSection,
             "Apply" => ApplySection,
             "Profiles" => ProfilesSection,
+            "Suites" => SuitesSection,
             "History" => DiagnosticsSection,
             "Diagnostics" => DiagnosticsSection,
             _ => BenchmarkSection,
@@ -324,6 +452,11 @@ public sealed partial class MainWindow : Window
 
     private async Task StartBenchmarkAsync(BenchmarkPlanViewModel plan)
     {
+        if (_benchmarkRunning)
+        {
+            return;
+        }
+
         _progressEvents.Clear();
         CommandPreviewBox.Text = FormatCommand(plan.CommandArguments);
         if (!plan.Validation.CanRun)
@@ -339,6 +472,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        _benchmarkRunning = true;
+        SetBenchmarkActionsEnabled(false);
         RenderProgress(BenchmarkRunState.Running, plan.Mode, plan.ProgressSummary);
 
         var startedAt = DateTimeOffset.UtcNow;
@@ -388,17 +523,40 @@ public sealed partial class MainWindow : Window
             _lastDiagnostics = failure.CopyableReport(WindowsDisplayText.ModeLabel(plan.Mode));
             DiagnosticsBox.Text = _lastDiagnostics;
         }
+        finally
+        {
+            _benchmarkRunning = false;
+            SetBenchmarkActionsEnabled(true);
+        }
+    }
+
+    private void SetBenchmarkActionsEnabled(bool isEnabled)
+    {
+        QuickBenchmarkButton.IsEnabled = isEnabled;
+        ValidateSystemDnsButton.IsEnabled = isEnabled;
+        RunBenchmarkButton.IsEnabled = isEnabled;
     }
 
     private void RenderStaticState(bool resetDiagnostics = true)
     {
         var selectedProfileIds = SelectedBenchmarkProfileIds() ?? Array.Empty<string>();
+        var selectedSuiteId = SelectedBenchmarkSuiteId();
         DnsServersBox.Text = ViewModel.ApplyGuidance.CopyableDnsServers;
         ChecklistBox.Text = ViewModel.ApplyGuidance.CopyableChecklist;
+        CopyDnsButton.Visibility = ViewModel.ApplyGuidance.Actions.Any(action => action.Kind == ApplyActionKind.CopyDnsServers)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        OpenApplySettingsButton.Visibility = ViewModel.ApplyGuidance.Actions.Any(action => action.Kind == ApplyActionKind.OpenWindowsSettings)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
         var benchmarkProfileOptions = ViewModel.BenchmarkProfileOptions;
         BenchmarkProfilesList.ItemsSource = benchmarkProfileOptions;
         SelectBenchmarkProfiles(benchmarkProfileOptions, selectedProfileIds);
+        var benchmarkSuiteOptions = ViewModel.BenchmarkSuiteOptions;
+        SuiteCombo.ItemsSource = benchmarkSuiteOptions;
+        SelectBenchmarkSuite(benchmarkSuiteOptions, selectedSuiteId);
         ProfilesList.ItemsSource = ViewModel.ProfileRows;
+        SuitesList.ItemsSource = ViewModel.SuiteRows;
         HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
             ? Array.Empty<BenchmarkHistoryRow>()
             : ViewModel.HistoryRows;
@@ -412,6 +570,9 @@ public sealed partial class MainWindow : Window
             Environment.NewLine,
             WindowsDisplayText.Text("Profile list:", "Danh sách hồ sơ:"),
             FormatCommand(ViewModel.ProfileListCommand),
+            "",
+            WindowsDisplayText.Text("Suite list:", "Danh sách suite:"),
+            FormatCommand(ViewModel.SuiteListCommand),
             "",
             WindowsDisplayText.Text("History list:", "Danh sách lịch sử:"),
             FormatCommand(ViewModel.HistoryListCommand),
@@ -436,6 +597,7 @@ public sealed partial class MainWindow : Window
                 var catalog = new CatalogRunner(executablePath).Load();
                 var capabilities = new CapabilityMatrixRunner(executablePath).Load();
                 var profiles = new ProfileListRunner(executablePath).Load(ViewModel.DatabasePath);
+                var suites = new SuiteListRunner(executablePath).Load(ViewModel.DatabasePath);
                 var history = new BenchmarkHistoryRunner(executablePath).Load(ViewModel.DatabasePath);
                 var firstProfile = catalog.Profiles.FirstOrDefault(profile => profile.Protocol == DnsProtocol.Plain);
                 var testedResolver = firstProfile?.Ipv4Servers.FirstOrDefault() is { } ipv4 ? $"{ipv4}:53" : null;
@@ -452,6 +614,7 @@ public sealed partial class MainWindow : Window
                     capabilities,
                     applyPlan,
                     profiles,
+                    suites,
                     history);
             });
 
@@ -535,11 +698,71 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private async Task<bool> ConfirmDestructiveActionAsync(
+        string title,
+        string content,
+        string primaryButtonText)
+    {
+        if (RootGrid.XamlRoot is null)
+        {
+            return false;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = title,
+            Content = content,
+            PrimaryButtonText = primaryButtonText,
+            CloseButtonText = WindowsDisplayText.Text("Cancel", "Hủy"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private static async Task RunWithButtonDisabledAsync(object sender, Func<Task> action)
+    {
+        if (sender is not Button button)
+        {
+            await action();
+            return;
+        }
+
+        if (!button.IsEnabled)
+        {
+            return;
+        }
+
+        button.IsEnabled = false;
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            button.IsEnabled = true;
+        }
+    }
+
     private async Task MutateProfileAsync(string title, Action<CustomDnsProfileRunner> mutate)
     {
         try
         {
             await Task.Run(() => mutate(new CustomDnsProfileRunner(DefaultCliPath())));
+            await LoadRuntimeContractsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowDiagnostics(title + WindowsDisplayText.Text(" failed", " thất bại"), ex);
+        }
+    }
+
+    private async Task MutateSuiteAsync(string title, Action<CustomDomainSuiteRunner> mutate)
+    {
+        try
+        {
+            await Task.Run(() => mutate(new CustomDomainSuiteRunner(DefaultCliPath())));
             await LoadRuntimeContractsAsync();
         }
         catch (Exception ex)
@@ -556,11 +779,25 @@ public sealed partial class MainWindow : Window
             Ipv6Box.Text);
     }
 
+    private CustomDomainSuiteFormViewModel BuildSuiteForm()
+    {
+        return new CustomDomainSuiteFormViewModel(
+            SuiteNameBox.Text,
+            SuiteDomainsBox.Text);
+    }
+
     private string ProfileIdOrDefault(CustomDnsProfileFormViewModel form)
     {
         return string.IsNullOrWhiteSpace(ProfileIdBox.Text)
             ? form.ProfileId
             : ProfileIdBox.Text.Trim();
+    }
+
+    private string SuiteIdOrDefault(CustomDomainSuiteFormViewModel form)
+    {
+        return string.IsNullOrWhiteSpace(SuiteIdBox.Text)
+            ? form.SuiteId
+            : SuiteIdBox.Text.Trim();
     }
 
     private void ShowDiagnostics(string title, Exception ex)
@@ -612,7 +849,8 @@ public sealed partial class MainWindow : Window
             SafeNumberValue(DnsTimeoutBox, 800),
             SafeNumberValue(TcpTimeoutBox, 1_000),
             SafeNumberValue(TcpTargetsBox, 4),
-            SelectedBenchmarkProfileIds());
+            SelectedBenchmarkProfileIds(),
+            SelectedBenchmarkSuiteId());
     }
 
     private IReadOnlyList<string>? SelectedBenchmarkProfileIds()
@@ -627,6 +865,13 @@ public sealed partial class MainWindow : Window
             .Where(row => row.CanBenchmark)
             .Select(row => row.Id)
             .ToArray();
+    }
+
+    private string? SelectedBenchmarkSuiteId()
+    {
+        return SuiteCombo?.SelectedItem is BenchmarkSuiteOptionRow row
+            ? row.Id
+            : null;
     }
 
     private void SelectBenchmarkProfiles(
@@ -648,6 +893,21 @@ public sealed partial class MainWindow : Window
         {
             BenchmarkProfilesList.SelectedItems.Add(option);
         }
+    }
+
+    private void SelectBenchmarkSuite(
+        IReadOnlyList<BenchmarkSuiteOptionRow> options,
+        string? preferredSuiteId)
+    {
+        if (SuiteCombo is null)
+        {
+            return;
+        }
+
+        var selection = preferredSuiteId is null
+            ? options.FirstOrDefault()
+            : options.FirstOrDefault(option => option.Id == preferredSuiteId) ?? options.FirstOrDefault();
+        SuiteCombo.SelectedItem = selection;
     }
 
     private void RefreshBenchmarkDraft()

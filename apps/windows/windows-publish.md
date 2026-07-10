@@ -50,7 +50,7 @@ powershell -ExecutionPolicy Bypass -File apps\windows\Validate-WindowsLane.ps1 -
 ```
 
 Expected:
-- 27 Windows core tests pass.
+- All Windows core tests pass.
 - Core solution builds.
 - Store-safe static scan passes.
 - Localization, package manifest, MSIX launch profile, and package template checks pass.
@@ -62,6 +62,7 @@ Run `apps/windows/windows-qa.md` end to end. Minimum release gate:
 - Confirm English and Vietnamese resource smoke by switching Windows display/app language or by forcing app language during QA if available.
 - Run Quick benchmark.
 - Select a custom resolver profile after adding it and confirm the benchmark command preview uses that profile.
+- Add a custom domain suite and confirm the benchmark command preview uses that suite.
 - Run Validate DNS.
 - Confirm successful benchmark refreshes Apply guidance.
 - Copy DNS servers.
