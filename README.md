@@ -36,16 +36,17 @@ Store-safe development run:
 ./script/build_and_run.sh run
 ```
 
-Store-safe verified run with local ad-hoc sandbox signing:
+Store-safe verified run with local ad-hoc sandbox signing (`--sandbox-verify` is
+kept as an alias):
 
 ```sh
-./script/build_and_run.sh --sandbox-verify
+./script/build_and_run.sh --verify
 ```
 
 Direct-install Power run for manual admin Apply/Flush QA:
 
 ```sh
-DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
+DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --verify
 ```
 
 After launching the Power bundle, open Setup or Permissions, enable Direct
@@ -358,7 +359,6 @@ cargo test -p dnspilot-core
 swift test --package-path apps/macos/DNSPilotMac
 swift build --package-path apps/macos/DNSPilotMac
 ./script/build_and_run.sh --verify
-./script/build_and_run.sh --sandbox-verify
 ./script/validate_macos_bundle.sh
 ./script/smoke_quick_benchmark.sh
 ./script/smoke_quick_benchmark.sh dns-only

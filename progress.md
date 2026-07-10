@@ -151,6 +151,8 @@ DNS handling, and platform capability reporting.
 - [x] [140] v0.1 macOS hardened-runtime release gate — require hardened runtime for certificate-backed release packaging.
 - [x] [141] v0.1 macOS publish readiness hardened-runtime UI — surface hardened-runtime distribution validation in the native Publish screen.
 - [x] [142] v0.1 macOS local CI evidence — verify local CI harness including DNS-only and DNS+TCP live smokes.
+- [x] [143] v0.1 macOS Power input boundary — reject non-IP DNS values before administrator elevation.
+- [x] [144] v0.1 macOS verified-run signing — ad-hoc sign local bundles before `--verify` validation.
 
 ---
 

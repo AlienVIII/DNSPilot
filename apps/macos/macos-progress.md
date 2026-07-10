@@ -38,6 +38,8 @@ local force flag, and still requires macOS administrator approval.
   are present; release signing defaults to hardened runtime for certificate-
   backed packages, and the Publish screen surfaces local release preflight,
   privacy manifest readiness, and hardened-runtime distribution validation.
+- Power Apply validates literal IPv4/IPv6 addresses at the privileged boundary;
+  hostnames and malformed input are rejected before any administrator prompt.
 - Local bundle validation requires macOS target, version/build metadata,
   sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
 - Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan

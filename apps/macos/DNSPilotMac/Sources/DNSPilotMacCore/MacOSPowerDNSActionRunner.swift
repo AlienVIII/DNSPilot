@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 public enum MacOSPowerDNSActionRunnerError: Error, Equatable {
     case disabled
@@ -147,8 +148,7 @@ public struct MacOSPowerDNSActionRunner {
     }
 
     private static func isSafeDNSServer(_ server: String) -> Bool {
-        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:.%-")
-        return server.unicodeScalars.allSatisfy { allowed.contains($0) }
+        IPv4Address(server) != nil || IPv6Address(server) != nil
     }
 
     private static func appleScript(shellScript: String) -> String {
