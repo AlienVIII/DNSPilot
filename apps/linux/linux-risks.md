@@ -21,5 +21,6 @@
 ## Release Risks
 - Need separate release checklist for Flatpak, Snap, deb, and rpm.
 - Later QA must verify real packages because current automated tests use mocked capabilities.
-- Packaging templates must still pass package-tool validation on Linux build hosts.
+- Build recipes and payload policy are automated, but generated artifacts must
+  still pass package-tool and installed-runtime validation on Linux build hosts.
 - Store publishing still needs credentials, screenshots, signing, release notes, and final metadata review.

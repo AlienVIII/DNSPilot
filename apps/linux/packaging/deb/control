@@ -8,7 +8,8 @@ Build-Depends: debhelper-compat (= 13)
 
 Package: dnspilot
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, policykit-1 | polkitd, network-manager | systemd-resolved
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: polkitd | policykit-1, network-manager | systemd-resolved
 Description: DNS benchmark and native resolver guidance
  DNS Pilot benchmarks DNS resolvers, manages custom DNS profiles, renders
  diagnostics, and can use a native helper path for DNS apply when the resolver

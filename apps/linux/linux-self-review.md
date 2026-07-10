@@ -24,7 +24,7 @@
 | Capability detection without real DNS mutation | Covered | detector snapshot/runtime path, CLI `detect` |
 | Native app permission model | Covered as GUI/view-model/CLI | `gui_main.rs`, `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
 | English/Vietnamese localization | Covered for Linux shell/native app/publish surfaces | `i18n.rs`, `native_app.rs`, `publish.rs`, i18n behavior tests |
-| Packaging/publish readiness | Covered as policy templates/checklist | `packaging/**`, packaging policy tests, `linux-publish-checklist.md` |
+| Packaging/publish readiness | Covered as build recipes/checklist; real artifacts remain a Linux-host gate | `scripts/build-packages.sh`, `packaging/**`, packaging policy tests, `linux-publish-checklist.md` |
 
 ## Counterarguments And Resolution
 
@@ -46,8 +46,8 @@
 6. **Counterargument: Store-safe builds can only guide, not apply.**
    Correct. The product message must remain benchmark/guidance first for Flatpak and Snap.
 
-7. **Counterargument: Packaging templates are not real store validation.**
-   Valid. The tests assert policy invariants and file presence, but Flatpak Builder, appstreamcli, desktop-file-validate, snapcraft, debuild, and rpmbuild still need to run on Linux.
+7. **Counterargument: Packaging recipes are not real store validation.**
+   Valid. A unified script now builds and validates one Linux ELF payload and drives Flatpak Builder, Snapcraft, dpkg-deb, and rpmbuild. Structural tests cover recipe invariants, but the package tools and installed artifacts still need to run on Linux.
 
 8. **Counterargument: Vietnamese coverage is not app-wide translation.**
    Partially valid. The Linux shell and GUI now support English/Vietnamese strings for primary native app labels/help, permission, guided settings, publish-check, and CLI surfaces. Remaining untranslated package-tool terms are intentionally kept copyable.
@@ -55,6 +55,8 @@
 ## Remaining Risks
 
 - Real Flatpak/Snap/deb/rpm builds are not validated in this lane.
+- Flathub still needs a public immutable source archive/tag and Cargo source
+  manifest before store submission; local Flatpak QA uses staged ELF payloads.
 - Native helper packaging/install paths and command backend exist, but real helper authorization/write execution still needs Linux package QA before enabling mutation by default.
 - Native GUI compiles in this lane, but real GNOME/Wayland rendering still needs Linux package QA.
 - Distro-specific settings handoff text may need UX refinement after QA.

@@ -38,6 +38,9 @@ sudo dnf install gcc pkg-config gtk3-devel libxkbcommon-devel \
   NetworkManager systemd-resolved polkit
 ```
 
+Flatpak uses `org.freedesktop.Platform`/`Sdk` 25.08. Install that runtime from
+Flathub on the Flatpak build host. Snap remains on the supported `core24` base.
+
 ## Build And Run
 
 From repo root:
@@ -135,7 +138,23 @@ Linux package QA validates polkit prompts, rollback, and resolver behavior.
 
 ## Package QA
 
-Detailed steps live in `apps/linux/linux-publish-checklist.md`.
+The package pipeline builds locked release binaries, rejects non-Linux payloads,
+validates AppStream/desktop metadata, and stages the same payload for every
+format:
+
+```sh
+apps/linux/scripts/build-packages.sh stage
+apps/linux/scripts/build-packages.sh flatpak
+apps/linux/scripts/build-packages.sh snap
+apps/linux/scripts/build-packages.sh deb
+apps/linux/scripts/build-packages.sh rpm
+# Or all formats when every package tool is installed:
+apps/linux/scripts/build-packages.sh all
+```
+
+Artifacts and temporary roots are written under `apps/linux/dist/`. Detailed
+install, smoke, store, and rollback steps live in
+`apps/linux/linux-publish-checklist.md`.
 
 Manual gates remain:
 

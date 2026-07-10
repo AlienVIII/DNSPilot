@@ -41,11 +41,13 @@ cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
 cargo build -p dnspilot-cli
 ```
 
-Release binary:
+Release payload and package commands:
 
 ```sh
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
 cargo build --release -p dnspilot-cli
+apps/linux/scripts/build-packages.sh stage
+# Use flatpak, snap, deb, rpm, or all after the stage gate passes.
 ```
 
 Expected release binaries:
@@ -70,7 +72,8 @@ apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell permissions --packa
 
 ## Flatpak Local QA
 
-1. Build release binary.
+1. Install `org.freedesktop.Platform` and `org.freedesktop.Sdk` 25.08 from
+   Flathub on the Linux build host.
 2. Confirm manifest stays store-safe:
 
 ```sh
@@ -83,11 +86,11 @@ Expected:
 - `--socket=system-bus` does not exist.
 - NetworkManager/systemd-resolved bus access does not exist.
 
-3. Build/install locally with Flatpak Builder from the repo root or adjust the
-   manifest source paths for the builder working directory:
+3. Build, then install locally with Flatpak Builder:
 
 ```sh
-flatpak-builder --force-clean --user --install build-flatpak apps/linux/packaging/flatpak/io.dnspilot.DNSPilot.yml
+apps/linux/scripts/build-packages.sh flatpak
+flatpak-builder --force-clean --user --install apps/linux/dist/flatpak-build apps/linux/packaging/flatpak/io.dnspilot.DNSPilot.yml
 flatpak run io.dnspilot.DNSPilot
 ```
 
@@ -125,25 +128,16 @@ be batched once.
 
 ## Snap Local QA
 
-1. Build release binary.
-2. Build a `snap-payload` directory matching `snapcraft.yaml`:
+1. Build the strict Snap; the script stages the shared payload automatically:
 
 ```sh
-mkdir -p apps/linux/packaging/snap-payload
-cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui apps/linux/packaging/snap-payload/
-cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell apps/linux/packaging/snap-payload/
-cp target/release/dnspilot-cli apps/linux/packaging/snap-payload/
-cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop apps/linux/packaging/snap-payload/
-cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.metainfo.xml apps/linux/packaging/snap-payload/
-cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.svg apps/linux/packaging/snap-payload/
+apps/linux/scripts/build-packages.sh snap
 ```
 
-3. Pack and install:
+2. Install and inspect connections:
 
 ```sh
-cd apps/linux/packaging/snap
-snapcraft pack
-sudo snap install --dangerous dnspilot_0.1.0_*.snap
+sudo snap install --dangerous apps/linux/dist/dnspilot_0.1.0.snap
 snap connections dnspilot
 dnspilot
 ```
@@ -162,24 +156,21 @@ Expected:
 ```sh
 snapcraft login
 snapcraft register dnspilot
-snapcraft upload --release=edge dnspilot_0.1.0_*.snap
+snapcraft upload --release=edge apps/linux/dist/dnspilot_0.1.0.snap
 ```
 
 3. In store notes, state that native DNS apply is not part of the strict Snap.
 
 ## deb Native Power QA
 
-1. Build release binary.
-2. Wire `apps/linux/packaging/deb/control`, shared metadata, binary install,
-   and polkit policy into the final Debian packaging tree.
-3. Build and install locally:
+1. Build and install locally on a Debian-family Linux host:
 
 ```sh
-debuild -us -uc
-sudo apt install ./dnspilot_0.1.0_*.deb
+apps/linux/scripts/build-packages.sh deb
+sudo apt install ./apps/linux/dist/deb/dnspilot_0.1.0_*.deb
 ```
 
-4. Verify host capabilities:
+2. Verify host capabilities:
 
 ```sh
 nmcli --version || true
@@ -207,17 +198,14 @@ Expected:
 
 ## rpm Native Power QA
 
-1. Build release binary.
-2. Wire `apps/linux/packaging/rpm/dnspilot-linux.spec`, shared metadata, binary
-   install, and polkit policy into the final RPM build tree.
-3. Build and install locally:
+1. Build and install locally on an RPM-family Linux host:
 
 ```sh
-rpmbuild -ba dnspilot-linux.spec
-sudo dnf install ./dnspilot-0.1.0-*.rpm
+apps/linux/scripts/build-packages.sh rpm
+sudo dnf install ./apps/linux/dist/rpmbuild/RPMS/*/dnspilot-0.1.0-1*.rpm
 ```
 
-4. Repeat the deb native power QA capability and polkit checks.
+2. Repeat the deb native power QA capability and polkit checks.
 
 ## Manual Real-Device Acceptance
 
@@ -236,8 +224,11 @@ sudo dnf install ./dnspilot-0.1.0-*.rpm
 
 ## Known Release Risks
 
-- The checked-in packaging files are policy templates; real Flatpak/Snap/deb/rpm
-  builds still need package-tool validation on Linux.
+- The checked-in build script and recipes are structurally tested; real
+  Flatpak/Snap/deb/rpm artifacts still need package-tool validation on Linux.
+- Flathub submission needs a public immutable source tag/archive and generated
+  Cargo source manifest; the local manifest intentionally consumes verified
+  Linux ELF payloads for pre-submission QA.
 - The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
   still needs package-tool validation on Linux.
 - The native power helper contract includes a non-mutating dry-run lifecycle and

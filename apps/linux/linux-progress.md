@@ -33,6 +33,10 @@ package release.
   guided settings, publish-check, and CLI surfaces.
 - Packaging templates exist for Flatpak, Snap, deb, rpm, shared desktop/AppStream
   metadata, icon, core CLI/native helper install paths, and polkit policy.
+- `scripts/build-packages.sh` builds locked Linux release binaries, rejects
+  non-ELF payloads, validates metadata, stages one shared payload, and drives
+  Flatpak Builder, Snapcraft, dpkg-deb, or rpmbuild without hard-requiring a
+  resolver stack on benchmark-first deb/rpm installs.
 - `publish-check` CLI emits package-specific or all-package automated gates,
   local package QA steps, manual credential/signing gates, and safety notes.
 - Native helper contract binary supports contract and dry-run inspection without
@@ -57,6 +61,11 @@ package release.
 - `cargo build --release -p dnspilot-cli`: pass.
 - `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness`: pass.
 - `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- publish-check --package deb --network-manager --polkit --system-resolver-probe`: pass.
+- `bash -n apps/linux/scripts/build-packages.sh`: pass.
+- `apps/linux/scripts/build-packages.sh --help`: pass.
+- Real `flatpak-builder`, `snapcraft`, `dpkg-deb`, `rpmbuild`, `appstreamcli`,
+  and `desktop-file-validate`: NOT RUN because they are unavailable on the
+  current non-Linux host.
 
 ## Remaining Gates
 
