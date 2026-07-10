@@ -93,3 +93,17 @@ fn store_package_templates_launch_gui_binary_and_keep_shell_for_qa() {
     assert!(snap.contains("dnspilot-linux-gui: bin/dnspilot-linux-gui"));
     assert!(snap.contains("dnspilot-linux-shell: bin/dnspilot-linux-shell"));
 }
+
+#[test]
+fn every_linux_package_ships_the_core_cli_engine() {
+    let flatpak = read_packaging_file("packaging/flatpak/io.dnspilot.DNSPilot.yml");
+    let snap = read_packaging_file("packaging/snap/snapcraft.yaml");
+    let deb_install = read_packaging_file("packaging/deb/dnspilot.install");
+    let rpm = read_packaging_file("packaging/rpm/dnspilot-linux.spec");
+
+    assert!(flatpak.contains("dnspilot-cli /app/bin/dnspilot-cli"));
+    assert!(flatpak.contains("target/release/dnspilot-cli"));
+    assert!(snap.contains("dnspilot-cli: bin/dnspilot-cli"));
+    assert!(deb_install.contains("dnspilot-cli usr/bin/"));
+    assert!(rpm.contains("%{_bindir}/dnspilot-cli"));
+}

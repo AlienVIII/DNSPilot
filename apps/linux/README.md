@@ -9,6 +9,7 @@ NetworkManager or systemd-resolved with polkit.
 - `dnspilot-linux-gui`: desktop launcher and primary UX.
 - `dnspilot-linux-shell`: CLI inspection, QA, profile, readiness, and publish
   helper.
+- `dnspilot-cli`: packaged core benchmark engine used by the GUI.
 - `dnspilot-native-helper`: native deb/rpm helper for DNS apply contracts and
   explicit native power execution.
 
@@ -42,21 +43,27 @@ sudo dnf install gcc pkg-config gtk3-devel libxkbcommon-devel \
 From repo root:
 
 ```sh
+cargo build -p dnspilot-cli
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
-cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-linux-gui
+DNSPILOT_CLI_PATH="$PWD/target/debug/dnspilot-cli" \
+  cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-linux-gui
 ```
 
 In the GUI, the Benchmark tab is the primary no-tray workflow. It shows
 capability-gated benchmark modes, selected DNS profiles, suite/domain controls,
 IPv4/IPv6 and A/AAAA controls, a process status table, and copyable diagnostics.
+Installed packages place `dnspilot-cli` beside the GUI, so normal users do not
+configure an engine path. `DNSPILOT_CLI_PATH` is only a development/QA override.
 
 Release binaries:
 
 ```sh
+cargo build --release -p dnspilot-cli
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
 ls apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui \
    apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell \
-   apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper
+   apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper \
+   target/release/dnspilot-cli
 ```
 
 ## Automated Gate
@@ -65,8 +72,10 @@ ls apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui \
 cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check
 cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
 cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings
+cargo test -p dnspilot-cli
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
+cargo build --release -p dnspilot-cli
 ```
 
 ## CLI Smoke

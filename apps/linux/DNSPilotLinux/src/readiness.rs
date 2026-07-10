@@ -77,7 +77,7 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Packaging and publish checklist",
-                "Flatpak/Snap store-safe templates, deb/rpm native-power templates, helper install paths, AppStream, desktop file, icon, polkit policy, publish-check CLI, and publish checklist are present.",
+                "Flatpak/Snap store-safe templates, deb/rpm native-power templates, packaged core CLI/helper paths, AppStream, desktop file, icon, polkit policy, publish-check CLI, and publish checklist are present.",
             ),
         ],
         external_requirements: vec![

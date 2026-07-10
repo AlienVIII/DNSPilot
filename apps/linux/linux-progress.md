@@ -17,6 +17,8 @@ package release.
 - Capability model covers Flatpak, Snap, deb, and rpm.
 - Benchmark planning covers DNS-only, DNS+TCP, and current/system resolver
   validation with mode gating.
+- The GUI resolves the packaged `dnspilot-cli` engine automatically, with an
+  explicit `DNSPILOT_CLI_PATH` development override and `PATH` fallback.
 - Process state covers idle/running/success/failed steps, resolver rows,
   diagnostics, copyable debug reports, and the GUI benchmark process table.
 - Custom plain DNS profile add/edit/delete/list and file-backed persistence are
@@ -25,7 +27,7 @@ package release.
 - English/Vietnamese strings cover primary native app labels/help, permission,
   guided settings, publish-check, and CLI surfaces.
 - Packaging templates exist for Flatpak, Snap, deb, rpm, shared desktop/AppStream
-  metadata, icon, native helper install paths, and polkit policy.
+  metadata, icon, core CLI/native helper install paths, and polkit policy.
 - `publish-check` CLI emits package-specific or all-package automated gates,
   local package QA steps, manual credential/signing gates, and safety notes.
 - Native helper contract binary supports contract and dry-run inspection without
@@ -46,6 +48,8 @@ package release.
 - `cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings`: pass.
 - `cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release`: pass.
+- `cargo test -p dnspilot-cli`: pass.
+- `cargo build --release -p dnspilot-cli`: pass.
 - `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness`: pass.
 - `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- publish-check --package deb --network-manager --polkit --system-resolver-probe`: pass.
 

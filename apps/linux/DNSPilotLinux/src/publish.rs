@@ -19,7 +19,9 @@ pub fn publish_check(
         "cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check",
         "cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml",
         "cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings",
+        "cargo test -p dnspilot-cli",
         "cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release",
+        "cargo build --release -p dnspilot-cli",
     ];
 
     match capability.package_kind {

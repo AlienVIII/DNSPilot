@@ -7,6 +7,9 @@ use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxCapabilityViewModel,
 };
 use dnspilot_linux_shell::detect::detect_linux_environment;
+use dnspilot_linux_shell::executable::{
+    resolve_core_cli, CoreCliResolution, CoreCliResolutionError,
+};
 use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, NativeAppSectionKind};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
@@ -51,7 +54,7 @@ struct DnsPilotGui {
     resolver_family: ResolverAddressFamily,
     record_family: DnsRecordFamily,
     custom_domains: String,
-    core_cli_path: String,
+    core_cli: Result<CoreCliResolution, CoreCliResolutionError>,
     status: String,
     diagnostics: String,
     process: Option<LinuxBenchmarkProcessViewModel>,
@@ -77,6 +80,11 @@ impl DnsPilotGui {
         let selected_suite_id = default_suite_catalog(true)
             .first()
             .map(|suite| suite.id.to_string());
+        let core_cli = resolve_core_cli();
+        let status = core_cli
+            .as_ref()
+            .map(|_| "Ready".to_string())
+            .unwrap_or_else(|error| error.to_string());
 
         Self {
             language: Language::English,
@@ -89,8 +97,8 @@ impl DnsPilotGui {
             resolver_family: ResolverAddressFamily::Auto,
             record_family: DnsRecordFamily::AAndAaaa,
             custom_domains: String::new(),
-            core_cli_path: "dnspilot-cli".to_string(),
-            status: "Ready".to_string(),
+            core_cli,
+            status,
             diagnostics: String::new(),
             process: None,
             show_tutorial,
@@ -171,10 +179,13 @@ impl DnsPilotGui {
     }
 
     fn plan_benchmark(&mut self) {
+        let Some(core_cli_path) = self.resolved_core_cli_path() else {
+            return;
+        };
         let session = self.build_session();
         match session.build_plan() {
             Ok(plan) => {
-                let command = build_core_cli_command(&self.core_cli_path, &plan);
+                let command = build_core_cli_command(core_cli_path, &plan);
                 self.process = Some(benchmark_process_for_plan(&plan));
                 self.diagnostics = format!(
                     "Core command:\n{} {}",
@@ -191,12 +202,15 @@ impl DnsPilotGui {
     }
 
     fn run_benchmark(&mut self) {
+        let Some(core_cli_path) = self.resolved_core_cli_path() else {
+            return;
+        };
         let session = self.build_session();
         match session.build_plan() {
             Ok(plan) => {
                 let runner = ProcessCoreCliRunner;
                 let result = run_benchmark_with_runner(
-                    self.core_cli_path.clone(),
+                    core_cli_path,
                     "linux-gui",
                     self.capability.clone(),
                     plan,
@@ -216,6 +230,16 @@ impl DnsPilotGui {
             Err(issues) => {
                 self.process = None;
                 self.status = issues.join("; ");
+            }
+        }
+    }
+
+    fn resolved_core_cli_path(&mut self) -> Option<String> {
+        match &self.core_cli {
+            Ok(resolution) => Some(resolution.path.to_string_lossy().into_owned()),
+            Err(error) => {
+                self.status = error.to_string();
+                None
             }
         }
     }
@@ -345,13 +369,33 @@ impl DnsPilotGui {
 
         ui.separator();
         ui.horizontal(|ui| {
-            ui.label("Core CLI");
-            ui.text_edit_singleline(&mut self.core_cli_path);
-            if ui.button("Plan").clicked() {
+            ui.label("Engine");
+            let engine_ready = self.core_cli.is_ok();
+            match &self.core_cli {
+                Ok(resolution) => {
+                    ui.colored_label(egui::Color32::from_rgb(40, 140, 80), "Ready")
+                        .on_hover_text(format!(
+                            "{} ({})",
+                            resolution.path.display(),
+                            resolution.source.label()
+                        ));
+                }
+                Err(error) => {
+                    ui.colored_label(egui::Color32::from_rgb(190, 60, 60), "Unavailable")
+                        .on_hover_text(error.to_string());
+                }
+            }
+            if ui
+                .add_enabled(engine_ready, egui::Button::new("Plan"))
+                .clicked()
+            {
                 self.plan_benchmark();
             }
             if ui
-                .button(localized_text(TextKey::RunBenchmark, self.language))
+                .add_enabled(
+                    engine_ready,
+                    egui::Button::new(localized_text(TextKey::RunBenchmark, self.language)),
+                )
                 .clicked()
             {
                 self.run_benchmark();
