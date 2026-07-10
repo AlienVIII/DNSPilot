@@ -51,7 +51,7 @@ function iosChecks({ bridgeStatus, t }) {
       status: bridgeStatus === "success" ? "ready" : "needs-action",
       detail: t("systemAccess.detail.localNetwork"),
     },
-    dnsApplyCheck(t),
+    dnsApplyCheck(t, "ios"),
     dnsFlushCheck(t),
   ];
 }
@@ -70,17 +70,17 @@ function androidChecks({ bridgeStatus, t }) {
       status: "os-gated",
       detail: t("systemAccess.detail.privateDns"),
     },
-    dnsApplyCheck(t),
+    dnsApplyCheck(t, "android"),
     dnsFlushCheck(t),
   ];
 }
 
-function dnsApplyCheck(t) {
+function dnsApplyCheck(t, platform) {
   return {
     id: "dns-apply",
     label: t("systemAccess.check.dnsApply"),
     status: "os-gated",
-    detail: t("systemAccess.detail.dnsApply"),
+    detail: t(`systemAccess.detail.dnsApply.${platform}`),
   };
 }
 

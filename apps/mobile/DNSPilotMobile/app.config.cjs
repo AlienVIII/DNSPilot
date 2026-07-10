@@ -16,7 +16,7 @@ function pluginsForProfile(sourcePlugins = []) {
     const name = Array.isArray(plugin) ? plugin[0] : plugin;
     return shouldIncludeDevClient() || name !== "expo-dev-client";
   });
-  return [...plugins, "./plugins/withAndroidProductionAutolinking.cjs"];
+  return [...plugins, "./plugins/withAndroidProductionAutolinking.cjs", "./plugins/withIosDnsSettings.cjs"];
 }
 
 module.exports = ({ config } = {}) => {

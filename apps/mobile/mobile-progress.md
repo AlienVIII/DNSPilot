@@ -29,6 +29,9 @@ approved.
   title/status copy with per-row info expansion for detailed policy text.
 - Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
   validation, and custom tag preservation.
+- iOS/iPadOS has a native `NEDNSSettingsManager` module for installing/removing
+  user-approved DoH/DoT DNS Settings configurations with bootstrap IPs; iOS
+  still requires the user to enable the configuration in Settings.
 - Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,
   Default/Vietnam quick picks, English/Vietnamese localization, and real-device
   bridge URL checks are implemented.
@@ -55,7 +58,7 @@ approved.
 
 - `npm run verify`: preferred full local gate before real-device QA or EAS
   builds.
-- `npm test`: pass with 55 behavior/view-model/plugin tests.
+- `npm test`: pass with 60 behavior/view-model/plugin tests.
 - `npm run typecheck`: pass after `npm ci`.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
 - `npx expo install --check`: pass with `expo-dev-client`.
@@ -79,8 +82,8 @@ approved.
 ## Remaining Gates
 
 - Real-device QA on physical iOS/iPadOS and Android devices.
-- Apple/Google signing, store setup, real-device QA, and Local Network/Private
-  DNS manual checks.
+- Apple/Google signing, store setup, real-device QA, Local Network/Private DNS
+  manual checks, and Apple Network Extensions `dns-settings` capability setup.
 - Native Rust adapter, approved backend, or another release runtime decision.
 - Dependency audit: Expo tooling currently pulls vulnerable `uuid <11.1.1`; npm's
   force fix is breaking.

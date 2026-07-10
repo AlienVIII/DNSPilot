@@ -17,7 +17,9 @@ test("iOS startup prompt checks Local Network and refuses fake DNS mutation", ()
   assert.ok(prompt.checks.some((check) => check.id === "dns-apply" && check.status === "os-gated"));
   assert.ok(prompt.checks.some((check) => check.id === "dns-flush" && check.status === "unsupported"));
   assert.match(prompt.summary, /OS Settings/);
-  assert.match(prompt.checks.find((check) => check.id === "dns-apply").detail, /OS\/user applies/);
+  assert.match(prompt.checks.find((check) => check.id === "dns-apply").detail, /DoH\/DoT/);
+  assert.match(prompt.checks.find((check) => check.id === "dns-apply").detail, /user enables/);
+  assert.match(prompt.checks.find((check) => check.id === "dns-apply").detail, /Plain DNS remains guide-only/);
   assert.match(prompt.checks.find((check) => check.id === "dns-flush").detail, /cannot flush mobile system DNS cache/);
   assert.doesNotMatch(prompt.summary, /speed improvement|apply fastest/i);
 });

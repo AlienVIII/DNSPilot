@@ -26,6 +26,10 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
 - First-open System Access sheet checks Local Network/network access, OS-gated
   DNS apply, and DNS flush limitations. It opens App Settings, Android Private
   DNS/network Settings, and System DNS retest without silently mutating DNS.
+- A local iOS Expo module wraps `NEDNSSettingsManager` for user-approved DoH/DoT
+  DNS Settings install/remove/status. The config plugin declares the
+  `dns-settings` NetworkExtension entitlement; Apple signing capability and
+  physical-device enablement remain manual release gates.
 
 ## Install
 
@@ -119,6 +123,9 @@ If another process owns Metro port 8081, build with `--no-bundler`, then run
 
 - iOS/iPadOS may ask for Local Network permission when connecting to the local
   bridge. Allow it for LAN bridge testing.
+- Native iOS DNS Settings requires an installable entitled build, a DoH/DoT
+  profile with bootstrap IP addresses, and explicit user enablement in Settings
+  > General > VPN & Device Management > DNS. Expo Go cannot test this module.
 - Android should not show dangerous runtime permission prompts for normal
   network access.
 - The app does not silently mutate system DNS and does not use Android

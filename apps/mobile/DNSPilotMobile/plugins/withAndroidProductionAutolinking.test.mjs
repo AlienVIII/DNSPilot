@@ -71,5 +71,6 @@ test("dynamic app config preserves Expo-provided app.json values", () => {
   assert.deepEqual(config.plugins, [
     "expo-router",
     "./plugins/withAndroidProductionAutolinking.cjs",
+    "./plugins/withIosDnsSettings.cjs",
   ]);
 });

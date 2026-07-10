@@ -20,6 +20,9 @@
 - The app remains store-safe: no iOS plain system DNS switch, no Android silent
   Private DNS mutation, no Android `VpnService`, and no "apply fastest DNS" or
   internet speed claim.
+- iOS/iPadOS builds declare the `dns-settings` NetworkExtension entitlement for
+  native DoH/DoT DNS Settings install/remove. iOS still requires the user to
+  enable the installed configuration; plain DNS remains guide-only.
 - First-open System Access shows permission/apply/flush status, opens iOS App
   Settings or Android Private DNS/network Settings, and can retest System DNS.
   DNS flush is explicitly unsupported on mobile consumer OS APIs.
@@ -72,6 +75,12 @@
     is user-controlled OS settings, not an in-app DNS switch.
 16. iPad/Android tablet: rotate portrait/landscape and confirm the layout uses
     multi-column native tablet width instead of stretching a phone UI.
+17. iOS/iPadOS native DNS Settings: create a DoH or DoT profile in Storage with
+    bootstrap IP addresses, choose it in Policy > Native iOS DNS Settings, tap
+    Install iOS DNS Settings, then explicitly enable DNSPilot from Settings >
+    General > VPN & Device Management > DNS. Return and refresh status; expect
+    Installed and Enabled. Tap Remove DNS Settings and confirm Installed turns
+    off. Expo Go cannot exercise this local native module.
 
 ## Native Build Smoke
 1. Run local gates:
@@ -113,7 +122,9 @@ first-upload work can be batched once.
 
 1. Confirm `com.dnspilot.mobile` is the final iOS bundle ID and Android package
    before first submission. Android package ID cannot be changed after publish.
-2. Apple: create App Store Connect app, configure signing/provisioning, and run:
+2. Apple: in Certificates, Identifiers & Profiles enable Network Extensions with
+   DNS Settings for `com.dnspilot.mobile`, regenerate the provisioning profile,
+   then create the App Store Connect app and run:
    ```bash
    npx eas-cli@latest build -p ios --profile production
    npx eas-cli@latest submit -p ios --profile production
@@ -133,8 +144,8 @@ first-upload work can be batched once.
 
 ## Remaining Manual Blockers
 - iOS-only: Apple signing/provisioning, App Store Connect setup, Local Network
-  prompt validation, and NetworkExtension DNS Settings entitlement only if a
-  future native DNS profile installer is added and approved.
+  prompt validation, Network Extensions `dns-settings` capability enablement,
+  and final DoH/DoT profile validation on a signed physical device.
 - Android-only: Play Console app/service account, first manual upload if Play
   API requires it, and manual Private DNS settings validation.
 - Both: real-device install/test and final store copy review.

@@ -15,6 +15,10 @@
   iOS/iPadOS profile/settings guidance, Android settings/Private DNS guidance,
   protected-network suppression, one-tap copy-and-open OS settings actions, and
   native Open Settings actions.
+- Native encrypted-DNS flow: covered by a local Expo module around
+  `NEDNSSettingsManager`, an Expo config plugin for the `dns-settings`
+  NetworkExtension entitlement, bootstrap IP fields, install/remove/status UI,
+  and an explicit iOS user-enable instruction.
 - Native-style access prompt: covered on app open with Local Network/network
   access checks, OS-gated DNS apply status, iOS App Settings, Android Private
   DNS/network Settings, in-sheet System DNS retest, and explicit DNS flush
@@ -62,9 +66,10 @@
   adapter.
 - Guided settings is intentionally conservative. It may feel less powerful than
   desktop DNS switching, but that is the correct consumer mobile policy stance.
-- "Apply" on mobile means user-approved OS settings/profile flow. The app can
-  prepare values and open the right settings surface, but it cannot silently
-  mutate iOS DNS settings, Android Private DNS, or flush system DNS cache.
+- An entitled iOS/iPadOS build can install a DoH/DoT DNS Settings configuration
+  with `NEDNSSettingsManager`; the user must still explicitly enable it in
+  Settings. Plain DNS remains guide-only. Android Private DNS cannot be
+  silently mutated, and neither consumer OS can flush system DNS cache.
 - Live progress is implemented as foreground polling. This avoids background
   scheduler risk, but long worst-case benchmarks still need the app to stay
   open.
@@ -77,7 +82,8 @@
 
 ## Remaining Blockers
 - iOS/iPadOS: real-device validation, Local Network prompt behavior, Apple
-  signing/provisioning, and App Store Connect setup are manual.
+  signing/provisioning, Network Extensions `dns-settings` capability, and App
+  Store Connect setup are manual.
 - Android: real-device validation, Play Console setup, first manual upload if
   required by Play, and Private DNS settings validation are manual.
 - Both: a public store build that must work without a developer Mac requires a
@@ -115,6 +121,13 @@
     layout stays multi-column, not a stretched phone view.
 14. Accessibility: with VoiceOver/TalkBack enabled, confirm buttons, segmented
     choices, switches, inputs, and selected chips announce their label and state.
+15. iOS native DoH/DoT: in Storage add a DoH or DoT profile with a valid
+    endpoint and one or more bootstrap IPv4/IPv6 addresses. In Policy select
+    iOS, select the encrypted profile, tap Install iOS DNS Settings, then open
+    Settings > General > VPN & Device Management > DNS and enable DNSPilot.
+    Return to Policy, tap Refresh DNS status, and expect Installed + Enabled.
+    Remove must return Installed to off. This needs an installable build signed
+    with the `dns-settings` NetworkExtension capability; Expo Go cannot test it.
 
 ## Validation Commands
 - `npm run verify`

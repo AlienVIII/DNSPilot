@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { BridgeResult, compactJson, profileServers } from '@/src/api/dnspilot';
+import { DNSSettings, type DNSSettingsStatus } from '@/modules/dns-settings/src/DNSSettingsModule';
 import {
   AdaptiveColumns,
   Button,
@@ -22,6 +23,7 @@ import {
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 import { openNativeSettings } from '@/src/utils/native-settings';
 import { buildSettingsGuidance, guidanceActionStatus, type SettingsGuidance } from '@/src/view-models/settings-guidance';
+import { buildIosDnsSettingsRequest } from '@/src/view-models/native-dns-settings';
 
 type MobilePlatform = 'ios' | 'android-play';
 type GateHealth = 'healthy' | 'degraded' | 'failed' | 'inconclusive';
@@ -42,9 +44,15 @@ export default function PolicyScreen() {
   const [results, setResults] = useState<Record<string, BridgeResult>>({});
   const [settingsActionStatus, setSettingsActionStatus] = useState<string | null>(null);
   const [settingsActionWorking, setSettingsActionWorking] = useState(false);
+  const [iosProfileId, setIosProfileId] = useState('');
+  const [nativeDnsStatus, setNativeDnsStatus] = useState<DNSSettingsStatus | null>(null);
+  const [nativeDnsWorking, setNativeDnsWorking] = useState(false);
 
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
   const selectedProfile = plainProfiles.find((profile) => profile.id === profileId);
+  const encryptedProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'doh' || profile.protocol === 'dot'), [profiles]);
+  const selectedIosProfile = encryptedProfiles.find((profile) => profile.id === iosProfileId);
+  const iosDnsPlan = useMemo(() => buildIosDnsSettingsRequest(selectedIosProfile), [selectedIosProfile]);
   const capability = capabilities.find((item) => item.platform === platform);
   const guidance = results.applyPlan
     ? buildSettingsGuidance({ platform, applyPlan: results.applyPlan.data, locale })
@@ -86,6 +94,19 @@ export default function PolicyScreen() {
       setTestedResolver(profileServers(selectedProfile)[0] ?? '');
     }
   }, [selectedProfile, testedResolver]);
+
+  useEffect(() => {
+    if (!iosProfileId && encryptedProfiles.length > 0) {
+      setIosProfileId(encryptedProfiles[0].id);
+    }
+  }, [encryptedProfiles, iosProfileId]);
+
+  useEffect(() => {
+    if (platform !== 'ios') return;
+    DNSSettings.getStatus().then(setNativeDnsStatus).catch((caught: unknown) => {
+      setNativeDnsStatus({ available: false, installed: false, enabled: false, reason: errorMessage(caught) });
+    });
+  }, [platform]);
 
   async function runPolicy() {
     setWorking(true);
@@ -155,6 +176,40 @@ export default function PolicyScreen() {
     }
   }
 
+  async function refreshNativeDnsStatus() {
+    setNativeDnsWorking(true);
+    try {
+      setNativeDnsStatus(await DNSSettings.getStatus());
+    } catch (caught) {
+      setNativeDnsStatus({ available: false, installed: false, enabled: false, reason: errorMessage(caught) });
+    } finally {
+      setNativeDnsWorking(false);
+    }
+  }
+
+  async function installNativeDnsSettings() {
+    if (!iosDnsPlan.request) return;
+    setNativeDnsWorking(true);
+    try {
+      setNativeDnsStatus(await DNSSettings.install(iosDnsPlan.request));
+    } catch (caught) {
+      setNativeDnsStatus({ available: false, installed: false, enabled: false, reason: errorMessage(caught) });
+    } finally {
+      setNativeDnsWorking(false);
+    }
+  }
+
+  async function removeNativeDnsSettings() {
+    setNativeDnsWorking(true);
+    try {
+      setNativeDnsStatus(await DNSSettings.remove());
+    } catch (caught) {
+      setNativeDnsStatus({ available: false, installed: false, enabled: false, reason: errorMessage(caught) });
+    } finally {
+      setNativeDnsWorking(false);
+    }
+  }
+
   return (
     <Screen>
       <Section title={t('policy.title')} subtitle={t('policy.subtitle')}>
@@ -196,6 +251,40 @@ export default function PolicyScreen() {
           <Button label={t('policy.loadPayloads')} onPress={runPolicy} loading={working} />
         </Section>
       </AdaptiveColumns>
+
+      <Section title={t('policy.nativeDns.title')} subtitle={t('policy.nativeDns.subtitle')}>
+        {platform !== 'ios' ? (
+          <EmptyState text={t('policy.nativeDns.iosOnly')} />
+        ) : (
+          <View style={{ backgroundColor: palette.surface, borderColor: palette.border, borderRadius: 8, borderWidth: 1, gap: 10, padding: 12 }}>
+            <Row>
+              <Metric label={t('policy.nativeDns.available')} value={nativeDnsStatus?.available ? t('common.yes') : t('common.no')} tone={nativeDnsStatus?.available ? 'green' : 'amber'} />
+              <Metric label={t('policy.nativeDns.installed')} value={nativeDnsStatus?.installed ? t('common.yes') : t('common.no')} tone={nativeDnsStatus?.installed ? 'green' : 'neutral'} />
+              <Metric label={t('policy.nativeDns.enabled')} value={nativeDnsStatus?.enabled ? t('common.yes') : t('common.no')} tone={nativeDnsStatus?.enabled ? 'green' : 'amber'} />
+            </Row>
+            {encryptedProfiles.length === 0 ? <EmptyState text={t('policy.nativeDns.empty')} /> : null}
+            <Row>
+              {encryptedProfiles.map((profile) => (
+                <Pill key={profile.id} label={`${profile.name} (${profile.protocol.toUpperCase()})`} selected={iosProfileId === profile.id} onPress={() => setIosProfileId(profile.id)} tone="blue" />
+              ))}
+            </Row>
+            {selectedIosProfile ? (
+              <>
+                <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>
+                  {iosDnsPlan.canInstall ? t('policy.nativeDns.ready', { profile: selectedIosProfile.name }) : t(`policy.nativeDns.reason.${iosDnsPlan.reason}`)}
+                </Text>
+                <Row>
+                  <Button label={t('policy.nativeDns.install')} onPress={installNativeDnsSettings} loading={nativeDnsWorking} disabled={!iosDnsPlan.canInstall} />
+                  <Button label={t('policy.nativeDns.refresh')} onPress={refreshNativeDnsStatus} variant="secondary" loading={nativeDnsWorking} />
+                  <Button label={t('policy.nativeDns.remove')} onPress={removeNativeDnsSettings} variant="danger" loading={nativeDnsWorking} disabled={!nativeDnsStatus?.installed} />
+                </Row>
+              </>
+            ) : null}
+            <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>{t('policy.nativeDns.enableHelp')}</Text>
+            {nativeDnsStatus?.reason ? <ErrorBanner message={nativeDnsStatus.reason} /> : null}
+          </View>
+        )}
+      </Section>
 
       <Section title={t('policy.guided.title')} subtitle={t('policy.guided.subtitle')}>
         {guidance ? (
@@ -259,4 +348,8 @@ export default function PolicyScreen() {
       </Section>
     </Screen>
   );
+}
+
+function errorMessage(value: unknown) {
+  return value instanceof Error ? value.message : String(value ?? 'Native DNS Settings failed.');
 }
