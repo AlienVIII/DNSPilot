@@ -28,6 +28,7 @@ parts:
     organize:
       dnspilot-linux-gui: bin/dnspilot-linux-gui
       dnspilot-linux-shell: bin/dnspilot-linux-shell
+      dnspilot-cli: bin/dnspilot-cli
       io.dnspilot.DNSPilot.desktop: usr/share/applications/io.dnspilot.DNSPilot.desktop
       io.dnspilot.DNSPilot.metainfo.xml: usr/share/metainfo/io.dnspilot.DNSPilot.metainfo.xml
       io.dnspilot.DNSPilot.svg: usr/share/icons/hicolor/scalable/apps/io.dnspilot.DNSPilot.svg

@@ -129,6 +129,11 @@ Each run has per-step status and per-resolver status:
 - `success`
 - `failed`
 
+The GUI runs the core CLI on a background worker and polls completion without
+blocking the egui frame loop. A second run is disabled while the worker is
+active. Missing progress events and nonzero exits are normalized so completed
+runs do not leave resolver or active run rows in stale idle/running states.
+
 Step sets are mode-specific:
 
 - DNS only: detect capabilities, prepare benchmark, run DNS benchmark, build diagnostics.
@@ -171,8 +176,8 @@ logic:
 - DNS only uses `compare`.
 - DNS + TCP uses `path-compare`.
 - Current/system resolver uses `system-benchmark`.
-- Direct benchmark modes request `--progress-jsonl` and parse resolver progress
-  from stderr.
+- All benchmark modes request `--progress-jsonl` and parse resolver progress
+  from stderr; current/system validation uses the core `system-dns` resolver ID.
 - Unsupported modes are rejected before the runner is invoked.
 - The concrete process runner captures stdout, stderr, and exit code from a
   caller-supplied core CLI path.

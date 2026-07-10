@@ -109,6 +109,7 @@ pub fn build_core_cli_command(
         BenchmarkMode::CurrentSystemResolver => {
             push_pair(&mut args, "--platform", &plan.package_platform);
             push_common_benchmark_args(&mut args, plan);
+            args.push("--progress-jsonl".to_string());
         }
     }
 
@@ -163,10 +164,20 @@ pub fn run_benchmark_with_runner(
     for step in run_steps(plan.mode) {
         process.start_step(step);
     }
+    let resolver_ids = process
+        .resolvers
+        .iter()
+        .map(|resolver| resolver.id.clone())
+        .collect::<Vec<_>>();
+    for resolver_id in resolver_ids {
+        process.start_resolver(&resolver_id);
+    }
     let output = runner.run(&command);
     for event in parse_progress_jsonl(&output.stderr) {
         match event.status {
-            CoreCliProgressStatus::Running => {}
+            CoreCliProgressStatus::Running => {
+                process.start_resolver(&event.resolver_id);
+            }
             CoreCliProgressStatus::Success => {
                 process.complete_resolver(&event.resolver_id, event.detail);
             }
@@ -180,6 +191,7 @@ pub fn run_benchmark_with_runner(
         for step in run_steps(plan.mode) {
             process.complete_step(step, "core CLI completed");
         }
+        process.complete_unfinished_resolvers("core CLI completed");
         None
     } else {
         let detail = if output.stderr.trim().is_empty() {
@@ -187,7 +199,7 @@ pub fn run_benchmark_with_runner(
         } else {
             output.stderr.trim().to_string()
         };
-        process.fail_step(primary_run_step(plan.mode), detail.clone());
+        process.fail_unfinished(detail.clone());
         Some(detail)
     };
 
@@ -277,16 +289,38 @@ fn parse_progress_line(line: &str) -> Option<CoreCliProgressEvent> {
 }
 
 pub fn benchmark_process_for_plan(plan: &LinuxBenchmarkPlan) -> LinuxBenchmarkProcessViewModel {
-    let resolvers =
-        if plan.mode == BenchmarkMode::CurrentSystemResolver && plan.resolvers.is_empty() {
-            vec![("system", "Current system resolver")]
-        } else {
-            plan.resolvers
-                .iter()
-                .map(|resolver| (resolver.id.as_str(), resolver.label.as_str()))
-                .collect()
-        };
+    let resolvers = if plan.mode == BenchmarkMode::CurrentSystemResolver {
+        vec![("system-dns", "Current system resolver")]
+    } else {
+        plan.resolvers
+            .iter()
+            .map(|resolver| (resolver.id.as_str(), resolver.label.as_str()))
+            .collect()
+    };
     LinuxBenchmarkProcessViewModel::new(plan.mode, resolvers)
+}
+
+pub fn benchmark_running_process_for_plan(
+    plan: &LinuxBenchmarkPlan,
+) -> LinuxBenchmarkProcessViewModel {
+    let mut process = benchmark_process_for_plan(plan);
+    process.complete_step(
+        ProcessStepId::DetectCapabilities,
+        "capability payload loaded",
+    );
+    process.complete_step(ProcessStepId::PrepareBenchmark, "core CLI command prepared");
+    for step in run_steps(plan.mode) {
+        process.start_step(step);
+    }
+    let resolver_ids = process
+        .resolvers
+        .iter()
+        .map(|resolver| resolver.id.clone())
+        .collect::<Vec<_>>();
+    for resolver_id in resolver_ids {
+        process.start_resolver(&resolver_id);
+    }
+    process
 }
 
 fn run_steps(mode: BenchmarkMode) -> Vec<ProcessStepId> {

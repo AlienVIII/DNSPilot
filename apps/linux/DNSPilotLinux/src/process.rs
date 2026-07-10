@@ -95,12 +95,48 @@ impl LinuxBenchmarkProcessViewModel {
         self.update_step(step_id, ProcessStatus::Failed, Some(detail.into()));
     }
 
+    pub fn start_resolver(&mut self, resolver_id: &str) {
+        self.update_resolver(resolver_id, ProcessStatus::Running, None);
+    }
+
     pub fn complete_resolver(&mut self, resolver_id: &str, detail: impl Into<String>) {
         self.update_resolver(resolver_id, ProcessStatus::Success, Some(detail.into()));
     }
 
     pub fn fail_resolver(&mut self, resolver_id: &str, detail: impl Into<String>) {
         self.update_resolver(resolver_id, ProcessStatus::Failed, Some(detail.into()));
+    }
+
+    pub fn complete_unfinished_resolvers(&mut self, detail: impl Into<String>) {
+        let detail = detail.into();
+        for resolver in &mut self.resolvers {
+            if matches!(
+                resolver.status,
+                ProcessStatus::Idle | ProcessStatus::Running
+            ) {
+                resolver.status = ProcessStatus::Success;
+                resolver.detail = Some(detail.clone());
+            }
+        }
+    }
+
+    pub fn fail_unfinished(&mut self, detail: impl Into<String>) {
+        let detail = detail.into();
+        for step in &mut self.steps {
+            if step.status == ProcessStatus::Running {
+                step.status = ProcessStatus::Failed;
+                step.detail = Some(detail.clone());
+            }
+        }
+        for resolver in &mut self.resolvers {
+            if matches!(
+                resolver.status,
+                ProcessStatus::Idle | ProcessStatus::Running
+            ) {
+                resolver.status = ProcessStatus::Failed;
+                resolver.detail = Some(detail.clone());
+            }
+        }
     }
 
     pub fn overall_status(&self) -> ProcessStatus {

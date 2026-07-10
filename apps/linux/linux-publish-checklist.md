@@ -36,20 +36,24 @@ Run from repo root:
 cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check
 cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
 cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings
+cargo test -p dnspilot-cli
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
+cargo build -p dnspilot-cli
 ```
 
 Release binary:
 
 ```sh
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
+cargo build --release -p dnspilot-cli
 ```
 
 Expected release binaries:
 
-- `target/release/dnspilot-linux-gui` for the desktop launcher,
-- `target/release/dnspilot-linux-shell` for CLI inspection/QA,
-- `target/release/dnspilot-native-helper` for native deb/rpm helper contract.
+- `apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui` for the desktop launcher,
+- `apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell` for CLI inspection/QA,
+- repo-root `target/release/dnspilot-cli` for the benchmark engine,
+- `apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper` for native deb/rpm helper contract.
 
 Smoke the native-facing surfaces:
 
@@ -128,6 +132,7 @@ be batched once.
 mkdir -p apps/linux/packaging/snap-payload
 cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui apps/linux/packaging/snap-payload/
 cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell apps/linux/packaging/snap-payload/
+cp target/release/dnspilot-cli apps/linux/packaging/snap-payload/
 cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop apps/linux/packaging/snap-payload/
 cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.metainfo.xml apps/linux/packaging/snap-payload/
 cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.svg apps/linux/packaging/snap-payload/

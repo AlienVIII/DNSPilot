@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 
 use dnspilot_linux_shell::benchmark::{
-    benchmark_process_for_plan, build_core_cli_command, parse_progress_jsonl,
-    run_benchmark_with_runner, CoreCliCommand, CoreCliProgressStatus, CoreCliRunOutput,
-    CoreCliRunner, LinuxBenchmarkPlan, ProcessCoreCliRunner, ResolverSelection,
+    benchmark_process_for_plan, benchmark_running_process_for_plan, build_core_cli_command,
+    parse_progress_jsonl, run_benchmark_with_runner, CoreCliCommand, CoreCliProgressStatus,
+    CoreCliRunOutput, CoreCliRunner, LinuxBenchmarkPlan, ProcessCoreCliRunner, ResolverSelection,
 };
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, BenchmarkMode, LinuxEnvironmentProbe, LinuxPackageKind,
@@ -122,6 +122,7 @@ fn system_resolver_plan_builds_system_benchmark_command_without_resolver_specs()
         .args
         .windows(2)
         .any(|args| args == ["--ip-family", "both"]));
+    assert!(command.args.contains(&"--progress-jsonl".to_string()));
 }
 
 #[test]
@@ -144,8 +145,38 @@ fn benchmark_process_preview_builds_idle_rows_from_plan() {
     let system_process = benchmark_process_for_plan(&system_plan);
 
     assert_eq!(system_process.resolvers.len(), 1);
-    assert_eq!(system_process.resolvers[0].id, "system");
+    assert_eq!(system_process.resolvers[0].id, "system-dns");
     assert_eq!(system_process.resolvers[0].label, "Current system resolver");
+}
+
+#[test]
+fn running_process_marks_active_steps_and_resolvers_without_finishing_diagnostics() {
+    let process = benchmark_running_process_for_plan(&plan(BenchmarkMode::DnsAndTcp));
+
+    assert_eq!(
+        process.step_status(ProcessStepId::DetectCapabilities),
+        Some(ProcessStatus::Success)
+    );
+    assert_eq!(
+        process.step_status(ProcessStepId::PrepareBenchmark),
+        Some(ProcessStatus::Success)
+    );
+    assert_eq!(
+        process.step_status(ProcessStepId::RunDnsBenchmark),
+        Some(ProcessStatus::Running)
+    );
+    assert_eq!(
+        process.step_status(ProcessStepId::RunTcpProbe),
+        Some(ProcessStatus::Running)
+    );
+    assert_eq!(
+        process.step_status(ProcessStepId::BuildDiagnostics),
+        Some(ProcessStatus::Idle)
+    );
+    assert!(process
+        .resolvers
+        .iter()
+        .all(|resolver| resolver.status == ProcessStatus::Running));
 }
 
 #[test]
@@ -254,6 +285,58 @@ fn coordinator_marks_run_step_failed_when_core_cli_exits_nonzero() {
             .step_status(ProcessStepId::ValidateSystemResolver),
         Some(ProcessStatus::Failed)
     );
+}
+
+#[test]
+fn coordinator_completes_resolvers_when_success_output_has_no_progress_events() {
+    let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
+    let runner = FakeRunner::success("{}", "");
+
+    let result = run_benchmark_with_runner(
+        "dnspilot-cli",
+        "Ubuntu",
+        capability,
+        plan(BenchmarkMode::DnsOnly),
+        &runner,
+    );
+
+    assert_eq!(result.process.overall_status(), ProcessStatus::Success);
+    assert!(result
+        .process
+        .resolvers
+        .iter()
+        .all(|resolver| resolver.status == ProcessStatus::Success));
+}
+
+#[test]
+fn coordinator_failure_leaves_no_running_or_idle_run_rows() {
+    let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
+    let runner = FakeRunner::failure("engine failed");
+
+    let result = run_benchmark_with_runner(
+        "dnspilot-cli",
+        "Ubuntu",
+        capability,
+        plan(BenchmarkMode::DnsAndTcp),
+        &runner,
+    );
+
+    assert!(result
+        .process
+        .steps
+        .iter()
+        .filter(|step| {
+            matches!(
+                step.id,
+                ProcessStepId::RunDnsBenchmark | ProcessStepId::RunTcpProbe
+            )
+        })
+        .all(|step| step.status == ProcessStatus::Failed));
+    assert!(result
+        .process
+        .resolvers
+        .iter()
+        .all(|resolver| resolver.status == ProcessStatus::Failed));
 }
 
 #[test]
