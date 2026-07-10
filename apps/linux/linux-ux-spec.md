@@ -209,7 +209,9 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- run \
 ## Settings And Apply
 
 Flatpak and Snap expose guided settings only. Guided actions copy values and
-open OS guidance; they do not mutate DNS.
+show localized in-app OS guidance; they do not mutate DNS. The GUI requires one
+profile, applies the IPv4/IPv6 address-family filter, copies the resulting
+servers, and keeps the steps visible for reference.
 
 CLI guide example:
 

@@ -26,6 +26,9 @@ package release.
 - Custom plain DNS profile add/edit/delete/list and file-backed persistence are
   implemented.
 - Store-safe guidance and native power package plans are separated.
+- Settings is actionable: store builds copy family-filtered DNS values and show
+  localized manual steps, while native power builds review the selected
+  profile's resolver-stack/polkit/rollback plan before execution.
 - English/Vietnamese strings cover primary native app labels/help, permission,
   guided settings, publish-check, and CLI surfaces.
 - Packaging templates exist for Flatpak, Snap, deb, rpm, shared desktop/AppStream

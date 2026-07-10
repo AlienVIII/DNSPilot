@@ -4,7 +4,7 @@ use crate::capabilities::{
     available_benchmark_modes, BenchmarkMode, LinuxCapabilityViewModel, LinuxPackageKind,
 };
 use crate::profiles::PlainDnsProfile;
-use crate::settings::{DnsRecordFamily, ResolverAddressFamily};
+use crate::settings::{profile_servers_for_family, DnsRecordFamily, ResolverAddressFamily};
 use crate::suites::SuiteViewModel;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -156,7 +156,7 @@ impl LinuxAppSession {
             else {
                 continue;
             };
-            let servers = selected_servers(profile, self.resolver_address_family);
+            let servers = profile_servers_for_family(profile, self.resolver_address_family);
             if servers.is_empty() {
                 issues.push(format!(
                     "{} has no {} DNS servers",
@@ -172,19 +172,6 @@ impl LinuxAppSession {
             });
         }
         resolvers
-    }
-}
-
-fn selected_servers(profile: &PlainDnsProfile, family: ResolverAddressFamily) -> Vec<String> {
-    match family {
-        ResolverAddressFamily::Auto => profile
-            .ipv4_servers
-            .iter()
-            .chain(profile.ipv6_servers.iter())
-            .cloned()
-            .collect(),
-        ResolverAddressFamily::Ipv4Only => profile.ipv4_servers.clone(),
-        ResolverAddressFamily::Ipv6Only => profile.ipv6_servers.clone(),
     }
 }
 

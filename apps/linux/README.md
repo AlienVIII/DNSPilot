@@ -55,6 +55,9 @@ IPv4/IPv6 and A/AAAA controls, a process status table, and copyable diagnostics.
 Benchmark commands run on a background worker, so the main window stays
 responsive and prevents duplicate runs until the active job reaches a terminal
 state.
+The Settings tab selects one profile and address family. Flatpak/Snap copy the
+filtered DNS values and render an in-app manual guide without mutation;
+capable deb/rpm builds render the exact native apply plan for review.
 Installed packages place `dnspilot-cli` beside the GUI, so normal users do not
 configure an engine path. `DNSPILOT_CLI_PATH` is only a development/QA override.
 
