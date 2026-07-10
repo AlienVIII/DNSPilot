@@ -69,8 +69,9 @@ Last integration pass: 2026-07-11.
 
 ## Next Actions
 
-- Fast-forward clean child branches from `main`; preserve dirty Linux/mobile/Windows
-  worktrees and do not mix their uncommitted changes into integration.
+- Keep the five synced lanes based on `main`; preserve dirty Linux/Windows changes.
+- Resolve mobile's dirty `package.json` ownership before merging `main` into that lane;
+  keep native DNS commit `345c41e` out of `main` until its architecture gates pass.
 - Follow the macOS-first commercial sequence in `PROJECT.md` and `TODO.md`.
 - Use `docs/platform-summary.md` as the short cross-platform source of truth.
 - Keep detailed platform release steps in `apps/<platform>/*publish*` and

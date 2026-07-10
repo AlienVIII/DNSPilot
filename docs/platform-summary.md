@@ -16,9 +16,11 @@ latest lane branches merged into `main` are:
 contract/docs follow-up. Keep all child branches fast-forwarded from `main` after
 integration so future lane work starts from the same context.
 
-Current local branch sync target: after this merge commit, fast-forward clean
-child branches from `main`. Keep `worktree/windows` separate while its dirty
-feature changes are reviewed and committed.
+Current local sync: `worktree/core-cli`, `worktree/docs`, `macos`,
+`worktree/linux`, and `worktree/windows` are at `main` commit `75593bd`; dirty
+Linux/Windows feature files remain preserved. `worktree/mobile` is intentionally
+not synced because its gated native-DNS commit and dirty `package.json` overlap the
+integration path.
 
 Architecture note: `worktree/mobile` commit `345c41e` is intentionally not merged;
 its native iOS DNS Settings entitlement remains an isolated experiment until Apple
