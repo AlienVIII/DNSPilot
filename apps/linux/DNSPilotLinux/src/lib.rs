@@ -15,3 +15,4 @@ pub mod readiness;
 pub mod settings;
 pub mod storage;
 pub mod suites;
+pub mod worker;

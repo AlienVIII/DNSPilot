@@ -1,7 +1,7 @@
 use dnspilot_linux_shell::app::LinuxAppSession;
 use dnspilot_linux_shell::benchmark::{
-    benchmark_process_for_plan, build_core_cli_command, run_benchmark_with_runner,
-    ProcessCoreCliRunner,
+    benchmark_process_for_plan, benchmark_running_process_for_plan, build_core_cli_command,
+    LinuxBenchmarkRunResult, ProcessCoreCliRunner,
 };
 use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxCapabilityViewModel,
@@ -14,7 +14,7 @@ use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, NativeAppSectionKind};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
 use dnspilot_linux_shell::process::{
-    process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind,
+    process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus,
 };
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
 use dnspilot_linux_shell::settings::{
@@ -23,10 +23,12 @@ use dnspilot_linux_shell::settings::{
 };
 use dnspilot_linux_shell::storage::FileProfileRepository;
 use dnspilot_linux_shell::suites::default_suite_catalog;
+use dnspilot_linux_shell::worker::{spawn_benchmark_worker, BenchmarkWorker, BenchmarkWorkerPoll};
 use eframe::egui;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -58,6 +60,7 @@ struct DnsPilotGui {
     status: String,
     diagnostics: String,
     process: Option<LinuxBenchmarkProcessViewModel>,
+    benchmark_worker: Option<BenchmarkWorker>,
     show_tutorial: bool,
     profile_id: String,
     profile_name: String,
@@ -101,6 +104,7 @@ impl DnsPilotGui {
             status,
             diagnostics: String::new(),
             process: None,
+            benchmark_worker: None,
             show_tutorial,
             profile_id: String::new(),
             profile_name: String::new(),
@@ -179,6 +183,10 @@ impl DnsPilotGui {
     }
 
     fn plan_benchmark(&mut self) {
+        if self.benchmark_worker.is_some() {
+            self.status = "Benchmark is already running".to_string();
+            return;
+        }
         let Some(core_cli_path) = self.resolved_core_cli_path() else {
             return;
         };
@@ -202,36 +210,86 @@ impl DnsPilotGui {
     }
 
     fn run_benchmark(&mut self) {
+        if self.benchmark_worker.is_some() {
+            self.status = "Benchmark is already running".to_string();
+            return;
+        }
         let Some(core_cli_path) = self.resolved_core_cli_path() else {
             return;
         };
         let session = self.build_session();
         match session.build_plan() {
             Ok(plan) => {
-                let runner = ProcessCoreCliRunner;
-                let result = run_benchmark_with_runner(
+                let running_process = benchmark_running_process_for_plan(&plan);
+                match spawn_benchmark_worker(
                     core_cli_path,
-                    "linux-gui",
+                    "linux-gui".to_string(),
                     self.capability.clone(),
                     plan,
-                    &runner,
-                );
-                self.process = Some(result.process.clone());
-                self.diagnostics = result.debug_report;
-                if let Some(payload) = result.final_payload {
-                    self.diagnostics.push_str("\n\nFinal payload:\n");
-                    self.diagnostics.push_str(&payload);
+                    ProcessCoreCliRunner,
+                ) {
+                    Ok(worker) => {
+                        self.process = Some(running_process);
+                        self.benchmark_worker = Some(worker);
+                        self.diagnostics =
+                            "Benchmark running. Final diagnostics will appear here.".to_string();
+                        self.status = "Benchmark running".to_string();
+                    }
+                    Err(error) => {
+                        let detail = error.to_string();
+                        let mut process = running_process;
+                        process.fail_unfinished(&detail);
+                        self.process = Some(process);
+                        self.status = detail;
+                    }
                 }
-                self.status = result
-                    .error
-                    .map(|error| format!("Benchmark failed: {error}"))
-                    .unwrap_or_else(|| "Benchmark finished".to_string());
             }
             Err(issues) => {
                 self.process = None;
                 self.status = issues.join("; ");
             }
         }
+    }
+
+    fn poll_benchmark_worker(&mut self) -> bool {
+        let Some(worker) = &self.benchmark_worker else {
+            return false;
+        };
+
+        match worker.poll() {
+            BenchmarkWorkerPoll::Running => true,
+            BenchmarkWorkerPoll::Finished(result) => {
+                self.benchmark_worker = None;
+                self.finish_benchmark(result);
+                false
+            }
+            BenchmarkWorkerPoll::Disconnected => {
+                self.benchmark_worker = None;
+                let detail = "Benchmark worker stopped before returning a result";
+                if let Some(process) = &mut self.process {
+                    process.fail_unfinished(detail);
+                }
+                self.status = detail.to_string();
+                false
+            }
+        }
+    }
+
+    fn finish_benchmark(&mut self, result: LinuxBenchmarkRunResult) {
+        let overall_status = result.process.overall_status();
+        self.process = Some(result.process);
+        self.diagnostics = result.debug_report;
+        if let Some(payload) = result.final_payload {
+            self.diagnostics.push_str("\n\nFinal payload:\n");
+            self.diagnostics.push_str(&payload);
+        }
+        self.status = match result.error {
+            Some(error) => format!("Benchmark failed: {error}"),
+            None if overall_status == ProcessStatus::Failed => {
+                "Benchmark finished with resolver failures".to_string()
+            }
+            None => "Benchmark finished".to_string(),
+        };
     }
 
     fn resolved_core_cli_path(&mut self) -> Option<String> {
@@ -247,6 +305,9 @@ impl DnsPilotGui {
 
 impl eframe::App for DnsPilotGui {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        if self.poll_benchmark_worker() {
+            ui.ctx().request_repaint_after(Duration::from_millis(50));
+        }
         let ctx = ui.ctx().clone();
         ui.add_space(8.0);
         ui.horizontal(|ui| {
@@ -371,6 +432,7 @@ impl DnsPilotGui {
         ui.horizontal(|ui| {
             ui.label("Engine");
             let engine_ready = self.core_cli.is_ok();
+            let benchmark_idle = self.benchmark_worker.is_none();
             match &self.core_cli {
                 Ok(resolution) => {
                     ui.colored_label(egui::Color32::from_rgb(40, 140, 80), "Ready")
@@ -386,14 +448,14 @@ impl DnsPilotGui {
                 }
             }
             if ui
-                .add_enabled(engine_ready, egui::Button::new("Plan"))
+                .add_enabled(engine_ready && benchmark_idle, egui::Button::new("Plan"))
                 .clicked()
             {
                 self.plan_benchmark();
             }
             if ui
                 .add_enabled(
-                    engine_ready,
+                    engine_ready && benchmark_idle,
                     egui::Button::new(localized_text(TextKey::RunBenchmark, self.language)),
                 )
                 .clicked()

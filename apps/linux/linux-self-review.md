@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | Capability matrix: Flatpak, Snap, deb/rpm | Covered | `capabilities.rs`, `detect.rs`, capability tests |
 | Benchmark modes: DNS only, DNS + TCP, current resolver | Covered | `benchmark.rs`, app/session tests, runner tests |
-| Process UI: idle/running/success/failed per step/resolver | Covered | `process.rs`, GUI process table, diagnostics tests |
+| Process UI: idle/running/success/failed per step/resolver | Covered | `process.rs`, `worker.rs`, non-blocking GUI process table, runner/worker/diagnostics tests |
 | Result diagnostics and copyable debug report | Covered | `diagnostics.rs`, CLI/report tests |
 | Guided settings only for store/sandbox builds | Covered | settings/guide tests |
 | Native power path plan | Covered as helper contract plus explicit mutation gate/backend | `settings.rs`, `native_power.rs`, `native_helper_main.rs`, `guide` CLI, `apply-plan` CLI |

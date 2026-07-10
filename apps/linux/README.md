@@ -52,6 +52,9 @@ DNSPILOT_CLI_PATH="$PWD/target/debug/dnspilot-cli" \
 In the GUI, the Benchmark tab is the primary no-tray workflow. It shows
 capability-gated benchmark modes, selected DNS profiles, suite/domain controls,
 IPv4/IPv6 and A/AAAA controls, a process status table, and copyable diagnostics.
+Benchmark commands run on a background worker, so the main window stays
+responsive and prevents duplicate runs until the active job reaches a terminal
+state.
 Installed packages place `dnspilot-cli` beside the GUI, so normal users do not
 configure an engine path. `DNSPILOT_CLI_PATH` is only a development/QA override.
 

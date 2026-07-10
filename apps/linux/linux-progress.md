@@ -19,8 +19,10 @@ package release.
   validation with mode gating.
 - The GUI resolves the packaged `dnspilot-cli` engine automatically, with an
   explicit `DNSPILOT_CLI_PATH` development override and `PATH` fallback.
-- Process state covers idle/running/success/failed steps, resolver rows,
-  diagnostics, copyable debug reports, and the GUI benchmark process table.
+- Process state covers idle/running/success/failed steps and resolver rows. The
+  GUI runs benchmarks on a pollable background worker, remains responsive,
+  blocks duplicate runs, and normalizes missing progress events into terminal
+  success/failure states before rendering diagnostics.
 - Custom plain DNS profile add/edit/delete/list and file-backed persistence are
   implemented.
 - Store-safe guidance and native power package plans are separated.
