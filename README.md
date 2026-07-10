@@ -8,6 +8,12 @@ benchmark scoring, provider catalogs, test suites, and capability rules.
 The first macOS SwiftUI shell scaffold lives under `apps/macos/DNSPilotMac`.
 macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 
+## Project Knowledge
+
+- Current state and release gates: `STATE.md`
+- Ordered release queue: `TODO.md`
+- Detailed macOS publish steps: `apps/macos/PUBLISHING.md`
+
 ## Development Setup
 
 ### Requirements
