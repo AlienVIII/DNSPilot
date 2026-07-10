@@ -1,6 +1,6 @@
 # Platform Summary
 
-Last integration pass: 2026-07-10.
+Last integration pass: 2026-07-11.
 
 ## Branch Integration
 
@@ -19,6 +19,10 @@ integration so future lane work starts from the same context.
 Current local branch sync target: after this merge commit, fast-forward clean
 child branches from `main`. Keep `worktree/windows` separate while its dirty
 feature changes are reviewed and committed.
+
+Architecture note: `worktree/mobile` commit `345c41e` is intentionally not merged;
+its native iOS DNS Settings entitlement remains an isolated experiment until Apple
+capability approval and signed-device validation.
 
 ## Requirement Coverage
 

@@ -1,12 +1,15 @@
 # Global Progress
 
-Last integration pass: 2026-07-10.
+Last integration pass: 2026-07-11.
 
 ## Current State
 
-- `main` now contains the latest active mobile, macOS, and Linux lane work plus
-  the reviewed Windows lane contract state. The dirty Windows feature worktree
-  remains isolated until it is committed and reviewed for merge.
+- `main` now contains the latest approved mobile contract state, latest committed
+  macOS and Linux lane work, plus the reviewed Windows lane contract state. Dirty
+  or architecture-gated lane work remains isolated until committed and reviewed.
+- The committed Linux packaging/non-blocking benchmark work and macOS Power-action
+  hardening are integrated. Mobile native DNS commit `345c41e` remains intentionally
+  isolated behind Apple entitlement and signed-device gates.
 - Core CLI contracts cover catalog/capabilities, benchmark modes, progress,
   storage, apply-policy/apply-plan, history, custom profiles/suites, and
   system-DNS validation.
@@ -66,8 +69,9 @@ Last integration pass: 2026-07-10.
 
 ## Next Actions
 
-- Fast-forward clean child branches from `main` before new lane work; keep
-  dirty Windows feature work isolated until committed and reviewed.
+- Fast-forward clean child branches from `main`; preserve dirty Linux/mobile/Windows
+  worktrees and do not mix their uncommitted changes into integration.
+- Follow the macOS-first commercial sequence in `PROJECT.md` and `TODO.md`.
 - Use `docs/platform-summary.md` as the short cross-platform source of truth.
 - Keep detailed platform release steps in `apps/<platform>/*publish*` and
   `apps/<platform>/*readiness*` docs instead of repeating them in chat.

@@ -1,5 +1,7 @@
 # DNSPilot State
 
+Last updated: 2026-07-11.
+
 ## Product
 
 DNSPilot finds and recommends DNS configurations for the current network, then
@@ -12,6 +14,11 @@ uses a platform-capability-specific apply flow.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
+- Linux committed lane: packages the shared CLI engine and runs benchmarks off the UI
+  thread; real package/distro QA remains open.
+- Mobile committed native DNS experiment (`345c41e`) remains isolated pending Apple
+  NetworkExtension approval and signed-device validation.
+- Windows feature work remains dirty and isolated pending owner commit/review.
 
 ## Current Validation
 
@@ -27,6 +34,8 @@ uses a platform-capability-specific apply flow.
 
 ## Detailed Sources
 
+- Product architecture: `PROJECT.md`
+- Prioritized roadmap: `TODO.md`
 - Product/runbook: `README.md`
 - macOS scope and evidence: `apps/macos/macos-progress.md`
 - Publishing steps: `apps/macos/PUBLISHING.md`
