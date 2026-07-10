@@ -591,6 +591,26 @@ fn cli_publish_check_outputs_package_specific_manual_steps() {
     assert!(stdout.contains("real Linux package QA"));
 }
 
+#[test]
+fn cli_publish_check_all_outputs_every_package_lane() {
+    let output = binary()
+        .args(["publish-check", "--package", "all", "--lang", "en"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("DNS Pilot Linux Publish Check"));
+    assert!(stdout.contains("Package: Flatpak"));
+    assert!(stdout.contains("Package: Snap"));
+    assert!(stdout.contains("Package: deb"));
+    assert!(stdout.contains("Package: rpm"));
+    assert!(stdout.contains("Flatpak is benchmark/guidance only"));
+    assert!(stdout.contains("Snap is benchmark/guidance only"));
+    assert!(stdout.contains("deb is the native power path"));
+    assert!(stdout.contains("rpm is the native power path"));
+}
+
 #[cfg(unix)]
 fn make_executable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;

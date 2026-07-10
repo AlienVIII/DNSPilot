@@ -233,7 +233,11 @@ impl eframe::App for DnsPilotGui {
             ui.selectable_value(&mut self.language, Language::English, "EN");
             ui.selectable_value(&mut self.language, Language::Vietnamese, "VI");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("?").on_hover_text("Show setup tutorial").clicked() {
+                if ui
+                    .button("?")
+                    .on_hover_text("Show setup tutorial")
+                    .clicked()
+                {
                     self.show_tutorial = true;
                 }
             });
