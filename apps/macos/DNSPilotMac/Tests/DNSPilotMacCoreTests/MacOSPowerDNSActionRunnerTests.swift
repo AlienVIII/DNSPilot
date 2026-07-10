@@ -67,6 +67,21 @@ final class MacOSPowerDNSActionRunnerTests: XCTestCase {
         XCTAssertTrue(processRunner.invocations.isEmpty)
     }
 
+    func testApplyRejectsHostnamesBeforePromptingForAdmin() {
+        let processRunner = RecordingPowerActionProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = MacOSPowerDNSActionRunner(isEnabled: true, processRunner: processRunner)
+
+        XCTAssertThrowsError(try runner.applyDNS(servers: ["resolver.example.com"])) { error in
+            XCTAssertEqual(
+                error as? MacOSPowerDNSActionRunnerError,
+                .unsafeDNSServer("resolver.example.com")
+            )
+        }
+        XCTAssertTrue(processRunner.invocations.isEmpty)
+    }
+
     func testRunnerMapsProcessFailureToUsefulMessage() {
         let processRunner = RecordingPowerActionProcessRunner(
             output: BenchmarkProcessOutput(exitCode: 1, standardOutput: "", standardError: "User canceled.")

@@ -139,12 +139,7 @@ case "$MODE" in
     open_app
     /usr/bin/log stream --info --style compact --predicate "subsystem == \"$BUNDLE_ID\""
     ;;
-  --verify|verify)
-    open_app
-    verify_launch
-    validate_bundle
-    ;;
-  --sandbox-verify|sandbox-verify)
+  --verify|verify|--sandbox-verify|sandbox-verify)
     "$ROOT_DIR/script/sign_macos_bundle.sh" "$APP_BUNDLE"
     open_app
     verify_launch
