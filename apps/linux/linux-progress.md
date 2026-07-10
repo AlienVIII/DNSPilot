@@ -70,6 +70,8 @@ package release.
 ## Remaining Gates
 
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.
+- `dnspilot.io` currently does not resolve; homepage/support/privacy hosting and
+  public immutable source tag setup are required before store submission.
 - Linux package QA before publishing or enabling real DNS mutation by default in
   deb/rpm.
 - OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.

@@ -19,6 +19,28 @@ Current package split:
 - deb/rpm: native power package path for future DNS apply through
   NetworkManager/systemd-resolved plus polkit.
 
+## Required Publisher And Site Setup
+
+As of 2026-07-11, `dnspilot.io` does not resolve. Before any store/repository
+submission:
+
+1. Configure the chosen product domain in the DNS provider and enable HTTPS.
+2. Host public homepage, support, and privacy pages. If the domain differs from
+   `dnspilot.io`, update the AppStream URLs and maintainer addresses first.
+3. Publish the source repository and create an immutable `v0.1.0` tag/archive
+   for Flathub source review.
+4. Verify the public surfaces:
+
+```sh
+curl -fsS https://dnspilot.io/ >/dev/null
+curl -fsS https://dnspilot.io/support >/dev/null
+curl -fsS https://dnspilot.io/privacy >/dev/null
+git ls-remote --tags <public-source-url> refs/tags/v0.1.0
+```
+
+5. Create/sign in to the Flathub submission account and Snapcraft publisher
+   account. Keep credentials outside the repository.
+
 ## Official References
 
 - Flatpak sandbox permissions: https://docs.flatpak.org/en/latest/sandbox-permissions.html
@@ -229,6 +251,8 @@ sudo dnf install ./apps/linux/dist/rpmbuild/RPMS/*/dnspilot-0.1.0-1*.rpm
 - Flathub submission needs a public immutable source tag/archive and generated
   Cargo source manifest; the local manifest intentionally consumes verified
   Linux ELF payloads for pre-submission QA.
+- `dnspilot.io` homepage/support/privacy URLs must resolve over HTTPS before
+  metadata submission.
 - The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
   still needs package-tool validation on Linux.
 - The native power helper contract includes a non-mutating dry-run lifecycle and

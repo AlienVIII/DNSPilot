@@ -57,6 +57,8 @@
 - Real Flatpak/Snap/deb/rpm builds are not validated in this lane.
 - Flathub still needs a public immutable source archive/tag and Cargo source
   manifest before store submission; local Flatpak QA uses staged ELF payloads.
+- `dnspilot.io` homepage/support/privacy URLs do not currently resolve and must
+  be hosted over HTTPS before package metadata is submitted.
 - Native helper packaging/install paths and command backend exist, but real helper authorization/write execution still needs Linux package QA before enabling mutation by default.
 - Native GUI compiles in this lane, but real GNOME/Wayland rendering still needs Linux package QA.
 - Distro-specific settings handoff text may need UX refinement after QA.

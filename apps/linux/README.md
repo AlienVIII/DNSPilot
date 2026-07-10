@@ -159,5 +159,6 @@ install, smoke, store, and rollback steps live in
 Manual gates remain:
 
 - real Flatpak/Snap/deb/rpm package builds and QA on Linux,
+- live HTTPS homepage/support/privacy URLs and a public immutable source tag,
 - store credentials/signing/screenshots/release notes,
 - real-device validation before publishing native DNS mutation.
