@@ -24,7 +24,7 @@ only after success.
 - Create: `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PowerDNSRollbackSnapshot.swift`
 - Create: `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/PowerDNSRollbackSnapshotTests.swift`
 
-- [ ] **Step 1: Write failing snapshot/store tests**
+- [x] **Step 1: Write failing snapshot/store tests**
 
 ```swift
 func testAutomaticSnapshotIsFreshAndRestorable() {
@@ -54,7 +54,7 @@ func testStoreClearsStaleSnapshot() {
 }
 ```
 
-- [ ] **Step 2: Run the new tests and verify RED**
+- [x] **Step 2: Run the new tests and verify RED**
 
 Run:
 
@@ -65,7 +65,7 @@ swift test --package-path apps/macos/DNSPilotMac --filter PowerDNSRollbackSnapsh
 Expected: compilation fails because `PowerDNSRollbackSnapshot` and
 `PowerDNSRollbackStore` do not exist.
 
-- [ ] **Step 3: Add the minimal domain types and local store**
+- [x] **Step 3: Add the minimal domain types and local store**
 
 Create these public types:
 
@@ -96,7 +96,7 @@ encoding, corruption clearing, 24-hour freshness, and one key named
 `DNSPilot.lastPowerDNSRollback`. It must not reuse guided-apply state because
 guided snapshots lack an exact network service and automatic-DNS mode.
 
-- [ ] **Step 4: Run snapshot/store tests and verify GREEN**
+- [x] **Step 4: Run snapshot/store tests and verify GREEN**
 
 Run:
 
@@ -106,7 +106,7 @@ swift test --package-path apps/macos/DNSPilotMac --filter PowerDNSRollbackSnapsh
 
 Expected: all new tests pass.
 
-- [ ] **Step 5: Commit the domain/persistence slice**
+- [x] **Step 5: Commit the domain/persistence slice**
 
 ```bash
 git add apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/PowerDNSRollbackSnapshot.swift \
