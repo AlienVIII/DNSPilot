@@ -48,6 +48,7 @@ pub struct DnsBenchmarkSample {
     pub transaction_id: u16,
     pub elapsed: Option<Duration>,
     pub outcome: DnsSampleOutcome,
+    pub failure_detail: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,20 +94,23 @@ where
                         transaction_id,
                         elapsed: Some(elapsed),
                         outcome: DnsSampleOutcome::Success,
+                        failure_detail: None,
                     },
-                    Err(DnsResolverError::Timeout) => DnsBenchmarkSample {
+                    Err(error @ DnsResolverError::Timeout) => DnsBenchmarkSample {
                         domain: domain.clone(),
                         record_type,
                         transaction_id,
                         elapsed: None,
                         outcome: DnsSampleOutcome::Timeout,
+                        failure_detail: Some(error.to_string()),
                     },
-                    Err(_) => DnsBenchmarkSample {
+                    Err(error) => DnsBenchmarkSample {
                         domain: domain.clone(),
                         record_type,
                         transaction_id,
                         elapsed: None,
                         outcome: DnsSampleOutcome::Failure,
+                        failure_detail: Some(error.to_string()),
                     },
                 };
                 samples.push(sample);

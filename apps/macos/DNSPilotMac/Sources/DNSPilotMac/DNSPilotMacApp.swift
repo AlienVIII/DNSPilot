@@ -521,7 +521,7 @@ private enum DNSPilotOnboardingPreferences {
 
 @MainActor
 private final class DNSPilotNavigationModel: ObservableObject {
-    @Published var selection: SidebarSelection? = .capabilities
+    @Published var selection: SidebarSelection? = .benchmark
     @Published var quickBenchmarkRequestID = 0
     @Published var systemDNSValidationRequestID = 0
     @Published var lastGuidedApplyPlan: GuidedApplyPlanSnapshot?
@@ -598,7 +598,7 @@ private struct DNSPilotMenuBarView: View {
     private func open(_ destination: MenuBarQuickDestination) {
         switch destination {
         case .openApp:
-            navigation.selection = .capabilities
+            navigation.selection = .benchmark
         case .benchmark:
             navigation.selection = .benchmark
         case .quickBenchmark:
@@ -627,35 +627,40 @@ private struct DNSPilotMenuBarView: View {
             return
         }
 
-        openWindow(id: DNSPilotWindowID.main)
-        DNSPilotWindowActivation.activateSoon()
+        if !DNSPilotWindowActivation.activateExistingWindows() {
+            openWindow(id: DNSPilotWindowID.main)
+            DNSPilotWindowActivation.activateSoon()
+        }
     }
 }
 
 @MainActor
 private enum DNSPilotWindowActivation {
+    @discardableResult
+    static func activateExistingWindows() -> Bool {
+        let windows = NSApp.windows.filter { $0.canBecomeKey && !$0.isMiniaturized }
+        guard !windows.isEmpty else {
+            return false
+        }
+        windows.forEach { $0.makeKeyAndOrderFront(nil) }
+        NSApp.activate(ignoringOtherApps: true)
+        return true
+    }
+
     static func activateSoon() {
         NSApp.setActivationPolicy(.regular)
         DispatchQueue.main.async {
-            activateExistingWindow()
+            _ = activateExistingWindows()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(120)) {
-            activateExistingWindow()
+            _ = activateExistingWindows()
         }
-    }
-
-    private static func activateExistingWindow() {
-        NSApp.windows
-            .filter { $0.canBecomeKey && !$0.isMiniaturized }
-            .forEach { $0.makeKeyAndOrderFront(nil) }
-        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
 @MainActor
 private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate {
     private static let logger = Logger(subsystem: "com.dnspilot.mac", category: "windowing")
-    private var fallbackMainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.logger.info("Application did finish launching")
@@ -665,9 +670,14 @@ private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         Self.logger.info("Application reopen requested visible_windows=\(flag, privacy: .public)")
         if !flag {
-            openMainWindowIfNeeded()
+            return false
         }
+        NSApp.activate(ignoringOtherApps: true)
         return true
+    }
+
+    func applicationShouldRestoreApplicationState(_ app: NSApplication) -> Bool {
+        false
     }
 
     private func applyActivationPlan(_ plan: DNSPilotApplicationActivationPlan) {
@@ -679,59 +689,14 @@ private final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate
                 DispatchQueue.main.async {
                     NSApp.activate(ignoringOtherApps: true)
                 }
-            case .ensureMainWindowVisible(let delayMilliseconds):
-                Self.logger.info("Scheduling main window visibility check delay_ms=\(delayMilliseconds, privacy: .public)")
-                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMilliseconds)) { [weak self] in
-                    self?.openMainWindowIfNeeded()
-                }
             }
         }
-    }
-
-    private func openMainWindowIfNeeded() {
-        let usableMainWindowCount = NSApp.windows.filter(Self.isUsableMainWindow).count
-        Self.logger.info("Checking main window visibility usable_windows=\(usableMainWindowCount, privacy: .public)")
-        if NSApp.windows.contains(where: Self.isUsableMainWindow) {
-            return
-        }
-
-        if let fallbackMainWindow {
-            fallbackMainWindow.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 620),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "DNSPilotMac"
-        window.contentView = NSHostingView(
-            rootView: DNSPilotShellView(navigation: DNSPilotNavigationModel())
-                .frame(minWidth: 900, minHeight: 620)
-        )
-        window.center()
-        fallbackMainWindow = window
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        Self.logger.info("Created fallback main window")
-    }
-
-    private static func isUsableMainWindow(_ window: NSWindow) -> Bool {
-        window.isVisible
-            && window.canBecomeKey
-            && !window.isMiniaturized
-            && window.frame.width >= 600
-            && window.frame.height >= 400
     }
 }
 
 private struct DNSPilotShellView: View {
     @ObservedObject var navigation: DNSPilotNavigationModel
     @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
-    @AppStorage(DNSPilotOnboardingPreferences.permissionSetupSeenKey) private var hasSeenPermissionSetup = false
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var catalogViewModel = CatalogViewModel()
     @State private var hasRequestedStorageCatalogRefresh = false
@@ -745,29 +710,13 @@ private struct DNSPilotShellView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $navigation.selection) {
-                Section(localizer.text(.overview)) {
-                    Label(localizer.text(.capabilities), systemImage: "checkmark.seal")
-                        .tag(SidebarSelection.capabilities)
-                    Label(localizer.text(.permissions), systemImage: "lock.shield")
-                        .tag(SidebarSelection.permissions)
-                    Label(localizer.text(.publish), systemImage: "shippingbox")
-                        .tag(SidebarSelection.publish)
-                    Label(localizer.text(.benchmark), systemImage: "speedometer")
+                Section {
+                    Label("Check DNS", systemImage: "speedometer")
                         .tag(SidebarSelection.benchmark)
-                    Label(localizer.text(.gamePing), systemImage: "gamecontroller")
-                        .tag(SidebarSelection.gamePing)
-                    Label(localizer.text(.customDNS), systemImage: "plus.circle")
+                    Label(localizer.text(.profiles), systemImage: "server.rack")
                         .tag(SidebarSelection.customDNS)
                     Label(localizer.text(.history), systemImage: "clock.arrow.circlepath")
                         .tag(SidebarSelection.history)
-                    Label(localizer.text(.catalog), systemImage: "server.rack")
-                        .tag(SidebarSelection.catalog)
-                }
-
-                Section(localizer.text(.platforms)) {
-                    ForEach(capabilityViewModel.rows) { row in
-                        Label(row.platformName, systemImage: row.storeSafe ? "checkmark.seal" : "bolt.badge.clock")
-                    }
                 }
             }
             .navigationTitle("DNS Pilot")
@@ -804,11 +753,6 @@ private struct DNSPilotShellView: View {
             }
         }
         .onAppear {
-            if !hasSeenPermissionSetup {
-                hasSeenPermissionSetup = true
-                navigation.selection = .permissions
-                isShowingPermissionSetup = true
-            }
             guard !hasRequestedStorageCatalogRefresh else {
                 return
             }
@@ -2436,6 +2380,7 @@ private struct BenchmarkDetailView: View {
     @State private var mdmProfileActive = false
     @State private var corporateDNSDetected = false
     @State private var captivePortalDetected = false
+    @State private var isOptionsExpanded = false
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
     @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
@@ -2589,11 +2534,16 @@ private struct BenchmarkDetailView: View {
                 AnyView(benchmarkHeader)
                 AnyView(benchmarkSummary)
                 AnyView(benchmarkRunArtifacts)
-                AnyView(modeSection)
-                AnyView(networkSafeguardsSection)
-                AnyView(profilesSection)
-                AnyView(targetsSection)
-                AnyView(attemptsSection)
+                DisclosureGroup("Options", isExpanded: $isOptionsExpanded) {
+                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
+                        AnyView(modeSection)
+                        AnyView(networkSafeguardsSection)
+                        AnyView(profilesSection)
+                        AnyView(targetsSection)
+                        AnyView(attemptsSection)
+                    }
+                    .padding(.top, DNSPilotDesign.Spacing.row)
+                }
             }
             .padding(DNSPilotDesign.Spacing.panel)
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -2636,9 +2586,6 @@ private struct BenchmarkDetailView: View {
     @ViewBuilder
     private var benchmarkSummary: some View {
         Label(setupViewModel.runPlanSummary, systemImage: "list.bullet.clipboard")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        Label(setupViewModel.flushPolicySummary, systemImage: "arrow.triangle.2.circlepath")
             .font(.caption)
             .foregroundStyle(.secondary)
         if setupViewModel.systemDNSFlushChecklistText != nil {

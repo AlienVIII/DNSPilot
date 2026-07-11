@@ -86,6 +86,33 @@ fn compare_command_can_limit_to_ipv4_records() {
 }
 
 #[test]
+fn compare_command_includes_failure_detail_in_result_samples() {
+    let output = Command::new(env!("CARGO_BIN_EXE_dnspilot-cli"))
+        .args([
+            "compare",
+            "--resolver",
+            "unreachable=127.0.0.1:9",
+            "--domain",
+            "example.com",
+            "--attempts",
+            "1",
+            "--timeout-ms",
+            "100",
+        ])
+        .output()
+        .expect("run dnspilot-cli compare");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
+    let json: Value = serde_json::from_str(&stdout).expect("stdout should be json");
+    let samples = json["runs"][0]["samples"].as_array().expect("samples");
+
+    assert!(samples
+        .iter()
+        .all(|sample| sample["failure_detail"].is_string()));
+}
+
+#[test]
 fn compare_command_can_emit_progress_jsonl_to_stderr() {
     let slow = start_fake_resolver(2, Duration::from_millis(10));
     let fast = start_fake_resolver(2, Duration::from_millis(1));

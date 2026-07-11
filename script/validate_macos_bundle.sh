@@ -193,9 +193,15 @@ else
 fi
 
 if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.client"; then
-  pass "store entitlements allow outbound network client"
+    pass "store entitlements allow outbound network client"
 else
-  fail "store entitlements must allow outbound network client"
+    fail "store entitlements must allow outbound network client"
+fi
+
+if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.server"; then
+    pass "store entitlements allow local UDP socket binding"
+else
+    fail "store entitlements must allow local UDP socket binding for direct DNS checks"
 fi
 
 if [[ -f "$HELPER_ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$HELPER_ENTITLEMENTS_TEMPLATE" >/dev/null; then
