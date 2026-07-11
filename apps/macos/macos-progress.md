@@ -8,6 +8,11 @@ flush guidance, and system-DNS validation. Direct DNS mutation is available only
 in Power/direct-install capable builds after explicit Direct Admin opt-in, or a
 local force flag, and still requires macOS administrator approval.
 
+Architecture review now classifies the current shell as an internal QA-rich build,
+not yet a focused commercial UI. Store release is gated on single-window correctness,
+consumer navigation, task-based onboarding, result action hierarchy, and incremental
+presentation-file extraction. See `apps/macos/macos-engineering-handoff.md`.
+
 ## Requirement Coverage
 
 - SwiftUI shell with sidebar, Benchmark, Catalog, History, custom DNS, custom
@@ -61,6 +66,7 @@ local force flag, and still requires macOS administrator approval.
 
 ## Remaining Gates
 
+- Product UX gate in `TODO.md`, starting with duplicate main-window ownership.
 - Release signing identity, provisioning, and App Store entitlement approval.
 - Signed distribution bundle validation.
 - Power-edition helper/runtime QA remains separate from the Store build.
@@ -72,3 +78,5 @@ local force flag, and still requires macOS administrator approval.
 - Core CLI requests: `apps/macos/macos-core-cli-request.md`.
 - Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
 - OS provider trust/manual gates: `docs/os-provider-trust.md`.
+- Product/UX research: `docs/research/2026-07-11-macos-product-ux-review.md`.
+- Engineering milestones: `apps/macos/macos-engineering-handoff.md`.

@@ -44,6 +44,7 @@ research establish demand.
 
 ### D2: Platform Delivery Order
 
+- **Status:** Approved on 2026-07-11.
 - **Problem:** parallel feature expansion across four OS lanes dilutes release focus.
 - **Options:** continue parity work; pause all but macOS; keep thin validation lanes.
 - **Trade-offs:** parity maximizes breadth but delays proof; a full pause creates stale
@@ -52,6 +53,38 @@ research establish demand.
 - **Reason:** one trusted, publishable product creates faster commercial learning than
   four partially releasable products.
 - **Confidence:** Medium-high pending user research.
+
+### D3: macOS Consumer Information Architecture
+
+- **Problem:** the current sidebar mixes the core user journey with capabilities,
+  permissions, publishing checks, catalog internals, and other-platform status.
+- **Options:** keep the QA console; hide internal surfaces behind Advanced; remove them
+  from the release UI while retaining CLI/docs diagnostics.
+- **Trade-offs:** keeping everything aids development but harms comprehension; an
+  Advanced area still adds product weight; removing release-only surfaces gives the
+  clearest product while preserving evidence outside the consumer UI.
+- **Recommendation:** the release UI has three primary areas: `Check DNS`, `Results`,
+  and `Profiles`. Game targets become benchmark presets. Publishing, capability matrix,
+  validation evidence, catalog internals, and platform parity stay in CLI/docs or a
+  development-only diagnostics surface.
+- **Reason:** commercial users buy a trustworthy decision loop, not an implementation
+  dashboard.
+- **Confidence:** High.
+
+### D4: macOS Window Ownership
+
+- **Problem:** `WindowGroup` and a manually created fallback `NSWindow` can create two
+  main windows with independent navigation models.
+- **Options:** retain the fallback; share one model across both paths; use one SwiftUI
+  scene as the sole main-window owner.
+- **Trade-offs:** fallback code masks launch defects but creates state races; shared
+  state reduces symptoms but retains duplicate lifecycle paths; one scene is simpler
+  and follows the native model.
+- **Recommendation:** use the identified `WindowGroup` as the sole main-window owner;
+  menu/reopen actions must use scene APIs and never instantiate another shell directly.
+- **Reason:** one lifecycle and one state owner prevent sidebar/detail divergence and
+  duplicate onboarding.
+- **Confidence:** High, supported by runtime review and source inspection.
 
 ### D3: Power DNS Rollback
 

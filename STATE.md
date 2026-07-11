@@ -11,6 +11,8 @@ uses a platform-capability-specific apply flow.
 
 - Shared Rust core and CLI: implemented and tested.
 - macOS 14+ SwiftUI shell: v1 core-goal coverage is implemented in code.
+- macOS product/UX architecture review is complete; four Major findings must close
+  before Store release. Engineering starts with single-window ownership.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
@@ -42,3 +44,5 @@ uses a platform-capability-specific apply flow.
 - macOS scope and evidence: `apps/macos/macos-progress.md`
 - Publishing steps: `apps/macos/PUBLISHING.md`
 - Historical implementation log: `progress.md`
+- macOS research: `docs/research/2026-07-11-macos-product-ux-review.md`
+- Engineering handoff: `apps/macos/macos-engineering-handoff.md`

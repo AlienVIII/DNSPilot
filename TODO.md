@@ -2,6 +2,25 @@
 
 Last reviewed: 2026-07-11.
 
+## P0: macOS Product UX Gate
+
+- [ ] Remove duplicate manual main-window creation; verify launch, reopen, Dock, and
+  menu-bar actions use one window/state owner.
+- [ ] Reduce release navigation to Check DNS, Results, and Profiles; move internal
+  readiness/platform surfaces out of the consumer sidebar.
+- [ ] Replace permission-first onboarding with an optional interactive first check:
+  Check DNS, understand recommendation, apply/retest.
+- [ ] Make one result action primary. Move copy/debug/checklist actions behind
+  secondary menus, disclosure, or contextual info.
+- [ ] Merge Game Ping into benchmark presets and remove claims that imply ICMP or
+  in-game latency measurement.
+- [ ] Add native app commands and keyboard paths for the primary check, cancel,
+  results, Settings, and Help flows.
+- [ ] Split the 4,533-line app source incrementally by scene/feature without changing
+  core contracts.
+- [ ] Run a five-user moderated usability pass; require all participants to complete
+  Check -> Recommendation -> Apply guidance -> Retest without assistance.
+
 ## P0: macOS Release Gates
 
 - [ ] Acquire Apple signing identity and provisioning for `com.dnspilot.mac`.
@@ -45,3 +64,5 @@ Last reviewed: 2026-07-11.
 - `STATE.md`
 - `PROJECT.md`
 - `apps/macos/PUBLISHING.md`
+- `apps/macos/macos-engineering-handoff.md`
+- `docs/research/2026-07-11-macos-product-ux-review.md`
