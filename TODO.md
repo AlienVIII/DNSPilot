@@ -43,6 +43,7 @@ Last reviewed: 2026-07-11.
 
 - [ ] Implement and test service-scoped DNS rollback before Power Apply changes
   a network service; preserve automatic/DHCP DNS as a separate restore mode.
+  Plan: `docs/superpowers/plans/2026-07-11-power-dns-rollback.md`.
 - [ ] On a disposable network, enable Direct Admin Actions, apply a known-safe
   resolver, validate System DNS, restore the original DNS, and validate again.
 - [ ] Package and sign Power edition separately from the App Store app.
