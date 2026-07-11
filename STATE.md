@@ -14,6 +14,8 @@ uses a platform-capability-specific apply flow.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
+- Power edition is not release-ready: service-scoped rollback must be implemented
+  and verified before direct distribution.
 - Linux committed lane: packages the shared CLI engine and runs benchmarks off the UI
   thread; real package/distro QA remains open.
 - Mobile committed native DNS experiment (`345c41e`) remains isolated pending Apple

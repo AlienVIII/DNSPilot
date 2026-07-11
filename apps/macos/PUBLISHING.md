@@ -164,6 +164,10 @@ Expected:
 
 ## Power Edition Manual Steps
 
+Power edition is not ready for public distribution until service-scoped rollback
+is implemented and verified. Current guided-apply restore copy is not an
+in-app Power rollback because it does not own the exact active network service.
+
 1. Build and launch Power mode locally:
 
 ```bash

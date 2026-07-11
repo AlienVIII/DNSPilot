@@ -21,6 +21,8 @@ Last reviewed: 2026-07-11.
 
 ## P1: Power Edition Release Gate
 
+- [ ] Implement and test service-scoped DNS rollback before Power Apply changes
+  a network service; preserve automatic/DHCP DNS as a separate restore mode.
 - [ ] On a disposable network, enable Direct Admin Actions, apply a known-safe
   resolver, validate System DNS, restore the original DNS, and validate again.
 - [ ] Package and sign Power edition separately from the App Store app.

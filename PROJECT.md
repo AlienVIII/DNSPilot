@@ -53,10 +53,31 @@ research establish demand.
   four partially releasable products.
 - **Confidence:** Medium-high pending user research.
 
+### D3: Power DNS Rollback
+
+- **Problem:** Power Apply changes the active macOS network service but currently
+  does not retain a service-scoped rollback record. The existing guided-apply
+  resolver snapshot is not sufficient to restore an exact network service.
+- **Options:** keep manual Network Settings recovery; capture the active service
+  and its DNS mode before Power Apply, then offer explicit in-app Restore; add a
+  persistent privileged helper/service.
+- **Trade-offs:** manual recovery is simple but makes a privileged mutation
+  operationally unsafe; service-scoped capture/restore adds bounded local state
+  and one more confirmed admin action; a helper adds signing, install, and
+  attack-surface cost without improving the v1 rollback contract.
+- **Recommendation:** capture a minimal per-service DNS rollback record before
+  Power Apply and expose Restore only in the Power edition after explicit
+  confirmation. Preserve automatic/DHCP DNS as a distinct restore mode.
+- **Reason:** reversibility is required for user trust and Power release QA; it
+  can be achieved without a new privileged service architecture.
+- **Confidence:** High.
+
 ## Quality Gates
 
 - No release-ready claim without platform build, automated tests, signed artifact
   validation, manual permission flow, rollback test, and user-visible smoke evidence.
 - No privileged capability enters a default Store SKU without provider approval and a
   documented fallback.
+- Power DNS Apply must retain an exact active-service rollback record before it can
+  be released outside test environments.
 - Contract changes require compatibility/version review across every consumer lane.
