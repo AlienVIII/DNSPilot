@@ -12,6 +12,7 @@ Last reviewed: 2026-07-11.
 
 ## P0: Commercial Validation
 
+- [ ] Run the protocol in `docs/macos-v1-commercial-validation.md`.
 - [ ] Interview 5-8 target users who actively change or troubleshoot DNS.
 - [ ] Validate the primary promise: reliable DNS recommendation for the current
   network, not generic speed improvement.
