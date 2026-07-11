@@ -61,4 +61,42 @@ final class StoreSafeDNSActionViewModelTests: XCTestCase {
         )
         XCTAssertTrue(viewModel.flushConfirmationMessage.contains("administrator approval"))
     }
+
+    func testPowerRollbackViewModelExplainsAutomaticRestore() {
+        let snapshot = PowerDNSRollbackSnapshot(
+            service: "Wi-Fi",
+            mode: .automatic,
+            servers: [],
+            createdAt: Date(timeIntervalSince1970: 1_000)
+        )
+        let viewModel = PowerDNSRollbackViewModel(
+            isEnabled: true,
+            snapshot: snapshot,
+            now: Date(timeIntervalSince1970: 1_100)
+        )
+
+        XCTAssertEqual(viewModel.restoreButtonLabel, "Restore Previous DNS (Admin)")
+        XCTAssertTrue(viewModel.confirmationMessage.contains("Wi-Fi"))
+        XCTAssertTrue(viewModel.confirmationMessage.contains("automatic DNS"))
+    }
+
+    func testPowerRollbackViewModelHidesStaleOrDisabledRestore() {
+        let snapshot = PowerDNSRollbackSnapshot(
+            service: "Wi-Fi",
+            mode: .servers,
+            servers: ["192.168.1.1"],
+            createdAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        XCTAssertNil(PowerDNSRollbackViewModel(
+            isEnabled: false,
+            snapshot: snapshot,
+            now: Date(timeIntervalSince1970: 1_100)
+        ).restoreButtonLabel)
+        XCTAssertNil(PowerDNSRollbackViewModel(
+            isEnabled: true,
+            snapshot: snapshot,
+            now: Date(timeIntervalSince1970: 100_000)
+        ).restoreButtonLabel)
+    }
 }

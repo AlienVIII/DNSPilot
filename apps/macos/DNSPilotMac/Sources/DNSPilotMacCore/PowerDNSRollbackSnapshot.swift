@@ -28,7 +28,8 @@ public struct PowerDNSRollbackSnapshot: Codable, Equatable, Sendable {
     }
 
     public func isFresh(now: Date = Date(), maxAge: TimeInterval = 86_400) -> Bool {
-        now.timeIntervalSince(createdAt) <= maxAge
+        let age = now.timeIntervalSince(createdAt)
+        return age >= 0 && age <= maxAge
     }
 }
 

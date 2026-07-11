@@ -15,6 +15,17 @@ final class PowerDNSRollbackSnapshotTests: XCTestCase {
         XCTAssertTrue(snapshot.isRestorable)
     }
 
+    func testFutureDatedSnapshotIsNotFresh() {
+        let snapshot = PowerDNSRollbackSnapshot(
+            service: "Wi-Fi",
+            mode: .servers,
+            servers: ["1.1.1.1"],
+            createdAt: Date(timeIntervalSince1970: 1_100)
+        )
+
+        XCTAssertFalse(snapshot.isFresh(now: Date(timeIntervalSince1970: 1_000)))
+    }
+
     func testStoreRoundTripsFreshSnapshot() {
         let defaults = makeDefaults()
         let store = PowerDNSRollbackStore(

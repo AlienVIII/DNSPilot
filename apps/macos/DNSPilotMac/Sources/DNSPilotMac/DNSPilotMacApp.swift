@@ -363,8 +363,12 @@ private struct PowerDNSApplyButton: View {
     let dnsServers: [String]
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var isShowingConfirmation = false
+    @State private var isShowingRestoreConfirmation = false
     @State private var isRunningApply = false
+    @State private var isRunningRestore = false
     @State private var powerActionAlert: PowerDNSActionAlert?
+    @State private var rollbackSnapshot: PowerDNSRollbackSnapshot?
+    private let rollbackStore = PowerDNSRollbackStore()
 
     private var powerActionViewModel: MacOSPowerDNSActionViewModel {
         MacOSPowerDNSActionViewModel(
@@ -372,19 +376,43 @@ private struct PowerDNSApplyButton: View {
         )
     }
 
+    private var rollbackViewModel: PowerDNSRollbackViewModel {
+        PowerDNSRollbackViewModel(
+            isEnabled: powerActionViewModel.isEnabled,
+            snapshot: rollbackSnapshot
+        )
+    }
+
     var body: some View {
         if let applyButtonLabel = powerActionViewModel.applyButtonLabel, !dnsServers.isEmpty {
-            Button {
-                isShowingConfirmation = true
-            } label: {
-                if isRunningApply {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Label(applyButtonLabel, systemImage: "lock.shield")
+            HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                Button {
+                    isShowingConfirmation = true
+                } label: {
+                    if isRunningApply {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Label(applyButtonLabel, systemImage: "lock.shield")
+                    }
+                }
+                .disabled(isRunningApply || isRunningRestore)
+
+                if let restoreButtonLabel = rollbackViewModel.restoreButtonLabel {
+                    Button {
+                        isShowingRestoreConfirmation = true
+                    } label: {
+                        if isRunningRestore {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label(restoreButtonLabel, systemImage: "arrow.uturn.backward.circle")
+                        }
+                    }
+                    .disabled(isRunningApply || isRunningRestore)
+                    .help("Restore DNS for the same active network service after macOS administrator approval.")
                 }
             }
-            .disabled(isRunningApply)
             .confirmationDialog(
                 "Confirm Power DNS apply",
                 isPresented: $isShowingConfirmation,
@@ -397,6 +425,21 @@ private struct PowerDNSApplyButton: View {
             } message: {
                 Text(powerActionViewModel.applyConfirmationMessage(profileName: profileName, dnsServers: dnsServers))
             }
+            .confirmationDialog(
+                "Restore previous DNS?",
+                isPresented: $isShowingRestoreConfirmation,
+                titleVisibility: .visible
+            ) {
+                if let snapshot = rollbackViewModel.restorableSnapshot,
+                   let restoreButtonLabel = rollbackViewModel.restoreButtonLabel {
+                    Button(restoreButtonLabel) {
+                        runPowerRestore(snapshot: snapshot)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(rollbackViewModel.confirmationMessage)
+            }
             .alert(item: $powerActionAlert) { alert in
                 Alert(
                     title: Text(alert.title),
@@ -405,6 +448,9 @@ private struct PowerDNSApplyButton: View {
                 )
             }
             .help("Ask macOS for administrator approval and apply these DNS servers to the active network service.")
+            .onAppear {
+                rollbackSnapshot = rollbackStore.load()
+            }
         }
     }
 
@@ -412,20 +458,48 @@ private struct PowerDNSApplyButton: View {
         let servers = dnsServers
         isRunningApply = true
         Task {
+            let result = await Task.detached(priority: .userInitiated) { () -> (PowerDNSRollbackSnapshot?, String) in
+                do {
+                    let snapshot = try MacOSPowerDNSActionRunner.fromEnvironment().applyDNS(servers: servers)
+                    return (snapshot, "DNS was applied and local DNS cache was flushed.")
+                } catch {
+                    return (nil, error.localizedDescription)
+                }
+            }.value
+
+            isRunningApply = false
+            if let snapshot = result.0 {
+                rollbackStore.save(snapshot)
+                rollbackSnapshot = snapshot
+                powerActionAlert = PowerDNSActionAlert(
+                    title: "DNS apply complete",
+                    message: "\(result.1) Previous DNS for \(snapshot.service) is ready to restore."
+                )
+            } else {
+                powerActionAlert = PowerDNSActionAlert(title: "DNS apply failed", message: result.1)
+            }
+        }
+    }
+
+    private func runPowerRestore(snapshot: PowerDNSRollbackSnapshot) {
+        isRunningRestore = true
+        Task {
             let result = await Task.detached(priority: .userInitiated) { () -> (Bool, String) in
                 do {
-                    try MacOSPowerDNSActionRunner.fromEnvironment().applyDNS(servers: servers)
-                    return (true, "DNS was applied and local DNS cache was flushed.")
+                    try MacOSPowerDNSActionRunner.fromEnvironment().restoreDNS(snapshot: snapshot)
+                    return (true, "Previous DNS was restored and local DNS cache was flushed.")
                 } catch {
                     return (false, error.localizedDescription)
                 }
             }.value
 
-            isRunningApply = false
+            isRunningRestore = false
             if result.0 {
-                powerActionAlert = PowerDNSActionAlert(title: "DNS apply complete", message: result.1)
+                rollbackStore.clear()
+                rollbackSnapshot = nil
+                powerActionAlert = PowerDNSActionAlert(title: "DNS restore complete", message: result.1)
             } else {
-                powerActionAlert = PowerDNSActionAlert(title: "DNS apply failed", message: result.1)
+                powerActionAlert = PowerDNSActionAlert(title: "DNS restore failed", message: result.1)
             }
         }
     }

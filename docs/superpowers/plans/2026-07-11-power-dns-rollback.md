@@ -120,7 +120,7 @@ git commit -m "[macos] add Power DNS rollback state"
 - Modify: `apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift`
 - Modify: `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/MacOSPowerDNSActionRunnerTests.swift`
 
-- [ ] **Step 1: Write failing runner tests**
+- [x] **Step 1: Write failing runner tests**
 
 Add tests with a queued recording process runner. Its first output, from the
 non-admin `/bin/sh` capture command, is:
@@ -157,7 +157,7 @@ XCTAssertTrue(script.contains("dscacheutil -flushcache"))
 Remove the old single-output recording helper only after every existing Power
 test has migrated to an explicit queued output.
 
-- [ ] **Step 2: Run the runner test target and verify RED**
+- [x] **Step 2: Run the runner test target and verify RED**
 
 Run:
 
@@ -168,7 +168,7 @@ swift test --package-path apps/macos/DNSPilotMac --filter MacOSPowerDNSActionRun
 Expected: return-type and capture-order assertions fail because Apply returns
 `Void`, never runs a non-admin capture, and Restore is absent.
 
-- [ ] **Step 3: Capture and parse rollback state before elevation**
+- [x] **Step 3: Capture and parse rollback state before elevation**
 
 Change the public runner API to:
 
@@ -209,7 +209,7 @@ Resolve and compare the active service before mutation. Use
 the existing shell quoting function for each validated literal server. Flush
 only after `networksetup` succeeds.
 
-- [ ] **Step 4: Run targeted runner tests and verify GREEN**
+- [x] **Step 4: Run targeted runner tests and verify GREEN**
 
 Run:
 
@@ -221,7 +221,7 @@ Expected: all Power runner tests pass, including disabled, unsafe-input,
 manual/automatic capture, capture-before-elevation, configuration-race guard,
 and service-mismatch restore coverage.
 
-- [ ] **Step 5: Commit the privileged-boundary slice**
+- [x] **Step 5: Commit the privileged-boundary slice**
 
 ```bash
 git add apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/MacOSPowerDNSActionRunner.swift \
@@ -236,7 +236,7 @@ git commit -m "[macos] capture Power DNS rollback"
 - Modify: `apps/macos/DNSPilotMac/Tests/DNSPilotMacCoreTests/StoreSafeDNSActionViewModelTests.swift`
 - Modify: `apps/macos/DNSPilotMac/Sources/DNSPilotMac/DNSPilotMacApp.swift`
 
-- [ ] **Step 1: Write failing view-model tests**
+- [x] **Step 1: Write failing view-model tests**
 
 Add a `PowerDNSRollbackViewModel` test suite that verifies:
 
@@ -254,7 +254,7 @@ Assert `restoreButtonLabel == nil` for a stale snapshot or when Power actions
 are disabled. The confirmation must state that macOS will ask for administrator
 approval and that no restore happens after Cancel.
 
-- [ ] **Step 2: Run the view-model test target and verify RED**
+- [x] **Step 2: Run the view-model test target and verify RED**
 
 Run:
 
@@ -264,7 +264,7 @@ swift test --package-path apps/macos/DNSPilotMac --filter StoreSafeDNSActionView
 
 Expected: compilation fails because `PowerDNSRollbackViewModel` does not exist.
 
-- [ ] **Step 3: Add the model and wire the SwiftUI action**
+- [x] **Step 3: Add the model and wire the SwiftUI action**
 
 Add `PowerDNSRollbackViewModel` beside `MacOSPowerDNSActionViewModel`. Its
 initializer takes `isEnabled`, an optional snapshot, `now`, and `maxAge`; it
@@ -279,7 +279,7 @@ success/failure alerts, and clear the store only after a successful restore.
 Load the store on view appearance so a successful Apply can be reversed after
 window navigation or relaunch. Keep this control absent in Store-safe builds.
 
-- [ ] **Step 4: Run view-model tests and full macOS tests**
+- [x] **Step 4: Run view-model tests and full macOS tests**
 
 Run:
 
@@ -290,7 +290,7 @@ swift test --package-path apps/macos/DNSPilotMac
 
 Expected: targeted tests and the full macOS suite pass.
 
-- [ ] **Step 5: Commit the Power-only UX slice**
+- [x] **Step 5: Commit the Power-only UX slice**
 
 ```bash
 git add apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/StoreSafeDNSActionViewModel.swift \
