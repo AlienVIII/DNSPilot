@@ -111,7 +111,7 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
         )
 
-        XCTAssertEqual(viewModel.mode, .connectionPathCompare)
+        XCTAssertEqual(viewModel.mode, .dnsOnlyCompare)
         XCTAssertEqual(viewModel.attempts, 1)
         XCTAssertEqual(viewModel.dnsTimeoutMS, 800)
         XCTAssertEqual(viewModel.connectTimeoutMS, 800)
@@ -122,7 +122,7 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             viewModel.customDomainsText,
             "github.com\nlogin.microsoftonline.com\nvnexpress.net"
         )
-        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, A + AAAA, 2 resolvers, 3 domains, 1 attempt, 2 TCP targets/domain")
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS only, A + AAAA, 2 resolvers, 3 domains, 1 attempt")
     }
 
     func testSetupParsesCustomDomainTextIntoPlan() {

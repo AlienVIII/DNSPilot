@@ -182,7 +182,7 @@ public struct BenchmarkSetupViewModel: Equatable {
             maxConnectTargetsPerDomain: 2,
             recordFamily: defaults.recordFamily,
             resolverTransport: defaults.resolverTransport,
-            mode: .connectionPathCompare
+            mode: .dnsOnlyCompare
         )
     }
 
