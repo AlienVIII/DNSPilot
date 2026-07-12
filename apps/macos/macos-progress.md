@@ -8,15 +8,15 @@ flush guidance, and system-DNS validation. Direct DNS mutation is available only
 in Power/direct-install capable builds after explicit Direct Admin opt-in, or a
 local force flag, and still requires macOS administrator approval.
 
-Architecture review now classifies the current shell as an internal QA-rich build,
-not yet a focused commercial UI. Store release is gated on single-window correctness,
-consumer navigation, task-based onboarding, result action hierarchy, and incremental
-presentation-file extraction. See `apps/macos/macos-engineering-handoff.md`.
+Consumer UX gates now have a singleton main window, task-first navigation, optional
+setup, one primary result action, and compact technical details. Store release still
+needs incremental presentation-file extraction plus external usability and publishing
+evidence. See `apps/macos/macos-engineering-handoff.md`.
 
 ## Requirement Coverage
 
-- SwiftUI shell with sidebar, Benchmark, Catalog, History, custom DNS, custom
-  suites, Game Ping, Permissions, Publish readiness, and menu bar quick actions.
+- SwiftUI shell with Check DNS, Profiles, History, custom DNS, custom suites,
+  Permissions, Publish readiness, menu bar quick actions, and native commands.
 - Benchmark UX covers setup, progress, cancellation, diagnostics, result rows,
   saved history, fastest observed DNS, balanced recommendation, A/AAAA controls,
   IPv4/IPv6 controls, and copyable reports.
@@ -34,6 +34,8 @@ presentation-file extraction. See `apps/macos/macos-engineering-handoff.md`.
   reopen the tutorial.
 - Product Goals list all six acceptance goals with concrete app entry points,
   validation evidence, and EN/VI localized user-facing copy.
+- Dota 2 SEA, CS2, and Riot/League checks are Check DNS target presets. They force
+  DNS + TCP mode and state that the output is not ICMP or in-match UDP latency.
 - English/Vietnamese localization covers primary native surfaces.
 - Power actions are disabled by default. Store-safe builds cannot enable them
   from a stale preference alone; Power/direct-install builds require
@@ -69,7 +71,8 @@ presentation-file extraction. See `apps/macos/macos-engineering-handoff.md`.
 
 ## Remaining Gates
 
-- Product UX gate in `TODO.md`, starting with duplicate main-window ownership.
+- Product UX evidence in `TODO.md`: incremental presentation-file extraction and a
+  five-user moderated usability pass.
 - Release signing identity, provisioning, and App Store entitlement approval.
 - Signed distribution bundle validation.
 - Power-edition helper/runtime QA remains separate from the Store build.
