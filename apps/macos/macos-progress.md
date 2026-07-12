@@ -10,8 +10,8 @@ local force flag, and still requires macOS administrator approval.
 
 Consumer UX gates now have a singleton main window, task-first navigation, optional
 setup, one primary result action, and compact technical details. Store release still
-needs incremental presentation-file extraction plus external usability and publishing
-evidence. See `apps/macos/macos-engineering-handoff.md`.
+needs external usability and publishing evidence. Further presentation-file extraction
+is post-stabilization maintenance. See `apps/macos/macos-engineering-handoff.md`.
 
 ## Requirement Coverage
 

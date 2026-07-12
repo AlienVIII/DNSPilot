@@ -16,9 +16,6 @@ Last reviewed: 2026-07-13.
   is not ICMP or in-match UDP latency.
 - [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
   History, result, cancel, Settings, and Setup without creating another window.
-- [ ] Continue splitting the 3,828-line app source by scene/feature without changing
-  core contracts. Window/navigation/menu-bar and Settings/Setup/Power support are
-  extracted, and the retired duplicate Game Ping UI is removed.
 - [ ] Run a five-user moderated usability pass; require all participants to complete
   Check -> Recommendation -> Apply guidance -> Retest without assistance.
 
@@ -52,6 +49,13 @@ Last reviewed: 2026-07-13.
 - [ ] On a disposable network, enable Direct Admin Actions, apply a known-safe
   resolver, validate System DNS, restore the original DNS, and validate again.
 - [ ] Package and sign Power edition separately from the App Store app.
+
+## P1: Engineering Hygiene
+
+- [ ] Continue splitting the 3,828-line app source by scene/feature without changing
+  core contracts. Window/navigation/menu-bar and Settings/Setup/Power support are
+  already extracted, and the retired duplicate Game Ping UI is removed. Do this after
+  Store-safe usability evidence, not during release stabilization.
 
 ## P2: Platform Expansion Gates
 
