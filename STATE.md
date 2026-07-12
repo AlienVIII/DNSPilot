@@ -24,6 +24,9 @@ uses a platform-capability-specific apply flow.
   Setup.
 - Dota 2 SEA, CS2, and Riot/League are selectable Check DNS targets. Selecting one
   uses DNS + TCP connection timing and clearly excludes ICMP/in-match latency claims.
+- Window lifecycle, navigation, menu-bar behavior, and shared macOS actions are
+  extracted into `DNSPilotAppSupport.swift`; the main presentation file remains an
+  incremental extraction target.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
