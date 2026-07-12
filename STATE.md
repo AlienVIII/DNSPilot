@@ -11,13 +11,14 @@ uses a platform-capability-specific apply flow.
 
 - Shared Rust core and CLI: implemented and tested.
 - macOS 14+ SwiftUI shell: v1 core-goal coverage is implemented in code.
-- macOS product/UX architecture review is complete; four Major findings must close
-  before Store release. Engineering starts with single-window ownership.
+- macOS product/UX architecture review is complete; remaining Major findings must
+  close before Store release. Menu-bar window ownership is verified: a cold app
+  opens one main window and a repeated menu action keeps that count at one.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
-- Power edition is not release-ready: service-scoped rollback must be implemented
-  and verified before direct distribution.
+- Power rollback is implemented and covered by local tests; real-network admin
+  Apply/Restore QA remains required before direct distribution.
 - Linux committed lane: packages the shared CLI engine and runs benchmarks off the UI
   thread; real package/distro QA remains open.
 - Mobile committed native DNS experiment (`345c41e`) remains isolated pending Apple

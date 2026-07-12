@@ -4,8 +4,8 @@ Last reviewed: 2026-07-11.
 
 ## P0: macOS Product UX Gate
 
-- [ ] Remove duplicate manual main-window creation; verify launch, reopen, Dock, and
-  menu-bar actions use one window/state owner.
+- [x] Remove duplicate manual main-window creation; menu-bar regression evidence:
+  cold app window count `0 -> 1 -> 1` after two `Benchmark` menu actions.
 - [ ] Reduce release navigation to Check DNS, Results, and Profiles; move internal
   readiness/platform surfaces out of the consumer sidebar.
 - [ ] Replace permission-first onboarding with an optional interactive first check:
@@ -41,9 +41,9 @@ Last reviewed: 2026-07-11.
 
 ## P1: Power Edition Release Gate
 
-- [ ] Implement and test service-scoped DNS rollback before Power Apply changes
+- [x] Implement and test service-scoped DNS rollback before Power Apply changes
   a network service; preserve automatic/DHCP DNS as a separate restore mode.
-  Plan: `docs/superpowers/plans/2026-07-11-power-dns-rollback.md`.
+  Evidence: `5998142`; plan: `docs/superpowers/plans/2026-07-11-power-dns-rollback.md`.
 - [ ] On a disposable network, enable Direct Admin Actions, apply a known-safe
   resolver, validate System DNS, restore the original DNS, and validate again.
 - [ ] Package and sign Power edition separately from the App Store app.

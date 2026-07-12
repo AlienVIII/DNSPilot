@@ -45,6 +45,9 @@ presentation-file extraction. See `apps/macos/macos-engineering-handoff.md`.
   privacy manifest readiness, and hardened-runtime distribution validation.
 - Power Apply validates literal IPv4/IPv6 addresses at the privileged boundary;
   hostnames and malformed input are rejected before any administrator prompt.
+- Power Apply captures a fresh service-scoped DNS rollback record before
+  elevation, rechecks the active service/configuration before mutation, and
+  restores manual or automatic/DHCP DNS only through an explicit Power action.
 - Local bundle validation requires macOS target, version/build metadata,
   sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
 - Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan
@@ -70,6 +73,7 @@ presentation-file extraction. See `apps/macos/macos-engineering-handoff.md`.
 - Release signing identity, provisioning, and App Store entitlement approval.
 - Signed distribution bundle validation.
 - Power-edition helper/runtime QA remains separate from the Store build.
+- Real-network Power Apply/Restore QA remains required before direct distribution.
 - OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
 
 ## Source Of Truth

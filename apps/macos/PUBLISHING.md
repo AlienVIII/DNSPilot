@@ -164,9 +164,11 @@ Expected:
 
 ## Power Edition Manual Steps
 
-Power edition is not ready for public distribution until service-scoped rollback
-is implemented and verified. Current guided-apply restore copy is not an
-in-app Power rollback because it does not own the exact active network service.
+Power edition now records the exact active network service plus its manual or
+automatic DNS mode before Apply. Restore remains Power-only, requires a fresh
+record plus administrator approval, and refuses to mutate DNS if the active
+service/configuration changed. Real-network QA remains required before public
+distribution. Guided-apply restore copy is separate from this in-app rollback.
 
 1. Build and launch Power mode locally:
 
