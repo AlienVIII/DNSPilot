@@ -75,16 +75,17 @@ research establish demand.
 
 - **Problem:** `WindowGroup` and a manually created fallback `NSWindow` can create two
   main windows with independent navigation models.
-- **Options:** retain the fallback; share one model across both paths; use one SwiftUI
-  scene as the sole main-window owner.
-- **Trade-offs:** fallback code masks launch defects but creates state races; shared
-  state reduces symptoms but retains duplicate lifecycle paths; one scene is simpler
-  and follows the native model.
-- **Recommendation:** use the identified `WindowGroup` as the sole main-window owner;
-  menu/reopen actions must use scene APIs and never instantiate another shell directly.
-- **Reason:** one lifecycle and one state owner prevent sidebar/detail divergence and
-  duplicate onboarding.
-- **Confidence:** High, supported by runtime review and source inspection.
+- **Options:** retain the fallback; use a `WindowGroup`; use one singleton SwiftUI
+  `Window` as the sole main-window owner.
+- **Trade-offs:** fallback code masks launch defects but creates state races;
+  `WindowGroup` restores or creates multiple main scenes for a utility app; a singleton
+  `Window` prevents duplicate app surfaces while preserving normal launch behavior.
+- **Recommendation:** use one `Window` scene. Menu actions activate it when present
+  and open it only when absent.
+- **Reason:** DNSPilot is a utility, not a multi-document app. One visible state owner
+  avoids duplicate benchmarks and contradictory navigation.
+- **Confidence:** High; cold launch and repeated menu `Benchmark`/`Run Quick Test`
+  actions each verified one AX window.
 
 ### D3: Power DNS Rollback
 

@@ -4,8 +4,8 @@ Last reviewed: 2026-07-11.
 
 ## P0: macOS Product UX Gate
 
-- [x] Remove duplicate manual main-window creation; menu-bar regression evidence:
-  cold app window count `0 -> 1 -> 1` after two `Benchmark` menu actions.
+- [x] Remove duplicate manual main-window creation; singleton `Window` count stays
+  `1` after `Benchmark`, `Benchmark`, and `Run Quick Test` actions.
 - [ ] Reduce release navigation to Check DNS, Results, and Profiles; move internal
   readiness/platform surfaces out of the consumer sidebar.
 - [ ] Replace permission-first onboarding with an optional interactive first check:

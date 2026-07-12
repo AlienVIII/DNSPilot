@@ -10,7 +10,7 @@ struct DNSPilotMacApp: App {
     @StateObject private var navigation = DNSPilotNavigationModel()
 
     var body: some Scene {
-        WindowGroup("DNS Pilot", id: DNSPilotWindowID.main) {
+        Window("DNS Pilot", id: DNSPilotWindowID.main) {
             DNSPilotShellView(navigation: navigation)
                 .frame(minWidth: 900, minHeight: 620)
         }

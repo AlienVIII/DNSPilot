@@ -12,8 +12,8 @@ uses a platform-capability-specific apply flow.
 - Shared Rust core and CLI: implemented and tested.
 - macOS 14+ SwiftUI shell: v1 core-goal coverage is implemented in code.
 - macOS product/UX architecture review is complete; remaining Major findings must
-  close before Store release. Menu-bar window ownership is verified: a cold app
-  opens one main window and a repeated menu action keeps that count at one.
+  close before Store release. Menu-bar window ownership is verified with a singleton
+  SwiftUI `Window`: cold launch and repeated menu actions keep one main window.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
