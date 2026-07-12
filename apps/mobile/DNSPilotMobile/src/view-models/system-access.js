@@ -1,13 +1,17 @@
 import { translate } from "./localization.js";
 
-export function buildSystemAccessPrompt({ platform, bridgeStatus = "unknown", locale = "en" }) {
+export function buildSystemAccessPrompt({ platform, bridgeStatus = "unknown", nativeRuntime = false, locale = "en" }) {
   const t = (key, params = {}) => translate(locale, key, params);
   const isAndroid = platform === "android-play" || platform === "android-device";
-  const checks = isAndroid ? androidChecks({ bridgeStatus, t }) : iosChecks({ bridgeStatus, t });
+  const checks = isAndroid ? androidChecks({ bridgeStatus, nativeRuntime, t }) : iosChecks({ bridgeStatus, nativeRuntime, t });
   return {
     shouldPrompt: true,
     title: t("systemAccess.title"),
-    summary: isAndroid ? t("systemAccess.summary.android") : t("systemAccess.summary.ios"),
+    summary: isAndroid
+      ? t("systemAccess.summary.android")
+      : nativeRuntime
+        ? t("systemAccess.summary.iosNative")
+        : t("systemAccess.summary.ios"),
     checks,
     actions: isAndroid
       ? [
@@ -43,26 +47,34 @@ export function buildSystemAccessPrompt({ platform, bridgeStatus = "unknown", lo
   };
 }
 
-function iosChecks({ bridgeStatus, t }) {
+function iosChecks({ bridgeStatus, nativeRuntime, t }) {
+  const networkCheck = nativeRuntime
+    ? {
+        id: "network-access",
+        label: t("systemAccess.check.networkAccess"),
+        status: "ready",
+        detail: t("systemAccess.detail.nativeNetwork"),
+      }
+    : {
+        id: "local-network",
+        label: t("systemAccess.check.localNetwork"),
+        status: bridgeStatus === "success" ? "ready" : "needs-action",
+        detail: t("systemAccess.detail.localNetwork"),
+      };
   return [
-    {
-      id: "local-network",
-      label: t("systemAccess.check.localNetwork"),
-      status: bridgeStatus === "success" ? "ready" : "needs-action",
-      detail: t("systemAccess.detail.localNetwork"),
-    },
+    networkCheck,
     dnsApplyCheck(t, "ios"),
     dnsFlushCheck(t),
   ];
 }
 
-function androidChecks({ bridgeStatus, t }) {
+function androidChecks({ bridgeStatus, nativeRuntime, t }) {
   return [
     {
       id: "network-access",
       label: t("systemAccess.check.networkAccess"),
-      status: bridgeStatus === "success" ? "ready" : "unknown",
-      detail: t("systemAccess.detail.networkAccess"),
+      status: nativeRuntime || bridgeStatus === "success" ? "ready" : "unknown",
+      detail: nativeRuntime ? t("systemAccess.detail.nativeNetwork") : t("systemAccess.detail.networkAccess"),
     },
     {
       id: "private-dns",

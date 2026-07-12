@@ -74,3 +74,18 @@ test("dynamic app config preserves Expo-provided app.json values", () => {
     "./plugins/withIosDnsSettings.cjs",
   ]);
 });
+
+test("production config removes the Local Network bridge declaration", () => {
+  const previous = process.env.EAS_BUILD_PROFILE;
+  process.env.EAS_BUILD_PROFILE = "production";
+  try {
+    const config = appConfig();
+    assert.equal(config.ios.infoPlist.NSLocalNetworkUsageDescription, undefined);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.EAS_BUILD_PROFILE;
+    } else {
+      process.env.EAS_BUILD_PROFILE = previous;
+    }
+  }
+});

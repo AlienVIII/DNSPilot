@@ -63,7 +63,10 @@ export function buildBenchmarkPlan(input) {
 }
 
 export function suggestedSuites(suites = []) {
-  const defaultSuite = suites.find((suite) => suite?.id === "general-browsing") ?? suites.find((suite) => suite?.tags?.includes("default"));
+  const defaultSuite =
+    suites.find((suite) => suite?.id === "general") ??
+    suites.find((suite) => suite?.id === "general-browsing") ??
+    suites.find((suite) => suite?.tags?.includes("default") || suite?.tags?.includes("general"));
   const vietnamSuite = suites.find((suite) => suite?.id === "vietnam-daily") ?? suites.find((suite) => suite?.tags?.includes("vietnam"));
   return {
     defaultSuiteId: defaultSuite?.id,

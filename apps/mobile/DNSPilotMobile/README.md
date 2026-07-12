@@ -1,13 +1,15 @@
 # DNSPilot Mobile
 
-Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
+Standalone Expo/React Native DNSPilot app for iOS/iPadOS and Android.
 
 ## Stack
 
 - Expo SDK 57 with Expo Router, React Native 0.86, and React 19.2.
-- Local Node bridge at `server/dev-server.mjs`.
-- Rust remains source of truth through `cargo run -p dnspilot-cli`.
-- Dev SQLite lives at `.dnspilot/dnspilot.sqlite`.
+- Local Expo modules bind a Rust adapter around `dnspilot-core` directly inside
+  installable builds.
+- Local Node bridge at `server/dev-server.mjs` is an Expo Go/web development
+  fallback only.
+- Native SQLite lives in app-private Application Support/files storage.
 - English/Vietnamese UI via `expo-localization`.
 - Native build metadata starts from `app.json`; `app.config.cjs` filters
   development-only plugins for production/preview EAS profiles. EAS profiles
@@ -21,9 +23,8 @@ Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
   testing.
 - `expo-system-ui` backs native automatic light/dark appearance metadata during
   prebuild.
-- `@react-native-async-storage/async-storage` persists the selected language and
-  Bridge URL so real-device QA does not reset to defaults after app restart.
-- First-open System Access sheet checks Local Network/network access, OS-gated
+- `@react-native-async-storage/async-storage` persists the selected language.
+- First-open System Access sheet checks native foreground network access, OS-gated
   DNS apply, and DNS flush limitations. It opens App Settings, Android Private
   DNS/network Settings, and System DNS retest without silently mutating DNS.
 - A local iOS Expo module wraps `NEDNSSettingsManager` for user-approved DoH/DoT
@@ -51,22 +52,16 @@ npx expo install --fix
 
 ## Run
 
-Terminal 1:
+Installable native builds use the in-app runtime and do not need a bridge:
 
 ```bash
-npm run bridge
+npm run native:prepare:ios
+npm run native:prepare:android
+npm run start:dev-client
 ```
 
-Terminal 2:
-
-```bash
-npm start
-```
-
-Use `http://localhost:8787` for web and iOS Simulator. For a physical phone,
-replace the Bridge URL in the Overview tab with the printed Mac LAN URL, for
-example `http://192.168.1.20:8787`. The app persists the last Bridge URL and
-manual language choice across restarts.
+Use `npm run bridge` only for Expo Go/web fallback development. The UI hides
+bridge setup whenever the native runtime is available.
 
 Native local builds use:
 
@@ -102,6 +97,14 @@ npx expo prebuild --platform android --no-install
 ./android/gradlew -p android assembleDebug
 ```
 
+Prepare Rust artifacts before a clean prebuild, local native build, or EAS
+release build:
+
+```bash
+npm run native:prepare:ios
+npm run native:prepare:android
+```
+
 Production Android release-surface check:
 
 ```bash
@@ -121,8 +124,8 @@ If another process owns Metro port 8081, build with `--no-bundler`, then run
 
 ## Real Device Notes
 
-- iOS/iPadOS may ask for Local Network permission when connecting to the local
-  bridge. Allow it for LAN bridge testing.
+- Native iOS/iPadOS diagnostics use normal foreground network access. Local
+  Network is only relevant to optional bridge fallback development.
 - Native iOS DNS Settings requires an installable entitled build, a DoH/DoT
   profile with bootstrap IP addresses, and explicit user enablement in Settings
   > General > VPN & Device Management > DNS. Expo Go cannot test this module.
@@ -151,7 +154,8 @@ If another process owns Metro port 8081, build with `--no-bundler`, then run
 
 ## Boundary
 
-This is a store-safe test shell. Expo Go cannot spawn or link the Rust CLI
-inside the mobile app process, so the current build uses a local bridge. A
-release app should replace the bridge with native Rust bindings or approved
-platform adapters.
+Installable builds are store-safe and standalone: they call the shared Rust
+core in-process for benchmarking, storage, recommendations, and policy. Expo
+Go/web uses the development bridge because it cannot load the local native
+module. iOS plain DNS remains guide-only; Android does not silently mutate
+Private DNS or use `VpnService`.

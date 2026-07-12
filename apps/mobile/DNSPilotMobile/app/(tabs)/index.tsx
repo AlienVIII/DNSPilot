@@ -4,6 +4,7 @@ import { Modal, Text, View } from 'react-native';
 import { compactJson } from '@/src/api/dnspilot';
 import { AdaptiveColumns, Button, CodeBlock, ErrorBanner, HelpButton, Metric, Pill, Row, Screen, Section, Segmented, TextField, palette } from '@/src/components/ui';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
+import { DNSPilotRuntime } from '@/modules/dnspilot-runtime/src/DNSPilotRuntimeModule';
 import { openNativeSettings } from '@/src/utils/native-settings';
 import { buildDeviceSetupPlan, deviceTargets, normalizeBridgeUrl, type DeviceTarget, type DeviceSetupStatus } from '@/src/view-models/device-setup';
 import type { Translator } from '@/src/view-models/localization';
@@ -37,6 +38,7 @@ export default function OverviewScreen() {
   const [systemActionWorking, setSystemActionWorking] = useState(false);
   const [sample, setSample] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
+  const nativeRuntime = DNSPilotRuntime.isAvailable();
   const normalizedBridgeUrl = normalizeBridgeUrl(urlDraft);
   const deviceSetupPlan = useMemo(
     () =>
@@ -52,9 +54,10 @@ export default function OverviewScreen() {
       buildSystemAccessPrompt({
         platform: deviceTarget,
         bridgeStatus: health?.ok ? 'success' : error ? 'failed' : 'unknown',
+        nativeRuntime,
         locale,
       }),
-    [deviceTarget, error, health?.ok, locale]
+    [deviceTarget, error, health?.ok, locale, nativeRuntime]
   );
   const targetOptions = useMemo(
     () =>
@@ -150,16 +153,18 @@ export default function OverviewScreen() {
             ))}
           </Row>
         </Section>
-        <TextField label={t('overview.bridgeUrl')} value={urlDraft} onChangeText={setUrlDraft} placeholder="http://localhost:8787" />
-        <Section title={t('device.title')} subtitle={t('device.subtitle')}>
+        {!nativeRuntime ? <TextField label={t('overview.bridgeUrl')} value={urlDraft} onChangeText={setUrlDraft} placeholder="http://localhost:8787" /> : null}
+        <Section title={t('device.title')} subtitle={nativeRuntime ? t('device.nativeSubtitle') : t('device.subtitle')}>
           <Segmented options={targetOptions} value={deviceTarget} onChange={setDeviceTarget} />
           <Row>
-            <SetupStatusCard
-              title={t('device.metric.bridge')}
-              status={deviceSetupPlan.bridge.status}
-              statusLabel={t(`status.${deviceSetupPlan.bridge.status}`)}
-              text={t(`device.code.${deviceSetupPlan.bridge.code}`)}
-            />
+            {!nativeRuntime ? (
+              <SetupStatusCard
+                title={t('device.metric.bridge')}
+                status={deviceSetupPlan.bridge.status}
+                statusLabel={t(`status.${deviceSetupPlan.bridge.status}`)}
+                text={t(`device.code.${deviceSetupPlan.bridge.code}`)}
+              />
+            ) : null}
             <SetupStatusCard
               title={t('device.metric.permission')}
               status={deviceSetupPlan.permission.status}
@@ -168,25 +173,19 @@ export default function OverviewScreen() {
             />
             <SetupStatusCard title={t('device.metric.policy')} status="success" statusLabel={t('status.success')} text={t('device.policy.noMutation')} />
           </Row>
-          <Row>
+          {!nativeRuntime ? <Row>
             {normalizedBridgeUrl && normalizedBridgeUrl !== urlDraft.trim() ? (
               <Button label={t('device.useNormalized')} onPress={() => setUrlDraft(normalizedBridgeUrl)} variant="secondary" />
             ) : null}
             {deviceSetupPlan.recommendedPreset === 'android-emulator' ? (
               <Button label={t('device.useAndroidEmulator')} onPress={() => setUrlDraft('http://10.0.2.2:8787')} variant="secondary" />
             ) : null}
-          </Row>
+          </Row> : null}
         </Section>
         <Row>
-          <Button
-            label={t('overview.useUrl')}
-            onPress={() => {
-              setBridgeUrl(urlDraft.trim());
-            }}
-            variant="secondary"
-          />
+          {!nativeRuntime ? <Button label={t('overview.useUrl')} onPress={() => setBridgeUrl(urlDraft.trim())} variant="secondary" /> : null}
           <Button label={t('common.refresh')} onPress={() => refreshAll().catch(() => undefined)} loading={loading} />
-          <Button label={t('overview.initDb')} onPress={initializeStorage} variant="secondary" loading={working} />
+          {!nativeRuntime ? <Button label={t('overview.initDb')} onPress={initializeStorage} variant="secondary" loading={working} /> : null}
         </Row>
         <ErrorBanner message={error} />
       </Section>
@@ -196,7 +195,7 @@ export default function OverviewScreen() {
           title={t('overview.status.title')}
           subtitle={health?.dbPath ? t('overview.status.subtitleReady', { path: health.dbPath }) : t('overview.status.subtitleMissing')}>
           <Row>
-            <Metric label={t('overview.metric.bridge')} value={health?.ok ? t('common.up') : t('common.down')} tone={health?.ok ? 'green' : 'amber'} />
+            <Metric label={t(nativeRuntime ? 'overview.metric.runtime' : 'overview.metric.bridge')} value={health?.ok ? t('common.up') : t('common.down')} tone={health?.ok ? 'green' : 'amber'} />
             <Metric label={t('overview.metric.profiles')} value={profiles.length} tone="blue" />
             <Metric label={t('overview.metric.suites')} value={suites.length} tone="green" />
             <Metric label={t('overview.metric.capabilities')} value={capabilities.length} tone="amber" />

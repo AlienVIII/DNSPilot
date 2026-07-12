@@ -19,10 +19,23 @@ function pluginsForProfile(sourcePlugins = []) {
   return [...plugins, "./plugins/withAndroidProductionAutolinking.cjs", "./plugins/withIosDnsSettings.cjs"];
 }
 
+function iosForProfile(sourceIos = {}) {
+  if (shouldIncludeDevClient()) {
+    return sourceIos;
+  }
+  const infoPlist = { ...(sourceIos.infoPlist ?? {}) };
+  delete infoPlist.NSLocalNetworkUsageDescription;
+  return {
+    ...sourceIos,
+    infoPlist,
+  };
+}
+
 module.exports = ({ config } = {}) => {
   const sourceConfig = config ?? base;
   return {
     ...sourceConfig,
+    ios: iosForProfile(sourceConfig.ios),
     plugins: pluginsForProfile(sourceConfig.plugins ?? []),
   };
 };

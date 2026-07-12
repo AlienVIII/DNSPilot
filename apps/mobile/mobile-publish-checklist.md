@@ -2,8 +2,9 @@
 
 ## Current Release Posture
 - App config is prepared for native builds: `ios.bundleIdentifier`,
-  `android.package`, version codes, EAS profiles, iOS Local Network usage text,
-  Android normal network permissions, and EN/VI locale metadata.
+  `android.package`, version codes, EAS profiles, development-only iOS Local
+  Network usage text for bridge fallback, Android normal network permissions,
+  and EN/VI locale metadata.
 - Shared UX/provider gate references: `docs/ux-copy-onboarding.md` and
   `docs/os-provider-trust.md`.
 - Local Android debug smoke passes. iOS Simulator build/install/launch smoke
@@ -26,56 +27,51 @@
 - First-open System Access shows permission/apply/flush status, opens iOS App
   Settings or Android Private DNS/network Settings, and can retest System DNS.
   DNS flush is explicitly unsupported on mobile consumer OS APIs.
-- Manual language selection and the real-device Bridge URL persist in native
-  app storage across restarts.
-- Core/CLI coverage is exercised through the local bridge. A public store build
-  that must work without a developer Mac still needs a native Rust adapter or an
-  approved backend/bridge decision.
+- Manual language selection persists in native app storage across restarts.
+- Installable native builds execute the shared Rust core in-process. The local
+  bridge is limited to Expo Go/web development fallback and is not a release
+  dependency.
 
 ## Real Device Manual Test
-1. Put the Mac and phone/tablet on the same trusted Wi-Fi.
-2. From `apps/mobile/DNSPilotMobile`, run:
+1. From `apps/mobile/DNSPilotMobile`, prepare the target native artifact:
    ```bash
-   npm run bridge
+   npm run native:prepare:ios
+   npm run native:prepare:android
    ```
-3. Copy the printed `Bridge URL: http://<mac-lan-ip>:8787`.
-4. In another terminal, run:
+2. In another terminal, run:
    ```bash
    npm run start:dev-client
    ```
-5. Open the installed development build on the device. Expo Go remains usable
-   for bridge-only UI checks, but the development build is the native smoke path.
-6. Overview: confirm the first-open System Access sheet appears. iOS should
+3. Open the installed development build on the device. The native runtime does
+   not require a developer Mac, LAN bridge, or backend.
+4. Overview: confirm the first-open System Access sheet appears. iOS should
    offer App Settings plus Retest System DNS. Android should offer Private DNS,
    Network Settings, App Settings, and Retest System DNS.
-7. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
+5. Overview: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
    titles, validation errors, process status labels, and guided settings copy
    update. Restart the app and confirm the last manual language choice remains.
-8. Overview > Device Setup: choose the real-device target. Confirm localhost is
-   rejected for physical phones, Android emulator recommends `10.0.2.2`, and
-   store-safe policy says no silent DNS mutation/VpnService.
-9. Overview: paste the Mac LAN bridge URL, tap Refresh, then confirm Bridge is
-   up and profiles/suites/capabilities/history load. Restart the app and
-   confirm the Bridge URL remains.
-10. iOS/iPadOS: when prompted for Local Network, tap Allow. If the prompt does
-   not appear, check Settings > Privacy & Security > Local Network.
-11. Android: no dangerous runtime permission prompt is expected for normal
+6. Overview > Device Setup: choose the real-device target. Confirm the native
+   runtime is up, profiles/suites/capabilities/history load, and store-safe
+   policy says no silent DNS mutation/VpnService.
+7. iOS/iPadOS: native benchmark diagnostics use normal foreground network
+   access; no Local Network bridge prompt is expected.
+8. Android: no dangerous runtime permission prompt is expected for normal
    network access.
-12. Benchmark: run DNS Compare, Path Compare, Single DNS, Single Path, and
+9. Benchmark: run DNS Compare, Path Compare, Single DNS, Single Path, and
     System DNS validation. Confirm per-step/per-resolver status, elapsed time,
     failed step/reason on failures, debug report, and Copy report.
-13. Guided settings: tap Apply in OS DNS settings / Prepare DNS profile/settings.
+10. Guided settings: tap Apply in OS DNS settings / Prepare DNS profile/settings.
     Expected behavior is copy values + open settings + retest with visible
     success/failure status, not silent apply or DNS cache flush.
-14. Storage: add, edit, and delete plain DNS, DoH, DoT profiles, and custom
-    domain suites. Invalid forms must disable actions before bridge calls.
-15. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive
+11. Storage: add, edit, and delete plain DNS, DoH, DoT profiles, and custom
+    domain suites. Invalid forms must disable actions before native calls.
+12. Policy/Guided DNS Settings: toggle VPN, MDM, corporate DNS, and captive
     portal. Expected behavior is `protect-current-dns` or guide-only steps, not
     system mutation. Use Copy DNS servers and Open Settings; expected behavior
     is user-controlled OS settings, not an in-app DNS switch.
-16. iPad/Android tablet: rotate portrait/landscape and confirm the layout uses
+13. iPad/Android tablet: rotate portrait/landscape and confirm the layout uses
     multi-column native tablet width instead of stretching a phone UI.
-17. iOS/iPadOS native DNS Settings: create a DoH or DoT profile in Storage with
+14. iOS/iPadOS native DNS Settings: create a DoH or DoT profile in Storage with
     bootstrap IP addresses, choose it in Policy > Native iOS DNS Settings, tap
     Install iOS DNS Settings, then explicitly enable DNSPilot from Settings >
     General > VPN & Device Management > DNS. Return and refresh status; expect
@@ -143,8 +139,8 @@ first-upload work can be batched once.
    microphone, or background scheduler is expected in the current app.
 
 ## Remaining Manual Blockers
-- iOS-only: Apple signing/provisioning, App Store Connect setup, Local Network
-  prompt validation, Network Extensions `dns-settings` capability enablement,
+- iOS-only: Apple signing/provisioning, App Store Connect setup, Network
+  Extensions `dns-settings` capability enablement,
   and final DoH/DoT profile validation on a signed physical device.
 - Android-only: Play Console app/service account, first manual upload if Play
   API requires it, and manual Private DNS settings validation.

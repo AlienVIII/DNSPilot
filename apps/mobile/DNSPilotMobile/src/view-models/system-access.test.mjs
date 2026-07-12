@@ -24,6 +24,19 @@ test("iOS startup prompt checks Local Network and refuses fake DNS mutation", ()
   assert.doesNotMatch(prompt.summary, /speed improvement|apply fastest/i);
 });
 
+test("native iOS runtime does not ask for Local Network bridge access", () => {
+  const prompt = buildSystemAccessPrompt({
+    platform: "ios",
+    bridgeStatus: "success",
+    nativeRuntime: true,
+    locale: "en",
+  });
+
+  assert.doesNotMatch(prompt.summary, /Bridge needs Local Network/);
+  assert.ok(prompt.checks.some((check) => check.id === "network-access" && check.status === "ready"));
+  assert.ok(!prompt.checks.some((check) => check.id === "local-network"));
+});
+
 test("Android startup prompt opens Private DNS settings without VpnService or silent mutation", () => {
   const prompt = buildSystemAccessPrompt({
     platform: "android-play",
