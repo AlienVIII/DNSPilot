@@ -24,6 +24,8 @@ uses a platform-capability-specific apply flow.
   Setup.
 - Dota 2 SEA, CS2, and Riot/League are selectable Check DNS targets. Selecting one
   uses DNS + TCP connection timing and clearly excludes ICMP/in-match latency claims.
+- The retired standalone Game Ping presentation path is removed; Check DNS is the
+  only consumer entry point for game connection-path checks.
 - Window lifecycle, navigation, menu-bar behavior, and shared macOS actions are
   extracted into `DNSPilotAppSupport.swift`; the main presentation file remains an
   incremental extraction target.

@@ -16,8 +16,9 @@ Last reviewed: 2026-07-11.
   is not ICMP or in-match UDP latency.
 - [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
   History, result, cancel, Settings, and Setup without creating another window.
-- [ ] Continue splitting the 4,398-line app source by scene/feature without changing
-  core contracts. Window/navigation/menu-bar support is extracted.
+- [ ] Continue splitting the 4,020-line app source by scene/feature without changing
+  core contracts. Window/navigation/menu-bar support is extracted and duplicate Game
+  Ping UI is removed.
 - [ ] Run a five-user moderated usability pass; require all participants to complete
   Check -> Recommendation -> Apply guidance -> Retest without assistance.
 

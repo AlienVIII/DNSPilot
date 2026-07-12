@@ -34,7 +34,6 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case permissions
     case publish
     case benchmark
-    case gamePing
     case customDNS
     case history
     case catalog
@@ -110,7 +109,6 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case azureExample
     case deleteCustomSuite
     case copyResultReport
-    case copyGamePingReport
     case copyRunID
     case validateSystemDNS
     case refreshCurrentDNS
@@ -156,7 +154,6 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .permissions: "Permissions",
         .publish: "Publish",
         .benchmark: "Benchmark",
-        .gamePing: "Game Ping",
         .customDNS: "Custom DNS",
         .history: "History",
         .catalog: "Catalog",
@@ -232,7 +229,6 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .azureExample: "Azure Example",
         .deleteCustomSuite: "Delete Custom Suite?",
         .copyResultReport: "Copy Result Report",
-        .copyGamePingReport: "Copy Game Ping Report",
         .copyRunID: "Copy Run ID",
         .validateSystemDNS: "Validate System DNS",
         .refreshCurrentDNS: "Refresh Current DNS",
@@ -258,7 +254,6 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .permissions: "Quyền",
         .publish: "Phát hành",
         .benchmark: "Benchmark",
-        .gamePing: "Game Ping",
         .customDNS: "DNS tùy chỉnh",
         .history: "Lịch sử",
         .catalog: "Danh mục",
@@ -334,7 +329,6 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .azureExample: "Ví dụ Azure",
         .deleteCustomSuite: "Xóa bộ test tùy chỉnh?",
         .copyResultReport: "Copy báo cáo kết quả",
-        .copyGamePingReport: "Copy báo cáo Game Ping",
         .copyRunID: "Copy Run ID",
         .validateSystemDNS: "Kiểm tra System DNS",
         .refreshCurrentDNS: "Làm mới DNS hiện tại",
