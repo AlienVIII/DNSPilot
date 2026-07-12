@@ -34,6 +34,7 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case permissions
     case publish
     case benchmark
+    case checkDNS
     case customDNS
     case history
     case catalog
@@ -76,6 +77,8 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case flush
     case platform
     case mode
+    case options
+    case benchmarkTargetHelp
     case networkSafeguards
     case profiles
     case targets
@@ -154,6 +157,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .permissions: "Permissions",
         .publish: "Publish",
         .benchmark: "Benchmark",
+        .checkDNS: "Check DNS",
         .customDNS: "Custom DNS",
         .history: "History",
         .catalog: "Catalog",
@@ -196,6 +200,8 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .flush: "Flush",
         .platform: "Platform",
         .mode: "Mode",
+        .options: "Options",
+        .benchmarkTargetHelp: "Choose a built-in, saved, or game target. Game targets use DNS + TCP connection timing.",
         .networkSafeguards: "Network Safeguards",
         .profiles: "Profiles",
         .targets: "Targets",
@@ -254,6 +260,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .permissions: "Quyền",
         .publish: "Phát hành",
         .benchmark: "Benchmark",
+        .checkDNS: "Kiểm tra DNS",
         .customDNS: "DNS tùy chỉnh",
         .history: "Lịch sử",
         .catalog: "Danh mục",
@@ -296,6 +303,8 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .flush: "Flush",
         .platform: "Nền tảng",
         .mode: "Mode",
+        .options: "Tùy chọn",
+        .benchmarkTargetHelp: "Chọn mục tiêu có sẵn, đã lưu hoặc game. Mục tiêu game dùng thời gian DNS + kết nối TCP.",
         .networkSafeguards: "Bảo vệ mạng",
         .profiles: "Profiles",
         .targets: "Targets",

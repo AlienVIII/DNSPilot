@@ -11,13 +11,15 @@ Recruit 5-8 macOS users who have changed DNS, use a VPN/corporate network, run
 developer workloads, or troubleshoot gaming/video connectivity. Exclude people
 who only have a theoretical interest in DNS.
 
-Each participant completes this flow on their own normal network:
+Each participant completes this flow on their own normal network. Use
+`docs/macos-v1-usability-session.md` for the task-by-task facilitator script.
 
-1. Run the default DNS + TCP benchmark.
+1. Run the default DNS check, then choose DNS + TCP when connection-path timing is needed.
 2. Explain the difference between fastest observed DNS and the recommendation.
 3. Read a degraded or protected-network result and choose the next action.
 4. Use the guided Apply flow and explain whether DNSPilot changed system DNS.
-5. Find the Help/Setup explanation of Direct Admin Actions.
+5. Choose a game target and explain that its timing is not in-match latency.
+6. Find the Help/Setup explanation of Direct Admin Actions.
 
 ## Evidence To Capture
 

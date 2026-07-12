@@ -18,7 +18,7 @@ Default local checks:
   - system-DNS validation progress/history against localhost
 
 Options:
-  --include-network  Also run live DNS-only, DNS+TCP, and Game Ping probes.
+  --include-network  Also run live DNS-only, DNS+TCP, and game-target probes.
   --include-bundles  Also validate Store-safe and Power sandbox bundles.
 USAGE
 }
@@ -176,7 +176,7 @@ if (( INCLUDE_NETWORK )); then
   run_step "Live DNS-only benchmark smoke" ./script/smoke_quick_benchmark.sh dns-only
   run_step "Live DNS+TCP benchmark smoke" ./script/smoke_quick_benchmark.sh quick
 
-  run_step "Live Game Ping Dota 2 SEA smoke" \
+  run_step "Live Dota 2 SEA target smoke" \
     run_timeout_json_with_progress cargo run -q -p dnspilot-cli -- path-compare \
       --resolver cloudflare=1.1.1.1:53 \
       --resolver google-public-dns=8.8.8.8:53 \
@@ -190,9 +190,9 @@ if (( INCLUDE_NETWORK )); then
       --connect-timeout-ms 800 \
       --max-connect-targets-per-domain 1 \
       --progress-jsonl
-  assert_progress_lines 2 "Game Ping Dota 2 SEA"
-  assert_contains "$RESULT_JSON" '"measurement_scope": "dns-tcp"' "Game Ping uses DNS+TCP path scope"
-  assert_contains "$RESULT_JSON" '"runs"' "Game Ping returns candidate runs"
+  assert_progress_lines 2 "Dota 2 SEA target"
+  assert_contains "$RESULT_JSON" '"measurement_scope": "dns-tcp"' "Dota 2 SEA target uses DNS+TCP path scope"
+  assert_contains "$RESULT_JSON" '"runs"' "Dota 2 SEA target returns candidate runs"
 fi
 
 if (( INCLUDE_BUNDLES )); then

@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-07-11.
+Last reviewed: 2026-07-13.
 
 ## P0: macOS Product UX Gate
 
@@ -17,8 +17,8 @@ Last reviewed: 2026-07-11.
 - [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
   History, result, cancel, Settings, and Setup without creating another window.
 - [ ] Continue splitting the 4,020-line app source by scene/feature without changing
-  core contracts. Window/navigation/menu-bar support is extracted and duplicate Game
-  Ping UI is removed.
+  core contracts. Window/navigation/menu-bar support is extracted and the retired
+  duplicate Game Ping UI is removed.
 - [ ] Run a five-user moderated usability pass; require all participants to complete
   Check -> Recommendation -> Apply guidance -> Retest without assistance.
 
@@ -26,8 +26,10 @@ Last reviewed: 2026-07-11.
 
 - [ ] Acquire Apple signing identity and provisioning for `com.dnspilot.mac`.
 - [ ] Package a certificate-signed Store-safe app and run distribution validation.
-- [ ] Complete App Store Connect metadata, screenshots, support URL, privacy URL,
-  privacy answers, and review notes.
+- [x] Prepare App Store metadata/review drafts, screenshot plan, support/privacy
+  page drafts, and a moderated usability script.
+- [ ] Complete App Store Connect with hosted support/privacy URLs, signed-release
+  screenshots, final privacy answers, and review notes.
 - [ ] Perform Store-safe manual review smoke, then upload for review.
 
 ## P0: Commercial Validation

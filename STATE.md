@@ -29,6 +29,12 @@ uses a platform-capability-specific apply flow.
 - Window lifecycle, navigation, menu-bar behavior, and shared macOS actions are
   extracted into `DNSPilotAppSupport.swift`; the main presentation file remains an
   incremental extraction target.
+- Stable accessibility identifiers cover the language picker, Options disclosure,
+  target picker, and compact result-action menus. Local bundle launch verification
+  requires exactly one on-screen DNS Pilot main window.
+- App Store metadata/review drafts, a signed-release screenshot plan, and a
+  five-user moderated usability script are prepared. Public URLs, final screenshots,
+  and portal answers remain manual release inputs.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
@@ -51,6 +57,7 @@ uses a platform-capability-specific apply flow.
 - Signed distribution bundle validation.
 - Power Apply/Flush QA on a disposable network.
 - App Store metadata, screenshots, hosted support and privacy URLs, and upload.
+- Five-user moderated usability pass and launch-metric baseline.
 
 ## Detailed Sources
 

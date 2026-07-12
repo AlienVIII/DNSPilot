@@ -95,6 +95,7 @@ private struct DNSPilotSettingsView: View {
                             .tag(language.rawValue)
                     }
                 }
+                .accessibilityIdentifier("dns-pilot-language-picker")
                 Text(localizer.text(.languageSubtitle))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -583,7 +584,7 @@ private struct DNSPilotShellView: View {
         NavigationSplitView {
             List(selection: $navigation.selection) {
                 Section {
-                    Label("Check DNS", systemImage: "speedometer")
+                    Label(localizer.text(.checkDNS), systemImage: "speedometer")
                         .tag(SidebarSelection.benchmark)
                     Label(localizer.text(.profiles), systemImage: "server.rack")
                         .tag(SidebarSelection.customDNS)
@@ -2048,7 +2049,7 @@ private struct BenchmarkDetailView: View {
                 AnyView(benchmarkSummary)
                 AnyView(benchmarkTargetPicker)
                 AnyView(benchmarkRunArtifacts)
-                DisclosureGroup("Options", isExpanded: $isOptionsExpanded) {
+                DisclosureGroup(localizer.text(.options), isExpanded: $isOptionsExpanded) {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                         AnyView(modeSection)
                         AnyView(networkSafeguardsSection)
@@ -2058,6 +2059,7 @@ private struct BenchmarkDetailView: View {
                     }
                     .padding(.top, DNSPilotDesign.Spacing.row)
                 }
+                .accessibilityIdentifier("benchmark-options-disclosure")
             }
             .padding(DNSPilotDesign.Spacing.panel)
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -2132,7 +2134,8 @@ private struct BenchmarkDetailView: View {
             .pickerStyle(.menu)
             .frame(maxWidth: 340, alignment: .leading)
             .disabled(isBenchmarkActive)
-            .help("Choose a built-in, saved, or game target. Game targets use DNS + TCP connection timing.")
+            .accessibilityIdentifier("benchmark-target-picker")
+            .help(localizer.text(.benchmarkTargetHelp))
 
             if setupViewModel.isGamingSuiteSelected {
                 Label(localizer.text(.gameCheckDisclaimer), systemImage: "info.circle")
@@ -3458,6 +3461,7 @@ private struct BenchmarkResultPanel: View {
                             .labelStyle(.iconOnly)
                     }
                     .menuStyle(.borderlessButton)
+                    .accessibilityIdentifier("benchmark-result-actions-menu")
                     .help("Copy result report or saved run ID")
                 }
                 .foregroundStyle(.secondary)
@@ -3678,6 +3682,7 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                     .labelStyle(.iconOnly)
             }
             .menuStyle(.borderlessButton)
+            .accessibilityIdentifier("benchmark-apply-actions-menu")
             .help("Copy DNS, apply checklist, restore data, or plan")
         }
 
@@ -3795,6 +3800,7 @@ private struct BenchmarkResultNextStepPanel: View {
                         .labelStyle(.iconOnly)
                 }
                 .menuStyle(.borderlessButton)
+                .accessibilityIdentifier("benchmark-next-step-actions-menu")
                 .help("Copy DNS servers, apply checklist, or next-step guidance")
             }
 

@@ -16,7 +16,7 @@ evidence. See `apps/macos/macos-engineering-handoff.md`.
 ## Requirement Coverage
 
 - SwiftUI shell with Check DNS, Profiles, History, custom DNS, custom suites,
-  Permissions, Publish readiness, menu bar quick actions, and native commands.
+  menu-bar quick actions, Help setup, Settings, and native commands.
 - Benchmark UX covers setup, progress, cancellation, diagnostics, result rows,
   saved history, fastest observed DNS, balanced recommendation, A/AAAA controls,
   IPv4/IPv6 controls, and copyable reports.
@@ -24,8 +24,9 @@ evidence. See `apps/macos/macos-engineering-handoff.md`.
   confirms copy/open Settings actions, and validates with System DNS mode with
   visible progress and saved history.
 - Store-safe flush copies commands instead of running privileged mutations.
-- Catalog rows can launch confirmed store-safe apply for plain DNS profiles.
-- First-run setup and the Permissions screen explain macOS permission reality:
+- Profile candidates can launch confirmed store-safe apply guidance for plain DNS
+  profiles.
+- Optional setup explains macOS permission reality:
   there is no System Settings pre-toggle for plain DNS edits; Direct Admin
   Actions are unavailable in Store-safe builds, available only in Power/direct-
   install builds, and macOS asks for administrator approval at Apply/Flush time.
@@ -43,8 +44,8 @@ evidence. See `apps/macos/macos-engineering-handoff.md`.
   `DNSPILOT_ENABLE_POWER_ACTIONS=1` is the local/dev force path.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
   are present; release signing defaults to hardened runtime for certificate-
-  backed packages, and the Publish screen surfaces local release preflight,
-  privacy manifest readiness, and hardened-runtime distribution validation.
+  backed packages, with local preflight, privacy-manifest readiness, and
+  distribution validation documented outside the consumer navigation.
 - Power Apply validates literal IPv4/IPv6 addresses at the privileged boundary;
   hostnames and malformed input are rejected before any administrator prompt.
 - Power Apply captures a fresh service-scoped DNS rollback record before
@@ -53,7 +54,7 @@ evidence. See `apps/macos/macos-engineering-handoff.md`.
 - Local bundle validation requires macOS target, version/build metadata,
   sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
 - Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan
-  contract, System DNS validation progress/history, optional live DNS/Game Ping
+  contract, System DNS validation progress/history, optional live DNS/game-target
   probes, and optional Store/Power bundle mode checks.
 
 ## Validation

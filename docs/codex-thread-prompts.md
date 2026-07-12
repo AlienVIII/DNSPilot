@@ -143,7 +143,8 @@ Next work:
 3. Add mocks/fakes for signed bundle, entitlement, App Store metadata, and
    Direct Admin availability checks so readiness UI can be tested locally.
 4. Improve manual QA harnesses for guided apply, restore DNS, System DNS
-   validation, Game Ping, and Power edition toggles without mutating system DNS.
+   validation, game-target checks, and Power edition toggles without mutating
+   system DNS.
 5. Update `apps/macos/macos-core-cli-request.md` only when a shared contract is
    missing; update `docs/core-cli-backlog.md` if the request affects other lanes.
 6. If signing or App Store Connect blocks progress, switch to local tests,

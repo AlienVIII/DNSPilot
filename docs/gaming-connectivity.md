@@ -22,8 +22,8 @@ DNS latency is not game latency. DNS may affect login, store, matchmaking host l
 - This validates that the preset executes and returns candidate runs. It does
   not validate ICMP ping, in-match UDP latency, server tick quality, packet loss,
   or gameplay routing.
-- Keep UI wording as "Game Ping estimate" and avoid gaming performance
-  recommendations until richer evidence is recorded.
+- Keep UI wording to a Check DNS game-target connection-path estimate and avoid
+  gaming performance recommendations until richer evidence is recorded.
 
 ## Open Questions
 - Which endpoints are stable enough to benchmark without violating terms or triggering abuse controls?

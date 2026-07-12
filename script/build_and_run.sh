@@ -84,7 +84,7 @@ import Foundation
 let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? ""
 let options = CGWindowListOption(arrayLiteral: .optionOnScreenOnly)
 let windows = CGWindowListCopyWindowInfo(options, CGWindowID(0)) as? [[String: Any]] ?? []
-let hasWindow = windows.contains { window in
+let appWindows = windows.filter { window in
     guard (window[kCGWindowOwnerName as String] as? String) == appName else {
         return false
     }
@@ -101,7 +101,7 @@ let hasWindow = windows.contains { window in
     }
     return width >= 600 && height >= 400
 }
-exit(hasWindow ? 0 : 1)'
+exit(appWindows.count == 1 ? 0 : 1)'
 }
 
 verify_launch() {
@@ -112,7 +112,7 @@ verify_launch() {
     sleep 0.25
   done
 
-  echo "$APP_NAME did not expose an on-screen app window." >&2
+  echo "$APP_NAME did not expose exactly one on-screen app window." >&2
   return 1
 }
 
