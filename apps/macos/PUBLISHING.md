@@ -27,7 +27,7 @@ Shared gates:
   user explicitly enables Direct Admin Actions in the app.
 - `DNSPILOT_ENABLE_POWER_ACTIONS=1` is a local/dev force path; it bypasses the
   in-app opt-in and must not be used for App Store builds.
-- The first-run setup and Permissions screen must explain that macOS has no
+- The optional setup flow must explain that macOS has no
   System Settings pre-toggle for plain DNS edits; the native permission point is
   the administrator prompt shown at Apply/Flush time.
 - Not App Store-safe as implemented today.
@@ -71,7 +71,7 @@ Optional live/network checks:
 ./script/smoke_macos_goal_flows.sh --include-network
 ```
 
-This also runs DNS-only, DNS+TCP, and Dota 2 SEA Game Ping probes. It can fail
+This also runs DNS-only, DNS+TCP, and Dota 2 SEA game-target probes. It can fail
 on offline, firewalled, captive portal, or heavily restricted networks.
 
 Optional bundle-mode checks:

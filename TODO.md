@@ -28,6 +28,8 @@ Last reviewed: 2026-07-13.
 - [ ] Package a certificate-signed Store-safe app and run distribution validation.
 - [x] Prepare App Store metadata/review drafts, screenshot plan, support/privacy
   page drafts, and a moderated usability script.
+- [x] Add a bundled 1024px app icon and validate its Info.plist/Resources contract
+  for both Store-safe and Power builds.
 - [ ] Complete App Store Connect with hosted support/privacy URLs, signed-release
   screenshots, final privacy answers, and review notes.
 - [ ] Perform Store-safe manual review smoke, then upload for review.

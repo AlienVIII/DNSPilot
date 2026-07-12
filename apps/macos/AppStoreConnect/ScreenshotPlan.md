@@ -4,6 +4,9 @@ Capture from a signed Store-safe release candidate at native macOS resolution.
 Do not include Power/admin actions, terminal windows, DNS addresses from a
 private network, or unrelated applications.
 
+The Store-safe bundle includes `AppIcon.icns`; verify the icon appears in Finder
+and the Dock before capture.
+
 | File | Surface | Required state |
 | --- | --- | --- |
 | `01-check-dns.png` | Check DNS | Default target and Run action visible |

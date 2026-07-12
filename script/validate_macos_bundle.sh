@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_BUNDLE="$ROOT_DIR/dist/DNSPilotMac.app"
 APP_NAME="DNSPilotMac"
+PRODUCT_NAME="DNS Pilot"
 CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
 APP_VERSION_PATTERN='^[0-9]+(\.[0-9]+){1,2}$'
@@ -49,6 +50,7 @@ APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 HELPER_BINARY="$APP_BUNDLE/Contents/Library/Helpers/$CLI_NAME"
 LEGACY_HELPER="$APP_BUNDLE/Contents/Resources/$CLI_NAME"
 PRIVACY_MANIFEST="$APP_BUNDLE/Contents/Resources/PrivacyInfo.xcprivacy"
+APP_ICON="$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 
 failures=0
 
@@ -134,6 +136,26 @@ if [[ "$bundle_executable" == "$APP_NAME" ]]; then
   pass "CFBundleExecutable is $APP_NAME"
 else
   fail "CFBundleExecutable expected $APP_NAME, got ${bundle_executable:-missing}"
+fi
+
+bundle_display_name="$(plist_value "$INFO_PLIST" "CFBundleDisplayName")"
+if [[ "$bundle_display_name" == "$PRODUCT_NAME" ]]; then
+  pass "CFBundleDisplayName is $PRODUCT_NAME"
+else
+  fail "CFBundleDisplayName expected $PRODUCT_NAME, got ${bundle_display_name:-missing}"
+fi
+
+bundle_icon_file="$(plist_value "$INFO_PLIST" "CFBundleIconFile")"
+if [[ "$bundle_icon_file" == "AppIcon.icns" ]]; then
+  pass "CFBundleIconFile is AppIcon.icns"
+else
+  fail "CFBundleIconFile expected AppIcon.icns, got ${bundle_icon_file:-missing}"
+fi
+
+if [[ -s "$APP_ICON" ]] && sips -g pixelWidth -g pixelHeight "$APP_ICON" 2>/dev/null | grep -q 'pixelWidth: 1024'; then
+  pass "AppIcon.icns is bundled at 1024px"
+else
+  fail "AppIcon.icns is missing, empty, or not 1024px"
 fi
 
 if [[ -x "$APP_BINARY" ]]; then
