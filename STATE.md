@@ -27,7 +27,8 @@ uses a platform-capability-specific apply flow.
 - The retired standalone Game Ping presentation path is removed; Check DNS is the
   only consumer entry point for game connection-path checks.
 - Window lifecycle, navigation, menu-bar behavior, and shared macOS actions are
-  extracted into `DNSPilotAppSupport.swift`; the main presentation file remains an
+  extracted into `DNSPilotAppSupport.swift`; Settings, Setup, and Direct Admin UI
+  live in `DNSPilotSettingsViews.swift`. The main presentation file remains an
   incremental extraction target.
 - Stable accessibility identifiers cover the language picker, Options disclosure,
   target picker, and compact result-action menus. Local bundle launch verification
