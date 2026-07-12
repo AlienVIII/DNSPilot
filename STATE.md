@@ -14,6 +14,8 @@ uses a platform-capability-specific apply flow.
 - macOS product/UX architecture review is complete; remaining Major findings must
   close before Store release. Menu-bar window ownership is verified with a singleton
   SwiftUI `Window`: cold launch and repeated menu actions keep one main window.
+- The consumer sidebar begins at Check DNS and exposes only Check DNS, Profiles, and
+  History; setup is optional and contextual.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.

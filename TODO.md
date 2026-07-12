@@ -6,10 +6,10 @@ Last reviewed: 2026-07-11.
 
 - [x] Remove duplicate manual main-window creation; singleton `Window` count stays
   `1` after `Benchmark`, `Benchmark`, and `Run Quick Test` actions.
-- [ ] Reduce release navigation to Check DNS, Results, and Profiles; move internal
+- [x] Reduce release navigation to Check DNS, Profiles, and History; move internal
   readiness/platform surfaces out of the consumer sidebar.
-- [ ] Replace permission-first onboarding with an optional interactive first check:
-  Check DNS, understand recommendation, apply/retest.
+- [x] Replace permission-first onboarding with an optional interactive first check;
+  setup is available from Help instead of blocking first value.
 - [ ] Make one result action primary. Move copy/debug/checklist actions behind
   secondary menus, disclosure, or contextual info.
 - [ ] Merge Game Ping into benchmark presets and remove claims that imply ICMP or
