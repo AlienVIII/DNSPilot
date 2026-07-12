@@ -10,12 +10,13 @@ Last reviewed: 2026-07-11.
   readiness/platform surfaces out of the consumer sidebar.
 - [x] Replace permission-first onboarding with an optional interactive first check;
   setup is available from Help instead of blocking first value.
-- [ ] Make one result action primary. Move copy/debug/checklist actions behind
+- [x] Make one result action primary. Move copy/debug/checklist actions behind
   secondary menus, disclosure, or contextual info.
 - [ ] Merge Game Ping into benchmark presets and remove claims that imply ICMP or
   in-game latency measurement.
-- [ ] Add native app commands and keyboard paths for the primary check, cancel,
-  results, Settings, and Help flows.
+- [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
+  and History without creating another window.
+- [ ] Add keyboard paths for cancel, result details, Settings, and Help flows.
 - [ ] Split the 4,533-line app source incrementally by scene/feature without changing
   core contracts.
 - [ ] Run a five-user moderated usability pass; require all participants to complete

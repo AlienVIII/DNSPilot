@@ -22,6 +22,35 @@ struct DNSPilotMacApp: App {
         Settings {
             DNSPilotSettingsView()
         }
+        .commands {
+            CommandMenu("DNS Pilot") {
+                Button("Run Quick Test") {
+                    navigation.requestQuickBenchmark()
+                    _ = DNSPilotWindowActivation.activateExistingWindows()
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Open Benchmark") {
+                    navigation.selection = .benchmark
+                    _ = DNSPilotWindowActivation.activateExistingWindows()
+                }
+                .keyboardShortcut("b", modifiers: [.command, .shift])
+
+                Button("Open Profiles") {
+                    navigation.selection = .customDNS
+                    _ = DNSPilotWindowActivation.activateExistingWindows()
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+
+                Button("Open History") {
+                    navigation.selection = .history
+                    _ = DNSPilotWindowActivation.activateExistingWindows()
+                }
+                .keyboardShortcut("h", modifiers: [.command, .shift])
+            }
+        }
     }
 }
 
@@ -3940,17 +3969,34 @@ private struct BenchmarkResultPanel: View {
                             systemImage: "timer"
                         )
                     }
+
+                    Spacer(minLength: DNSPilotDesign.Spacing.panel)
+
+                    Menu {
+                        Button {
+                            copyToPasteboard(resultReportText)
+                        } label: {
+                            Label(localizer.text(.copyResultReport), systemImage: "doc.on.doc")
+                        }
+
+                        if let fullSavedHistoryID = viewModel.fullSavedHistoryID {
+                            Button {
+                                copyToPasteboard(fullSavedHistoryID)
+                            } label: {
+                                Label(localizer.text(.copyRunID), systemImage: "number")
+                            }
+                        }
+                    } label: {
+                        Label("More result actions", systemImage: "ellipsis.circle")
+                            .labelStyle(.iconOnly)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .help("Copy result report or saved run ID")
                 }
                 .foregroundStyle(.secondary)
 
                 Text(viewModel.recommendationLabel)
                     .font(.title3.weight(.semibold))
-
-                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                    Label(viewModel.fastestObservedLabel, systemImage: "bolt")
-                    Label(viewModel.balancedRecommendationLabel, systemImage: "scale.3d")
-                }
-                .foregroundStyle(.secondary)
 
                 if applyPlanPresentation.showsLocalNextStep {
                     BenchmarkResultNextStepPanel(
@@ -3974,36 +4020,10 @@ private struct BenchmarkResultPanel: View {
                     .help("After manual DNS apply and cache flush, run System DNS validation against the current macOS resolver.")
                 }
 
-                Button {
-                    copyToPasteboard(
-                        BenchmarkApplyPlanReportFormatter.appendApplyPlan(
-                            outcome: applyPlanOutcome,
-                            isLoading: isLoadingApplyPlan,
-                            restoreSnapshot: currentDNSBeforeApplySnapshot,
-                            to: viewModel.resultReportText(
-                                elapsedMS: elapsedMS,
-                                includeNextStep: applyPlanPresentation.reportIncludesLocalNextStep
-                            )
-                        )
-                    )
-                } label: {
-                    Label(localizer.text(.copyResultReport), systemImage: "doc.on.doc")
-                }
-
                 if let savedHistoryLabel = viewModel.savedHistoryLabel {
-                    HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
-                        Label(savedHistoryLabel, systemImage: "clock.arrow.circlepath")
-                            .foregroundStyle(.secondary)
-                        if let fullSavedHistoryID = viewModel.fullSavedHistoryID {
-                            Button {
-                                copyToPasteboard(fullSavedHistoryID)
-                            } label: {
-                                Label(localizer.text(.copyRunID), systemImage: "doc.on.doc")
-                            }
-                            .labelStyle(.iconOnly)
-                            .help("Copy full saved run ID")
-                        }
-                    }
+                    Label(savedHistoryLabel, systemImage: "clock.arrow.circlepath")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 ScrollView(.horizontal) {
@@ -4042,18 +4062,39 @@ private struct BenchmarkResultPanel: View {
                     .frame(minWidth: viewModel.showsConnectionMetrics ? 900 : 760, alignment: .leading)
                 }
 
-                if !viewModel.notes.isEmpty {
-                    ForEach(viewModel.notes, id: \.self) { note in
-                        Label(note, systemImage: "info.circle")
-                            .foregroundStyle(.secondary)
+                if !viewModel.notes.isEmpty || !viewModel.warning.isEmpty {
+                    DisclosureGroup("Why this result") {
+                        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                            Label(viewModel.fastestObservedLabel, systemImage: "bolt")
+                            Label(viewModel.balancedRecommendationLabel, systemImage: "scale.3d")
+
+                            ForEach(viewModel.notes, id: \.self) { note in
+                                Label(note, systemImage: "info.circle")
+                            }
+
+                            if !viewModel.warning.isEmpty {
+                                Text(viewModel.warning)
+                                    .font(.caption)
+                            }
+                        }
+                        .foregroundStyle(.secondary)
+                        .padding(.top, DNSPilotDesign.Spacing.controlGap)
                     }
                 }
-
-                Text(viewModel.warning)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var resultReportText: String {
+        BenchmarkApplyPlanReportFormatter.appendApplyPlan(
+            outcome: applyPlanOutcome,
+            isLoading: isLoadingApplyPlan,
+            restoreSnapshot: currentDNSBeforeApplySnapshot,
+            to: viewModel.resultReportText(
+                elapsedMS: elapsedMS,
+                includeNextStep: applyPlanPresentation.reportIncludesLocalNextStep
+            )
+        )
     }
 }
 
@@ -4061,20 +4102,20 @@ private struct BenchmarkApplyPlanStatusPanel: View {
     let outcome: BenchmarkApplyPlanLoadOutcome?
     let isLoading: Bool
     let currentDNSBeforeApplySnapshot: SystemDNSResolverSnapshot
+    @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
+
+    private var isDirectAdminEnabled: Bool {
+        MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
             Divider()
 
             if isLoading {
-                Label("Checking apply policy", systemImage: "hourglass")
+                Label("Preparing apply action", systemImage: "hourglass")
                     .font(.headline)
-                Label(
-                    "DNS Pilot is verifying the store-safe apply path for this result.",
-                    systemImage: "info.circle"
-                )
-                .foregroundStyle(.secondary)
             } else {
                 switch outcome {
                 case .loaded(let viewModel):
@@ -4086,12 +4127,17 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                     Label("Apply policy unavailable", systemImage: "exclamationmark.triangle")
                         .font(.headline)
                         .foregroundStyle(DNSPilotDesign.Palette.warning)
-                    Label(message, systemImage: "info.circle")
-                        .foregroundStyle(.secondary)
-                    Button {
-                        copyToPasteboard(message)
-                    } label: {
-                        Label("Copy Apply Error", systemImage: "doc.on.doc")
+                    HStack {
+                        Text("Use the result only; retest before changing DNS.")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button {
+                            copyToPasteboard(message)
+                        } label: {
+                            Label("Copy apply error", systemImage: "doc.on.doc")
+                                .labelStyle(.iconOnly)
+                        }
+                        .help("Copy apply policy error")
                     }
                 case nil:
                     EmptyView()
@@ -4106,90 +4152,20 @@ private struct BenchmarkApplyPlanStatusPanel: View {
         _ viewModel: ApplyPlanViewModel,
         restoreViewModel: GuidedApplyRestoreViewModel
     ) -> some View {
-        Label("Apply policy: \(viewModel.statusLabel)", systemImage: viewModel.canOfferPrimaryAction ? "checkmark.shield" : "shield")
+        Label(viewModel.recommendedProfileLabel ?? "DNS action: \(viewModel.statusLabel)", systemImage: viewModel.canOfferPrimaryAction ? "checkmark.shield" : "shield")
             .font(.headline)
 
         Label(viewModel.actionLabel, systemImage: applyPlanActionImage(for: viewModel.plan.disposition))
             .foregroundStyle(.secondary)
 
-        if let recommendedProfileLabel = viewModel.recommendedProfileLabel {
-            Label(recommendedProfileLabel, systemImage: "target")
-                .foregroundStyle(.secondary)
-        }
-
-        if let testedResolver = viewModel.plan.testedResolver {
-            Label("Tested resolver: \(testedResolver)", systemImage: "scope")
-                .foregroundStyle(.secondary)
-        }
-
-        if !viewModel.dnsServerText.isEmpty {
-            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                Label("DNS servers from shared plan", systemImage: "server.rack")
-                    .font(.subheadline.weight(.semibold))
-                ForEach(viewModel.plan.dnsServers, id: \.self) { server in
-                    Label(server, systemImage: "number")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
-        }
-
-        if !viewModel.guidedApplySteps.isEmpty {
-            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                Label("Guided apply sequence", systemImage: "checklist")
-                    .font(.subheadline.weight(.semibold))
-                ForEach(viewModel.guidedApplySteps) { step in
-                    HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.controlGap) {
-                        Image(systemName: step.systemImage)
-                            .foregroundStyle(DNSPilotDesign.Palette.accent)
-                            .frame(width: 18)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(step.title)
-                                .font(.body.weight(.semibold))
-                            Text(step.detail)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
-        }
-
-        if viewModel.guidedPrimaryActionLabel != nil {
-            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                Label(restoreViewModel.statusLabel, systemImage: restoreViewModel.hasRestorableDNS ? "arrow.uturn.backward.circle" : "exclamationmark.triangle")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(restoreViewModel.hasRestorableDNS ? DNSPilotDesign.Palette.success : DNSPilotDesign.Palette.warning)
-
-                if restoreViewModel.hasRestorableDNS {
-                    ForEach(restoreViewModel.snapshot.servers, id: \.self) { server in
-                        Label(server, systemImage: "number")
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                    }
-                }
-
-                ForEach(restoreViewModel.detailLines, id: \.self) { line in
-                    Label(line, systemImage: "info.circle")
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
-        }
-
-        if !viewModel.plan.notes.isEmpty {
-            ForEach(viewModel.plan.notes, id: \.self) { note in
-                Label(note, systemImage: "info.circle")
-                    .foregroundStyle(.secondary)
-            }
-        }
-
         HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
-            if let primaryActionLabel = viewModel.guidedPrimaryActionLabel,
-               let primaryCopyText = viewModel.guidedPrimaryActionCopyText {
+            if isDirectAdminEnabled, viewModel.canOfferPrimaryAction, !viewModel.plan.dnsServers.isEmpty {
+                PowerDNSApplyButton(
+                    profileName: viewModel.plan.profileName ?? viewModel.plan.profileID,
+                    dnsServers: viewModel.plan.dnsServers
+                )
+            } else if let primaryActionLabel = viewModel.guidedPrimaryActionLabel,
+                      let primaryCopyText = viewModel.guidedPrimaryActionCopyText {
                 Button {
                     pendingGuidedApplyConfirmation = PendingGuidedApplyConfirmation(
                         copyText: primaryCopyText,
@@ -4207,48 +4183,64 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                 .help("Copy measured DNS servers, then open macOS Network Settings for manual apply.")
             }
 
-            if viewModel.canOfferPrimaryAction, !viewModel.plan.dnsServers.isEmpty {
-                PowerDNSApplyButton(
-                    profileName: viewModel.plan.profileName ?? viewModel.plan.profileID,
-                    dnsServers: viewModel.plan.dnsServers
-                )
-            }
-
-            if !viewModel.dnsServerText.isEmpty {
-                Button {
-                    copyToPasteboard(viewModel.dnsServerText)
-                } label: {
-                    Label("Copy Plan DNS", systemImage: "doc.on.doc")
+            Menu {
+                if !viewModel.dnsServerText.isEmpty {
+                    Button("Copy DNS Servers") {
+                        copyToPasteboard(viewModel.dnsServerText)
+                    }
                 }
-                .help("Copy DNS servers from the shared apply-plan output.")
-            }
-
-            if let guidedApplyChecklistText = viewModel.guidedApplyChecklistText {
-                Button {
-                    copyToPasteboard(
-                        viewModel.guidedApplyChecklistTextWithRestore(currentDNSBeforeApplySnapshot)
-                            ?? guidedApplyChecklistText
-                    )
-                } label: {
-                    Label("Copy Apply Steps", systemImage: "checklist")
+                if let guidedApplyChecklistText = viewModel.guidedApplyChecklistText {
+                    Button("Copy Apply Checklist") {
+                        copyToPasteboard(
+                            viewModel.guidedApplyChecklistTextWithRestore(currentDNSBeforeApplySnapshot)
+                                ?? guidedApplyChecklistText
+                        )
+                    }
                 }
-                .help("Copy the guided DNS apply and retest checklist.")
-            }
-
-            if viewModel.guidedPrimaryActionLabel != nil {
-                Button {
-                    copyToPasteboard(restoreViewModel.copyText)
-                } label: {
-                    Label("Copy Restore DNS", systemImage: "arrow.uturn.backward.circle")
+                if viewModel.guidedPrimaryActionLabel != nil {
+                    Button("Copy Restore DNS") {
+                        copyToPasteboard(restoreViewModel.copyText)
+                    }
                 }
-                .help("Copy current DNS settings captured before guided apply.")
-            }
-
-            Button {
-                copyToPasteboard(viewModel.copyText)
+                Divider()
+                Button("Copy Apply Plan") {
+                    copyToPasteboard(viewModel.copyText)
+                }
             } label: {
-                Label("Copy Apply Plan", systemImage: "doc.on.doc")
+                Label("More apply actions", systemImage: "ellipsis.circle")
+                    .labelStyle(.iconOnly)
             }
+            .menuStyle(.borderlessButton)
+            .help("Copy DNS, apply checklist, restore data, or plan")
+        }
+
+        DisclosureGroup("Details") {
+            VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                if let testedResolver = viewModel.plan.testedResolver {
+                    Label("Tested resolver: \(testedResolver)", systemImage: "scope")
+                }
+                if !viewModel.dnsServerText.isEmpty {
+                    Label("DNS servers", systemImage: "server.rack")
+                        .font(.subheadline.weight(.semibold))
+                    ForEach(viewModel.plan.dnsServers, id: \.self) { server in
+                        Text(server)
+                            .font(.body.monospaced())
+                            .textSelection(.enabled)
+                    }
+                }
+                if viewModel.guidedPrimaryActionLabel != nil {
+                    Label(restoreViewModel.statusLabel, systemImage: restoreViewModel.hasRestorableDNS ? "arrow.uturn.backward.circle" : "exclamationmark.triangle")
+                    ForEach(restoreViewModel.detailLines, id: \.self) { line in
+                        Text(line)
+                    }
+                }
+                ForEach(viewModel.plan.notes, id: \.self) { note in
+                    Label(note, systemImage: "info.circle")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.top, DNSPilotDesign.Spacing.controlGap)
         }
     }
 
@@ -4270,7 +4262,12 @@ private struct BenchmarkApplyPlanStatusPanel: View {
 
 private struct BenchmarkResultNextStepPanel: View {
     let viewModel: BenchmarkResultNextStepViewModel
+    @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
+
+    private var isDirectAdminEnabled: Bool {
+        MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -4279,45 +4276,18 @@ private struct BenchmarkResultNextStepPanel: View {
             Label(viewModel.title, systemImage: viewModel.canOpenNetworkSettings ? "gearshape" : "shield")
                 .font(.headline)
 
-            ForEach(viewModel.lines, id: \.self) { line in
-                Label(line, systemImage: "info.circle")
+            if let firstLine = viewModel.lines.first {
+                Text(firstLine)
                     .foregroundStyle(.secondary)
             }
 
-            if let dnsSettings = viewModel.dnsSettings {
-                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                    Label("DNS servers to paste: \(dnsSettings.profileName)", systemImage: "server.rack")
-                        .font(.subheadline.weight(.semibold))
-                    ForEach(dnsSettings.displayLines, id: \.self) { line in
-                        Label(line, systemImage: "number")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, DNSPilotDesign.Spacing.controlGap)
-            }
-
             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
-                if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
-                    Button {
-                        copyToPasteboard(dnsSettings.serverListText)
-                    } label: {
-                        Label("Copy DNS Servers", systemImage: "doc.on.doc")
-                    }
-                    .accessibilityIdentifier("benchmark-copy-dns-servers-button")
-                    .help("Copy only the DNS server addresses for pasting into macOS Network Settings.")
-                }
-
-                if let manualApplyChecklistText = viewModel.manualApplyChecklistText {
-                    Button {
-                        copyToPasteboard(manualApplyChecklistText)
-                    } label: {
-                        Label("Copy Apply Checklist", systemImage: "checklist")
-                    }
-                    .accessibilityIdentifier("benchmark-copy-apply-checklist-button")
-                    .help("Copy the manual apply and retest checklist.")
-                }
-
-                if viewModel.canOpenNetworkSettings {
+                if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers, isDirectAdminEnabled {
+                    PowerDNSApplyButton(
+                        profileName: dnsSettings.profileName,
+                        dnsServers: dnsSettings.allServers
+                    )
+                } else if viewModel.canOpenNetworkSettings {
                     Button {
                         if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
                             pendingGuidedApplyConfirmation = PendingGuidedApplyConfirmation(
@@ -4336,21 +4306,50 @@ private struct BenchmarkResultNextStepPanel: View {
                         Label(viewModel.actionLabel, systemImage: "gearshape")
                     }
                     .accessibilityIdentifier("benchmark-open-network-settings-button")
+                    .help("Copy DNS servers, then open macOS Network Settings for manual apply.")
                 }
 
-                if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
-                    PowerDNSApplyButton(
-                        profileName: dnsSettings.profileName,
-                        dnsServers: dnsSettings.allServers
-                    )
-                }
-
-                Button {
-                    copyToPasteboard(viewModel.copyText)
+                Menu {
+                    if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
+                        Button("Copy DNS Servers") {
+                            copyToPasteboard(dnsSettings.serverListText)
+                        }
+                    }
+                    if let manualApplyChecklistText = viewModel.manualApplyChecklistText {
+                        Button("Copy Apply Checklist") {
+                            copyToPasteboard(manualApplyChecklistText)
+                        }
+                    }
+                    Button("Copy Next Step") {
+                        copyToPasteboard(viewModel.copyText)
+                    }
                 } label: {
-                    Label("Copy Next Step", systemImage: "doc.on.doc")
+                    Label("More next-step actions", systemImage: "ellipsis.circle")
+                        .labelStyle(.iconOnly)
                 }
-                .accessibilityIdentifier("benchmark-copy-next-step-button")
+                .menuStyle(.borderlessButton)
+                .help("Copy DNS servers, apply checklist, or next-step guidance")
+            }
+
+            DisclosureGroup("Details") {
+                VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                    ForEach(viewModel.lines.dropFirst(), id: \.self) { line in
+                        Label(line, systemImage: "info.circle")
+                    }
+
+                    if let dnsSettings = viewModel.dnsSettings {
+                        Label("DNS servers: \(dnsSettings.profileName)", systemImage: "server.rack")
+                            .font(.subheadline.weight(.semibold))
+                        ForEach(dnsSettings.displayLines, id: \.self) { line in
+                            Text(line)
+                                .font(.body.monospaced())
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, DNSPilotDesign.Spacing.controlGap)
             }
         }
         .storeSafeGuidedApplyConfirmation(pending: $pendingGuidedApplyConfirmation)

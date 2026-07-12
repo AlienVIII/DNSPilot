@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-07-11.
+Last updated: 2026-07-13.
 
 ## Product
 
@@ -16,6 +16,11 @@ uses a platform-capability-specific apply flow.
   SwiftUI `Window`: cold launch and repeated menu actions keep one main window.
 - The consumer sidebar begins at Check DNS and exposes only Check DNS, Profiles, and
   History; setup is optional and contextual.
+- Result surfaces now expose exactly one apply CTA per edition: guided apply in the
+  Store-safe edition or direct admin apply after Power opt-in. Reports, plans, and
+  restore data are contextual menus or Details disclosures.
+- Native Command menu shortcuts share the same navigation model as menu-bar actions
+  for Quick Test, Benchmark, Profiles, and History.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.
