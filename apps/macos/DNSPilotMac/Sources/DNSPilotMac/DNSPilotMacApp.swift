@@ -49,6 +49,30 @@ struct DNSPilotMacApp: App {
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
+
+                Button("Show Result") {
+                    navigation.selection = .benchmark
+                    _ = DNSPilotWindowActivation.activateExistingWindows()
+                }
+                .keyboardShortcut("r", modifiers: [.command, .option])
+
+                Divider()
+
+                Button("Cancel Benchmark") {
+                    navigation.requestBenchmarkCancellation()
+                }
+                .keyboardShortcut(".", modifiers: [.command])
+
+                Button("Settings...") {
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                }
+                .keyboardShortcut(",", modifiers: [.command])
+
+                Button("Show Setup") {
+                    navigation.isShowingPermissionSetup = true
+                    _ = DNSPilotWindowActivation.activateExistingWindows()
+                }
+                .keyboardShortcut("/", modifiers: [.command, .shift])
             }
         }
     }
@@ -553,9 +577,11 @@ private final class DNSPilotNavigationModel: ObservableObject {
     @Published var selection: SidebarSelection? = .benchmark
     @Published var quickBenchmarkRequestID = 0
     @Published var systemDNSValidationRequestID = 0
+    @Published var benchmarkCancellationRequestID = 0
     @Published var lastGuidedApplyPlan: GuidedApplyPlanSnapshot?
     @Published var pendingGuidedApplyPlanConfirmation: GuidedApplyPlanSnapshot?
     @Published var isShowingFlushDNSConfirmation = false
+    @Published var isShowingPermissionSetup = false
 
     private let guidedApplyPlanStore: GuidedApplyPlanStore
 
@@ -572,6 +598,11 @@ private final class DNSPilotNavigationModel: ObservableObject {
     func requestSystemDNSValidation() {
         selection = .benchmark
         systemDNSValidationRequestID += 1
+    }
+
+    func requestBenchmarkCancellation() {
+        selection = .benchmark
+        benchmarkCancellationRequestID += 1
     }
 
     func setLastGuidedApplyPlan(_ snapshot: GuidedApplyPlanSnapshot?) {
@@ -729,7 +760,6 @@ private struct DNSPilotShellView: View {
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var catalogViewModel = CatalogViewModel()
     @State private var hasRequestedStorageCatalogRefresh = false
-    @State private var isShowingPermissionSetup = false
 
     private let capabilityViewModel = CapabilityMatrixViewModel()
     private var localizer: DNSPilotLocalizer {
@@ -764,6 +794,7 @@ private struct DNSPilotShellView: View {
                     localizer: localizer,
                     quickBenchmarkRequestID: navigation.quickBenchmarkRequestID,
                     systemDNSValidationRequestID: navigation.systemDNSValidationRequestID,
+                    benchmarkCancellationRequestID: navigation.benchmarkCancellationRequestID,
                     onCatalogChanged: refreshCatalogFromStorage,
                     onGuidedApplyPlanChanged: navigation.setLastGuidedApplyPlan
                 )
@@ -814,18 +845,18 @@ private struct DNSPilotShellView: View {
             Text(guidedApplyConfirmation(for: snapshot).message)
         }
         .storeSafeFlushConfirmation(isPresented: $navigation.isShowingFlushDNSConfirmation)
-        .sheet(isPresented: $isShowingPermissionSetup) {
+        .sheet(isPresented: $navigation.isShowingPermissionSetup) {
             PermissionSetupSheet(
                 localizer: localizer,
                 userEnabledPowerActions: $userEnabledPowerActions,
-                isPresented: $isShowingPermissionSetup
+                isPresented: $navigation.isShowingPermissionSetup
             )
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     navigation.selection = .permissions
-                    isShowingPermissionSetup = true
+                    navigation.isShowingPermissionSetup = true
                 } label: {
                     Label("Show Setup", systemImage: "questionmark.circle")
                 }
@@ -2088,6 +2119,7 @@ private struct BenchmarkDetailHostView: View {
     let localizer: DNSPilotLocalizer
     let quickBenchmarkRequestID: Int
     let systemDNSValidationRequestID: Int
+    let benchmarkCancellationRequestID: Int
     let onCatalogChanged: () -> Void
     let onGuidedApplyPlanChanged: (GuidedApplyPlanSnapshot?) -> Void
 
@@ -2101,6 +2133,7 @@ private struct BenchmarkDetailHostView: View {
                 localizer: localizer,
                 quickBenchmarkRequestID: quickBenchmarkRequestID,
                 systemDNSValidationRequestID: systemDNSValidationRequestID,
+                benchmarkCancellationRequestID: benchmarkCancellationRequestID,
                 onCatalogChanged: onCatalogChanged,
                 onGuidedApplyPlanChanged: onGuidedApplyPlanChanged
             )
@@ -2385,6 +2418,7 @@ private struct BenchmarkDetailView: View {
     let localizer: DNSPilotLocalizer
     let quickBenchmarkRequestID: Int
     let systemDNSValidationRequestID: Int
+    let benchmarkCancellationRequestID: Int
     let onCatalogChanged: () -> Void
     let onGuidedApplyPlanChanged: (GuidedApplyPlanSnapshot?) -> Void
 
@@ -2423,6 +2457,7 @@ private struct BenchmarkDetailView: View {
     @State private var isShowingFlushDNSConfirmation = false
     @State private var handledQuickBenchmarkRequestID = 0
     @State private var handledSystemDNSValidationRequestID = 0
+    @State private var handledBenchmarkCancellationRequestID = 0
     @State private var outcome: BenchmarkExecutionOutcome?
 
     private var setupViewModel: BenchmarkSetupViewModel {
@@ -2485,6 +2520,7 @@ private struct BenchmarkDetailView: View {
         localizer: DNSPilotLocalizer,
         quickBenchmarkRequestID: Int,
         systemDNSValidationRequestID: Int,
+        benchmarkCancellationRequestID: Int,
         onCatalogChanged: @escaping () -> Void,
         onGuidedApplyPlanChanged: @escaping (GuidedApplyPlanSnapshot?) -> Void
     ) {
@@ -2493,6 +2529,7 @@ private struct BenchmarkDetailView: View {
         self.localizer = localizer
         self.quickBenchmarkRequestID = quickBenchmarkRequestID
         self.systemDNSValidationRequestID = systemDNSValidationRequestID
+        self.benchmarkCancellationRequestID = benchmarkCancellationRequestID
         self.onCatalogChanged = onCatalogChanged
         self.onGuidedApplyPlanChanged = onGuidedApplyPlanChanged
         let defaults = BenchmarkSetupViewModel(
@@ -2539,12 +2576,16 @@ private struct BenchmarkDetailView: View {
             .onChange(of: systemDNSValidationRequestID) { _, requestID in
                 handleSystemDNSValidationRequest(requestID)
             }
+            .onChange(of: benchmarkCancellationRequestID) { _, requestID in
+                handleBenchmarkCancellationRequest(requestID)
+            }
             .onAppear {
                 if mode == .systemDNSValidation {
                     refreshSystemDNSResolverSnapshot()
                 }
                 handleQuickBenchmarkRequest(quickBenchmarkRequestID)
                 handleSystemDNSValidationRequest(systemDNSValidationRequestID)
+                handleBenchmarkCancellationRequest(benchmarkCancellationRequestID)
             }
             .storeSafeFlushConfirmation(isPresented: $isShowingFlushDNSConfirmation)
             .alert(
@@ -3288,6 +3329,14 @@ private struct BenchmarkDetailView: View {
         }
         applySystemDNSValidationPreset()
         runBenchmark()
+    }
+
+    private func handleBenchmarkCancellationRequest(_ requestID: Int) {
+        guard requestID > handledBenchmarkCancellationRequestID else {
+            return
+        }
+        handledBenchmarkCancellationRequestID = requestID
+        cancelBenchmark()
     }
 
     private func applyQuickBenchmarkPreset() {

@@ -15,8 +15,7 @@ Last reviewed: 2026-07-11.
 - [x] Merge game checks into Check DNS target presets and state that DNS + TCP timing
   is not ICMP or in-match UDP latency.
 - [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
-  and History without creating another window.
-- [ ] Add keyboard paths for cancel, result details, Settings, and Help flows.
+  History, result, cancel, Settings, and Setup without creating another window.
 - [ ] Split the 4,533-line app source incrementally by scene/feature without changing
   core contracts.
 - [ ] Run a five-user moderated usability pass; require all participants to complete

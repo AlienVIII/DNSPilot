@@ -20,7 +20,8 @@ uses a platform-capability-specific apply flow.
   Store-safe edition or direct admin apply after Power opt-in. Reports, plans, and
   restore data are contextual menus or Details disclosures.
 - Native Command menu shortcuts share the same navigation model as menu-bar actions
-  for Quick Test, Benchmark, Profiles, and History.
+  for Quick Test, Benchmark, Profiles, History, result, cancellation, Settings, and
+  Setup.
 - Dota 2 SEA, CS2, and Riot/League are selectable Check DNS targets. Selecting one
   uses DNS + TCP connection timing and clearly excludes ICMP/in-match latency claims.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
