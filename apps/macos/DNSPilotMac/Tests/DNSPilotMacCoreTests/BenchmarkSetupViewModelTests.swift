@@ -125,6 +125,38 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.runPlanSummary, "DNS only, A + AAAA, 2 resolvers, 3 domains, 1 attempt")
     }
 
+    func testGamingSuiteIsAvailableToBenchmarkAndExplainsItsLimit() {
+        let baseCatalog = makeSetupCatalog()
+        let catalog = CatalogSnapshot(
+            profiles: baseCatalog.profiles,
+            testSuites: baseCatalog.testSuites + [
+                CatalogTestSuite(
+                    id: "gaming-dota2-sea",
+                    name: "Gaming / Dota 2 SEA",
+                    description: "Dota 2 endpoint check.",
+                    domains: ["steamcommunity.com"],
+                    tags: ["gaming", "dota2", "sea"]
+                ),
+            ]
+        )
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: "gaming-dota2-sea",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .connectionPathCompare
+        )
+
+        XCTAssertTrue(viewModel.isGamingSuiteSelected)
+        XCTAssertEqual(
+            viewModel.gameCheckDisclaimer,
+            "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency."
+        )
+        XCTAssertEqual(viewModel.plan.commandArguments.first, "path-compare")
+    }
+
     func testSetupParsesCustomDomainTextIntoPlan() {
         let viewModel = BenchmarkSetupViewModel(
             catalog: makeSetupCatalog(),

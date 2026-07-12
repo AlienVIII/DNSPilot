@@ -12,8 +12,8 @@ Last reviewed: 2026-07-11.
   setup is available from Help instead of blocking first value.
 - [x] Make one result action primary. Move copy/debug/checklist actions behind
   secondary menus, disclosure, or contextual info.
-- [ ] Merge Game Ping into benchmark presets and remove claims that imply ICMP or
-  in-game latency measurement.
+- [x] Merge game checks into Check DNS target presets and state that DNS + TCP timing
+  is not ICMP or in-match UDP latency.
 - [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
   and History without creating another window.
 - [ ] Add keyboard paths for cancel, result details, Settings, and Help flows.

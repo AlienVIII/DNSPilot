@@ -112,6 +112,26 @@ public struct BenchmarkSetupViewModel: Equatable {
         catalog.testSuites.map(BenchmarkSuiteOption.init(testSuite:))
     }
 
+    public var selectedSuiteIsGaming: Bool {
+        guard let selectedSuiteID else {
+            return false
+        }
+        return catalog.testSuites.contains { suite in
+            suite.id == selectedSuiteID && suite.tags.contains("gaming")
+        }
+    }
+
+    public var isGamingSuiteSelected: Bool {
+        selectedSuiteIsGaming
+    }
+
+    public var gameCheckDisclaimer: String? {
+        guard selectedSuiteIsGaming else {
+            return nil
+        }
+        return "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency."
+    }
+
     public var plan: BenchmarkPlanViewModel {
         BenchmarkPlanViewModel(
             catalog: catalog,

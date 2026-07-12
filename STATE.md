@@ -21,6 +21,8 @@ uses a platform-capability-specific apply flow.
   restore data are contextual menus or Details disclosures.
 - Native Command menu shortcuts share the same navigation model as menu-bar actions
   for Quick Test, Benchmark, Profiles, and History.
+- Dota 2 SEA, CS2, and Riot/League are selectable Check DNS targets. Selecting one
+  uses DNS + TCP connection timing and clearly excludes ICMP/in-match latency claims.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.

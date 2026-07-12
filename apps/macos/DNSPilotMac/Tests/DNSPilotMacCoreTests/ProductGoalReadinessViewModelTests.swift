@@ -63,7 +63,9 @@ final class ProductGoalReadinessViewModelTests: XCTestCase {
         XCTAssertEqual(gameChecks?.status, .estimated)
         XCTAssertTrue(gameChecks?.caveat.contains("not ICMP") == true)
         XCTAssertTrue(gameChecks?.summary.contains("Dota 2 SEA") == true)
-        XCTAssertTrue(gameChecks?.entryPoint.contains("Game Ping") == true)
+        XCTAssertTrue(gameChecks?.entryPoint.contains("Check DNS") == true)
+        XCTAssertTrue(gameChecks?.entryPoint.contains("Targets") == true)
+        XCTAssertFalse(gameChecks?.entryPoint.contains("Game Ping") == true)
         XCTAssertTrue(gameChecks?.validationEvidence.contains("GamePingPlanViewModelTests") == true)
     }
 }

@@ -2526,6 +2526,13 @@ private struct BenchmarkDetailView: View {
                     refreshSystemDNSResolverSnapshot()
                 }
             }
+            .onChange(of: selectedSuiteID) { _, selectedSuiteID in
+                guard let selectedSuiteID,
+                      catalog.testSuites.contains(where: { $0.id == selectedSuiteID && $0.tags.contains("gaming") }) else {
+                    return
+                }
+                mode = .connectionPathCompare
+            }
             .onChange(of: quickBenchmarkRequestID) { _, requestID in
                 handleQuickBenchmarkRequest(requestID)
             }
@@ -2562,6 +2569,7 @@ private struct BenchmarkDetailView: View {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                 AnyView(benchmarkHeader)
                 AnyView(benchmarkSummary)
+                AnyView(benchmarkTargetPicker)
                 AnyView(benchmarkRunArtifacts)
                 DisclosureGroup("Options", isExpanded: $isOptionsExpanded) {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
@@ -2631,6 +2639,30 @@ private struct BenchmarkDetailView: View {
             Label(estimatedDurationWarning, systemImage: "hourglass")
                 .font(.caption)
                 .foregroundStyle(DNSPilotDesign.Palette.warning)
+        }
+    }
+
+    private var benchmarkTargetPicker: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            Picker(localizer.text(.targets), selection: $selectedSuiteID) {
+                Text(localizer.text(.customOnly))
+                    .tag(Optional<String>.none)
+                ForEach(setupViewModel.suiteOptions) { option in
+                    Text(option.name)
+                        .tag(Optional(option.id))
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(maxWidth: 340, alignment: .leading)
+            .disabled(isBenchmarkActive)
+            .help("Choose a built-in, saved, or game target. Game targets use DNS + TCP connection timing.")
+
+            if setupViewModel.isGamingSuiteSelected {
+                Label(localizer.text(.gameCheckDisclaimer), systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help(setupViewModel.gameCheckDisclaimer ?? "")
+            }
         }
     }
 
@@ -2813,36 +2845,10 @@ private struct BenchmarkDetailView: View {
     private var targetsSection: some View {
         BenchmarkSection(title: localizer.text(.targets)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
-                targetSuitePicker
                 targetDomainInput
                 targetSuiteEditor
             }
         }
-    }
-
-    private var targetSuitePicker: some View {
-        Picker(localizer.text(.suites), selection: $selectedSuiteID) {
-            Text(localizer.text(.customOnly))
-                .help(
-                    """
-                    EN: Use only the custom domains typed below.
-                    VI: Chỉ dùng các domain tự nhập bên dưới.
-                    """
-                )
-                .tag(Optional<String>.none)
-            ForEach(setupViewModel.suiteOptions) { option in
-                Text("\(option.name) (\(option.domainCountLabel))")
-                    .help(option.helpText)
-                    .tag(Optional(option.id))
-            }
-        }
-        .frame(maxWidth: 360, alignment: .leading)
-        .help(
-            """
-            EN: Choose a saved domain suite, or choose Custom only and type domains below.
-            VI: Chọn bộ domain đã lưu, hoặc chọn Custom only rồi nhập domain bên dưới.
-            """
-        )
     }
 
     private var targetDomainInput: some View {

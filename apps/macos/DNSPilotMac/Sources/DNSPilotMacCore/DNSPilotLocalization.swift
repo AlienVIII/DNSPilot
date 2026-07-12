@@ -88,6 +88,7 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case vietnam
     case global
     case game
+    case gameCheckDisclaimer
     case dnsRecords
     case savedProfiles
     case noCustomPlainDNSProfiles
@@ -209,6 +210,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .vietnam: "Vietnam",
         .global: "Global",
         .game: "Game",
+        .gameCheckDisclaimer: "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency.",
         .dnsRecords: "DNS records",
         .savedProfiles: "Saved Profiles",
         .noCustomPlainDNSProfiles: "No custom plain DNS profiles.",
@@ -310,6 +312,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .vietnam: "Việt Nam",
         .global: "Global",
         .game: "Game",
+        .gameCheckDisclaimer: "Kiểm tra game ước tính thời gian DNS và kết nối TCP. Đây không phải ICMP ping hoặc độ trễ UDP trong trận.",
         .dnsRecords: "DNS records",
         .savedProfiles: "Profile đã lưu",
         .noCustomPlainDNSProfiles: "Chưa có profile DNS thường tùy chỉnh.",
