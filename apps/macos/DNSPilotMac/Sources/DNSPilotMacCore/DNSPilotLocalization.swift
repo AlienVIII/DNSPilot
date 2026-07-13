@@ -34,7 +34,7 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case permissions
     case publish
     case benchmark
-    case gamePing
+    case checkDNS
     case customDNS
     case history
     case catalog
@@ -77,6 +77,8 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case flush
     case platform
     case mode
+    case options
+    case benchmarkTargetHelp
     case networkSafeguards
     case profiles
     case targets
@@ -88,6 +90,7 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case vietnam
     case global
     case game
+    case gameCheckDisclaimer
     case dnsRecords
     case savedProfiles
     case noCustomPlainDNSProfiles
@@ -109,7 +112,6 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case azureExample
     case deleteCustomSuite
     case copyResultReport
-    case copyGamePingReport
     case copyRunID
     case validateSystemDNS
     case refreshCurrentDNS
@@ -155,7 +157,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .permissions: "Permissions",
         .publish: "Publish",
         .benchmark: "Benchmark",
-        .gamePing: "Game Ping",
+        .checkDNS: "Check DNS",
         .customDNS: "Custom DNS",
         .history: "History",
         .catalog: "Catalog",
@@ -198,6 +200,8 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .flush: "Flush",
         .platform: "Platform",
         .mode: "Mode",
+        .options: "Options",
+        .benchmarkTargetHelp: "Choose a built-in, saved, or game target. Game targets use DNS + TCP connection timing.",
         .networkSafeguards: "Network Safeguards",
         .profiles: "Profiles",
         .targets: "Targets",
@@ -209,6 +213,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .vietnam: "Vietnam",
         .global: "Global",
         .game: "Game",
+        .gameCheckDisclaimer: "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency.",
         .dnsRecords: "DNS records",
         .savedProfiles: "Saved Profiles",
         .noCustomPlainDNSProfiles: "No custom plain DNS profiles.",
@@ -230,7 +235,6 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .azureExample: "Azure Example",
         .deleteCustomSuite: "Delete Custom Suite?",
         .copyResultReport: "Copy Result Report",
-        .copyGamePingReport: "Copy Game Ping Report",
         .copyRunID: "Copy Run ID",
         .validateSystemDNS: "Validate System DNS",
         .refreshCurrentDNS: "Refresh Current DNS",
@@ -256,7 +260,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .permissions: "Quyền",
         .publish: "Phát hành",
         .benchmark: "Benchmark",
-        .gamePing: "Game Ping",
+        .checkDNS: "Kiểm tra DNS",
         .customDNS: "DNS tùy chỉnh",
         .history: "Lịch sử",
         .catalog: "Danh mục",
@@ -299,6 +303,8 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .flush: "Flush",
         .platform: "Nền tảng",
         .mode: "Mode",
+        .options: "Tùy chọn",
+        .benchmarkTargetHelp: "Chọn mục tiêu có sẵn, đã lưu hoặc game. Mục tiêu game dùng thời gian DNS + kết nối TCP.",
         .networkSafeguards: "Bảo vệ mạng",
         .profiles: "Profiles",
         .targets: "Targets",
@@ -310,6 +316,7 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .vietnam: "Việt Nam",
         .global: "Global",
         .game: "Game",
+        .gameCheckDisclaimer: "Kiểm tra game ước tính thời gian DNS và kết nối TCP. Đây không phải ICMP ping hoặc độ trễ UDP trong trận.",
         .dnsRecords: "DNS records",
         .savedProfiles: "Profile đã lưu",
         .noCustomPlainDNSProfiles: "Chưa có profile DNS thường tùy chỉnh.",
@@ -331,7 +338,6 @@ public struct DNSPilotLocalizer: Equatable, Sendable {
         .azureExample: "Ví dụ Azure",
         .deleteCustomSuite: "Xóa bộ test tùy chỉnh?",
         .copyResultReport: "Copy báo cáo kết quả",
-        .copyGamePingReport: "Copy báo cáo Game Ping",
         .copyRunID: "Copy Run ID",
         .validateSystemDNS: "Kiểm tra System DNS",
         .refreshCurrentDNS: "Làm mới DNS hiện tại",

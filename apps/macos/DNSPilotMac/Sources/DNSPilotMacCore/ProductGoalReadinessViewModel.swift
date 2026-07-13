@@ -152,10 +152,10 @@ public struct ProductGoalReadinessViewModel: Equatable, Sendable {
             id: "game-server-checks",
             title: "Game server checks",
             status: .estimated,
-            summary: "Game Ping covers Dota 2 SEA, CS2, and Riot/League endpoints with DNS + TCP probes.",
+            summary: "Check DNS includes Dota 2 SEA, CS2, and Riot/League targets with DNS + TCP probes.",
             caveat: "This is not ICMP ping or in-match UDP latency; some game traffic uses private routing.",
-            entryPoint: "Game Ping > choose Dota 2 SEA, CS2, Riot, or League preset > Run.",
-            validationEvidence: "GamePingPlanViewModelTests cover preset availability and DNS + TCP plan construction."
+            entryPoint: "Check DNS > Targets > choose Dota 2 SEA, CS2, Riot, or League > Run.",
+            validationEvidence: "BenchmarkSetupViewModelTests and GamePingPlanViewModelTests cover gaming targets and DNS + TCP plan construction."
         ),
     ]
 
@@ -209,10 +209,10 @@ public struct ProductGoalReadinessViewModel: Equatable, Sendable {
             id: "game-server-checks",
             title: "Kiểm tra server game",
             status: .estimated,
-            summary: "Game Ping hỗ trợ Dota 2 SEA, CS2, và Riot/League endpoints bằng DNS + TCP probes.",
+            summary: "Check DNS có Dota 2 SEA, CS2, và Riot/League targets bằng DNS + TCP probes.",
             caveat: "Đây không phải ICMP ping hoặc độ trễ UDP trong trận; một số game dùng private routing.",
-            entryPoint: "Game Ping > chọn Dota 2 SEA, CS2, Riot, hoặc League preset > Run.",
-            validationEvidence: "GamePingPlanViewModelTests kiểm tra preset và DNS + TCP plan construction."
+            entryPoint: "Check DNS > Targets > chọn Dota 2 SEA, CS2, Riot, hoặc League > Run.",
+            validationEvidence: "BenchmarkSetupViewModelTests và GamePingPlanViewModelTests kiểm tra gaming targets và DNS + TCP plan construction."
         ),
     ]
 }

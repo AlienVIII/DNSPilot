@@ -3,6 +3,8 @@ set -euo pipefail
 
 MODE="${1:-run}"
 APP_NAME="DNSPilotMac"
+PRODUCT_NAME="DNS Pilot"
+APP_CATEGORY="public.app-category.utilities"
 BUNDLE_ID="com.dnspilot.mac"
 MIN_SYSTEM_VERSION="14.0"
 APP_VERSION="${DNSPILOT_APP_VERSION:-0.1.0}"
@@ -21,6 +23,7 @@ INFO_PLIST="$APP_CONTENTS/Info.plist"
 CLI_NAME="dnspilot-cli"
 POWER_EDITION="${DNSPILOT_POWER_EDITION:-0}"
 PRIVACY_MANIFEST="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy"
+APP_ICON="$ROOT_DIR/apps/macos/DNSPilotMac/Assets/AppIcon.icns"
 
 truthy() {
   case "$(printf "%s" "$1" | tr '[:upper:]' '[:lower:]')" in
@@ -41,6 +44,7 @@ mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$APP_HELPERS"
 cp "$BUILD_BINARY" "$APP_BINARY"
 cp "$CLI_BINARY" "$APP_HELPERS/$CLI_NAME"
 cp "$PRIVACY_MANIFEST" "$APP_RESOURCES/PrivacyInfo.xcprivacy"
+cp "$APP_ICON" "$APP_RESOURCES/AppIcon.icns"
 chmod +x "$APP_BINARY" "$APP_HELPERS/$CLI_NAME"
 
 cat >"$INFO_PLIST" <<PLIST
@@ -53,9 +57,15 @@ cat >"$INFO_PLIST" <<PLIST
   <key>CFBundleIdentifier</key>
   <string>$BUNDLE_ID</string>
   <key>CFBundleName</key>
-  <string>$APP_NAME</string>
+  <string>$PRODUCT_NAME</string>
+  <key>CFBundleDisplayName</key>
+  <string>$PRODUCT_NAME</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon.icns</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>LSApplicationCategoryType</key>
+  <string>$APP_CATEGORY</string>
   <key>CFBundleShortVersionString</key>
   <string>$APP_VERSION</string>
   <key>CFBundleVersion</key>
@@ -77,15 +87,15 @@ open_app() {
 }
 
 verify_app_window() {
-  APP_NAME="$APP_NAME" /usr/bin/swift -e 'import CoreGraphics
+  WINDOW_OWNER_NAME="$PRODUCT_NAME" /usr/bin/swift -e 'import CoreGraphics
 import Darwin
 import Foundation
 
-let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? ""
+let windowOwnerName = ProcessInfo.processInfo.environment["WINDOW_OWNER_NAME"] ?? ""
 let options = CGWindowListOption(arrayLiteral: .optionOnScreenOnly)
 let windows = CGWindowListCopyWindowInfo(options, CGWindowID(0)) as? [[String: Any]] ?? []
-let hasWindow = windows.contains { window in
-    guard (window[kCGWindowOwnerName as String] as? String) == appName else {
+let appWindows = windows.filter { window in
+    guard (window[kCGWindowOwnerName as String] as? String) == windowOwnerName else {
         return false
     }
     guard (window[kCGWindowLayer as String] as? Int) == 0 else {
@@ -101,7 +111,7 @@ let hasWindow = windows.contains { window in
     }
     return width >= 600 && height >= 400
 }
-exit(hasWindow ? 0 : 1)'
+exit(appWindows.count == 1 ? 0 : 1)'
 }
 
 verify_launch() {
@@ -112,7 +122,7 @@ verify_launch() {
     sleep 0.25
   done
 
-  echo "$APP_NAME did not expose an on-screen app window." >&2
+  echo "$APP_NAME did not expose exactly one on-screen app window." >&2
   return 1
 }
 

@@ -20,6 +20,8 @@ guided resolver setup.
   corporate DNS policy, and IPv4/IPv6 reachability.
 - If DNS-only is inconclusive, retry with DNS + TCP to include connection-path
   behavior.
+- Game targets such as Dota 2 SEA, CS2, and Riot/League use DNS + TCP timing to
+  public service domains. They are not ICMP ping or in-match UDP latency.
 - If results look stale after changing DNS, flush DNS or reconnect the network,
   then run System DNS validation.
 - If a custom domain fails validation, remove protocol prefixes, paths, ports,
@@ -30,6 +32,15 @@ guided resolver setup.
 DNS Pilot stores custom DNS profiles, custom domain suites, and benchmark history
 locally on the Mac. The current Store-safe build has no accounts, analytics,
 tracking, or cloud sync.
+
+## Keyboard Shortcuts
+
+- Command-Shift-R: Run Quick Test
+- Command-Shift-B: Open Check DNS
+- Command-Shift-P: Open Profiles
+- Command-Shift-H: Open History
+- Command-Option-R: Show current result
+- Command-Period: Cancel an active benchmark
 
 ## Contact Placeholder
 

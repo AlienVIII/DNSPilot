@@ -1,6 +1,6 @@
 # Core CLI Backlog
 
-Last reviewed: 2026-07-08.
+Last reviewed: 2026-07-13.
 
 Review status: OS lane requests are resolved for the current v0.1 app slice.
 Remaining items below are follow-up backlog, not blockers for the current
@@ -52,6 +52,8 @@ v0.1 unless a lane records a new schema gap with failing evidence.
   `recommendation: null`, preflight, and legacy compatibility fields.
 - `system-benchmark` supports `--progress-jsonl`, `--save-db`, and
   `--history-id` so platform lanes can show progress and save validation runs.
+- DNS benchmark result samples expose optional `failure_detail`; timeout and
+  resolver failures have Core and CLI regression tests.
 
 ## Lane Requests
 
@@ -67,13 +69,15 @@ v0.1 unless a lane records a new schema gap with failing evidence.
 
 ### Mobile
 
-- Provide compact progress events usable by a foreground mobile run.
+- Mobile release builds now use a local Expo module backed by a Rust adapter around
+  `dnspilot-core`; the Node bridge is development fallback only.
+- Preserve compact foreground job/progress payloads across native adapter changes.
 - Keep explicit unsupported/apply-via-settings dispositions for iOS/iPadOS and
   Android.
 - Avoid any contract that implies iOS plain system DNS switching or Android
   silent DNS mutation.
-- If native bindings become the chosen release path, document which CLI/core
-  functions must be exposed through FFI/native modules.
+- Keep the native adapter contract aligned with Core payload schemas; do not create a
+  second recommendation or persistence implementation.
 - Stable issue/message IDs would let mobile localize system-access and bridge
   failures without parsing English text.
 
@@ -95,11 +99,12 @@ v0.1 unless a lane records a new schema gap with failing evidence.
   duplicated platform handoff logic.
 - Future only: define a Windows Power service/admin apply plan contract without
   adding Store-lane elevation behavior.
+- Proposed `runtime-info --json` remains deferred until Linux confirms the same
+  version/readiness need; Windows can probe existing contracts meanwhile.
 
 ## Temporary Adapters To Retire
 
-- Mobile uses a local Node bridge to spawn the Rust CLI; release architecture is
-  undecided.
+- Mobile keeps a local Node bridge only for Expo Go/web development fallback.
 - Linux capability detection is currently implemented in the Linux lane.
 - Windows localizes some dynamic free-text because CLI payloads do not yet expose
   stable message IDs.
