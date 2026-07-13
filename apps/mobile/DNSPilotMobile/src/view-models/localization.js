@@ -18,6 +18,8 @@ const messages = {
     "tabs.storage": "Storage",
     "tabs.policy": "Policy",
     "nav.notFound": "Not Found",
+    "nav.notFound.message": "Screen not found",
+    "nav.notFound.openCheckDns": "Open Check DNS",
 
     "common.add": "Add",
     "common.update": "Update",
@@ -376,6 +378,8 @@ const messages = {
     "tabs.storage": "Lưu trữ",
     "tabs.policy": "Policy",
     "nav.notFound": "Không tìm thấy",
+    "nav.notFound.message": "Không tìm thấy màn hình",
+    "nav.notFound.openCheckDns": "Mở Kiểm tra DNS",
 
     "common.add": "Thêm",
     "common.update": "Cập nhật",

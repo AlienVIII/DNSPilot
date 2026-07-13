@@ -77,4 +77,5 @@ test("consumer navigation and quick-check labels are localized", () => {
   assert.equal(t("tabs.checkDns"), "Kiểm tra DNS");
   assert.equal(t("tabs.profiles"), "Profile");
   assert.equal(t("check.runQuick"), "Kiểm tra nhanh");
+  assert.equal(t("nav.notFound.openCheckDns"), "Mở Kiểm tra DNS");
 });
