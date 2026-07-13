@@ -3,7 +3,8 @@
 ## Status
 
 This lane is ready for automated Rust validation and later real-device package
-QA. It does not require manual distro/package testing before handoff.
+QA. It is not yet a production consumer or publisher-ready build. Follow
+`linux-completion-plan.md` and `linux-implementation-plan.md` before submission.
 Start with `apps/linux/README.md` for install, build, run, smoke, and native
 helper commands.
 
@@ -16,8 +17,8 @@ Current package split:
 
 - Flatpak: store-safe benchmark and guided settings only.
 - Snap: strict store-safe benchmark and guided settings only.
-- deb/rpm: native power package path for future DNS apply through
-  NetworkManager/systemd-resolved plus polkit.
+- deb/rpm: native package path; Power remains disabled/experimental until the real
+  system D-Bus, caller-bound polkit, exact rollback, and Linux-host gates pass.
 
 ## Required Publisher And Site Setup
 
@@ -204,7 +205,6 @@ dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --pack
 dnspilot-native-helper --contract
 dnspilot-native-helper --dry-run --stack networkmanager --server 1.1.1.1
 dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
-dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"execute","confirm_system_dns_mutation":true}'
 ```
 
 Expected:
@@ -212,10 +212,7 @@ Expected:
 - native apply plan is offered only when NetworkManager or systemd-resolved plus
   polkit are detected,
 - native helper contract/dry-run/request protocol works without writing DNS,
-- execute-mode requests require `confirm_system_dns_mutation: true` plus
-  `--allow-system-dns-mutation`; without the flag they fail before writes,
-- polkit prompt appears before any DNS write when the explicit mutation flag is
-  used,
+- execute-mode requests fail closed; do not run the current command-backed prototype,
 - current/system resolver validation can run after apply if supported.
 
 ## rpm Native Power QA
@@ -242,7 +239,8 @@ sudo dnf install ./apps/linux/dist/rpmbuild/RPMS/*/dnspilot-0.1.0-1*.rpm
 - Current/system resolver validation appears only when supported.
 - Debug report copies complete capability, process, resolver, and result context.
 - Flatpak/Snap never mutate system DNS.
-- deb/rpm native apply requires polkit and supported resolver stack.
+- deb/rpm native apply is unavailable until the completed Power mechanism requires
+  polkit, a supported resolver stack, exact rollback, and configuration identity checks.
 
 ## Known Release Risks
 
@@ -255,6 +253,5 @@ sudo dnf install ./apps/linux/dist/rpmbuild/RPMS/*/dnspilot-0.1.0-1*.rpm
   metadata submission.
 - The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
   still needs package-tool validation on Linux.
-- The native power helper contract includes a non-mutating dry-run lifecycle and
-  an explicit execute mutation gate. Real DNS mutation still requires Linux
-  package QA before it is enabled by default or submitted for release.
+- The native power helper contract includes non-mutating dry-run inspection. Its current
+  execute prototype is not release-safe and must be disabled/replaced before package QA.

@@ -1,8 +1,17 @@
 # DNS Pilot Linux
 
 Linux is capability-based in DNS Pilot. Flatpak and Snap are store-safe
-benchmark/guidance builds. deb/rpm are native power builds that can use
-NetworkManager or systemd-resolved with polkit.
+benchmark/guidance builds. deb/rpm are native packages with a future, separately
+gated Power capability for NetworkManager/systemd-resolved plus polkit.
+
+Current completion design and task order:
+
+- `apps/linux/linux-completion-plan.md`
+- `apps/linux/linux-implementation-plan.md`
+
+The current command-backed native execute prototype is not release-safe. Default
+package guidance must remain benchmark/preview only until the planned system D-Bus,
+caller-bound polkit, and exact rollback mechanism is implemented and proved on Linux.
 
 ## Binaries
 
@@ -10,8 +19,8 @@ NetworkManager or systemd-resolved with polkit.
 - `dnspilot-linux-shell`: CLI inspection, QA, profile, readiness, and publish
   helper.
 - `dnspilot-cli`: packaged core benchmark engine used by the GUI.
-- `dnspilot-native-helper`: native deb/rpm helper for DNS apply contracts and
-  explicit native power execution.
+- `dnspilot-native-helper`: experimental native deb/rpm contract/dry-run helper; do
+  not use execute mode.
 
 ## Install Dependencies
 
@@ -123,18 +132,9 @@ apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper \
   --dry-run --stack networkmanager --server 1.1.1.1
 ```
 
-Execute mode is for deb/rpm native package QA only. It requires both
-`confirm_system_dns_mutation: true` in the request and
-`--allow-system-dns-mutation` on the helper command:
-
-```sh
-apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper \
-  --allow-system-dns-mutation \
-  --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"execute","confirm_system_dns_mutation":true}'
-```
-
-Do not run execute mode in Flatpak/Snap. Do not enable it by default before real
-Linux package QA validates polkit prompts, rollback, and resolver behavior.
+Do not run execute mode. The current prototype checks authorization but does not provide
+a complete privileged mechanism or exact DNS rollback snapshot. Milestone 0 disables
+it by default; Milestone 7 replaces it before native Power release QA.
 
 ## Package QA
 
