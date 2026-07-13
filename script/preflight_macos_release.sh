@@ -73,12 +73,15 @@ trap cleanup EXIT
 
 cd "$ROOT_DIR"
 
+run_step "App Store site safety" ./script/test_build_app_store_site.sh
+
 run_step "Shell syntax" \
   bash -n \
     script/build_and_run.sh \
     script/validate_macos_bundle.sh \
     script/package_macos_distribution.sh \
     script/build_app_store_site.sh \
+    script/test_build_app_store_site.sh \
     script/preflight_macos_release.sh \
     script/smoke_macos_goal_flows.sh
 
