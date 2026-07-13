@@ -4,6 +4,7 @@ set -euo pipefail
 MODE="${1:-run}"
 APP_NAME="DNSPilotMac"
 PRODUCT_NAME="DNS Pilot"
+APP_CATEGORY="public.app-category.utilities"
 BUNDLE_ID="com.dnspilot.mac"
 MIN_SYSTEM_VERSION="14.0"
 APP_VERSION="${DNSPILOT_APP_VERSION:-0.1.0}"
@@ -63,6 +64,8 @@ cat >"$INFO_PLIST" <<PLIST
   <string>AppIcon.icns</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>LSApplicationCategoryType</key>
+  <string>$APP_CATEGORY</string>
   <key>CFBundleShortVersionString</key>
   <string>$APP_VERSION</string>
   <key>CFBundleVersion</key>
@@ -84,15 +87,15 @@ open_app() {
 }
 
 verify_app_window() {
-  APP_NAME="$APP_NAME" /usr/bin/swift -e 'import CoreGraphics
+  WINDOW_OWNER_NAME="$PRODUCT_NAME" /usr/bin/swift -e 'import CoreGraphics
 import Darwin
 import Foundation
 
-let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? ""
+let windowOwnerName = ProcessInfo.processInfo.environment["WINDOW_OWNER_NAME"] ?? ""
 let options = CGWindowListOption(arrayLiteral: .optionOnScreenOnly)
 let windows = CGWindowListCopyWindowInfo(options, CGWindowID(0)) as? [[String: Any]] ?? []
 let appWindows = windows.filter { window in
-    guard (window[kCGWindowOwnerName as String] as? String) == appName else {
+    guard (window[kCGWindowOwnerName as String] as? String) == windowOwnerName else {
         return false
     }
     guard (window[kCGWindowLayer as String] as? Int) == 0 else {

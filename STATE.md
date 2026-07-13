@@ -38,6 +38,9 @@ uses a platform-capability-specific apply flow.
   and portal answers remain manual release inputs.
 - `AppIcon.icns` is bundled at 1024px and verified with the display-name/icon
   Info.plist contract in both Store-safe and Power bundle checks.
+- The Store-safe bundle declares the Utilities category. Deploy-ready static support
+  and privacy templates are validated locally; final public contact/URL and hosting
+  remain manual release inputs.
 - App Store edition: guided apply/flush only; no silent DNS mutation.
 - Power edition: direct-install only; explicit opt-in plus per-action macOS
   administrator approval for plain DNS Apply/Flush.

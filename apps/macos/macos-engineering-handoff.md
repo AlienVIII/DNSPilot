@@ -16,9 +16,9 @@ raise an architecture question instead of expanding scope.
 
 ## Milestone 1: Consumer Information Architecture
 
-- **Goal:** expose only Check DNS, Results, and Profiles as primary destinations.
+- **Goal:** expose only Check DNS, Profiles, and History as primary destinations.
 - **Acceptance criteria:** Benchmark becomes Check DNS and is the default; Game Ping is
-  a preset; History becomes Results; Custom DNS becomes Profiles; Publish, capability
+  a preset; results remain in Check DNS; Custom DNS becomes Profiles; Publish, capability
   matrix, platform rows, validation evidence, and raw catalog are absent from release
   navigation but remain available through CLI/docs or development diagnostics.
 - **Risks:** losing internal QA visibility or deep links from menu-bar actions.

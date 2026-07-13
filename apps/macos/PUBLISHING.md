@@ -100,11 +100,15 @@ batched once.
    - Provisioning profile for `com.dnspilot.mac`.
 
 3. Confirm entitlements.
-   - Required now: App Sandbox and outbound network client.
+   - Required now: App Sandbox, outbound network client, and incoming UDP response
+     traffic for direct DNS checks.
    - Current template: `apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements`.
    - Privacy manifest: `apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy`.
      It declares no tracking, no collected data, and UserDefaults reason
      `CA92.1` for app-local settings.
+   - The Store-safe app also enables incoming network traffic solely because a
+     UDP DNS client must receive resolver replies on its ephemeral local socket.
+     State this in App Review notes; it does not expose a persistent listener.
    - Do not include Power/admin behavior in the App Store edition.
    - If Apple NetworkExtension DNS Settings is added later, request/verify the
      entitlement before submitting.
@@ -145,6 +149,8 @@ Expected:
    - Start from `apps/macos/AppStoreConnect/README.md`.
    - Support page draft: `apps/macos/AppStoreConnect/SupportPage.md`.
    - Privacy policy draft: `apps/macos/AppStoreConnect/PrivacyPolicy.md`.
+   - Build deploy-ready pages with `./script/build_app_store_site.sh` after the
+     public support email and HTTPS URL are known.
    - Explain DNS benchmarking and connection-path estimates.
    - State that the app does not claim full internet speed improvement.
    - State that store builds do not silently change system DNS.

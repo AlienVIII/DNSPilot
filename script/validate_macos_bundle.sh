@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_BUNDLE="$ROOT_DIR/dist/DNSPilotMac.app"
 APP_NAME="DNSPilotMac"
 PRODUCT_NAME="DNS Pilot"
+EXPECTED_APP_CATEGORY="public.app-category.utilities"
 CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
 APP_VERSION_PATTERN='^[0-9]+(\.[0-9]+){1,2}$'
@@ -145,6 +146,13 @@ else
   fail "CFBundleDisplayName expected $PRODUCT_NAME, got ${bundle_display_name:-missing}"
 fi
 
+app_category="$(plist_value "$INFO_PLIST" "LSApplicationCategoryType")"
+if [[ "$app_category" == "$EXPECTED_APP_CATEGORY" ]]; then
+  pass "LSApplicationCategoryType is $EXPECTED_APP_CATEGORY"
+else
+  fail "LSApplicationCategoryType expected $EXPECTED_APP_CATEGORY, got ${app_category:-missing}"
+fi
+
 bundle_icon_file="$(plist_value "$INFO_PLIST" "CFBundleIconFile")"
 if [[ "$bundle_icon_file" == "AppIcon.icns" ]]; then
   pass "CFBundleIconFile is AppIcon.icns"
@@ -221,9 +229,9 @@ else
 fi
 
 if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.server"; then
-    pass "store entitlements allow local UDP socket binding"
+    pass "store entitlements allow incoming UDP DNS responses"
 else
-    fail "store entitlements must allow local UDP socket binding for direct DNS checks"
+    fail "store entitlements must allow incoming UDP DNS responses for direct DNS checks"
 fi
 
 if [[ -f "$HELPER_ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$HELPER_ENTITLEMENTS_TEMPLATE" >/dev/null; then

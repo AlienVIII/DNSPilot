@@ -63,10 +63,11 @@ research establish demand.
 - **Trade-offs:** keeping everything aids development but harms comprehension; an
   Advanced area still adds product weight; removing release-only surfaces gives the
   clearest product while preserving evidence outside the consumer UI.
-- **Recommendation:** the release UI has three primary areas: `Check DNS`, `Results`,
-  and `Profiles`. Game targets become benchmark presets. Publishing, capability matrix,
-  validation evidence, catalog internals, and platform parity stay in CLI/docs or a
-  development-only diagnostics surface.
+- **Recommendation:** the release UI has three primary areas: `Check DNS`, `Profiles`,
+  and `History`; results remain within the Check DNS decision flow. Game targets become
+  benchmark presets. Publishing, capability matrix, validation evidence, catalog
+  internals, and platform parity stay in CLI/docs or a development-only diagnostics
+  surface.
 - **Reason:** commercial users buy a trustworthy decision loop, not an implementation
   dashboard.
 - **Confidence:** High.
@@ -87,7 +88,7 @@ research establish demand.
 - **Confidence:** High; cold launch and repeated menu `Benchmark`/`Run Quick Test`
   actions each verified one AX window.
 
-### D3: Power DNS Rollback
+### D5: Power DNS Rollback
 
 - **Problem:** Power Apply changes the active macOS network service but currently
   does not retain a service-scoped rollback record. The existing guided-apply

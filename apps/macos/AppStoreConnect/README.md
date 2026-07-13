@@ -56,6 +56,11 @@ DNS Pilot benchmarks public DNS resolvers and saved domain suites using outbound
 network requests initiated by the user. The Mac App Store edition does not run
 privileged helper actions and does not silently mutate system DNS.
 
+The App Sandbox enables outgoing connections and incoming UDP response traffic.
+DNS Pilot uses the latter only to receive replies on an ephemeral local UDP socket
+for user-initiated direct DNS lookups; it does not run a persistent listener or
+accept inbound product connections.
+
 To review:
 
 1. Launch the app.
@@ -103,6 +108,15 @@ Draft page sources:
 
 - Support page: `apps/macos/AppStoreConnect/SupportPage.md`
 - Privacy policy: `apps/macos/AppStoreConnect/PrivacyPolicy.md`
+- Deploy-ready static pages: `apps/macos/AppStoreConnect/site/`
+
+Build pages with the final public email and HTTPS URL:
+
+```bash
+DNSPILOT_SUPPORT_EMAIL="support@example.com" \
+DNSPILOT_SITE_URL="https://example.com/dns-pilot" \
+./script/build_app_store_site.sh
+```
 
 Before submission, replace contact placeholders and host these pages at the
 public support/privacy URLs used in App Store Connect.

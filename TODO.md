@@ -27,6 +27,8 @@ Last reviewed: 2026-07-13.
   page drafts, and a moderated usability script.
 - [x] Add a bundled 1024px app icon and validate its Info.plist/Resources contract
   for both Store-safe and Power builds.
+- [x] Prepare deploy-ready static support/privacy pages and validate their final
+  rendered form with supplied contact/HTTPS URL inputs.
 - [ ] Complete App Store Connect with hosted support/privacy URLs, signed-release
   screenshots, final privacy answers, and review notes.
 - [ ] Perform Store-safe manual review smoke, then upload for review.
