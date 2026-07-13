@@ -22,7 +22,11 @@ public sealed record CatalogProfile(
 public sealed record CatalogTestSuite(
     string Id,
     string Name,
-    IReadOnlyList<string> Domains);
+    IReadOnlyList<string> Domains)
+{
+    public string Description { get; init; } = "";
+    public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+}
 
 public sealed record CatalogSnapshot(
     IReadOnlyList<CatalogProfile> Profiles,

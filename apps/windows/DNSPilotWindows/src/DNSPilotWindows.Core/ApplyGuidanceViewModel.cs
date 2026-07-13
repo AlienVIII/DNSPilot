@@ -66,6 +66,11 @@ public sealed class ApplyGuidanceViewModel
 
     public static ApplyGuidanceViewModel FromPlan(ApplyPlan plan)
     {
+        if (plan.Decision is ApplyDecision.Protect or ApplyDecision.Block)
+        {
+            return ProtectedPlan(plan);
+        }
+
         var copyableDnsServers = string.Join("\r\n", plan.DnsServers);
         var checklist = string.Join(
             Environment.NewLine,
@@ -106,6 +111,40 @@ public sealed class ApplyGuidanceViewModel
                     WindowsDisplayText.Text("Copy the manual apply and retest checklist.", "Sao chép checklist áp dụng thủ công và kiểm tra lại.")),
             },
             copyableDnsServers,
+            checklist);
+    }
+
+    private static ApplyGuidanceViewModel ProtectedPlan(ApplyPlan plan)
+    {
+        var reason = string.IsNullOrWhiteSpace(plan.Guidance)
+            ? WindowsDisplayText.Text(
+                "Protected network signals are active; avoid DNS apply prompts.",
+                "Đang có tín hiệu protected network; tránh hiển thị apply DNS.")
+            : plan.Guidance;
+        var checklist = string.Join(
+            Environment.NewLine,
+            new[]
+            {
+                WindowsDisplayText.Text("Protected network guidance", "Hướng dẫn protected network"),
+                WindowsDisplayText.Text("Keep current DNS settings.", "Giữ DNS hiện tại."),
+                reason,
+                WindowsDisplayText.Text(
+                    "Do not copy DNS servers or open apply settings until protected-network signals clear.",
+                    "Không sao chép DNS server hoặc mở cài đặt apply cho đến khi hết tín hiệu protected-network."),
+                WindowsDisplayText.Text("Run System DNS validation only when the network is safe to retest.", "Chỉ chạy kiểm tra DNS hệ thống khi mạng an toàn để kiểm tra lại."),
+            });
+
+        return new ApplyGuidanceViewModel(
+            plan,
+            WindowsSettingsUri.NetworkAdvancedSettings,
+            new[]
+            {
+                new ApplyActionDescriptor(
+                    ApplyActionKind.CopyChecklist,
+                    WindowsDisplayText.Text("Copy protected-network checklist", "Sao chép checklist protected-network"),
+                    WindowsDisplayText.Text("Copy the reason DNS apply prompts are suppressed.", "Sao chép lý do prompt apply DNS đang bị ẩn.")),
+            },
+            "",
             checklist);
     }
 }

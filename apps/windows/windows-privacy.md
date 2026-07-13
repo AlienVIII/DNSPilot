@@ -27,7 +27,7 @@ DNS Pilot benchmarks DNS resolver performance, gives store-safe apply guidance, 
 The app sends DNS queries and TCP connection probes to the resolvers and benchmark domains selected by the app configuration or the user. Those external resolvers and target services may observe network metadata such as source IP address and query timing according to their own policies.
 
 ## Local Storage And Retention
-Custom profiles and benchmark history are stored locally on the user's Windows device through the DNS Pilot CLI-backed storage path. The user can delete custom profiles and clear/delete history from the app UI. Uninstalling the app or deleting its local data may remove this data depending on Windows package storage behavior.
+Custom profiles, custom domain suites, and benchmark history are stored locally on the user's Windows device through the DNS Pilot CLI-backed storage path. The user can delete custom profiles, delete custom suites, and clear/delete history from the app UI. Uninstalling the app or deleting its local data may remove this data depending on Windows package storage behavior.
 
 ## User Control
 - The Store-safe app guides DNS changes through Windows Settings.

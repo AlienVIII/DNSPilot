@@ -12,6 +12,7 @@ public sealed class WindowsShellViewModel
         PlatformCapability storePlatformCapability,
         PlatformCapability powerPlatformCapability,
         IReadOnlyList<ProfileManagementRow> profileRows,
+        IReadOnlyList<SuiteManagementRow> suiteRows,
         IReadOnlyList<BenchmarkHistoryRow> historyRows)
     {
         DatabasePath = databasePath;
@@ -23,6 +24,7 @@ public sealed class WindowsShellViewModel
         StorePlatformCapability = storePlatformCapability;
         PowerPlatformCapability = powerPlatformCapability;
         ProfileRows = profileRows;
+        SuiteRows = suiteRows;
         HistoryRows = historyRows;
     }
 
@@ -35,6 +37,7 @@ public sealed class WindowsShellViewModel
     public PlatformCapability StorePlatformCapability { get; }
     public PlatformCapability PowerPlatformCapability { get; }
     public IReadOnlyList<ProfileManagementRow> ProfileRows { get; }
+    public IReadOnlyList<SuiteManagementRow> SuiteRows { get; }
     public IReadOnlyList<BenchmarkHistoryRow> HistoryRows { get; }
     public IReadOnlyList<BenchmarkProfileOptionRow> BenchmarkProfileOptions =>
         Catalog.Profiles
@@ -44,6 +47,14 @@ public sealed class WindowsShellViewModel
                 profile.Protocol,
                 CanBenchmark: profile.Protocol == DnsProtocol.Plain && (profile.Ipv4Servers.Count > 0 || profile.Ipv6Servers.Count > 0),
                 Detail: BenchmarkProfileDetail(profile)))
+            .ToArray();
+    public IReadOnlyList<BenchmarkSuiteOptionRow> BenchmarkSuiteOptions =>
+        Catalog.TestSuites
+            .Select(suite => new BenchmarkSuiteOptionRow(
+                suite.Id,
+                suite.Name,
+                DomainCount: suite.Domains.Count,
+                Detail: BenchmarkSuiteDetail(suite)))
             .ToArray();
 
     public IReadOnlyList<BenchmarkMode> AvailableBenchmarkModes { get; } = new[]
@@ -68,6 +79,7 @@ public sealed class WindowsShellViewModel
     };
 
     public IReadOnlyList<string> ProfileListCommand => ProfileManagementCommands.List(DatabasePath);
+    public IReadOnlyList<string> SuiteListCommand => SuiteManagementCommands.List(DatabasePath);
     public IReadOnlyList<string> HistoryListCommand => HistoryManagementCommands.List(DatabasePath);
     public WindowsCapabilityPolicy StorePolicy => WindowsCapabilityPolicy.StoreSafe;
     public WindowsCapabilityPolicy PowerPolicy => WindowsCapabilityPolicy.PowerEdition;
@@ -130,11 +142,16 @@ public sealed class WindowsShellViewModel
 
         var applyGuidance = ApplyGuidanceViewModel.FromPlan(
             new ApplyPlan(
-                ApplyDecision.Guide,
-                "Recommended DNS profile",
-                new[] { "1.1.1.1", "1.0.0.1" },
-                "1.1.1.1:53",
-                "Copy the measured DNS servers and apply them manually in Windows Settings."));
+                ApplyDecision.Block,
+                WindowsDisplayText.Text("Apply guidance unavailable", "Hướng dẫn apply chưa sẵn sàng"),
+                Array.Empty<string>(),
+                TestedResolver: null,
+                WindowsDisplayText.Text(
+                    "Loading DNS Pilot safety policy; apply actions stay disabled.",
+                    "Đang tải chính sách an toàn DNS Pilot; các thao tác apply vẫn bị tắt."))
+            {
+                Disposition = "loading-runtime-policy",
+            });
 
         return new WindowsShellViewModel(
             databasePath,
@@ -153,6 +170,7 @@ public sealed class WindowsShellViewModel
                 profile.Ipv4Servers,
                 profile.Ipv6Servers,
                 string.IsNullOrWhiteSpace(profile.UseCase) ? "built-in" : profile.UseCase)).ToArray(),
+            new SuiteManagementViewModel(catalog.TestSuites).Rows,
             Array.Empty<BenchmarkHistoryRow>());
     }
 
@@ -162,9 +180,10 @@ public sealed class WindowsShellViewModel
         CapabilityMatrix capabilities,
         ApplyPlan applyPlan,
         ProfileListPayload profileList,
+        SuiteListPayload suiteList,
         BenchmarkHistoryPayload history)
     {
-        var benchmarkCatalog = MergeProfilesForBenchmark(catalog, profileList);
+        var benchmarkCatalog = MergeSuitesForBenchmark(MergeProfilesForBenchmark(catalog, profileList), suiteList);
         var selectedProfiles = benchmarkCatalog.Profiles
             .Where(profile => profile.Protocol == DnsProtocol.Plain && profile.Ipv4Servers.Count > 0)
             .Take(3)
@@ -206,6 +225,7 @@ public sealed class WindowsShellViewModel
             capabilities.RequirePlatform(BenchmarkPlanViewModel.WindowsStorePlatformId),
             capabilities.RequirePlatform("windows-power"),
             new ProfileManagementViewModel(profileList).Rows,
+            new SuiteManagementViewModel(benchmarkCatalog.TestSuites).Rows,
             new BenchmarkHistoryViewModel(history, benchmarkCatalog).Rows);
     }
 
@@ -221,6 +241,7 @@ public sealed class WindowsShellViewModel
             StorePlatformCapability,
             PowerPlatformCapability,
             ProfileRows,
+            SuiteRows,
             HistoryRows);
     }
 
@@ -278,6 +299,38 @@ public sealed class WindowsShellViewModel
         return new CatalogSnapshot(profiles, catalog.TestSuites);
     }
 
+    private static CatalogSnapshot MergeSuitesForBenchmark(
+        CatalogSnapshot catalog,
+        SuiteListPayload suiteList)
+    {
+        var suites = new List<CatalogTestSuite>();
+        var indexById = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        void AddOrReplace(CatalogTestSuite suite)
+        {
+            if (indexById.TryGetValue(suite.Id, out var index))
+            {
+                suites[index] = suite;
+                return;
+            }
+
+            indexById[suite.Id] = suites.Count;
+            suites.Add(suite);
+        }
+
+        foreach (var suite in catalog.TestSuites)
+        {
+            AddOrReplace(suite);
+        }
+
+        foreach (var suite in suiteList.TestSuites)
+        {
+            AddOrReplace(suite);
+        }
+
+        return new CatalogSnapshot(catalog.Profiles, suites);
+    }
+
     private static string BenchmarkProfileDetail(CatalogProfile profile)
     {
         var serverCount = profile.Ipv4Servers.Count + profile.Ipv6Servers.Count;
@@ -290,6 +343,16 @@ public sealed class WindowsShellViewModel
         return WindowsDisplayText.Text(
             $"{protocol}, {serverCount} server(s), {source}",
             $"{protocol}, {serverCount} server, {source}");
+    }
+
+    private static string BenchmarkSuiteDetail(CatalogTestSuite suite)
+    {
+        var source = SuiteOwnershipPolicy.IsCustom(suite)
+                ? "custom"
+                : "built-in";
+        return WindowsDisplayText.Text(
+            $"{suite.Domains.Count} domain(s), {source}",
+            $"{suite.Domains.Count} domain, {source}");
     }
 }
 
@@ -306,6 +369,18 @@ public sealed record BenchmarkProfileOptionRow(
             ? Detail
             : WindowsDisplayText.Text("not benchmarkable in Store shell", "không benchmark được trong Store shell");
         return $"{Name} ({Id}) - {availability}";
+    }
+}
+
+public sealed record BenchmarkSuiteOptionRow(
+    string Id,
+    string Name,
+    int DomainCount,
+    string Detail)
+{
+    public override string ToString()
+    {
+        return $"{Name} ({Id}) - {Detail}";
     }
 }
 

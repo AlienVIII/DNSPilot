@@ -8,7 +8,8 @@ public sealed record BenchmarkControlSelection(
     int DnsTimeoutMs,
     int TcpTimeoutMs,
     int TcpTargetsPerDomain,
-    IReadOnlyList<string>? SelectedProfileIds = null);
+    IReadOnlyList<string>? SelectedProfileIds = null,
+    string? SelectedSuiteId = null);
 
 public static class BenchmarkControlPlanFactory
 {
@@ -58,7 +59,7 @@ public static class BenchmarkControlPlanFactory
         return new BenchmarkPlanViewModel(
             catalog,
             selectedProfiles,
-            selectedSuiteId: catalog.TestSuites.FirstOrDefault()?.Id,
+            selectedSuiteId: SelectedSuiteId(catalog, selection.SelectedSuiteId),
             customDomains: Array.Empty<string>(),
             attempts: Math.Max(1, selection.Attempts),
             dnsTimeoutMs: Math.Max(1, selection.DnsTimeoutMs),
@@ -92,5 +93,17 @@ public static class BenchmarkControlPlanFactory
             .Where(profileId => plainProfileIds.Contains(profileId))
             .Where(profileId => seen.Add(profileId))
             .ToArray();
+    }
+
+    private static string? SelectedSuiteId(CatalogSnapshot catalog, string? selectedSuiteId)
+    {
+        if (selectedSuiteId is null)
+        {
+            return catalog.TestSuites.FirstOrDefault()?.Id;
+        }
+
+        return catalog.TestSuites.Any(suite => suite.Id == selectedSuiteId)
+            ? selectedSuiteId
+            : catalog.TestSuites.FirstOrDefault()?.Id;
     }
 }
