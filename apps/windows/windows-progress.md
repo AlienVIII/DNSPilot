@@ -8,6 +8,11 @@ custom domain suites, localization, single-project MSIX scaffolding, and tray
 models are implemented.
 Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 
+Cross-lane pre-development review is complete. The next work is selective
+consumer/release hardening, ordered in
+`apps/windows/windows-predevelopment-review.md`; it does not reopen the
+Store/Power architecture boundary.
+
 ## Requirement Coverage
 
 - `.NET` solution under `apps/windows/DNSPilotWindows` with
@@ -70,6 +75,8 @@ Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 
 ## Source Of Truth
 
+- Next development roadmap and cross-lane evidence:
+  `apps/windows/windows-predevelopment-review.md`.
 - Critique and Store risk: `apps/windows/windows-self-review.md`.
 - Publish steps: `apps/windows/windows-publish.md`.
 - Privacy/listing source: `apps/windows/windows-privacy.md` and

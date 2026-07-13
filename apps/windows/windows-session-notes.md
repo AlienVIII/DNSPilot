@@ -15,6 +15,13 @@
 - Baseline Store logo/tile/splash PNG assets now exist; replace only if final branding changes.
 - Privacy policy draft, Store listing copy, support copy, and certification notes live in `windows-privacy.md` and `windows-store-listing.md`.
 - Packaged helper path is explicit: copy `dnspilot-cli.exe` beside `DNSPilotWindows.App.csproj`; the app project copies it to output when present.
+- Cross-lane review selected selective parity plus release proof. Keep the CLI
+  helper boundary; port consumer IA, readiness, cancellation, result safety,
+  responsive/accessibility, preferences, and package evidence in that order.
+- The complete Store workflow must remain available from the main window. Tray
+  is optional and cannot be a release dependency.
+- In-process Rust is deferred unless packaged-helper or Store evidence rejects
+  the current architecture.
 
 ## Context
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
@@ -49,6 +56,8 @@
 - Partner Center must approve/accept `runFullTrust` for the packaged desktop shell/helper/tray model.
 - CLI-returned free-text notes/errors may still be English until CLI payloads expose stable message IDs or localized display fields.
 - Confirm NotifyIcon behavior in packaged Store context during Windows QA.
+- Core should expose locale-neutral runtime/schema metadata and stable message
+  IDs; requests are recorded in `windows-core-cli-request.md`.
 
 ## Handoff
 - Keep lane changes in `apps/windows/**`.
@@ -56,3 +65,7 @@
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
 - Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
+- Start the next engineering session at Milestone 0 in
+  `windows-predevelopment-review.md`; use TDD and commit each verified milestone.
+- Root `STATE.md` and `TODO.md` are stale relative to Windows commit `bad68e1f`.
+  Refresh them from an integration/docs lane; do not widen Windows ownership.
