@@ -70,3 +70,11 @@ test("primary option labels are localized for Vietnamese real-device checks", ()
   assert.equal(t("platform.android"), "Android");
   assert.equal(t("storage.filtering.family"), "Gia đình");
 });
+
+test("consumer navigation and quick-check labels are localized", () => {
+  const t = createTranslator("vi");
+
+  assert.equal(t("tabs.checkDns"), "Kiểm tra DNS");
+  assert.equal(t("tabs.profiles"), "Profile");
+  assert.equal(t("check.runQuick"), "Kiểm tra nhanh");
+});

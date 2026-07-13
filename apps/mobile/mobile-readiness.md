@@ -1,9 +1,9 @@
 # Mobile Readiness
 
 ## Main Goal Checklist
-- Benchmark/recommendation UI: covered through foreground native Rust jobs,
-  result summary, recommendation JSON, diagnostics, resolver progress, and copy
-  report.
+- Consumer UI: covered by stable Check DNS, Profiles, and History tabs. Check
+  DNS defaults to a foreground DNS-only quick check and exposes DNS + TCP and
+  current resolver validation under Advanced options.
 - DNS-only, DNS+TCP, and system resolver validation: covered by compare,
   path-compare, benchmark, path-estimate, and system-benchmark modes.
 - Per-step/per-resolver process UI: covered by prepare, DNS, TCP, TLS, save,
@@ -16,13 +16,13 @@
   protected-network suppression, one-tap copy-and-open OS settings actions, and
   native Open Settings actions.
 - Native encrypted-DNS flow: covered by a local Expo module around
-  `NEDNSSettingsManager`, an Expo config plugin for the `dns-settings`
-  NetworkExtension entitlement, bootstrap IP fields, install/remove/status UI,
-  and an explicit iOS user-enable instruction.
-- Native-style access prompt: covered on app open with native foreground network
-  access checks, OS-gated DNS apply status, iOS App Settings, Android Private
-  DNS/network Settings, in-sheet System DNS retest, and explicit DNS flush
-  unsupported status.
+  `NEDNSSettingsManager`, but only in the opt-in `production-ios-dns` profile.
+  Default Store builds omit the `dns-settings` entitlement and present guided
+  setup only. An entitled build retains bootstrap IP validation, install/remove
+  status, and explicit iOS user enablement.
+- System setup: no app-open permission sheet. Check DNS has a top-right help
+  entry, and setup opens only from an evidence-backed result. Android opens
+  Private DNS/network Settings; both platforms show DNS flush as unsupported.
 - Tablet layouts: covered by shared adaptive layout helpers, two-column flows on
   wide screens, and unlocked orientation for native portrait/landscape checks.
 - IPv4/IPv6 and A/AAAA controls: covered by benchmark IP-family controls and
@@ -64,7 +64,7 @@
   core payload contracts do not diverge across development and release builds.
 - Guided settings is intentionally conservative. It may feel less powerful than
   desktop DNS switching, but that is the correct consumer mobile policy stance.
-- An entitled iOS/iPadOS build can install a DoH/DoT DNS Settings configuration
+- The opt-in entitled iOS/iPadOS build can install a DoH/DoT DNS Settings configuration
   with `NEDNSSettingsManager`; the user must still explicitly enable it in
   Settings. Plain DNS remains guide-only. Android Private DNS cannot be
   silently mutated, and neither consumer OS can flush system DNS cache.
@@ -88,32 +88,31 @@
 1. Build/install an iOS or Android development binary. Run `npm run
    native:prepare:ios` or `npm run native:prepare:android` first; no bridge is
    needed for the installed app.
-2. Open the app: confirm System Access appears. iOS native runtime must show
-   normal foreground network access, not a Local Network bridge requirement.
-   Android must offer Private DNS/network Settings with no dangerous runtime
-   permission prompt.
-3. Overview: switch Auto/English/Tiếng Việt, restart, and confirm the language
-   preference persists. Confirm profiles/suites/capabilities/history load while
-   offline from a developer Mac.
-4. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare,
-   Path Compare, Single DNS, Single Path, and System DNS. Confirm foreground
-   job status, resolver rows, final result, failure reason, and Copy report.
-5. Guided settings: tap Apply in OS DNS settings / Prepare DNS profile/settings.
+2. Open **Check DNS**: no permission sheet appears. Open the top-right help
+   entry; iOS describes normal foreground access and Android describes Private
+   DNS guidance, with no dangerous runtime permission prompt.
+3. Check DNS: choose General, Vietnam, or a gaming target; run Quick Check,
+   DNS + TCP, and current System DNS validation. Confirm per-step/resolver
+   status, failure reason, result, details, and Copy report.
+4. Result: confirm Fastest observed is separate from the balanced
+   recommendation and weak results say Keep current DNS. The sole setup button
+   must appear only for a healthy, confident recommendation.
+5. Guided settings: tap Set up DNS from a recommendation.
    Expected behavior: DNS values are copied and Settings opens; no silent DNS
    mutation occurs. Tap Retest System DNS after returning.
-6. Storage: add/update/delete plain, DoH, DoT profiles and domain suites; confirm
+6. Profiles: add/update/delete plain, DoH, DoT profiles and domain suites; confirm
    invalid forms are disabled before native action calls.
-7. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
-   switches to protect-current-dns when required.
+7. History: confirm a saved recommendation says Retest before setup and returns
+   to Check DNS instead of applying a stale result.
 8. Tablet: rotate iPad and Android tablet portrait/landscape and validate the
    layout stays multi-column, not a stretched phone view.
 9. Accessibility: with VoiceOver/TalkBack enabled, confirm buttons, segmented
    choices, switches, inputs, and selected chips announce their label and state.
-10. iOS native DoH/DoT: in Storage add a DoH or DoT profile with a valid
-    endpoint and one or more bootstrap IPv4/IPv6 addresses. In Policy select
-    iOS, select the encrypted profile, tap Install iOS DNS Settings, then open
+10. iOS native DoH/DoT: build the opt-in `production-ios-dns` profile. In
+    Profiles add a DoH or DoT profile with a valid endpoint and one or more
+    bootstrap IPv4/IPv6 addresses, tap Install iOS DNS Settings, then open
     Settings > General > VPN & Device Management > DNS and enable DNSPilot.
-    Return to Policy, tap Refresh DNS status, and expect Installed + Enabled.
+    Return to Profiles, tap Refresh DNS status, and expect Installed + Enabled.
     Remove must return Installed to off. This needs an installable build signed
     with the `dns-settings` NetworkExtension capability; Expo Go cannot test it.
 
@@ -131,13 +130,9 @@
 - `rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true`
 - `npm test`
 - `npm run typecheck`
-- `npx expo export --platform web`
+- `npm run verify:router` (fails on unresolved Expo Router route warnings)
 - `git diff --check`
 
 Current iOS local smoke status: Debug build passed on `iPhone 17e` with iOS
-26.5. Because port 8081 was already owned by another process, app UI smoke used
-`npm run start:dev-client` on port 8082 after install/launch and confirmed the
-first-open System Access sheet by screenshot. A production Release simulator
-build was then installed with `simctl` and launched without the dev-client
-launcher; screenshot confirmed the first-open System Access sheet from the
-standalone app bundle.
+26.5. Re-run simulator UI smoke for the current Check DNS / Profiles / History
+consumer shell before release submission.

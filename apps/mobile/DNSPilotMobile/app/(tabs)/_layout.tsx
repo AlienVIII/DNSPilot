@@ -7,7 +7,9 @@ import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 
 const icons = {
-  index: { ios: 'speedometer', android: 'speed', web: 'speed' },
+  index: { ios: 'checkmark.circle', android: 'check_circle', web: 'check_circle' },
+  profiles: { ios: 'slider.horizontal.3', android: 'tune', web: 'tune' },
+  history: { ios: 'clock.arrow.circlepath', android: 'history', web: 'history' },
   benchmark: { ios: 'chart.xyaxis.line', android: 'query_stats', web: 'query_stats' },
   catalog: { ios: 'list.bullet.rectangle', android: 'list', web: 'list' },
   storage: { ios: 'externaldrive', android: 'storage', web: 'storage' },
@@ -35,36 +37,46 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: t('tabs.overview'),
+          title: t('tabs.checkDns'),
           tabBarIcon: ({ color }) => <TabIcon name="index" color={String(color)} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profiles"
+        options={{
+          title: t('tabs.profiles'),
+          tabBarIcon: ({ color }) => <TabIcon name="profiles" color={String(color)} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: t('tabs.history'),
+          tabBarIcon: ({ color }) => <TabIcon name="history" color={String(color)} />,
         }}
       />
       <Tabs.Screen
         name="benchmark"
         options={{
-          title: t('tabs.benchmark'),
-          tabBarIcon: ({ color }) => <TabIcon name="benchmark" color={String(color)} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="catalog"
         options={{
-          title: t('tabs.catalog'),
-          tabBarIcon: ({ color }) => <TabIcon name="catalog" color={String(color)} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="storage"
         options={{
-          title: t('tabs.storage'),
-          tabBarIcon: ({ color }) => <TabIcon name="storage" color={String(color)} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="policy"
         options={{
-          title: t('tabs.policy'),
-          tabBarIcon: ({ color }) => <TabIcon name="policy" color={String(color)} />,
+          href: null,
         }}
       />
     </Tabs>

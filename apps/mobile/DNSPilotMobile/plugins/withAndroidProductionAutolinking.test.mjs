@@ -71,8 +71,25 @@ test("dynamic app config preserves Expo-provided app.json values", () => {
   assert.deepEqual(config.plugins, [
     "expo-router",
     "./plugins/withAndroidProductionAutolinking.cjs",
-    "./plugins/withIosDnsSettings.cjs",
   ]);
+});
+
+test("DNS Settings entitlement is enabled only for the explicit iOS capability profile", () => {
+  const previous = process.env.EAS_BUILD_PROFILE;
+  try {
+    process.env.EAS_BUILD_PROFILE = "production";
+    const storeConfig = appConfig();
+    assert.doesNotMatch(storeConfig.plugins.join("\n"), /withIosDnsSettings/);
+    assert.equal(storeConfig.extra.iosDnsSettingsEnabled, false);
+
+    process.env.EAS_BUILD_PROFILE = "production-ios-dns";
+    const entitledConfig = appConfig();
+    assert.match(entitledConfig.plugins.join("\n"), /withIosDnsSettings/);
+    assert.equal(entitledConfig.extra.iosDnsSettingsEnabled, true);
+  } finally {
+    if (previous === undefined) delete process.env.EAS_BUILD_PROFILE;
+    else process.env.EAS_BUILD_PROFILE = previous;
+  }
 });
 
 test("production config removes the Local Network bridge declaration", () => {

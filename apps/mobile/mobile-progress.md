@@ -6,30 +6,27 @@ The mobile lane is a standalone Expo native app. Local Expo modules call a Rust
 adapter around `dnspilot-core` for catalog, policy, profile/suite/history,
 recommendation, DNS-only, DNS+TCP/TLS, and system-resolver actions. The Node
 bridge remains an Expo Go/web development fallback only. Android debug builds
-compile on SDK 57, and iOS Simulator Debug plus production Release
-build/install/launch smoke passes with Xcode 26.6 + iOS 26.5 runtime.
+compile on SDK 57. Production iOS entitlement generation, Android release
+assembly, and the current iOS Simulator consumer UI are validated locally.
 
 ## Requirement Coverage
 
-- Expo/React Native shell with Overview, Benchmark, Catalog, Storage, and Policy
-  tabs.
+- Consumer shell with Check DNS, Profiles, and History tabs. Internal routes
+  are hidden from tab navigation.
 - Native Rust runtime preserves the JSON shell contract of the shared core;
   installable native builds do not call the Node bridge.
 - Benchmark UI covers DNS-only, DNS+TCP/TLS, and system-DNS validation with
   foreground native jobs, resolver rows, failure details, and copyable reports.
 - Guided settings covers iOS/iPadOS profile/settings guidance and Android
   settings/Private DNS guidance without silent DNS mutation or VpnService.
-- First-open System Access prompt covers native foreground network access,
-  OS-gated DNS apply, iOS App Settings, Android Private DNS/network
-  Settings, in-sheet System DNS retest, and explicit DNS flush unsupported
-  status.
-- Overview now has a top-right setup Help button; System Access rows use short
-  title/status copy with per-row info expansion for detailed policy text.
+- No app-open permission sheet. Check DNS has a top-right help entry; settings
+  guidance begins only from a healthy, confident recommendation.
 - Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
   validation, and custom tag preservation.
 - iOS/iPadOS has a native `NEDNSSettingsManager` module for installing/removing
-  user-approved DoH/DoT DNS Settings configurations with bootstrap IPs; iOS
-  still requires the user to enable the configuration in Settings.
+  user-approved DoH/DoT DNS Settings configurations with bootstrap IPs. The
+  default Store profile omits its entitlement; `production-ios-dns` gates the
+  capability pending Apple approval and signed-device validation.
 - Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,
   Default/Vietnam quick picks, and English/Vietnamese localization are
   implemented.
@@ -40,9 +37,8 @@ build/install/launch smoke passes with Xcode 26.6 + iOS 26.5 runtime.
   VoiceOver/TalkBack real-device checks.
 - Native build path is smoke-tested locally with Android `assembleDebug`; the
   app is on Expo SDK 57 / React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26. iOS
-  Simulator Debug and production Release build/install/launch are smoke-tested
-  on an iOS 26.5 simulator.
+  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26. The Store
+  iOS prebuild has no DNS Settings entitlement; the opt-in profile adds it.
 - Native system appearance metadata is backed by `expo-system-ui`, so Expo
   prebuild no longer warns about `userInterfaceStyle`.
 - EAS development builds include `expo-dev-client`; the local real-device
@@ -63,16 +59,15 @@ build/install/launch smoke passes with Xcode 26.6 + iOS 26.5 runtime.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
 - `npx expo install --check`: pass with `expo-dev-client`.
 - `npx expo-doctor@latest`: pass.
-- `npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache`:
-  build pass. The app was installed/launched with `simctl`, then loaded through
-  `npm run start:dev-client` on port 8082; screenshot confirmed the first-open
-  System Access sheet.
-- `npx expo prebuild --clean --platform ios` plus direct `xcodebuild`
-  Simulator build on `iPhone 17e` with iOS 26.5: pass after production
-  autolinking guards were added.
-- `EAS_BUILD_PROFILE=production xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Release -sdk iphonesimulator -destination 'id=DD41C6AF-ED3D-4B44-AC21-1F7FC1B8204D' CODE_SIGNING_ALLOWED=NO build -quiet`:
-  pass; installed with `simctl` and screenshot confirmed the standalone app
-  opens directly into the first-open System Access sheet.
+- `npm run verify:router`: runs Expo web export and fails on unresolved Expo
+  Router routes; added after a false-green `profiles` warning.
+- `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform ios
+  --no-install`: pass; generated entitlement plist is empty as required for the
+  default Store build. The opt-in config has the DNS Settings plugin and flag.
+- `EAS_BUILD_PROFILE=production xcodebuild ... -configuration Release ...`:
+  current bundle built, installed, launched, and was visually checked on an
+  iPhone 17e simulator. It opens Check DNS directly with the three consumer
+  tabs and no permission modal.
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:
   pass with SDK 36/JDK 17.
 - `EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:assembleRelease`:

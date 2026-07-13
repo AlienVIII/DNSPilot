@@ -30,6 +30,13 @@ export function buildQuickCheck({ profiles = [], suites = [], platform = "ios", 
   };
 }
 
+export function buildCheckEntryState({ nativeRuntime = false } = {}) {
+  return {
+    showsSystemAccessSheet: false,
+    showsBridgeConfiguration: !nativeRuntime,
+  };
+}
+
 export function quickCheckPresets(suites = []) {
   return presetDefinitions.flatMap((definition) => {
     const suite = suiteForDefinition(suites, definition);

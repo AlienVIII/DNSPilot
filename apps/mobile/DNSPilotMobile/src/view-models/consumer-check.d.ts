@@ -28,3 +28,8 @@ export function buildQuickCheck(input?: {
 }): QuickCheck;
 
 export function quickCheckPresets(suites?: Suite[]): QuickCheckPreset[];
+
+export function buildCheckEntryState(input?: { nativeRuntime?: boolean }): {
+  showsSystemAccessSheet: false;
+  showsBridgeConfiguration: boolean;
+};

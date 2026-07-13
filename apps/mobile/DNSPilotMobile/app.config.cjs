@@ -11,12 +11,21 @@ function shouldIncludeDevClient() {
   return profile === "" || profile === "development";
 }
 
+function shouldEnableIosDnsSettings() {
+  const profile = process.env.EAS_BUILD_PROFILE ?? "";
+  return process.env.DNSPILOT_IOS_DNS_SETTINGS === "1" || profile === "production-ios-dns";
+}
+
 function pluginsForProfile(sourcePlugins = []) {
   const plugins = sourcePlugins.filter((plugin) => {
     const name = Array.isArray(plugin) ? plugin[0] : plugin;
     return shouldIncludeDevClient() || name !== "expo-dev-client";
   });
-  return [...plugins, "./plugins/withAndroidProductionAutolinking.cjs", "./plugins/withIosDnsSettings.cjs"];
+  const platformPlugins = ["./plugins/withAndroidProductionAutolinking.cjs"];
+  if (shouldEnableIosDnsSettings()) {
+    platformPlugins.push("./plugins/withIosDnsSettings.cjs");
+  }
+  return [...plugins, ...platformPlugins];
 }
 
 function iosForProfile(sourceIos = {}) {
@@ -37,7 +46,12 @@ module.exports = ({ config } = {}) => {
     ...sourceConfig,
     ios: iosForProfile(sourceConfig.ios),
     plugins: pluginsForProfile(sourceConfig.plugins ?? []),
+    extra: {
+      ...(sourceConfig.extra ?? {}),
+      iosDnsSettingsEnabled: shouldEnableIosDnsSettings(),
+    },
   };
 };
 
 module.exports.shouldIncludeDevClient = shouldIncludeDevClient;
+module.exports.shouldEnableIosDnsSettings = shouldEnableIosDnsSettings;

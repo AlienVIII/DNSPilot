@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildQuickCheck, quickCheckPresets } from "./consumer-check.js";
+import { buildCheckEntryState, buildQuickCheck, quickCheckPresets } from "./consumer-check.js";
 
 const profiles = [
   { id: "cloudflare", protocol: "plain" },
@@ -50,4 +50,11 @@ test("quick check exposes only catalog-supported consumer presets", () => {
     quickCheckPresets(suites).map((preset) => preset.id),
     ["general", "vietnam-daily", "gaming-dota2-sea"]
   );
+});
+
+test("native Check DNS entry does not show a system settings sheet before user requests setup", () => {
+  assert.deepEqual(buildCheckEntryState({ nativeRuntime: true }), {
+    showsSystemAccessSheet: false,
+    showsBridgeConfiguration: false,
+  });
 });
