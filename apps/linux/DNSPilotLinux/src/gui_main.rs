@@ -12,14 +12,16 @@ use dnspilot_linux_shell::executable::{
 };
 use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, NativeAppSectionKind};
+use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_apply_plan};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
 use dnspilot_linux_shell::process::{
     process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus,
 };
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
 use dnspilot_linux_shell::settings::{
-    dns_record_family_controls, resolver_address_family_controls, settings_actions,
-    DnsRecordFamily, ResolverAddressFamily,
+    build_guided_settings_plan, dns_record_family_controls, render_guided_settings_plan,
+    resolver_address_family_controls, settings_actions, DnsRecordFamily, ResolverAddressFamily,
+    SettingsActionKind,
 };
 use dnspilot_linux_shell::storage::FileProfileRepository;
 use dnspilot_linux_shell::suites::default_suite_catalog;
@@ -67,6 +69,8 @@ struct DnsPilotGui {
     profile_ipv4: String,
     profile_ipv6: String,
     store_path: String,
+    settings_profile_id: String,
+    settings_output: String,
 }
 
 impl DnsPilotGui {
@@ -79,6 +83,10 @@ impl DnsPilotGui {
             mark_setup_tutorial_seen(&setup_seen_path);
         }
         let profiles = load_or_seed_profiles(&store_path);
+        let settings_profile_id = profiles
+            .first()
+            .map(|profile| profile.id.clone())
+            .unwrap_or_default();
         let selected_profile_ids = profiles.iter().map(|profile| profile.id.clone()).collect();
         let selected_suite_id = default_suite_catalog(true)
             .first()
@@ -111,6 +119,8 @@ impl DnsPilotGui {
             profile_ipv4: String::new(),
             profile_ipv6: String::new(),
             store_path,
+            settings_profile_id,
+            settings_output: String::new(),
         }
     }
 
@@ -146,6 +156,13 @@ impl DnsPilotGui {
         match result {
             Ok(()) => {
                 self.profiles = store.list().to_vec();
+                if self.settings_profile_id.is_empty() {
+                    self.settings_profile_id = self
+                        .profiles
+                        .first()
+                        .map(|profile| profile.id.clone())
+                        .unwrap_or_default();
+                }
                 if let Err(error) = FileProfileRepository::new(self.store_path.clone())
                     .save_profiles(&self.profiles)
                 {
@@ -165,6 +182,13 @@ impl DnsPilotGui {
         if store.delete(profile_id) {
             self.profiles = store.list().to_vec();
             self.selected_profile_ids.retain(|id| id != profile_id);
+            if self.settings_profile_id == profile_id {
+                self.settings_profile_id = self
+                    .profiles
+                    .first()
+                    .map(|profile| profile.id.clone())
+                    .unwrap_or_default();
+            }
             if let Err(error) =
                 FileProfileRepository::new(self.store_path.clone()).save_profiles(&self.profiles)
             {
@@ -522,9 +546,104 @@ impl DnsPilotGui {
 
     fn settings_ui(&mut self, ui: &mut egui::Ui) {
         ui.heading(localized_text(TextKey::Settings, self.language));
+
+        let profiles = self.profiles.clone();
+        egui::ComboBox::from_label(localized_text(TextKey::Profiles, self.language))
+            .selected_text(
+                profiles
+                    .iter()
+                    .find(|profile| profile.id == self.settings_profile_id)
+                    .map(|profile| profile.name.as_str())
+                    .unwrap_or("No profile"),
+            )
+            .show_ui(ui, |ui| {
+                for profile in &profiles {
+                    ui.selectable_value(
+                        &mut self.settings_profile_id,
+                        profile.id.clone(),
+                        &profile.name,
+                    );
+                }
+            });
+
+        ui.horizontal_wrapped(|ui| {
+            for control in resolver_address_family_controls() {
+                ui.radio_value(&mut self.resolver_family, control.value, control.label)
+                    .on_hover_text(control.help_text);
+            }
+        });
+        ui.separator();
+
         for action in settings_actions(&self.capability) {
-            ui.label(format!("{}: {}", action.label, action.help_text));
+            match action.kind {
+                SettingsActionKind::GuidedSettings => {
+                    if ui.button(action.label).clicked() {
+                        if let Some(profile) = self.selected_settings_profile() {
+                            match build_guided_settings_plan(
+                                &self.capability,
+                                &profile,
+                                self.resolver_family,
+                                self.language,
+                            ) {
+                                Ok(plan) => {
+                                    ui.ctx().copy_text(plan.servers.join(", "));
+                                    self.settings_output = render_guided_settings_plan(&plan);
+                                    self.status = "DNS servers copied".to_string();
+                                }
+                                Err(error) => {
+                                    self.status = format!("Guided settings unavailable: {error:?}");
+                                }
+                            }
+                        } else {
+                            self.status = "Select a DNS profile first".to_string();
+                        }
+                    }
+                }
+                SettingsActionKind::NativePowerApply => {
+                    if ui.button(action.label).clicked() {
+                        if let Some(profile) = self.selected_settings_profile() {
+                            match build_native_apply_plan(
+                                &self.capability,
+                                &profile,
+                                self.resolver_family,
+                            ) {
+                                Ok(plan) => {
+                                    self.settings_output = render_native_apply_plan(&plan);
+                                    self.status = "Native apply plan ready for review".to_string();
+                                }
+                                Err(error) => {
+                                    self.status = format!("Native apply unavailable: {error:?}");
+                                }
+                            }
+                        } else {
+                            self.status = "Select a DNS profile first".to_string();
+                        }
+                    }
+                }
+                SettingsActionKind::DiagnosticsOnly => {
+                    if ui.button(action.label).clicked() {
+                        self.active_section = NativeAppSectionKind::Diagnostics;
+                    }
+                }
+            }
+            ui.label(action.help_text);
         }
+
+        if !self.settings_output.is_empty() {
+            ui.separator();
+            ui.add(
+                egui::TextEdit::multiline(&mut self.settings_output)
+                    .desired_rows(18)
+                    .desired_width(f32::INFINITY),
+            );
+        }
+    }
+
+    fn selected_settings_profile(&self) -> Option<PlainDnsProfile> {
+        self.profiles
+            .iter()
+            .find(|profile| profile.id == self.settings_profile_id)
+            .cloned()
     }
 
     fn diagnostics_ui(&mut self, ui: &mut egui::Ui) {

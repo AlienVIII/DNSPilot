@@ -585,7 +585,7 @@ fn cli_publish_check_outputs_package_specific_manual_steps() {
     assert!(deb.status.success());
     let stdout = String::from_utf8(deb.stdout).unwrap();
     assert!(stdout.contains("Package: deb"));
-    assert!(stdout.contains("debuild -us -uc"));
+    assert!(stdout.contains("apps/linux/scripts/build-packages.sh deb"));
     assert!(stdout.contains("polkit policy"));
     assert!(stdout.contains("execute mutation gate"));
     assert!(stdout.contains("real Linux package QA"));

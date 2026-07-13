@@ -1,5 +1,59 @@
 # Linux Self Review
 
+Last reviewed: 2026-07-13 against macOS `39f4d33`, mobile `7cfb9b4`, the shared CLI,
+and current official Linux platform documentation.
+
+## Findings
+
+### Critical: Power Execute Is Not Release-Safe
+
+- `native_power.rs` presents NetworkManager/systemd-resolved D-Bus but executes
+  `nmcli`/`resolvectl` subprocesses.
+- `pkcheck` verifies an authorization decision; it does not elevate the helper into a
+  privileged mechanism.
+- The snapshot stores only device/link identity and cannot restore exact prior DNS
+  fields. NetworkManager rollback calls reapply without writing captured values.
+- Resolution: default builds must fail closed; replace this path with the D-Bus/polkit
+  mechanism in `linux-completion-plan.md` before any native Power release claim.
+
+### Major: Shared Product Contracts Are Forked
+
+- Linux hardcodes resolver/suite data and persists a Linux-only JSON profile schema.
+- The shared CLI already owns catalog, profile, suite, history, policy, and apply-plan
+  contracts through SQLite and versioned JSON.
+- Resolution: Milestone 1 migrates Linux to a typed CLI adapter and one XDG SQLite DB.
+
+### Major: Benchmark Progress Is Post-Processed
+
+- `Command::output()` buffers until exit and the worker emits only one final result.
+- There is no child cancellation/reaping contract.
+- Resolution: Milestone 2 streams JSONL events and owns cancellation/terminal cleanup.
+
+### Major: Results Do Not Complete The User Decision Loop
+
+- Final benchmark JSON is appended to Diagnostics rather than decoded into a result.
+- There is no recommended-versus-fastest presentation or contextual Apply/Retest CTA.
+- Resolution: Milestones 3-5 adopt the focused macOS/mobile product loop.
+
+### Major: Flatpak Is Not Flathub-Submission Ready
+
+- The current manifest consumes local prebuilt ELF payloads.
+- Resolution: retain it as local smoke input, then add an immutable source/Cargo-sources
+  manifest for submission in Milestone 8.
+
+### Major: Consumer Localization And Accessibility Are Incomplete
+
+- Many visible labels/setup/status strings bypass `i18n.rs`; language does not follow
+  the system or persist.
+- Keyboard/screen-reader semantics lack release evidence.
+- Resolution: Milestones 3 and 6.
+
+### Minor: Version And CI Evidence Are Fragmented
+
+- Version metadata is repeated across package formats and no Linux CI workflow retains
+  package evidence.
+- Resolution: Milestone 8 plus a main-branch CI integration request.
+
 ## Scope Guard
 
 - This lane owns Linux app/product behavior under `apps/linux/**`.
@@ -15,8 +69,8 @@
 | Benchmark modes: DNS only, DNS + TCP, current resolver | Covered | `benchmark.rs`, app/session tests, runner tests |
 | Process UI: idle/running/success/failed per step/resolver | Covered | `process.rs`, `worker.rs`, non-blocking GUI process table, runner/worker/diagnostics tests |
 | Result diagnostics and copyable debug report | Covered | `diagnostics.rs`, CLI/report tests |
-| Guided settings only for store/sandbox builds | Covered | settings/guide tests |
-| Native power path plan | Covered as helper contract plus explicit mutation gate/backend | `settings.rs`, `native_power.rs`, `native_helper_main.rs`, `guide` CLI, `apply-plan` CLI |
+| Guided settings only for store/sandbox builds | Covered | profile/family selection, copy action, localized in-app guide, settings/CLI tests |
+| Native power path plan | Design covered; execute prototype not release-safe | `linux-completion-plan.md`, `native_power.rs`, helper tests |
 | Tray optional | Covered as invariant | capability/report output and native app model say tray optional |
 | Custom DNS profile add/edit/delete | Covered | in-memory store plus file-backed CLI commands |
 | IPv4/IPv6 and A/AAAA controls | Covered | settings/app/session tests |
@@ -24,7 +78,7 @@
 | Capability detection without real DNS mutation | Covered | detector snapshot/runtime path, CLI `detect` |
 | Native app permission model | Covered as GUI/view-model/CLI | `gui_main.rs`, `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
 | English/Vietnamese localization | Covered for Linux shell/native app/publish surfaces | `i18n.rs`, `native_app.rs`, `publish.rs`, i18n behavior tests |
-| Packaging/publish readiness | Covered as policy templates/checklist | `packaging/**`, packaging policy tests, `linux-publish-checklist.md` |
+| Packaging/publish readiness | Covered as build recipes/checklist; real artifacts remain a Linux-host gate | `scripts/build-packages.sh`, `packaging/**`, packaging policy tests, `linux-publish-checklist.md` |
 
 ## Counterarguments And Resolution
 
@@ -38,7 +92,9 @@
    Intentional. Guided settings are reserved for store/sandbox builds. Native packages without NetworkManager/systemd-resolved plus polkit should not pretend to have an apply path.
 
 4. **Counterargument: Real DNS apply is too risky without Linux QA.**
-   Resolved for code scope. Real DNS apply remains native-power only and now has a command backend behind `confirm_system_dns_mutation` plus `--allow-system-dns-mutation`, with polkit, snapshot, write, flush, validation, and rollback sequencing. Linux package QA still has to validate it on real NetworkManager/systemd-resolved hosts before release.
+   Valid and not resolved. The prototype sequences operations but does not implement the
+   claimed D-Bus privilege boundary or exact rollback. It must remain fail-closed and
+   experimental until Milestone 7 and real host QA pass.
 
 5. **Counterargument: Current/system resolver validation is not universally available.**
    Valid. It remains capability-gated. Unsupported mode requests fail before core CLI execution.
@@ -46,8 +102,8 @@
 6. **Counterargument: Store-safe builds can only guide, not apply.**
    Correct. The product message must remain benchmark/guidance first for Flatpak and Snap.
 
-7. **Counterargument: Packaging templates are not real store validation.**
-   Valid. The tests assert policy invariants and file presence, but Flatpak Builder, appstreamcli, desktop-file-validate, snapcraft, debuild, and rpmbuild still need to run on Linux.
+7. **Counterargument: Packaging recipes are not real store validation.**
+   Valid. A unified script now builds and validates one Linux ELF payload and drives Flatpak Builder, Snapcraft, dpkg-deb, and rpmbuild. Structural tests cover recipe invariants, but the package tools and installed artifacts still need to run on Linux.
 
 8. **Counterargument: Vietnamese coverage is not app-wide translation.**
    Partially valid. The Linux shell and GUI now support English/Vietnamese strings for primary native app labels/help, permission, guided settings, publish-check, and CLI surfaces. Remaining untranslated package-tool terms are intentionally kept copyable.
@@ -55,12 +111,18 @@
 ## Remaining Risks
 
 - Real Flatpak/Snap/deb/rpm builds are not validated in this lane.
-- Native helper packaging/install paths and command backend exist, but real helper authorization/write execution still needs Linux package QA before enabling mutation by default.
+- Flathub still needs a public immutable source archive/tag and Cargo source
+  manifest before store submission; local Flatpak QA uses staged ELF payloads.
+- `dnspilot.io` homepage/support/privacy URLs do not currently resolve and must
+  be hosted over HTTPS before package metadata is submitted.
+- Native helper packaging/install paths and a command prototype exist, but the
+  authorization/write design must be replaced before package QA or release enablement.
 - Native GUI compiles in this lane, but real GNOME/Wayland rendering still needs Linux package QA.
 - Distro-specific settings handoff text may need UX refinement after QA.
 
 ## Recommended Next Phase
 
-1. Run package-level QA fixtures for Flatpak, Snap, deb, and rpm.
-2. Validate the GUI on GNOME/Wayland and common X11 fallback sessions.
-3. Collect screenshots, release notes, signing credentials, and store metadata for submission.
+1. Execute Milestones 0-2 in `linux-completion-plan.md` with TDD.
+2. Complete the Store-safe consumer flow through Milestones 3-6.
+3. Make package sources/release evidence honest in Milestones 8-9.
+4. Keep Milestone 7 behind the approved commercial and real-host gates.
