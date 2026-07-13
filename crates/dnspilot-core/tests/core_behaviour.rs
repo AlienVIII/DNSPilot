@@ -54,7 +54,9 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
     assert!(suites.iter().any(|suite| suite.id == "general"));
     assert!(suites.iter().any(|suite| suite.id == "developer"));
     assert!(suites.iter().any(|suite| suite.id == "azure-microsoft"));
-    assert!(suites.iter().any(|suite| suite.id == "youtube-google-video"));
+    assert!(suites
+        .iter()
+        .any(|suite| suite.id == "youtube-google-video"));
     assert!(suites.iter().any(|suite| suite.id == "github-developer"));
     assert!(suites.iter().any(|suite| suite.id == "chatgpt-openai"));
     assert!(suites.iter().any(|suite| suite.id == "google-firebase"));
@@ -85,7 +87,9 @@ fn built_in_catalog_contains_required_profiles_and_suites() {
         .find(|suite| suite.id == "github-developer")
         .expect("GitHub suite should exist");
     assert!(github.domains.contains(&"github.com".to_string()));
-    assert!(github.domains.contains(&"raw.githubusercontent.com".to_string()));
+    assert!(github
+        .domains
+        .contains(&"raw.githubusercontent.com".to_string()));
 
     let chatgpt = suites
         .iter()

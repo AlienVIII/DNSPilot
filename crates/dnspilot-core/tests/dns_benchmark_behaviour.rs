@@ -69,7 +69,10 @@ fn records_timeout_and_failure_outcomes_without_latency() {
     assert_eq!(run.metrics.ipv4_health, 0.0);
     assert_eq!(run.metrics.ipv6_health, 0.0);
     assert!(matches!(run.samples[0].outcome, DnsSampleOutcome::Timeout));
-    assert_eq!(run.samples[0].failure_detail.as_deref(), Some("DNS query timed out"));
+    assert_eq!(
+        run.samples[0].failure_detail.as_deref(),
+        Some("DNS query timed out")
+    );
     assert!(matches!(run.samples[1].outcome, DnsSampleOutcome::Failure));
     assert_eq!(
         run.samples[1].failure_detail.as_deref(),

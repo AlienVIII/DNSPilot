@@ -7,6 +7,9 @@ run_step() {
   printf "\n==> %s\n" "$1"
 }
 
+run_step "Rust formatting"
+cargo fmt --all -- --check
+
 run_step "Rust workspace tests"
 cargo test --workspace --tests
 
