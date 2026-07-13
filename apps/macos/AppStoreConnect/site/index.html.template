@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DNS Pilot support for macOS DNS benchmarking and guided resolver setup.">
+  <link rel="canonical" href="{{SITE_URL}}/">
+  <link rel="stylesheet" href="styles.css">
+  <title>DNS Pilot Support</title>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">DNS Pilot</p>
+      <h1>Support</h1>
+      <p>macOS DNS benchmarking, saved domain suites, and guided resolver setup.</p>
+    </header>
+
+    <section>
+      <h2>Common Help</h2>
+      <ul>
+        <li>Results estimate the current network path. They do not claim full browser, game, or internet speed improvement.</li>
+        <li>The Mac App Store build never silently changes macOS DNS. Guided Apply copies DNS servers and opens Network Settings.</li>
+        <li>Store-safe Flush copies a checklist. It does not run administrator commands.</li>
+        <li>Dota 2 SEA, CS2, and Riot/League targets use DNS plus TCP timing. They are not ICMP ping or in-match UDP latency.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Troubleshooting</h2>
+      <ul>
+        <li>If all candidates fail, check VPN, firewall, captive portal, MDM, corporate DNS policy, and IPv4/IPv6 reachability.</li>
+        <li>If DNS-only is inconclusive, retry with DNS + TCP.</li>
+        <li>After changing DNS manually, flush DNS or reconnect, then run System DNS validation.</li>
+        <li>Custom domain targets accept hostnames only: omit protocol prefixes, paths, ports, and spaces.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Data</h2>
+      <p>DNS Pilot stores custom DNS profiles, custom domain suites, and benchmark history locally on the Mac. The Store-safe build has no accounts, analytics, tracking, or cloud sync.</p>
+    </section>
+
+    <section>
+      <h2>Contact</h2>
+      <p><a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a></p>
+    </section>
+  </main>
+  <footer><a href="privacy.html">Privacy Policy</a></footer>
+</body>
+</html>

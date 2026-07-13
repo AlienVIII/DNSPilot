@@ -24,8 +24,8 @@ and follow store-safe guidance for macOS DNS changes.
 
 DNS Pilot helps you compare DNS resolvers and connection-path estimates for
 your current network. It can benchmark DNS-only behavior, DNS plus TCP connect
-timing, current macOS System DNS behavior, saved domain suites, and game/service
-presets such as Dota 2 SEA, CS2, League of Legends, YouTube, GitHub, Azure, and
+timing, current macOS System DNS behavior, saved domain suites, and service
+targets such as Dota 2 SEA, CS2, League of Legends, YouTube, GitHub, Azure, and
 ChatGPT/OpenAI.
 
 The Mac App Store edition is store-safe. It does not silently change system DNS.
@@ -56,21 +56,28 @@ DNS Pilot benchmarks public DNS resolvers and saved domain suites using outbound
 network requests initiated by the user. The Mac App Store edition does not run
 privileged helper actions and does not silently mutate system DNS.
 
+The App Sandbox enables outgoing connections and incoming UDP response traffic.
+DNS Pilot uses the latter only to receive replies on an ephemeral local UDP socket
+for user-initiated direct DNS lookups; it does not run a persistent listener or
+accept inbound product connections.
+
 To review:
 
 1. Launch the app.
-2. Open Benchmark.
-3. Run the default DNS + TCP benchmark.
-4. Open Custom DNS and save a plain DNS profile.
-5. Return to Benchmark and confirm the saved profile appears in candidates.
-6. Open Game Ping and run a gaming preset.
-7. Open Catalog and confirm guided apply copies DNS/open-settings guidance only.
-8. Open Permissions and Publish to review the store-safe capability notes.
-9. Use Settings to switch language between English and Vietnamese.
+2. Select Check DNS and run the default benchmark.
+3. Open Options, choose DNS + TCP, then run it again.
+4. Choose Dota 2 SEA, CS2, or Riot/League from Targets. Confirm the mode changes
+   to DNS + TCP and the game timing disclaimer is visible.
+5. Open Profiles and save a plain DNS profile.
+6. Return to Check DNS and confirm the saved profile appears in candidates.
+7. After a reliable result, open the guided Apply confirmation. Confirm it only
+   copies DNS values and opens macOS Network Settings.
+8. Use Help > Show Setup and Settings to review guided mode and switch language
+   between English and Vietnamese.
 
 Expected behavior:
 
-- Benchmark and Game Ping show progress while running.
+- Benchmarks and game target checks show progress while running.
 - Apply actions ask for confirmation and guide the user to macOS Network
   Settings; they do not silently change system DNS.
 - Flush DNS in the store-safe build copies a checklist and does not execute
@@ -101,20 +108,28 @@ Draft page sources:
 
 - Support page: `apps/macos/AppStoreConnect/SupportPage.md`
 - Privacy policy: `apps/macos/AppStoreConnect/PrivacyPolicy.md`
+- Deploy-ready static pages: `apps/macos/AppStoreConnect/site/`
+
+Build pages with the final public email and HTTPS URL:
+
+```bash
+DNSPILOT_SUPPORT_EMAIL="support@example.com" \
+DNSPILOT_SITE_URL="https://example.com/dns-pilot" \
+./script/build_app_store_site.sh
+```
 
 Before submission, replace contact placeholders and host these pages at the
 public support/privacy URLs used in App Store Connect.
 
 ## Screenshot Checklist
 
-- Benchmark default state.
-- Benchmark running progress with per-step status.
-- Benchmark result with fastest observed and balanced recommendation.
-- Custom DNS editor with saved profile management.
-- Game Ping preset result.
-- Catalog guided apply action.
-- Permissions screen.
-- Publish screen.
+- Check DNS default state.
+- Check DNS running progress with per-step status.
+- Check DNS result with the single apply action and Details disclosure.
+- Check DNS Dota 2 SEA target showing DNS + TCP disclaimer.
+- Profiles editor with saved profile management.
+- Guided apply confirmation dialog.
+- Help setup sheet.
 - Settings language picker.
 
 ## Manual Release Blockers
@@ -122,7 +137,8 @@ public support/privacy URLs used in App Store Connect.
 - Apple Developer account access.
 - App Store Connect app record for `com.dnspilot.mac`.
 - Mac App Store signing identity and provisioning profile.
-- Final screenshots from a signed release candidate.
+- Final screenshots from a signed release candidate; use
+  `apps/macos/AppStoreConnect/ScreenshotPlan.md`.
 - Publicly hosted support/privacy URLs.
 - Marketing URL if you choose to provide one.
 - Final privacy answers in App Store Connect.

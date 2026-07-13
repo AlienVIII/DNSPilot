@@ -111,7 +111,7 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
         )
 
-        XCTAssertEqual(viewModel.mode, .connectionPathCompare)
+        XCTAssertEqual(viewModel.mode, .dnsOnlyCompare)
         XCTAssertEqual(viewModel.attempts, 1)
         XCTAssertEqual(viewModel.dnsTimeoutMS, 800)
         XCTAssertEqual(viewModel.connectTimeoutMS, 800)
@@ -122,7 +122,39 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             viewModel.customDomainsText,
             "github.com\nlogin.microsoftonline.com\nvnexpress.net"
         )
-        XCTAssertEqual(viewModel.runPlanSummary, "DNS + TCP, A + AAAA, 2 resolvers, 3 domains, 1 attempt, 2 TCP targets/domain")
+        XCTAssertEqual(viewModel.runPlanSummary, "DNS only, A + AAAA, 2 resolvers, 3 domains, 1 attempt")
+    }
+
+    func testGamingSuiteIsAvailableToBenchmarkAndExplainsItsLimit() {
+        let baseCatalog = makeSetupCatalog()
+        let catalog = CatalogSnapshot(
+            profiles: baseCatalog.profiles,
+            testSuites: baseCatalog.testSuites + [
+                CatalogTestSuite(
+                    id: "gaming-dota2-sea",
+                    name: "Gaming / Dota 2 SEA",
+                    description: "Dota 2 endpoint check.",
+                    domains: ["steamcommunity.com"],
+                    tags: ["gaming", "dota2", "sea"]
+                ),
+            ]
+        )
+        let viewModel = BenchmarkSetupViewModel(
+            catalog: catalog,
+            executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli")),
+            selectedProfileIDs: ["cloudflare"],
+            selectedSuiteID: "gaming-dota2-sea",
+            customDomainsText: "",
+            attempts: 1,
+            mode: .connectionPathCompare
+        )
+
+        XCTAssertTrue(viewModel.isGamingSuiteSelected)
+        XCTAssertEqual(
+            viewModel.gameCheckDisclaimer,
+            "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency."
+        )
+        XCTAssertEqual(viewModel.plan.commandArguments.first, "path-compare")
     }
 
     func testSetupParsesCustomDomainTextIntoPlan() {

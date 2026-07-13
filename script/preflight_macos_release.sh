@@ -7,6 +7,7 @@ INCLUDE_POWER=0
 SKIP_CARGO=0
 SKIP_SWIFT=0
 SKIP_LAUNCH=0
+SITE_PREFLIGHT_DIR=""
 
 usage() {
   cat >&2 <<USAGE
@@ -56,6 +57,9 @@ done
 
 cleanup() {
   pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+  if [[ -n "$SITE_PREFLIGHT_DIR" ]]; then
+    rm -rf "$SITE_PREFLIGHT_DIR"
+  fi
 }
 
 run_step() {
@@ -69,11 +73,15 @@ trap cleanup EXIT
 
 cd "$ROOT_DIR"
 
+run_step "App Store site safety" ./script/test_build_app_store_site.sh
+
 run_step "Shell syntax" \
   bash -n \
     script/build_and_run.sh \
     script/validate_macos_bundle.sh \
     script/package_macos_distribution.sh \
+    script/build_app_store_site.sh \
+    script/test_build_app_store_site.sh \
     script/preflight_macos_release.sh \
     script/smoke_macos_goal_flows.sh
 
@@ -84,6 +92,16 @@ fi
 if (( ! SKIP_SWIFT )); then
   run_step "macOS Swift tests" swift test --package-path apps/macos/DNSPilotMac
 fi
+
+SITE_PREFLIGHT_DIR="$(mktemp -d /tmp/dnspilot-app-store-site.XXXXXX)"
+run_step "App Store site templates" \
+  env \
+    DNSPILOT_SUPPORT_EMAIL=release@example.com \
+    DNSPILOT_SITE_URL=https://example.com \
+    DNSPILOT_SITE_OUTPUT_DIR="$SITE_PREFLIGHT_DIR" \
+    ./script/build_app_store_site.sh
+rm -rf "$SITE_PREFLIGHT_DIR"
+SITE_PREFLIGHT_DIR=""
 
 if (( ! SKIP_LAUNCH )); then
   run_step "Store-safe sandbox bundle validation" ./script/build_and_run.sh --sandbox-verify

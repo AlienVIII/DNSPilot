@@ -21,7 +21,7 @@ macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 - macOS 14+ to run the native macOS app.
 - Xcode Command Line Tools with Swift 6 support.
 - Rust stable toolchain with Cargo.
-- Network access for live DNS/TCP/Game Ping probes.
+- Network access for live DNS/TCP and game-target probes.
 
 ### Install Dependencies
 
@@ -257,9 +257,9 @@ artifact to Store-safe mode afterward.
 - macOS Benchmark strong recommendations include store-safe guided apply
   details: DNS servers to paste, tested resolver, copy action, and Network
   Settings handoff without changing system DNS silently.
-- macOS Benchmark and Game Ping results separate fastest observed DNS from the
-  balanced recommendation so users can see raw latency versus safety-gated pick.
-- macOS Catalog provider rows expose confirmed store-safe apply for selected
+- macOS Check DNS results separate fastest observed DNS from the balanced
+  recommendation so users can see raw latency versus safety-gated pick.
+- macOS profile candidates expose confirmed store-safe apply guidance for selected
   plain DNS profiles.
 - macOS Benchmark result failure cells annotate weak IPv4/IPv6 family health
   when partial failures line up with a specific IP family.
@@ -280,28 +280,23 @@ artifact to Store-safe mode afterward.
   DNS profiles.
 - macOS Benchmark saved-suite management for editing/deleting custom domain
   suites.
-- macOS Game Ping screen for gaming DNS/TCP path checks with selectable
-  built-in gaming presets and DNS candidates. It reports connection-path
-  estimates, not ICMP or in-match UDP latency.
-- macOS Capabilities screen includes Product Goals readiness, making fastest
-  DNS, balanced recommendation, guided apply, guided flush, saved domains, and
-  game checks visible with their current product limits.
+- macOS Check DNS target presets for Dota 2 SEA, CS2, and Riot/League gaming
+  DNS/TCP path checks. They report connection-path estimates, not ICMP or
+  in-match UDP latency.
 - macOS Direct Admin DNS action runner can apply plain DNS to the active network
   service and flush DNS through an administrator AppleScript prompt only in
   Power-capable builds after explicit opt-in; store-safe UI remains guided.
-- macOS Benchmark/Catalog Power buttons can apply selected DNS with explicit
-  confirmation when Direct Admin Actions are enabled; Flush DNS dialogs can run
-  an administrator flush or copy the store-safe checklist.
-- macOS Capabilities/Product Goals surfaces include the macOS Power path so
-  store-safe and direct-install behavior stay visibly separated.
-- macOS Permissions and Publish readiness screens explain ask-as-needed
+- macOS Check DNS and guided-apply Power actions can apply selected DNS with
+  explicit confirmation when Direct Admin Actions are enabled; Flush DNS dialogs
+  can run an administrator flush or copy the store-safe checklist.
+- macOS Help setup and publishing documentation explain ask-as-needed
   authorization, App Store-safe review work, and Power edition separation.
 - Localization foundation supports English and Vietnamese for top-level
   navigation, Settings, and new readiness surfaces.
 - macOS storage-backed catalog bridge for merging persisted profiles/suites into
   the built-in catalog with fallback to built-ins on storage failure.
-- macOS shell refreshes the storage-backed catalog on launch and after Custom
-  DNS saves, so saved profiles can appear in Benchmark/Catalog flows.
+- macOS shell refreshes the storage-backed profile catalog on launch and after
+  Custom DNS saves, so saved profiles can appear in Check DNS candidate flows.
 - macOS shared app storage path uses `DNSPilot/dnspilot.sqlite` for profiles,
   suites, and history.
 - macOS development bundle places the CLI in `Contents/Library/Helpers`, ships

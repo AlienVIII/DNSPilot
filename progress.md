@@ -153,6 +153,7 @@ DNS handling, and platform capability reporting.
 - [x] [142] v0.1 macOS local CI evidence — verify local CI harness including DNS-only and DNS+TCP live smokes.
 - [x] [143] v0.1 macOS Power input boundary — reject non-IP DNS values before administrator elevation.
 - [x] [144] v0.1 macOS verified-run signing — ad-hoc sign local bundles before `--verify` validation.
+- [x] [145] v0.1 macOS Power DNS rollback — capture service-scoped DNS state, require active-service/configuration match, and explicitly restore manual or automatic DNS.
 
 ---
 

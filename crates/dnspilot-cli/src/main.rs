@@ -1971,6 +1971,7 @@ fn sample_to_json(sample: &DnsBenchmarkSample) -> serde_json::Value {
         "transaction_id": sample.transaction_id,
         "elapsed_ms": sample.elapsed.map(|elapsed| elapsed.as_secs_f64() * 1000.0),
         "outcome": outcome_name(sample.outcome),
+        "failure_detail": sample.failure_detail,
     })
 }
 

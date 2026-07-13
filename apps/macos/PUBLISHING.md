@@ -27,7 +27,7 @@ Shared gates:
   user explicitly enables Direct Admin Actions in the app.
 - `DNSPILOT_ENABLE_POWER_ACTIONS=1` is a local/dev force path; it bypasses the
   in-app opt-in and must not be used for App Store builds.
-- The first-run setup and Permissions screen must explain that macOS has no
+- The optional setup flow must explain that macOS has no
   System Settings pre-toggle for plain DNS edits; the native permission point is
   the administrator prompt shown at Apply/Flush time.
 - Not App Store-safe as implemented today.
@@ -71,7 +71,7 @@ Optional live/network checks:
 ./script/smoke_macos_goal_flows.sh --include-network
 ```
 
-This also runs DNS-only, DNS+TCP, and Dota 2 SEA Game Ping probes. It can fail
+This also runs DNS-only, DNS+TCP, and Dota 2 SEA game-target probes. It can fail
 on offline, firewalled, captive portal, or heavily restricted networks.
 
 Optional bundle-mode checks:
@@ -100,11 +100,15 @@ batched once.
    - Provisioning profile for `com.dnspilot.mac`.
 
 3. Confirm entitlements.
-   - Required now: App Sandbox and outbound network client.
+   - Required now: App Sandbox, outbound network client, and incoming UDP response
+     traffic for direct DNS checks.
    - Current template: `apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements`.
    - Privacy manifest: `apps/macos/DNSPilotMac/Packaging/PrivacyInfo.xcprivacy`.
      It declares no tracking, no collected data, and UserDefaults reason
      `CA92.1` for app-local settings.
+   - The Store-safe app also enables incoming network traffic solely because a
+     UDP DNS client must receive resolver replies on its ephemeral local socket.
+     State this in App Review notes; it does not expose a persistent listener.
    - Do not include Power/admin behavior in the App Store edition.
    - If Apple NetworkExtension DNS Settings is added later, request/verify the
      entitlement before submitting.
@@ -145,6 +149,8 @@ Expected:
    - Start from `apps/macos/AppStoreConnect/README.md`.
    - Support page draft: `apps/macos/AppStoreConnect/SupportPage.md`.
    - Privacy policy draft: `apps/macos/AppStoreConnect/PrivacyPolicy.md`.
+   - Build deploy-ready pages with `./script/build_app_store_site.sh` after the
+     public support email and HTTPS URL are known.
    - Explain DNS benchmarking and connection-path estimates.
    - State that the app does not claim full internet speed improvement.
    - State that store builds do not silently change system DNS.
@@ -163,6 +169,12 @@ Expected:
    - Confirm Flush DNS copies checklist and does not run admin commands.
 
 ## Power Edition Manual Steps
+
+Power edition now records the exact active network service plus its manual or
+automatic DNS mode before Apply. Restore remains Power-only, requires a fresh
+record plus administrator approval, and refuses to mutate DNS if the active
+service/configuration changed. Real-network QA remains required before public
+distribution. Guided-apply restore copy is separate from this in-app rollback.
 
 1. Build and launch Power mode locally:
 

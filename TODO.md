@@ -1,17 +1,41 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-07-11.
+Last reviewed: 2026-07-13.
+
+## P0: macOS Product UX Gate
+
+- [x] Remove duplicate manual main-window creation; singleton `Window` count stays
+  `1` after `Benchmark`, `Benchmark`, and `Run Quick Test` actions.
+- [x] Reduce release navigation to Check DNS, Profiles, and History; move internal
+  readiness/platform surfaces out of the consumer sidebar.
+- [x] Replace permission-first onboarding with an optional interactive first check;
+  setup is available from Help instead of blocking first value.
+- [x] Make one result action primary. Move copy/debug/checklist actions behind
+  secondary menus, disclosure, or contextual info.
+- [x] Merge game checks into Check DNS target presets and state that DNS + TCP timing
+  is not ICMP or in-match UDP latency.
+- [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
+  History, result, cancel, Settings, and Setup without creating another window.
+- [ ] Run a five-user moderated usability pass; require all participants to complete
+  Check -> Recommendation -> Apply guidance -> Retest without assistance.
 
 ## P0: macOS Release Gates
 
 - [ ] Acquire Apple signing identity and provisioning for `com.dnspilot.mac`.
 - [ ] Package a certificate-signed Store-safe app and run distribution validation.
-- [ ] Complete App Store Connect metadata, screenshots, support URL, privacy URL,
-  privacy answers, and review notes.
+- [x] Prepare App Store metadata/review drafts, screenshot plan, support/privacy
+  page drafts, and a moderated usability script.
+- [x] Add a bundled 1024px app icon and validate its Info.plist/Resources contract
+  for both Store-safe and Power builds.
+- [x] Prepare deploy-ready static support/privacy pages and validate their final
+  rendered form with supplied contact/HTTPS URL inputs.
+- [ ] Complete App Store Connect with hosted support/privacy URLs, signed-release
+  screenshots, final privacy answers, and review notes.
 - [ ] Perform Store-safe manual review smoke, then upload for review.
 
 ## P0: Commercial Validation
 
+- [ ] Run the protocol in `docs/macos-v1-commercial-validation.md`.
 - [ ] Interview 5-8 target users who actively change or troubleshoot DNS.
 - [ ] Validate the primary promise: reliable DNS recommendation for the current
   network, not generic speed improvement.
@@ -21,9 +45,19 @@ Last reviewed: 2026-07-11.
 
 ## P1: Power Edition Release Gate
 
+- [x] Implement and test service-scoped DNS rollback before Power Apply changes
+  a network service; preserve automatic/DHCP DNS as a separate restore mode.
+  Evidence: `5998142`; plan: `docs/superpowers/plans/2026-07-11-power-dns-rollback.md`.
 - [ ] On a disposable network, enable Direct Admin Actions, apply a known-safe
   resolver, validate System DNS, restore the original DNS, and validate again.
 - [ ] Package and sign Power edition separately from the App Store app.
+
+## P1: Engineering Hygiene
+
+- [ ] Continue splitting the 3,828-line app source by scene/feature without changing
+  core contracts. Window/navigation/menu-bar and Settings/Setup/Power support are
+  already extracted, and the retired duplicate Game Ping UI is removed. Do this after
+  Store-safe usability evidence, not during release stabilization.
 
 ## P2: Platform Expansion Gates
 
@@ -42,3 +76,5 @@ Last reviewed: 2026-07-11.
 - `STATE.md`
 - `PROJECT.md`
 - `apps/macos/PUBLISHING.md`
+- `apps/macos/macos-engineering-handoff.md`
+- `docs/research/2026-07-11-macos-product-ux-review.md`
