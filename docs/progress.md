@@ -1,6 +1,6 @@
 # Global Progress
 
-Last integration pass: 2026-07-13.
+Last integration pass: 2026-07-14.
 
 ## Completed
 
@@ -9,27 +9,32 @@ Last integration pass: 2026-07-13.
   result action, native commands, Power rollback, app icon, release assets, and safe
   support/privacy site generation.
 - Core/CLI DNS samples now expose optional failure detail with Rust/CLI tests.
+- Integrated committed Linux work through `d9ad771`, including package automation,
+  settings flows, completion plan, provider steps, and lane risk documentation.
+- Integrated committed Windows work through `ae94c97`, including the Store-safe
+  baseline and selective-parity pre-development plan.
+- Added Rust formatting to the macOS integration gate in `7209b70`.
 - Re-ran macOS CI and Store/Power preflight successfully.
 - Audited every worktree, restored the `core-cli` slot to branch `worktree/core-cli`,
   and preserved all dirty Windows/mobile work.
 - Defined macOS-led product-contract parity in `PROJECT.md` and
   `docs/reference-lane-contract.md`.
-- Routed Linux, Windows, and mobile engineer lanes to continue until only real
-  provider/device/manual release gates remain.
+- Preserved uncommitted Windows/mobile overlays without staging or rewriting them.
 
 ## In Progress Outside `main`
 
-- Linux: fail-close unsafe native execute first, then typed Core adapter, streaming
-  progress/cancellation, consumer IA/results/data/accessibility/package evidence.
-- Windows: finish dirty Runtime Readiness, then consumer IA, cancellation, result/apply
-  hierarchy, preferences/diagnostics, and Windows QA artifacts.
-- Mobile: finish Profiles/History consumer routes, remove startup permission UX, and
-  make unresolved Expo Router routes fail verification.
+- Linux: Store-safe milestones remain open; native execute is development-only until
+  a fail-closed privilege boundary and exact rollback are proven.
+- Windows: dirty Runtime Readiness remains outside `main`; later milestones remain
+  queued in `apps/windows/windows-predevelopment-review.md`.
+- Mobile: consumer work through `3d1a34f` is verified but remains isolated with the
+  restricted entitlement branch; a tutorial follow-up is dirty and uncommitted.
 
 ## Deferred By Evidence
 
 - Mobile commits based on restricted iOS entitlement are not merged into `main`.
-- Linux native Power is not merged while exact rollback/privilege design is incomplete.
+- Linux native Power prototype is present in `main` for development history only and
+  is explicitly not approved for release while rollback/privilege design is incomplete.
 - Windows dirty work is not staged or merged until its owner commits and validation is
   reviewed.
 - Shared `runtime-info --json` is not implemented until a second lane confirms the

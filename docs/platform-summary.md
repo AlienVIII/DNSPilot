@@ -1,17 +1,17 @@
 # Platform Summary
 
-Last integration pass: 2026-07-13.
+Last integration pass: 2026-07-14.
 
 ## Integration State
 
 | Lane | Integrated in `main` | Isolated work | Catch-up status |
 | --- | --- | --- | --- |
-| Core CLI | Current through macOS reference merge | No separate Core commit pending | Current contract is sufficient; shared message/progress hardening remains P1 |
-| macOS | `13d3f35` via `Merge macOS reference lane` | None | Reference lane; automated Store-safe scope complete |
-| Linux | Baseline through `8cf4502` | `510867e`..`d9ad771` plus active completion work | Not caught up; Store-safe milestones and fail-closed Power gate open |
-| Windows | Baseline through `8cf4502` | `bad68e1`, `ae94c97`, and dirty Runtime Readiness work | Not caught up; consumer UX/readiness/cancellation work open |
-| Mobile | Safe baseline only | `345c41e`..current plus active consumer work | Not integrated; restricted entitlement and consumer route work remain isolated |
-| Docs | Baseline through previous main | This integration update | Fast-forward after docs commit |
+| Core CLI | Current through the macOS reference merge | No separate Core commit pending | Shared message/progress hardening remains P1 |
+| macOS | Through `7209b70` | None committed | Reference lane; automated Store-safe scope complete |
+| Linux | Through `d9ad771` via `3daca3d` | No committed delta | Git-integrated; Store-safe completion and fail-closed Power gate remain open |
+| Windows | Through `ae94c97` via `8b441b5` | Dirty Runtime Readiness vertical slice | Git-integrated through committed head; milestones 0-4 remain open |
+| Mobile | Safe baseline only | `345c41e`..`3d1a34f` plus dirty tutorial work | Kept isolated by approved entitlement decision D1 |
+| Docs | Current integration state | Lane-local dirty docs are not copied | Sync after this docs commit |
 
 `main` is the only cross-lane source of truth. Branch-ahead work is evidence only after
 review, lane validation, merge, and merged-result validation.
@@ -26,12 +26,12 @@ privileges, and provider gates honestly.
 
 - macOS: 265 Swift tests plus Rust workspace tests, bundle validation, live DNS-only
   and DNS+TCP smoke, Store/Power preflight, and release-site safety pass.
-- Linux isolated baseline: fmt/test/clippy pass. Real Linux package and privileged
-  behavior remain `NOT RUN`.
-- Windows isolated dirty baseline: 44 Core tests pass. WinUI/MSIX is `NOT RUN` on the
-  macOS host.
-- Mobile isolated dirty baseline: 81 tests and typecheck pass, but export found an
-  unresolved `profiles` route; the engineer lane is fixing the false-green gate.
+- Linux pre-integration baseline: fmt/test/clippy pass. Real Linux package and
+  privileged behavior remain `NOT RUN`; merged-result validation is rerun in this pass.
+- Windows committed baseline: 40 Core/static tests pass. The dirty Runtime Readiness
+  overlay passes 44 Core tests but is not integrated; WinUI/MSIX is `NOT RUN` on macOS.
+- Mobile isolated committed branch: 86 tests, typecheck, route export, and default
+  production entitlement checks pass. Signed physical-device QA is `NOT RUN`.
 
 ## Non-Negotiable Boundaries
 
@@ -40,6 +40,7 @@ privileges, and provider gates honestly.
   on the real provider/OS before release.
 - iOS `dns-settings` stays out of `main` and the default Store profile until Apple
   approval and signed-device evidence exist.
-- Linux shell-command mutation is not a production privilege mechanism.
+- Linux shell-command mutation present in the integrated prototype is not an approved
+  production privilege mechanism and must not be released.
 - Windows Store stays `asInvoker`; no UAC, service, registry, `netsh`, or DNS write.
 - No proof/no claim: unavailable platform checks are `NOT RUN`, not inferred from mocks.

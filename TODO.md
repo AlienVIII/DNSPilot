@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-07-13.
+Last reviewed: 2026-07-14.
 
 ## P0: macOS Commercial Release
 
@@ -18,9 +18,11 @@ Last reviewed: 2026-07-13.
 - [ ] Windows: complete milestones 0-4 in
   `apps/windows/windows-predevelopment-review.md`; leave Windows-host release proof
   as the Milestone 5 manual gate.
-- [ ] Mobile: finish Check DNS / Profiles / History navigation, remove app-open
-  permission UX, fail verification on unresolved routes, and keep native DNS
+- [x] Mobile isolated lane: finish Check DNS / Profiles / History navigation, remove
+  app-open permission UX, fail verification on unresolved routes, and keep native DNS
   entitlement opt-in.
+- [ ] Mobile integration: keep the consumer work on `worktree/mobile` until it can be
+  integrated without violating approved entitlement isolation decision D1.
 - [ ] Re-run each lane gate after merging `main`, then update the parity matrix in
   `docs/reference-lane-contract.md` with proof or `NOT RUN`.
 

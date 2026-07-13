@@ -1,27 +1,28 @@
 # DNSPilot State
 
-Last updated: 2026-07-13.
+Last updated: 2026-07-14.
 
 ## Current Truth
 
-- `main` is the integration source of truth and includes the macOS reference lane
-  through `13d3f35`.
+- `main` is the integration source of truth. It includes macOS through `7209b70`,
+  Linux through `d9ad771`, and the committed Windows lane through `ae94c97`.
 - Rust Core/CLI owns catalog, benchmark, recommendation, policy, storage, history,
   apply-plan, and JSON/JSONL contracts. DNS sample payloads now include optional
   `failure_detail` with regression coverage.
 - macOS Store-safe automated scope is complete: focused consumer IA, DNS-only Quick
   Check, game/service presets, single-window ownership, guided Apply/Retest, Power
   rollback isolation, release assets, and safe site generation all pass local gates.
-- Linux passes its current fmt/test/clippy gate but remains an engineering shell. Its
-  current native execute prototype is not releasable until fail-closed and exact
+- Linux committed packaging, settings, planning, and lane docs are integrated. The
+  app remains an engineering shell; its native execute prototype is present for
+  development only and is not releasable until fail-closed privilege and exact
   rollback architecture are proven.
-- Windows committed Store-safe baseline passes Core/static checks on macOS. Runtime
-  readiness and consumer catch-up work is still isolated in the dirty worktree;
-  WinUI/MSIX evidence requires Windows.
-- Mobile has a standalone Expo native runtime around Rust Core and passes local
-  JS/type/export checks, but consumer navigation catch-up is still isolated. Native
-  iOS DNS Settings commit `345c41e` remains outside `main` pending Apple capability
-  approval and signed physical-device evidence.
+- Windows committed Store-safe baseline and selective-parity plan are integrated.
+  Runtime Readiness implementation remains an uncommitted worktree overlay;
+  WinUI/MSIX evidence still requires Windows.
+- Mobile has a standalone Expo native runtime and a verified consumer shell through
+  `3d1a34f` on `worktree/mobile`. The branch remains outside `main` because it contains
+  native iOS DNS Settings commit `345c41e`, pending Apple capability approval and
+  signed physical-device evidence. A newer tutorial change is still uncommitted.
 
 ## Reference Contract
 
@@ -34,11 +35,13 @@ decision journey and evidence, not identical platform features.
   Store-safe bundle validation, DNS-only smoke, and DNS+TCP smoke.
 - macOS: `./script/preflight_macos_release.sh --include-power` passed, including
   Store-safe/Power bundle separation and App Store site safety tests.
-- Linux branch baseline: fmt, tests, clippy, and `cargo test -p dnspilot-cli` passed.
-- Windows dirty baseline: 44 Core tests passed; Windows-only XAML compiler was
-  `NOT RUN` on macOS as expected.
-- Mobile dirty baseline: 81 tests and typecheck passed; export exposed a missing
-  `profiles` route and therefore was not accepted as a clean release gate.
+- Linux pre-integration baseline: fmt, tests, clippy, and
+  `cargo test -p dnspilot-cli` passed. Merged-result rerun is pending this pass.
+- Windows committed baseline: 40 Core/static tests passed. The uncommitted Runtime
+  Readiness overlay passes 44 Core tests; Windows-only XAML/MSIX remains `NOT RUN`.
+- Mobile committed branch: `npm run verify` passed 86 tests, typecheck, route export,
+  dependency compatibility, and production config checks. Physical-device proof is
+  still `NOT RUN`.
 
 ## Manual Release Gates
 
