@@ -1,0 +1,12 @@
+Package: dnspilot
+Version: 0.1.0
+Section: net
+Priority: optional
+Architecture: @ARCH@
+Maintainer: DNS Pilot Maintainers <maintainers@dnspilot.io>
+Depends: libc6, libgcc-s1, libx11-6, libxcb1, libxkbcommon0, libwayland-client0
+Recommends: polkitd | policykit-1, network-manager | systemd-resolved
+Description: DNS benchmark and native resolver guidance
+ DNS Pilot benchmarks DNS resolvers, manages custom DNS profiles, renders
+ diagnostics, and exposes native power capabilities only when the required
+ resolver stack and polkit authorization are available.

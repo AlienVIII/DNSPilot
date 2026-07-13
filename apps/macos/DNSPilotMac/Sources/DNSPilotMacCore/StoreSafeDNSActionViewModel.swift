@@ -1,3 +1,5 @@
+import Foundation
+
 public struct StoreSafeDNSActionConfirmationViewModel: Equatable, Sendable {
     public let title: String
     public let message: String
@@ -87,5 +89,54 @@ public struct MacOSPowerDNSActionViewModel: Equatable, Sendable {
 
     public var flushConfirmationMessage: String {
         "DNS Pilot will ask macOS for administrator approval and flush the local DNS cache. This is intended for direct-install Power builds, not App Store distribution."
+    }
+}
+
+public struct PowerDNSRollbackViewModel: Equatable, Sendable {
+    public let isEnabled: Bool
+    public let snapshot: PowerDNSRollbackSnapshot?
+    public let now: Date
+    public let maxAge: TimeInterval
+
+    public init(
+        isEnabled: Bool,
+        snapshot: PowerDNSRollbackSnapshot?,
+        now: Date = Date(),
+        maxAge: TimeInterval = 86_400
+    ) {
+        self.isEnabled = isEnabled
+        self.snapshot = snapshot
+        self.now = now
+        self.maxAge = maxAge
+    }
+
+    public var restorableSnapshot: PowerDNSRollbackSnapshot? {
+        guard isEnabled,
+              let snapshot,
+              snapshot.isRestorable,
+              snapshot.isFresh(now: now, maxAge: maxAge) else {
+            return nil
+        }
+        return snapshot
+    }
+
+    public var restoreButtonLabel: String? {
+        restorableSnapshot == nil ? nil : "Restore Previous DNS (Admin)"
+    }
+
+    public var confirmationMessage: String {
+        guard let snapshot = restorableSnapshot else {
+            return "No fresh Power DNS rollback is available."
+        }
+        return "DNS Pilot will ask macOS for administrator approval and restore \(restoreDescription(for: snapshot)) on \(snapshot.service). It will not change DNS if you cancel or the active network service has changed."
+    }
+
+    private func restoreDescription(for snapshot: PowerDNSRollbackSnapshot) -> String {
+        switch snapshot.mode {
+        case .automatic:
+            "automatic DNS"
+        case .servers:
+            "the previous DNS server list"
+        }
     }
 }

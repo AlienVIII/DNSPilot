@@ -8,10 +8,15 @@ flush guidance, and system-DNS validation. Direct DNS mutation is available only
 in Power/direct-install capable builds after explicit Direct Admin opt-in, or a
 local force flag, and still requires macOS administrator approval.
 
+Consumer UX gates now have a singleton main window, task-first navigation, optional
+setup, one primary result action, and compact technical details. Store release still
+needs external usability and publishing evidence. Further presentation-file extraction
+is post-stabilization maintenance. See `apps/macos/macos-engineering-handoff.md`.
+
 ## Requirement Coverage
 
-- SwiftUI shell with sidebar, Benchmark, Catalog, History, custom DNS, custom
-  suites, Game Ping, Permissions, Publish readiness, and menu bar quick actions.
+- SwiftUI shell with Check DNS, Profiles, History, custom DNS, custom suites,
+  menu-bar quick actions, Help setup, Settings, and native commands.
 - Benchmark UX covers setup, progress, cancellation, diagnostics, result rows,
   saved history, fastest observed DNS, balanced recommendation, A/AAAA controls,
   IPv4/IPv6 controls, and copyable reports.
@@ -19,8 +24,9 @@ local force flag, and still requires macOS administrator approval.
   confirms copy/open Settings actions, and validates with System DNS mode with
   visible progress and saved history.
 - Store-safe flush copies commands instead of running privileged mutations.
-- Catalog rows can launch confirmed store-safe apply for plain DNS profiles.
-- First-run setup and the Permissions screen explain macOS permission reality:
+- Profile candidates can launch confirmed store-safe apply guidance for plain DNS
+  profiles.
+- Optional setup explains macOS permission reality:
   there is no System Settings pre-toggle for plain DNS edits; Direct Admin
   Actions are unavailable in Store-safe builds, available only in Power/direct-
   install builds, and macOS asks for administrator approval at Apply/Flush time.
@@ -29,22 +35,32 @@ local force flag, and still requires macOS administrator approval.
   reopen the tutorial.
 - Product Goals list all six acceptance goals with concrete app entry points,
   validation evidence, and EN/VI localized user-facing copy.
+- Dota 2 SEA, CS2, and Riot/League checks are Check DNS target presets. They force
+  DNS + TCP mode and state that the output is not ICMP or in-match UDP latency.
 - English/Vietnamese localization covers primary native surfaces.
 - Power actions are disabled by default. Store-safe builds cannot enable them
   from a stale preference alone; Power/direct-install builds require
   `DNSPilotPowerActionsEnabled` plus Direct Admin opt-in, while
   `DNSPILOT_ENABLE_POWER_ACTIONS=1` is the local/dev force path.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
-  are present; the Publish screen also surfaces local release preflight and
-  privacy manifest readiness.
+  are present; release signing defaults to hardened runtime for certificate-
+  backed packages, with local preflight, privacy-manifest readiness, and
+  distribution validation documented outside the consumer navigation.
+- Power Apply validates literal IPv4/IPv6 addresses at the privileged boundary;
+  hostnames and malformed input are rejected before any administrator prompt.
+- Power Apply captures a fresh service-scoped DNS rollback record before
+  elevation, rechecks the active service/configuration before mutation, and
+  restores manual or automatic/DHCP DNS only through an explicit Power action.
 - Local bundle validation requires macOS target, version/build metadata,
   sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
 - Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan
-  contract, System DNS validation progress/history, optional live DNS/Game Ping
+  contract, System DNS validation progress/history, optional live DNS/game-target
   probes, and optional Store/Power bundle mode checks.
 
 ## Validation
 
+- `./script/ci_macos.sh`: pass; includes Rust tests, Swift tests, sandbox
+  bundle verification, DNS-only live smoke, and DNS+TCP live smoke.
 - `swift test --package-path apps/macos/DNSPilotMac`: pass.
 - `cargo test --workspace --tests`: pass for shared CLI/core consumed by macOS.
 - `./script/smoke_macos_goal_flows.sh --include-network`: pass on current
@@ -56,9 +72,12 @@ local force flag, and still requires macOS administrator approval.
 
 ## Remaining Gates
 
+- Product UX evidence in `TODO.md`: incremental presentation-file extraction and a
+  five-user moderated usability pass.
 - Release signing identity, provisioning, and App Store entitlement approval.
 - Signed distribution bundle validation.
 - Power-edition helper/runtime QA remains separate from the Store build.
+- Real-network Power Apply/Restore QA remains required before direct distribution.
 - OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
 
 ## Source Of Truth
@@ -67,3 +86,5 @@ local force flag, and still requires macOS administrator approval.
 - Core CLI requests: `apps/macos/macos-core-cli-request.md`.
 - Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
 - OS provider trust/manual gates: `docs/os-provider-trust.md`.
+- Product/UX research: `docs/research/2026-07-11-macos-product-ux-review.md`.
+- Engineering milestones: `apps/macos/macos-engineering-handoff.md`.

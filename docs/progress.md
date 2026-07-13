@@ -1,65 +1,46 @@
 # Global Progress
 
-Last integration pass: 2026-07-08.
+Last integration pass: 2026-07-14.
 
-## Current State
+## Completed
 
-- `main` now contains the latest active mobile, macOS, Linux, and Windows lane
-  work.
-- Core CLI contracts cover catalog/capabilities, benchmark modes, progress,
-  storage, apply-policy/apply-plan, history, custom profiles/suites, and
-  system-DNS validation.
-- OS provider trust/manual gates are centralized in `docs/os-provider-trust.md`.
-- Concise copy, info affordances, and tutorial behavior are centralized in
-  `docs/ux-copy-onboarding.md`.
-- macOS is the UX lead lane and now includes privacy manifest, support/privacy
-  copy, release preflight, bundle validation, and non-mutating goal smoke
-  scripts.
-- Mobile is a store-safe Expo bridge shell for UX and policy validation, not the
-  final public-store runtime architecture. It includes System Access recovery,
-  native settings actions, Expo SDK 57, Android debug build evidence, and
-  recorded iOS Simulator build/install/launch smoke evidence.
-- Linux is code-complete for native app/session logic with an egui desktop
-  launcher, helper contract/dry-run protocol, packaging policy templates, and
-  package readiness commands; it still needs real package QA.
-- Windows is code-complete for store-safe core/view-model behavior that can be
-  validated on macOS and now includes Store manifest/assets, publish profile,
-  packaging script, privacy/listing/support docs; it still needs real Windows
-  App SDK/MSIX/tray QA.
+- Merged macOS reference lane into `main`, including focused consumer UX, singleton
+  window ownership, DNS-only Quick Check, game/service target presets, one primary
+  result action, native commands, Power rollback, app icon, release assets, and safe
+  support/privacy site generation.
+- Core/CLI DNS samples now expose optional failure detail with Rust/CLI tests.
+- Integrated committed Linux work through `d9ad771`, including package automation,
+  settings flows, completion plan, provider steps, and lane risk documentation.
+- Integrated committed Windows work through `ae94c97`, including the Store-safe
+  baseline and selective-parity pre-development plan.
+- Added Rust formatting to the macOS integration gate in `7209b70`.
+- Re-ran macOS CI and Store/Power preflight successfully.
+- Audited every worktree, restored the `core-cli` slot to branch `worktree/core-cli`,
+  and preserved all dirty Windows/mobile work.
+- Defined macOS-led product-contract parity in `PROJECT.md` and
+  `docs/reference-lane-contract.md`.
+- Preserved uncommitted Windows/mobile overlays without staging or rewriting them.
 
-## Validated In This Integration
+## In Progress Outside `main`
 
-- `npm test` in `apps/mobile/DNSPilotMobile`: pass, 43/43 tests.
-- `npm run typecheck` in `apps/mobile/DNSPilotMobile`: pass.
-- `swift test --package-path apps/macos/DNSPilotMac`: pass, 253 XCTest tests
-  plus 0 Swift Testing tests.
-- `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
-- `apps/windows/validate-windows-lane.sh`: pass for core/build/static checks,
-  packaging/localization/static checks, and expected macOS-only WinUI
-  build-probe handling.
-- `git diff --check`: pass.
+- Linux: Store-safe milestones remain open; native execute is development-only until
+  a fail-closed privilege boundary and exact rollback are proven.
+- Windows: dirty Runtime Readiness remains outside `main`; later milestones remain
+  queued in `apps/windows/windows-predevelopment-review.md`.
+- Mobile: consumer work through `3d1a34f` is verified but remains isolated with the
+  restricted entitlement branch; a tutorial follow-up is dirty and uncommitted.
 
-## Open Gates
+## Deferred By Evidence
 
-- Mobile: native adapter/backend decision, real-device QA, store signing.
-- macOS: signing/provisioning, App Store entitlement review, distribution
-  validation.
-- Linux: real Flatpak/Snap/deb/rpm package builds, distro QA, and release
-  decision for default-disabled native helper execution.
-- Windows: Windows-host validation, MSIX/tray behavior, Partner Center
-  capability justification.
-- Security/release hygiene: `npm audit --omit=dev --audit-level=moderate`
-  currently reports an Expo tooling dependency on vulnerable `uuid <11.1.1`;
-  npm's suggested force fix is breaking and should be handled as a dependency
-  upgrade decision, not an automatic patch.
-- Provider trust: Apple Developer, App Store Connect, Play Console, Microsoft
-  Partner Center, Flathub/Snapcraft, and distro package QA remain manual.
+- Mobile commits based on restricted iOS entitlement are not merged into `main`.
+- Linux native Power prototype is present in `main` for development history only and
+  is explicitly not approved for release while rollback/privilege design is incomplete.
+- Windows dirty work is not staged or merged until its owner commits and validation is
+  reviewed.
+- Shared `runtime-info --json` is not implemented until a second lane confirms the
+  same contract need.
 
-## Next Actions
+## Manual Gates
 
-- Keep child branches fast-forwarded from `main` before new lane work.
-- Use `docs/platform-summary.md` as the short cross-platform source of truth.
-- Keep detailed platform release steps in `apps/<platform>/*publish*` and
-  `apps/<platform>/*readiness*` docs instead of repeating them in chat.
-- Keep OS provider account/signing/manual trust steps in
-  `docs/os-provider-trust.md` and run them in one release pass.
+See `STATE.md` and `docs/os-provider-trust.md`. No signing, provider account, Store
+submission, physical-device QA, or real privileged DNS mutation has been claimed.

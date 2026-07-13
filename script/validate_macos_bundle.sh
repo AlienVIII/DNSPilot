@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_BUNDLE="$ROOT_DIR/dist/DNSPilotMac.app"
 APP_NAME="DNSPilotMac"
+PRODUCT_NAME="DNS Pilot"
+EXPECTED_APP_CATEGORY="public.app-category.utilities"
 CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
 APP_VERSION_PATTERN='^[0-9]+(\.[0-9]+){1,2}$'
@@ -49,6 +51,7 @@ APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 HELPER_BINARY="$APP_BUNDLE/Contents/Library/Helpers/$CLI_NAME"
 LEGACY_HELPER="$APP_BUNDLE/Contents/Resources/$CLI_NAME"
 PRIVACY_MANIFEST="$APP_BUNDLE/Contents/Resources/PrivacyInfo.xcprivacy"
+APP_ICON="$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 
 failures=0
 
@@ -136,6 +139,33 @@ else
   fail "CFBundleExecutable expected $APP_NAME, got ${bundle_executable:-missing}"
 fi
 
+bundle_display_name="$(plist_value "$INFO_PLIST" "CFBundleDisplayName")"
+if [[ "$bundle_display_name" == "$PRODUCT_NAME" ]]; then
+  pass "CFBundleDisplayName is $PRODUCT_NAME"
+else
+  fail "CFBundleDisplayName expected $PRODUCT_NAME, got ${bundle_display_name:-missing}"
+fi
+
+app_category="$(plist_value "$INFO_PLIST" "LSApplicationCategoryType")"
+if [[ "$app_category" == "$EXPECTED_APP_CATEGORY" ]]; then
+  pass "LSApplicationCategoryType is $EXPECTED_APP_CATEGORY"
+else
+  fail "LSApplicationCategoryType expected $EXPECTED_APP_CATEGORY, got ${app_category:-missing}"
+fi
+
+bundle_icon_file="$(plist_value "$INFO_PLIST" "CFBundleIconFile")"
+if [[ "$bundle_icon_file" == "AppIcon.icns" ]]; then
+  pass "CFBundleIconFile is AppIcon.icns"
+else
+  fail "CFBundleIconFile expected AppIcon.icns, got ${bundle_icon_file:-missing}"
+fi
+
+if [[ -s "$APP_ICON" ]] && sips -g pixelWidth -g pixelHeight "$APP_ICON" 2>/dev/null | grep -q 'pixelWidth: 1024'; then
+  pass "AppIcon.icns is bundled at 1024px"
+else
+  fail "AppIcon.icns is missing, empty, or not 1024px"
+fi
+
 if [[ -x "$APP_BINARY" ]]; then
   pass "main executable exists"
 else
@@ -193,9 +223,15 @@ else
 fi
 
 if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.client"; then
-  pass "store entitlements allow outbound network client"
+    pass "store entitlements allow outbound network client"
 else
-  fail "store entitlements must allow outbound network client"
+    fail "store entitlements must allow outbound network client"
+fi
+
+if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.server"; then
+    pass "store entitlements allow incoming UDP DNS responses"
+else
+    fail "store entitlements must allow incoming UDP DNS responses for direct DNS checks"
 fi
 
 if [[ -f "$HELPER_ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$HELPER_ENTITLEMENTS_TEMPLATE" >/dev/null; then
@@ -253,6 +289,14 @@ if grep -q "com.apple.security.get-task-allow" <<<"$app_signing_report"; then
   warn_or_fail_distribution "signed app entitlements include get-task-allow; acceptable for debug only"
 fi
 
+if (( DISTRIBUTION )); then
+  if grep -qi "runtime" <<<"$app_signing_report"; then
+    pass "signed app uses hardened runtime"
+  else
+    fail "signed app is missing hardened runtime; release signing must use codesign --options runtime"
+  fi
+fi
+
 helper_signing_report="$(codesign -dvvv --entitlements :- "$HELPER_BINARY" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$helper_signing_report"; then
   warn_or_fail_distribution "CLI helper is ad-hoc signed; release packaging must sign helper with Packaging/DNSPilotHelper.entitlements"
@@ -266,6 +310,14 @@ if grep -q "com.apple.security.inherit" <<<"$helper_signing_report"; then
   pass "signed CLI helper entitlements include sandbox inheritance"
 else
   warn_or_fail_distribution "signed CLI helper entitlements do not include sandbox inheritance; release signing must use Packaging/DNSPilotHelper.entitlements"
+fi
+
+if (( DISTRIBUTION )); then
+  if grep -qi "runtime" <<<"$helper_signing_report"; then
+    pass "signed CLI helper uses hardened runtime"
+  else
+    fail "signed CLI helper is missing hardened runtime; release signing must use codesign --options runtime"
+  fi
 fi
 
 if (( failures > 0 )); then

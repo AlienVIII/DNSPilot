@@ -3,7 +3,8 @@
 ## Status
 
 This lane is ready for automated Rust validation and later real-device package
-QA. It does not require manual distro/package testing before handoff.
+QA. It is not yet a production consumer or publisher-ready build. Follow
+`linux-completion-plan.md` and `linux-implementation-plan.md` before submission.
 Start with `apps/linux/README.md` for install, build, run, smoke, and native
 helper commands.
 
@@ -16,8 +17,30 @@ Current package split:
 
 - Flatpak: store-safe benchmark and guided settings only.
 - Snap: strict store-safe benchmark and guided settings only.
-- deb/rpm: native power package path for future DNS apply through
-  NetworkManager/systemd-resolved plus polkit.
+- deb/rpm: native package path; Power remains disabled/experimental until the real
+  system D-Bus, caller-bound polkit, exact rollback, and Linux-host gates pass.
+
+## Required Publisher And Site Setup
+
+As of 2026-07-11, `dnspilot.io` does not resolve. Before any store/repository
+submission:
+
+1. Configure the chosen product domain in the DNS provider and enable HTTPS.
+2. Host public homepage, support, and privacy pages. If the domain differs from
+   `dnspilot.io`, update the AppStream URLs and maintainer addresses first.
+3. Publish the source repository and create an immutable `v0.1.0` tag/archive
+   for Flathub source review.
+4. Verify the public surfaces:
+
+```sh
+curl -fsS https://dnspilot.io/ >/dev/null
+curl -fsS https://dnspilot.io/support >/dev/null
+curl -fsS https://dnspilot.io/privacy >/dev/null
+git ls-remote --tags <public-source-url> refs/tags/v0.1.0
+```
+
+5. Create/sign in to the Flathub submission account and Snapcraft publisher
+   account. Keep credentials outside the repository.
 
 ## Official References
 
@@ -36,26 +59,33 @@ Run from repo root:
 cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check
 cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
 cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings
+cargo test -p dnspilot-cli
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml
+cargo build -p dnspilot-cli
 ```
 
-Release binary:
+Release payload and package commands:
 
 ```sh
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
+cargo build --release -p dnspilot-cli
+apps/linux/scripts/build-packages.sh stage
+# Use flatpak, snap, deb, rpm, or all after the stage gate passes.
 ```
 
 Expected release binaries:
 
-- `target/release/dnspilot-linux-gui` for the desktop launcher,
-- `target/release/dnspilot-linux-shell` for CLI inspection/QA,
-- `target/release/dnspilot-native-helper` for native deb/rpm helper contract.
+- `apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui` for the desktop launcher,
+- `apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell` for CLI inspection/QA,
+- repo-root `target/release/dnspilot-cli` for the benchmark engine,
+- `apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper` for native deb/rpm helper contract.
 
 Smoke the native-facing surfaces:
 
 ```sh
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell detect
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell readiness
+apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell publish-check --package all
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell publish-check --package flatpak
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell publish-check --package deb --network-manager --polkit --system-resolver-probe
 apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell app-model --package flatpak --lang vi
@@ -65,7 +95,8 @@ apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell permissions --packa
 
 ## Flatpak Local QA
 
-1. Build release binary.
+1. Install `org.freedesktop.Platform` and `org.freedesktop.Sdk` 25.08 from
+   Flathub on the Linux build host.
 2. Confirm manifest stays store-safe:
 
 ```sh
@@ -78,11 +109,11 @@ Expected:
 - `--socket=system-bus` does not exist.
 - NetworkManager/systemd-resolved bus access does not exist.
 
-3. Build/install locally with Flatpak Builder from the repo root or adjust the
-   manifest source paths for the builder working directory:
+3. Build, then install locally with Flatpak Builder:
 
 ```sh
-flatpak-builder --force-clean --user --install build-flatpak apps/linux/packaging/flatpak/io.dnspilot.DNSPilot.yml
+apps/linux/scripts/build-packages.sh flatpak
+flatpak-builder --force-clean --user --install apps/linux/dist/flatpak-build apps/linux/packaging/flatpak/io.dnspilot.DNSPilot.yml
 flatpak run io.dnspilot.DNSPilot
 ```
 
@@ -120,24 +151,16 @@ be batched once.
 
 ## Snap Local QA
 
-1. Build release binary.
-2. Build a `snap-payload` directory matching `snapcraft.yaml`:
+1. Build the strict Snap; the script stages the shared payload automatically:
 
 ```sh
-mkdir -p apps/linux/packaging/snap-payload
-cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui apps/linux/packaging/snap-payload/
-cp apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell apps/linux/packaging/snap-payload/
-cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.desktop apps/linux/packaging/snap-payload/
-cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.metainfo.xml apps/linux/packaging/snap-payload/
-cp apps/linux/packaging/shared/io.dnspilot.DNSPilot.svg apps/linux/packaging/snap-payload/
+apps/linux/scripts/build-packages.sh snap
 ```
 
-3. Pack and install:
+2. Install and inspect connections:
 
 ```sh
-cd apps/linux/packaging/snap
-snapcraft pack
-sudo snap install --dangerous dnspilot_0.1.0_*.snap
+sudo snap install --dangerous apps/linux/dist/dnspilot_0.1.0.snap
 snap connections dnspilot
 dnspilot
 ```
@@ -156,24 +179,21 @@ Expected:
 ```sh
 snapcraft login
 snapcraft register dnspilot
-snapcraft upload --release=edge dnspilot_0.1.0_*.snap
+snapcraft upload --release=edge apps/linux/dist/dnspilot_0.1.0.snap
 ```
 
 3. In store notes, state that native DNS apply is not part of the strict Snap.
 
 ## deb Native Power QA
 
-1. Build release binary.
-2. Wire `apps/linux/packaging/deb/control`, shared metadata, binary install,
-   and polkit policy into the final Debian packaging tree.
-3. Build and install locally:
+1. Build and install locally on a Debian-family Linux host:
 
 ```sh
-debuild -us -uc
-sudo apt install ./dnspilot_0.1.0_*.deb
+apps/linux/scripts/build-packages.sh deb
+sudo apt install ./apps/linux/dist/deb/dnspilot_0.1.0_*.deb
 ```
 
-4. Verify host capabilities:
+2. Verify host capabilities:
 
 ```sh
 nmcli --version || true
@@ -185,7 +205,6 @@ dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --pack
 dnspilot-native-helper --contract
 dnspilot-native-helper --dry-run --stack networkmanager --server 1.1.1.1
 dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
-dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"execute","confirm_system_dns_mutation":true}'
 ```
 
 Expected:
@@ -193,25 +212,19 @@ Expected:
 - native apply plan is offered only when NetworkManager or systemd-resolved plus
   polkit are detected,
 - native helper contract/dry-run/request protocol works without writing DNS,
-- execute-mode requests require `confirm_system_dns_mutation: true` plus
-  `--allow-system-dns-mutation`; without the flag they fail before writes,
-- polkit prompt appears before any DNS write when the explicit mutation flag is
-  used,
+- execute-mode requests fail closed; do not run the current command-backed prototype,
 - current/system resolver validation can run after apply if supported.
 
 ## rpm Native Power QA
 
-1. Build release binary.
-2. Wire `apps/linux/packaging/rpm/dnspilot-linux.spec`, shared metadata, binary
-   install, and polkit policy into the final RPM build tree.
-3. Build and install locally:
+1. Build and install locally on an RPM-family Linux host:
 
 ```sh
-rpmbuild -ba dnspilot-linux.spec
-sudo dnf install ./dnspilot-0.1.0-*.rpm
+apps/linux/scripts/build-packages.sh rpm
+sudo dnf install ./apps/linux/dist/rpmbuild/RPMS/*/dnspilot-0.1.0-1*.rpm
 ```
 
-4. Repeat the deb native power QA capability and polkit checks.
+2. Repeat the deb native power QA capability and polkit checks.
 
 ## Manual Real-Device Acceptance
 
@@ -226,14 +239,19 @@ sudo dnf install ./dnspilot-0.1.0-*.rpm
 - Current/system resolver validation appears only when supported.
 - Debug report copies complete capability, process, resolver, and result context.
 - Flatpak/Snap never mutate system DNS.
-- deb/rpm native apply requires polkit and supported resolver stack.
+- deb/rpm native apply is unavailable until the completed Power mechanism requires
+  polkit, a supported resolver stack, exact rollback, and configuration identity checks.
 
 ## Known Release Risks
 
-- The checked-in packaging files are policy templates; real Flatpak/Snap/deb/rpm
-  builds still need package-tool validation on Linux.
+- The checked-in build script and recipes are structurally tested; real
+  Flatpak/Snap/deb/rpm artifacts still need package-tool validation on Linux.
+- Flathub submission needs a public immutable source tag/archive and generated
+  Cargo source manifest; the local manifest intentionally consumes verified
+  Linux ELF payloads for pre-submission QA.
+- `dnspilot.io` homepage/support/privacy URLs must resolve over HTTPS before
+  metadata submission.
 - The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
   still needs package-tool validation on Linux.
-- The native power helper contract includes a non-mutating dry-run lifecycle and
-  an explicit execute mutation gate. Real DNS mutation still requires Linux
-  package QA before it is enabled by default or submitted for release.
+- The native power helper contract includes non-mutating dry-run inspection. Its current
+  execute prototype is not release-safe and must be disabled/replaced before package QA.

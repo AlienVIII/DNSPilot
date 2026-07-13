@@ -1,5 +1,7 @@
 # Linux UX Spec
 
+Completion design and implementation order: `linux-completion-plan.md`.
+
 ## Scope
 
 - Linux is capability-based, not one platform.
@@ -16,8 +18,8 @@
 | --- | --- | --- | --- | --- | --- |
 | Flatpak | Yes | Yes | Only if explicitly supported by probe | Yes | No |
 | Snap | Yes | Yes | Only if explicitly supported by probe | Yes | No |
-| deb | Yes | Yes | Only if explicitly supported by probe | No | Yes with resolver stack + polkit |
-| rpm | Yes | Yes | Only if explicitly supported by probe | No | Yes with resolver stack + polkit |
+| deb | Yes | Yes | Only if explicitly supported by probe | No | Planned Power capability; unavailable for release |
+| rpm | Yes | Yes | Only if explicitly supported by probe | No | Planned Power capability; unavailable for release |
 
 Notes:
 - Snap `network-manager` is privileged and not auto-connected, so the store-safe
@@ -44,9 +46,8 @@ Readiness checkpoint:
 cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness
 ```
 
-The readiness report marks scoped Linux code goals as ready and separates
-manual package QA, store credentials, signing, screenshots, release notes, and
-real resolver-write QA as external release work.
+The current readiness report covers the original engineering-shell scope. It does not
+prove the consumer completion or Power release gates in `linux-completion-plan.md`.
 
 ## Native App Surface
 
@@ -73,17 +74,17 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- app-model \
   --lang vi
 ```
 
-The GUI and view-model include:
-
-- benchmark,
-- profile management,
-- settings/apply path,
-- diagnostics/debug report,
-- permissions.
+The current GUI includes benchmark, profile management, settings/apply planning,
+diagnostics, and permissions. The release target replaces this engineering-console
+navigation with three primary destinations: Check DNS, Profiles, and History. Settings
+and Help move to the command surface; diagnostics/capability details become contextual.
 
 English and Vietnamese are supported for primary app labels/help, permission
 surfaces, guided settings, and publish-check surfaces. Some package tool names
 stay in English because they are command names.
+
+Release localization requires System/English/Vietnamese selection, persistence, and no
+hardcoded user-facing workflow strings outside the localization table.
 
 ## Permissions
 
@@ -93,8 +94,9 @@ Permission UX is package-specific:
   benchmark/guidance. It does not request system DNS mutation.
 - Snap requests strict outbound network and desktop-window permissions. It does
   not include the privileged `network-manager` plug in the store-safe build.
-- deb/rpm native power packages require polkit plus NetworkManager D-Bus or
-  systemd-resolved before real DNS apply is offered.
+- deb/rpm may offer Power only after the completed system D-Bus mechanism detects a
+  supported owner and obtains caller-bound polkit authorization. The current prototype
+  must not offer release apply.
 
 CLI permission example:
 
@@ -129,6 +131,11 @@ Each run has per-step status and per-resolver status:
 - `success`
 - `failed`
 
+The current GUI runs the core CLI on a background worker and polls completion without
+blocking egui, but its concrete process runner buffers output until exit. The release
+target streams JSONL events while running, provides cancellation, reaps the child, and
+normalizes every exit path so no resolver/step remains idle or running.
+
 Step sets are mode-specific:
 
 - DNS only: detect capabilities, prepare benchmark, run DNS benchmark, build diagnostics.
@@ -147,6 +154,10 @@ Every run can produce a copyable debug report with:
 - step statuses,
 - resolver statuses,
 - capability notes.
+
+The release result is not a raw JSON/debug console. It must show recommended DNS or
+keep-current, fastest observed separately, confidence/gate reasons, failures, resolver
+metrics, and one contextual Apply/Retest action. Raw diagnostics stay behind Details.
 
 The GUI displays diagnostics after plan/run actions. The Linux CLI harness also
 renders this report from mocked inputs for automated QA:
@@ -171,11 +182,13 @@ logic:
 - DNS only uses `compare`.
 - DNS + TCP uses `path-compare`.
 - Current/system resolver uses `system-benchmark`.
-- Direct benchmark modes request `--progress-jsonl` and parse resolver progress
-  from stderr.
+- All benchmark modes request `--progress-jsonl` and parse resolver progress
+  from stderr; current/system validation uses the core `system-dns` resolver ID.
 - Unsupported modes are rejected before the runner is invoked.
 - The concrete process runner captures stdout, stderr, and exit code from a
   caller-supplied core CLI path.
+- The release runner also streams progress, supports cancellation, and passes the XDG
+  SQLite path for profile/suite/history persistence.
 
 CLI plan example:
 
@@ -204,7 +217,9 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- run \
 ## Settings And Apply
 
 Flatpak and Snap expose guided settings only. Guided actions copy values and
-open OS guidance; they do not mutate DNS.
+show localized in-app OS guidance; they do not mutate DNS. The GUI requires one
+profile, applies the IPv4/IPv6 address-family filter, copies the resulting
+servers, and keeps the steps visible for reference.
 
 CLI guide example:
 
@@ -222,6 +237,12 @@ Native power package plan:
 2. Fall back to systemd-resolved for resolved-managed links and DNS state validation.
 3. Require polkit authorization before writing resolver settings.
 4. Flush/validate through the supported resolver stack, then rerun current/system resolver validation.
+
+The existing command executor is an experimental prototype, not this completed plan.
+Release implementation requires a native-package-only privileged system D-Bus
+mechanism, caller-bound polkit authorization, exact DNS/configuration snapshot,
+configuration identity recheck, automatic rollback, and explicit Restore. Store builds
+must neither install nor connect to that service.
 
 Native apply contract CLI example:
 
@@ -256,14 +277,12 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-nat
   --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
 ```
 
-The helper contract binary is packaged only for native deb/rpm power builds.
+The current helper contract binary is staged only for native deb/rpm local QA.
 Its current dry-run surface proves stack/server routing and explicitly reports
 that no DNS writes were executed. The request JSON path validates the polkit
 action id, resolver stack, servers, rollback requirement, validation flag, and
-mutation mode. `execute` requests require `confirm_system_dns_mutation: true`;
-the helper binary also requires `--allow-system-dns-mutation` before it runs the
-NetworkManager/systemd-resolved command backend. Without that flag, execute
-requests fail before any DNS write.
+mutation mode. Do not run execute mode; Milestone 0 makes it fail closed and Milestone
+7 replaces it with the required privileged mechanism.
 
 ## Custom Profiles
 
@@ -338,8 +357,8 @@ Vietnam suite is included only when the catalog capability supports it:
 ## Later QA
 
 Do not block Linux lane completion on manual distro/package testing. Later QA
-should verify real Flatpak/Snap/deb/rpm packaging behavior, portal/settings
-handoff, NetworkManager D-Bus writes, systemd-resolved writes, polkit prompts,
-and distro resolver-stack differences.
+should verify real Flatpak/Snap/deb/rpm packaging behavior and portal/settings handoff.
+After Milestone 7, separate disposable-host QA must verify NetworkManager D-Bus writes,
+systemd-resolved fallback, polkit prompts, exact restore, and distro differences.
 
 Publish and manual real-device steps live in `linux-publish-checklist.md`.

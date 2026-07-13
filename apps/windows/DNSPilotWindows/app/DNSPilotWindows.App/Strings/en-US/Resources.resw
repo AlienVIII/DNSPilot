@@ -60,6 +60,9 @@
   <data name="NavProfiles.Content" xml:space="preserve">
     <value>Profiles</value>
   </data>
+  <data name="NavSuites.Content" xml:space="preserve">
+    <value>Suites</value>
+  </data>
   <data name="NavHistory.Content" xml:space="preserve">
     <value>History</value>
   </data>
@@ -132,6 +135,12 @@
   <data name="BenchmarkProfilesTooltip.Content" xml:space="preserve">
     <value>Select plain DNS profiles to include in DNS-only or DNS + TCP benchmarks.</value>
   </data>
+  <data name="SuiteCombo.Header" xml:space="preserve">
+    <value>Domain suite</value>
+  </data>
+  <data name="SuiteTooltip.Content" xml:space="preserve">
+    <value>Choose a saved domain suite for benchmark targets.</value>
+  </data>
   <data name="CommandPreviewHeader.Text" xml:space="preserve">
     <value>Command preview</value>
   </data>
@@ -202,6 +211,36 @@
     <value>Update</value>
   </data>
   <data name="DeleteProfileText.Text" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SuitesHeader.Text" xml:space="preserve">
+    <value>Domain suites</value>
+  </data>
+  <data name="SuitesList.Header" xml:space="preserve">
+    <value>Saved suites</value>
+  </data>
+  <data name="SuiteNameBox.Header" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="SuiteIdBox.Header" xml:space="preserve">
+    <value>Suite ID for update/delete</value>
+  </data>
+  <data name="SuiteDomainsBox.Header" xml:space="preserve">
+    <value>Domains</value>
+  </data>
+  <data name="SuiteDomainsTooltip.Content" xml:space="preserve">
+    <value>Domains to benchmark, separated by commas, spaces, or new lines.</value>
+  </data>
+  <data name="PreviewSuiteText.Text" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="AddSuiteText.Text" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="UpdateSuiteText.Text" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="DeleteSuiteText.Text" xml:space="preserve">
     <value>Delete</value>
   </data>
   <data name="DiagnosticsHeader.Text" xml:space="preserve">

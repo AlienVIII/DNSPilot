@@ -1,13 +1,16 @@
 # Linux Native Specific Support
 
 ## Capabilities
-- GTK4/libadwaita or Qt are candidates.
+- eframe/egui remains the v1 toolkit; GTK4/libadwaita or Qt requires a proved Linux-host
+  accessibility/IME blocker and a new decision.
 - Flatpak can benchmark with network permission.
 - Snap network-manager interface is privileged and not auto-connect by default.
-- deb/rpm can use NetworkManager D-Bus or systemd-resolved with polkit.
+- deb/rpm can host a future NetworkManager/systemd-resolved D-Bus mechanism with polkit;
+  the current command prototype is not release-safe.
 - Current/system resolver validation is capability-gated, not assumed.
 - Store/sandbox builds expose guided settings only.
-- Native power builds expose real apply only after resolver stack plus polkit checks.
+- Native Power can expose real apply only after caller authorization, exact snapshot,
+  configuration identity, rollback, validation, package, and real-host gates all pass.
 
 ## Limitations
 - Tray support is not guaranteed, especially GNOME/Wayland.

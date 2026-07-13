@@ -1,12 +1,15 @@
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, LinuxEnvironmentProbe, LinuxPackageKind,
 };
+use dnspilot_linux_shell::i18n::Language;
 use dnspilot_linux_shell::profiles::{
-    CustomProfileStore, PlainDnsProfileDraft, ProfileValidationIssue,
+    CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft, ProfileValidationIssue,
 };
 use dnspilot_linux_shell::settings::{
-    dns_record_family_controls, native_power_path_plan, resolver_address_family_controls,
-    settings_actions, DnsRecordFamily, ResolverAddressFamily, SettingsActionKind,
+    build_guided_settings_plan, dns_record_family_controls, native_power_path_plan,
+    profile_servers_for_family, render_guided_settings_plan, resolver_address_family_controls,
+    settings_actions, DnsRecordFamily, GuidedSettingsError, ResolverAddressFamily,
+    SettingsActionKind,
 };
 use dnspilot_linux_shell::suites::default_suite_catalog;
 
@@ -169,6 +172,9 @@ fn store_safe_settings_are_guided_only_and_native_power_plan_is_explicit() {
     assert!(deb_actions
         .iter()
         .any(|action| action.kind == SettingsActionKind::NativePowerApply));
+    assert!(deb_actions
+        .iter()
+        .any(|action| action.label.contains("Review")));
 
     let plan = native_power_path_plan();
     assert!(plan
@@ -180,6 +186,68 @@ fn store_safe_settings_are_guided_only_and_native_power_plan_is_explicit() {
         .iter()
         .any(|step| step.contains("systemd-resolved")));
     assert!(plan.steps.iter().any(|step| step.contains("polkit")));
+}
+
+#[test]
+fn guided_settings_plan_filters_servers_and_keeps_store_build_non_mutating() {
+    let flatpak = capability_view_model(probe(LinuxPackageKind::Flatpak));
+    let profile = PlainDnsProfile {
+        id: "dual-stack".to_string(),
+        name: "Dual Stack".to_string(),
+        ipv4_servers: vec!["1.1.1.1".to_string()],
+        ipv6_servers: vec!["2606:4700:4700::1111".to_string()],
+    };
+
+    assert_eq!(
+        profile_servers_for_family(&profile, ResolverAddressFamily::Ipv4Only),
+        vec!["1.1.1.1"]
+    );
+    let plan = build_guided_settings_plan(
+        &flatpak,
+        &profile,
+        ResolverAddressFamily::Ipv4Only,
+        Language::Vietnamese,
+    )
+    .expect("Flatpak should produce guided settings");
+
+    assert_eq!(plan.servers, vec!["1.1.1.1"]);
+    assert!(plan.safety_note.contains("Không tự động đổi DNS"));
+    assert!(plan.steps.iter().any(|step| step.contains("Sao chép")));
+    let rendered = render_guided_settings_plan(&plan);
+    assert!(rendered.contains("Dual Stack"));
+    assert!(rendered.contains("1.1.1.1"));
+    assert!(!rendered.contains("2606:4700:4700::1111"));
+}
+
+#[test]
+fn guided_settings_plan_rejects_native_or_empty_family_selection() {
+    let profile = PlainDnsProfile {
+        id: "ipv4-only".to_string(),
+        name: "IPv4 only".to_string(),
+        ipv4_servers: vec!["9.9.9.9".to_string()],
+        ipv6_servers: Vec::new(),
+    };
+    let native = capability_view_model(probe(LinuxPackageKind::Deb));
+    assert_eq!(
+        build_guided_settings_plan(
+            &native,
+            &profile,
+            ResolverAddressFamily::Ipv4Only,
+            Language::English,
+        ),
+        Err(GuidedSettingsError::UnavailableForPackage)
+    );
+
+    let flatpak = capability_view_model(probe(LinuxPackageKind::Flatpak));
+    assert_eq!(
+        build_guided_settings_plan(
+            &flatpak,
+            &profile,
+            ResolverAddressFamily::Ipv6Only,
+            Language::English,
+        ),
+        Err(GuidedSettingsError::NoServersForSelectedFamily)
+    );
 }
 
 #[test]

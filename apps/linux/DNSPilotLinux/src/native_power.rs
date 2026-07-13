@@ -1,6 +1,6 @@
 use crate::capabilities::{LinuxCapabilityViewModel, LinuxPackageKind};
 use crate::profiles::PlainDnsProfile;
-use crate::settings::ResolverAddressFamily;
+use crate::settings::{profile_servers_for_family, ResolverAddressFamily};
 use serde_json::Value;
 use std::net::IpAddr;
 use std::process::Command;
@@ -506,7 +506,7 @@ pub fn build_native_apply_plan(
         return Err(NativeApplyError::MissingNativePowerCapability);
     }
 
-    let servers = selected_servers(profile, address_family);
+    let servers = profile_servers_for_family(profile, address_family);
     if servers.is_empty() {
         return Err(NativeApplyError::NoServersForSelectedFamily);
     }
@@ -555,22 +555,6 @@ pub fn render_native_apply_plan(plan: &NativeDnsApplyPlan) -> String {
     }
 
     lines.join("\n")
-}
-
-fn selected_servers(
-    profile: &PlainDnsProfile,
-    address_family: ResolverAddressFamily,
-) -> Vec<String> {
-    match address_family {
-        ResolverAddressFamily::Auto => profile
-            .ipv4_servers
-            .iter()
-            .chain(profile.ipv6_servers.iter())
-            .cloned()
-            .collect(),
-        ResolverAddressFamily::Ipv4Only => profile.ipv4_servers.clone(),
-        ResolverAddressFamily::Ipv6Only => profile.ipv6_servers.clone(),
-    }
 }
 
 fn parse_native_stack(value: &str) -> Option<NativeResolverStack> {

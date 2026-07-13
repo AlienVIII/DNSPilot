@@ -22,7 +22,7 @@
                 <TextBlock x:Uid="AppSubtitle" Text="Windows Store-safe DNS benchmark shell" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <Button Click="QuickBenchmark_Click">
+                <Button x:Name="QuickBenchmarkButton" Click="QuickBenchmark_Click">
                     <ToolTipService.ToolTip>
                         <ToolTip x:Uid="QuickBenchmarkTooltip" Content="Run the default DNS + TCP benchmark command." />
                     </ToolTipService.ToolTip>
@@ -31,7 +31,7 @@
                         <TextBlock x:Uid="QuickBenchmarkText" Text="Quick benchmark" />
                     </StackPanel>
                 </Button>
-                <Button Click="ValidateSystemDns_Click">
+                <Button x:Name="ValidateSystemDnsButton" Click="ValidateSystemDns_Click">
                     <ToolTipService.ToolTip>
                         <ToolTip x:Uid="ValidateDnsTooltip" Content="Benchmark the current Windows resolver path." />
                     </ToolTipService.ToolTip>
@@ -71,6 +71,7 @@
                 <NavigationViewItem x:Uid="NavBenchmark" Content="Benchmark" Tag="Benchmark" Icon="Play" IsSelected="True" />
                 <NavigationViewItem x:Uid="NavApply" Content="Apply" Tag="Apply" Icon="Copy" />
                 <NavigationViewItem x:Uid="NavProfiles" Content="Profiles" Tag="Profiles" Icon="Edit" />
+                <NavigationViewItem x:Uid="NavSuites" Content="Suites" Tag="Suites" Icon="Bookmarks" />
                 <NavigationViewItem x:Uid="NavHistory" Content="History" Tag="History" Icon="Clock" />
                 <NavigationViewItem x:Uid="NavDiagnostics" Content="Diagnostics" Tag="Diagnostics" Icon="ReportHacked" />
             </NavigationView.MenuItems>
@@ -141,10 +142,16 @@
                             </ToolTipService.ToolTip>
                         </ListView>
 
+                        <ComboBox x:Name="SuiteCombo" x:Uid="SuiteCombo" Header="Domain suite" SelectionChanged="BenchmarkSelection_Changed">
+                            <ToolTipService.ToolTip>
+                                <ToolTip x:Uid="SuiteTooltip" Content="Choose a saved domain suite for benchmark targets." />
+                            </ToolTipService.ToolTip>
+                        </ComboBox>
+
                         <TextBlock x:Uid="CommandPreviewHeader" Text="Command preview" FontWeight="SemiBold" />
                         <TextBox x:Name="CommandPreviewBox" IsReadOnly="True" TextWrapping="Wrap" MinHeight="76" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Click="RunBenchmark_Click">
+                            <Button x:Name="RunBenchmarkButton" Click="RunBenchmark_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <SymbolIcon Symbol="Play" />
                                     <TextBlock x:Uid="RunBenchmarkText" Text="Run benchmark" />
@@ -173,13 +180,13 @@
                         <TextBlock x:Uid="ApplyHeader" Text="Apply guidance" FontSize="20" FontWeight="SemiBold" />
                         <TextBox x:Name="DnsServersBox" x:Uid="DnsServersBox" Header="DNS servers" IsReadOnly="True" TextWrapping="Wrap" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Click="CopyDnsServers_Click">
+                            <Button x:Name="CopyDnsButton" Click="CopyDnsServers_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <SymbolIcon Symbol="Copy" />
                                     <TextBlock x:Uid="CopyDnsText" Text="Copy DNS" />
                                 </StackPanel>
                             </Button>
-                            <Button Click="OpenSettings_Click">
+                            <Button x:Name="OpenApplySettingsButton" Click="OpenSettings_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <SymbolIcon Symbol="Setting" />
                                     <TextBlock x:Uid="OpenSettingsText" Text="Open settings" />
@@ -198,6 +205,7 @@
 
                 <Grid Grid.Row="1" Grid.Column="1" RowSpacing="16">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
@@ -246,7 +254,47 @@
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="DiagnosticsSection" Grid.Row="1" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <Border x:Name="SuitesSection" Grid.Row="1" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock x:Uid="SuitesHeader" Text="Domain suites" FontSize="20" FontWeight="SemiBold" />
+                            <ListView x:Name="SuitesList" x:Uid="SuitesList" Header="Saved suites" MaxHeight="140" SelectionChanged="SuitesList_SelectionChanged" />
+                            <TextBox x:Name="SuiteNameBox" x:Uid="SuiteNameBox" Header="Name" Text="Azure Lab" />
+                            <TextBox x:Name="SuiteIdBox" x:Uid="SuiteIdBox" Header="Suite ID for update/delete" Text="custom-azure-lab" />
+                            <TextBox x:Name="SuiteDomainsBox" x:Uid="SuiteDomainsBox" Header="Domains" Text="portal.azure.com, login.microsoftonline.com" TextWrapping="Wrap">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Uid="SuiteDomainsTooltip" Content="Domains to benchmark, separated by commas, spaces, or new lines." />
+                                </ToolTipService.ToolTip>
+                            </TextBox>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Click="PreviewSuiteSave_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="PreviewLink" />
+                                        <TextBlock x:Uid="PreviewSuiteText" Text="Preview" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="SaveSuite_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Save" />
+                                        <TextBlock x:Uid="AddSuiteText" Text="Add" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="UpdateSuite_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Edit" />
+                                        <TextBlock x:Uid="UpdateSuiteText" Text="Update" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="DeleteSuite_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Delete" />
+                                        <TextBlock x:Uid="DeleteSuiteText" Text="Delete" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border x:Name="DiagnosticsSection" Grid.Row="2" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                         <StackPanel Spacing="12">
                             <TextBlock x:Uid="DiagnosticsHeader" Text="Diagnostics" FontSize="20" FontWeight="SemiBold" />
                             <ListView x:Name="HistoryList" x:Uid="HistoryList" Header="History" MaxHeight="160" />

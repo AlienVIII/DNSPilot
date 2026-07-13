@@ -8,7 +8,7 @@
 - Background benchmark can violate platform expectations.
 - Expo SDK upgrades can shift generated native projects; rerun Expo doctor plus
   iOS and Android smoke builds after package changes.
-- Expo SDK 57 still needs a narrow `expo-modules-jsi@57.0.0` Swift patch for
+- Expo SDK 57 still needs a narrow `expo-modules-jsi@57.0.1` Swift patch for
   Xcode 26 until upstream ships the same compiler compatibility fix.
 
 ## Platform Risks

@@ -23,6 +23,9 @@ Environment:
                                Default: dist/release/DNSPilotMac.pkg
   DNSPILOT_CODESIGN_IDENTITY   Required app signing identity.
                                Also accepts CODESIGN_IDENTITY.
+  DNSPILOT_CODESIGN_OPTIONS    Optional codesign --options value.
+                               Default and release requirement for certificate-
+                               backed signing: runtime.
   DNSPILOT_INSTALLER_IDENTITY  Optional installer signing identity.
                                If omitted, creates an unsigned local .pkg.
   DNSPILOT_POWER_EDITION       Set to 1 for direct-install Power edition

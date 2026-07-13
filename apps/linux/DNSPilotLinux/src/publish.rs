@@ -19,7 +19,9 @@ pub fn publish_check(
         "cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check",
         "cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml",
         "cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings",
+        "cargo test -p dnspilot-cli",
         "cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release",
+        "cargo build --release -p dnspilot-cli",
     ];
 
     match capability.package_kind {
@@ -28,7 +30,7 @@ pub fn publish_check(
             language,
             automated_gate,
             local_qa_steps: vec![
-                "Build with Flatpak Builder from apps/linux/packaging/flatpak/io.dnspilot.DNSPilot.yml.",
+                "Run apps/linux/scripts/build-packages.sh flatpak on a Linux build host.",
                 "Run appstreamcli validate on shared AppStream metadata.",
                 "Run desktop-file-validate on the shared desktop entry.",
                 "Confirm Flatpak Builder output launches without tray dependency on GNOME/Wayland.",
@@ -45,7 +47,7 @@ pub fn publish_check(
             language,
             automated_gate,
             local_qa_steps: vec![
-                "Build release payload and pack with snapcraft from apps/linux/packaging/snap.",
+                "Run apps/linux/scripts/build-packages.sh snap on a Linux build host.",
                 "Install locally with sudo snap install --dangerous.",
                 "Check snap connections; only strict store-safe interfaces should be present.",
                 "Confirm DNS apply is unavailable in the strict Snap build.",
@@ -62,7 +64,7 @@ pub fn publish_check(
             language,
             automated_gate,
             local_qa_steps: vec![
-                "Build with debuild -us -uc after wiring release binaries into the Debian tree.",
+                "Run apps/linux/scripts/build-packages.sh deb on a Debian-family build host.",
                 "Install the .deb on a Linux VM or hardware target.",
                 "Verify NetworkManager/systemd-resolved detection, helper install path, and polkit policy.",
                 "Exercise native helper dry-run, execute guard, polkit prompt, rollback, and validation before release.",
@@ -79,7 +81,7 @@ pub fn publish_check(
             language,
             automated_gate,
             local_qa_steps: vec![
-                "Build with rpmbuild -ba apps/linux/packaging/rpm/dnspilot-linux.spec.",
+                "Run apps/linux/scripts/build-packages.sh rpm on an RPM-family build host.",
                 "Install the RPM on a Linux VM or hardware target.",
                 "Verify NetworkManager/systemd-resolved detection, helper install path, and polkit policy.",
                 "Exercise native helper dry-run, execute guard, polkit prompt, rollback, and validation before release.",

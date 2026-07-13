@@ -64,11 +64,16 @@ grep -q 'Package.appxmanifest' "$package_prep"
 grep -q 'Version must use four numeric parts' "$package_prep"
 
 echo "== Windows App SDK build probe =="
-if dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx; then
+winui_build_log="$(mktemp)"
+trap 'rm -f "$winui_build_log"' EXIT
+if dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx 2>&1 | tee "$winui_build_log"; then
   echo "WinUI solution build passed."
 else
-  if [[ "$(uname -s)" == "Darwin" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]] && rg -q 'XamlCompiler\.exe: (cannot execute binary file|Bad CPU type in executable)' "$winui_build_log"; then
     echo "WinUI build probe failed on macOS as expected: Windows App SDK XamlCompiler.exe is Windows-only."
+  elif [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "WinUI build failed for a reason other than the Windows-only XAML compiler." >&2
+    exit 1
   else
     echo "WinUI solution build failed on non-macOS host." >&2
     exit 1

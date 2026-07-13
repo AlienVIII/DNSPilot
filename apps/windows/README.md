@@ -2,7 +2,8 @@
 
 Store-safe Windows shell for DNS Pilot. This lane benchmarks DNS resolvers,
 shows recommendation diagnostics, guides manual DNS apply through Windows
-Settings, manages custom DNS profiles/history, and exposes tray quick actions.
+Settings, manages custom DNS profiles/domain suites/history, and exposes tray
+quick actions.
 
 The Microsoft Store build must stay normal-user only: no UAC prompt, no silent DNS mutation, no `netsh`, no `DnsClient` adapter writes, and no registry DNS writes. Power/admin apply belongs in a separate edition.
 
@@ -71,12 +72,15 @@ If launching from Visual Studio, use the `MsixPackage` launch profile.
 Manual smoke flow:
 
 1. Launch DNS Pilot and confirm no UAC prompt appears.
-2. Run Quick benchmark.
+2. Confirm Apply stays blocked until runtime CLI contracts load, then run Quick benchmark.
 3. Add a custom DNS profile and select it in Benchmark resolver profiles.
-4. Run DNS-only or DNS + TCP and confirm diagnostics/recommendation populate.
-5. Copy DNS servers, open Windows Network Settings, apply manually, then run
+4. Add a custom domain suite and select it in Benchmark domain suite.
+5. Run DNS-only or DNS + TCP and confirm diagnostics/recommendation populate.
+6. Copy DNS servers, open Windows Network Settings, apply manually, then run
    Validate DNS.
-6. Test tray actions: Quick benchmark, Validate current DNS, Open settings.
+7. Test tray actions: Quick benchmark, Validate current DNS, Open settings.
+8. Confirm profile/suite/history deletes require confirmation and Cancel is the
+   default action.
 
 ## Build Store Package
 

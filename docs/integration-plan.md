@@ -11,11 +11,16 @@
 
 ## Merge Strategy
 - Small commits per lane.
+- Merge the macOS reference lane first, then compare each lane against
+  `docs/reference-lane-contract.md`.
 - Contracts land in core-cli before platform lanes depend on them.
 - Platform mocks are allowed only with a matching core-cli request file entry.
 - Docs lane periodically reads all platform coordination files and updates shared docs.
 - After an integration pass, fast-forward child branches from `main` so later
   work starts from the same contract/docs baseline.
+- Do not fast-forward through overlapping dirty files. Let the owning engineer
+  finish and commit, review that commit, merge to `main`, then fast-forward.
+- Never merge provider-restricted experiments into the default Store baseline.
 - If the user says "merge/tong hop thu muc goc", prefer local `main` as the
   integration target unless they explicitly ask for a review branch or PR.
 

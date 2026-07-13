@@ -50,11 +50,17 @@ public static class CatalogJsonDecoder
     private sealed record SuitePayload(
         [property: JsonPropertyName("id")] string Id,
         [property: JsonPropertyName("name")] string Name,
-        [property: JsonPropertyName("domains")] IReadOnlyList<string> Domains)
+        [property: JsonPropertyName("description")] string? Description,
+        [property: JsonPropertyName("domains")] IReadOnlyList<string> Domains,
+        [property: JsonPropertyName("tags")] IReadOnlyList<string>? Tags)
     {
         public static CatalogTestSuite ToCatalogTestSuite(SuitePayload payload)
         {
-            return new CatalogTestSuite(payload.Id, payload.Name, payload.Domains);
+            return new CatalogTestSuite(payload.Id, payload.Name, payload.Domains)
+            {
+                Description = payload.Description ?? "",
+                Tags = payload.Tags ?? Array.Empty<string>(),
+            };
         }
     }
 
