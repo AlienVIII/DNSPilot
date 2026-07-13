@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { TutorialHeaderButton } from '@/src/components/app-tutorial';
 import { useDNSPilot } from '@/src/state/dnspilot-context';
 
 const icons = {
@@ -33,6 +34,7 @@ export default function TabLayout() {
         // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
         headerTitleStyle: { fontWeight: '700' },
+        headerRight: () => <TutorialHeaderButton />,
       }}>
       <Tabs.Screen
         name="index"

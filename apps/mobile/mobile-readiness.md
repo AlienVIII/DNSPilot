@@ -20,9 +20,11 @@
   Default Store builds omit the `dns-settings` entitlement and present guided
   setup only. An entitled build retains bootstrap IP validation, install/remove
   status, and explicit iOS user enablement.
-- System setup: no app-open permission sheet. Check DNS has a top-right help
-  entry, and setup opens only from an evidence-backed result. Android opens
-  Private DNS/network Settings; both platforms show DNS flush as unsupported.
+- System setup: no app-open permission sheet. A first-run optional tutorial is
+  shown only after local preferences load and completes only on Skip or Done.
+  Its top-right Help icon is available on Check DNS, Profiles, and History;
+  setup opens only from an evidence-backed result. Android opens Private
+  DNS/network Settings; both platforms show DNS flush as unsupported.
 - Tablet layouts: covered by shared adaptive layout helpers, two-column flows on
   wide screens, and unlocked orientation for native portrait/landscape checks.
 - IPv4/IPv6 and A/AAAA controls: covered by benchmark IP-family controls and
@@ -88,9 +90,10 @@
 1. Build/install an iOS or Android development binary. Run `npm run
    native:prepare:ios` or `npm run native:prepare:android` first; no bridge is
    needed for the installed app.
-2. Open **Check DNS**: no permission sheet appears. Open the top-right help
-   entry; iOS describes normal foreground access and Android describes Private
-   DNS guidance, with no dangerous runtime permission prompt.
+2. On first run, complete or skip the optional tutorial. Restart the app and
+   confirm it does not return; use the top-right Help icon on Check DNS,
+   Profiles, and History to reopen it. No permission sheet appears and opening
+   or dismissing Help does not request system access.
 3. Check DNS: choose General, Vietnam, or a gaming target; run Quick Check,
    DNS + TCP, and current System DNS validation. Confirm per-step/resolver
    status, failure reason, result, details, and Copy report.

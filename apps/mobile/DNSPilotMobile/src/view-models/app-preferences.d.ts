@@ -3,6 +3,7 @@ import type { LanguagePreference } from './localization';
 export type AppPreferences = {
   bridgeUrl: string;
   languagePreference: LanguagePreference;
+  tutorialCompletionVersion: number;
 };
 
 export function normalizeAppPreferences(input?: Partial<AppPreferences>, defaults?: AppPreferences): AppPreferences;

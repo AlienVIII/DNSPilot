@@ -28,6 +28,7 @@ import {
 } from '@/src/view-models/app-preferences';
 import { actionTransport } from '@/src/view-models/action-transport';
 import { createNativeJobStore } from '@/src/view-models/native-job-store';
+import { currentTutorialVersion, shouldShowTutorial } from '@/src/view-models/tutorial-state';
 import {
   createTranslator,
   languageOptions,
@@ -45,6 +46,10 @@ type DNSPilotContextValue = {
   setLanguagePreference: (value: LanguagePreference) => void;
   languageOptions: typeof languageOptions;
   t: Translator;
+  tutorialVisible: boolean;
+  openTutorial: () => void;
+  dismissTutorial: () => void;
+  completeTutorial: () => void;
   health: { ok: boolean; dbPath?: string; repoRoot?: string } | null;
   profiles: DNSProfile[];
   suites: TestSuite[];
@@ -68,6 +73,7 @@ const appPreferencesStorageKey = 'dnspilot-mobile.preferences.v1';
 const defaultAppPreferences: AppPreferences = {
   bridgeUrl: defaultBridgeUrl,
   languagePreference: 'system',
+  tutorialCompletionVersion: 0,
 };
 
 function readDeviceLocales() {
@@ -80,6 +86,8 @@ function readDeviceLocales() {
 export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
   const [bridgeUrl, setBridgeUrl] = useState(defaultBridgeUrl);
   const [languagePreference, setLanguagePreference] = useState<LanguagePreference>('system');
+  const [tutorialCompletionVersion, setTutorialCompletionVersion] = useState(0);
+  const [tutorialVisible, setTutorialVisible] = useState(false);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [deviceLocales, setDeviceLocales] = useState(readDeviceLocales);
   const [health, setHealth] = useState<DNSPilotContextValue['health']>(null);
@@ -100,6 +108,7 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
         const preferences = deserializeAppPreferences(raw, defaultAppPreferences);
         setBridgeUrl(preferences.bridgeUrl);
         setLanguagePreference(preferences.languagePreference);
+        setTutorialCompletionVersion(preferences.tutorialCompletionVersion);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -121,9 +130,23 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       serializeAppPreferences({
         bridgeUrl,
         languagePreference,
+        tutorialCompletionVersion,
       }, defaultAppPreferences)
     ).catch(() => undefined);
-  }, [bridgeUrl, languagePreference, preferencesLoaded]);
+  }, [bridgeUrl, languagePreference, preferencesLoaded, tutorialCompletionVersion]);
+
+  React.useEffect(() => {
+    if (shouldShowTutorial({ preferencesLoaded, tutorialCompletionVersion })) {
+      setTutorialVisible(true);
+    }
+  }, [preferencesLoaded, tutorialCompletionVersion]);
+
+  const openTutorial = useCallback(() => setTutorialVisible(true), []);
+  const dismissTutorial = useCallback(() => setTutorialVisible(false), []);
+  const completeTutorial = useCallback(() => {
+    setTutorialCompletionVersion(currentTutorialVersion);
+    setTutorialVisible(false);
+  }, []);
 
   React.useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -237,6 +260,10 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       setLanguagePreference,
       languageOptions,
       t,
+      tutorialVisible,
+      openTutorial,
+      dismissTutorial,
+      completeTutorial,
       health,
       profiles,
       suites,
@@ -254,6 +281,10 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       locale,
       languagePreference,
       t,
+      tutorialVisible,
+      openTutorial,
+      dismissTutorial,
+      completeTutorial,
       health,
       profiles,
       suites,

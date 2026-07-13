@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { AppTutorial } from '@/src/components/app-tutorial';
 import { DNSPilotProvider, useDNSPilot } from '@/src/state/dnspilot-context';
 
 export {
@@ -42,6 +43,7 @@ export default function RootLayout() {
 
   return (
     <DNSPilotProvider>
+      <AppTutorial />
       <RootLayoutNav />
     </DNSPilotProvider>
   );

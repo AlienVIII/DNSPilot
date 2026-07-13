@@ -19,7 +19,9 @@ assembly, and the current iOS Simulator consumer UI are validated locally.
   foreground native jobs, resolver rows, failure details, and copyable reports.
 - Guided settings covers iOS/iPadOS profile/settings guidance and Android
   settings/Private DNS guidance without silent DNS mutation or VpnService.
-- No app-open permission sheet. Check DNS has a top-right help entry; settings
+- No app-open permission sheet. A versioned, optional first-run tutorial waits
+  for persisted preferences and completes only on Skip or Done. Its top-right
+  Help icon reopens the shared tutorial from every consumer tab; settings
   guidance begins only from a healthy, confident recommendation.
 - Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
   validation, and custom tag preservation.

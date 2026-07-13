@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Platform, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 
 import { BridgeJob, BridgeResult, DNSProfile } from '@/src/api/dnspilot';
 import { DNSSettings, type DNSSettingsStatus } from '@/modules/dns-settings/src/DNSSettingsModule';
@@ -10,7 +10,6 @@ import {
   CodeBlock,
   EmptyState,
   ErrorBanner,
-  HelpButton,
   Metric,
   Pill,
   Row,
@@ -59,7 +58,6 @@ export default function CheckDnsScreen() {
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
   const [settingsWorking, setSettingsWorking] = useState(false);
   const [iosDnsStatus, setIosDnsStatus] = useState<DNSSettingsStatus | null>(null);
-  const [helpVisible, setHelpVisible] = useState(false);
 
   const plainProfiles = useMemo(() => profiles.filter((profile) => profile.protocol === 'plain'), [profiles]);
   const presets = useMemo(() => quickCheckPresets(suites), [suites]);
@@ -233,8 +231,7 @@ export default function CheckDnsScreen() {
 
   return (
     <Screen>
-      <CheckHelpSheet visible={helpVisible} onClose={() => setHelpVisible(false)} t={t} />
-      <Section title={t('check.title')} subtitle={t('check.subtitle')} action={<HelpButton label={t('tutorial.openA11y')} onPress={() => setHelpVisible(true)} />}>
+      <Section title={t('check.title')} subtitle={t('check.subtitle')}>
         <Section title={t('check.targets')}>
           {presets.length === 0 ? <EmptyState text={t('check.noTargets')} /> : null}
           <Row>
@@ -366,23 +363,6 @@ function ResultLine({ label, value }: { label: string; value: string }) {
       <Text selectable style={{ color: palette.muted, fontSize: 12 }}>{label}</Text>
       <Text selectable style={{ color: palette.text, fontSize: 16, fontWeight: '800' }}>{value}</Text>
     </View>
-  );
-}
-
-function CheckHelpSheet({ visible, onClose, t }: { visible: boolean; onClose: () => void; t: (key: string) => string }) {
-  const platformSummary = platform === 'android-play' ? t('systemAccess.summary.android') : t('systemAccess.summary.iosNative');
-  return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-      <View style={{ backgroundColor: 'rgba(15, 23, 42, 0.42)', flex: 1, justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: palette.background, borderTopLeftRadius: 8, borderTopRightRadius: 8, gap: 14, padding: 16 }}>
-          <Text selectable style={{ color: palette.text, fontSize: 24, fontWeight: '800' }}>{t('systemAccess.title')}</Text>
-          <Text selectable style={{ color: palette.muted, fontSize: 15, lineHeight: 21 }}>{platformSummary}</Text>
-          <Text selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>{t('systemAccess.detail.nativeNetwork')}</Text>
-          <Text selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>{t('systemAccess.detail.dnsFlush')}</Text>
-          <Button label={t('common.continue')} onPress={onClose} />
-        </View>
-      </View>
-    </Modal>
   );
 }
 

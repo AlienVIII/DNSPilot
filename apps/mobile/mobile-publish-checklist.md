@@ -25,9 +25,10 @@
   `production-ios-dns` profile is for Apple-approved/signed DoH/DoT DNS
   Settings validation only; iOS still requires user enablement and plain DNS
   remains guide-only.
-- Check DNS has no app-open permission sheet. Setup begins only from a valid
-  recommendation; Android opens Private DNS/network Settings, and DNS flush is
-  explicitly unsupported.
+- A first-run optional tutorial has no permission request and persists its
+  completion only on Skip or Done. The top-right Help icon reopens it from all
+  consumer tabs. Setup begins only from a valid recommendation; Android opens
+  Private DNS/network Settings, and DNS flush is explicitly unsupported.
 - Manual language selection persists in native app storage across restarts.
 - Installable native builds execute the shared Rust core in-process. The local
   bridge is limited to Expo Go/web development fallback and is not a release
@@ -45,9 +46,11 @@
    ```
 3. Open the installed development build on the device. The native runtime does
    not require a developer Mac, LAN bridge, or backend.
-4. Open **Check DNS**: confirm no permission sheet appears. The top-right help
-   entry must state foreground-only diagnostics and no DNS flush. Android setup
-   must open Private DNS/network Settings only after an eligible result.
+4. On a first install, confirm the optional tutorial appears after app state
+   loads and does not request a system permission. Tap Skip or Done, restart,
+   then use the top-right Help icon from Check DNS, Profiles, and History to
+   reopen it. Android setup must open Private DNS/network Settings only after
+   an eligible result.
 5. Profiles: choose language `Auto`, `English`, and `Tiếng Việt`; confirm tab
    titles, validation errors, process status labels, and guided settings copy
    update. Restart the app and confirm the last manual language choice remains.

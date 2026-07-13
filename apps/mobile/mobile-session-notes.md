@@ -31,9 +31,11 @@
   iOS/iPadOS DNS Settings profile guidance, Android settings/Private DNS
   guidance, and protect-current-dns suppression.
 - The consumer shell no longer opens a permission-first System Access sheet.
-  Check DNS starts directly; a top-right help entry explains the platform flow.
-  Guided settings starts only after a valid recommendation. It never applies
-  DNS silently or flushes the system DNS cache.
+  A versioned optional tutorial appears only after preferences load, records
+  completion only on Skip or Done, and has one shared top-right Help icon on
+  Check DNS, Profiles, and History. Guided settings starts only after a valid
+  recommendation. It never applies DNS silently or flushes the system DNS
+  cache.
 - Current production Simulator smoke built, installed, and launched the
   consumer shell on iPhone 17e. It starts at Check DNS with only Check DNS,
   Profiles, and History visible in the tab bar; no startup permission sheet.
