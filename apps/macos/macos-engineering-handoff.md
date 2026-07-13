@@ -1,7 +1,8 @@
 # macOS Engineering Handoff
 
-Architecture decisions are fixed in `PROJECT.md`. Implement only the milestones below;
-raise an architecture question instead of expanding scope.
+Architecture decisions are fixed in `PROJECT.md`. Milestones 0-3 are implemented and
+locally validated. Milestone 4 is complete only for automated artifacts; external
+release evidence remains manual.
 
 ## Milestone 0: Window Correctness
 
@@ -69,9 +70,12 @@ raise an architecture question instead of expanding scope.
 Milestone 0 -> Milestone 1 -> Milestone 2 -> Milestone 3 -> Milestone 4. Do not start
 Power release work before the Store SKU passes Milestone 4.
 
-## Engineer Thread Prompt
+## Current Handoff
 
-Implement Milestone 0 only on the macOS worktree. Follow `AGENTS.md`, preserve the
-Store/Power boundary, use tests before behavior changes, and stop if the single-window
-design requires a new architecture decision. Report changed files, test evidence,
-runtime launch/reopen evidence, and remaining risks. Do not touch other OS lanes.
+- Automated evidence: `./script/ci_macos.sh` and
+  `./script/preflight_macos_release.sh --include-power` pass.
+- Store-safe code work is frozen pending usability and signed-release evidence.
+- Do not start a broad SwiftUI extraction during release stabilization.
+- Remaining work is the manual list in `STATE.md` and `apps/macos/PUBLISHING.md`.
+- Any new production change needs a reproduced defect or failed release gate, focused
+  tests, and a new engineer assignment.

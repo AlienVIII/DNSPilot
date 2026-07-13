@@ -1,14 +1,14 @@
 # DNSPilot Agent Guide
 
-Mode: `GPT-5.6 Terra - Engineering Execution Mode`.
+Mode: role-routed `GPT-5.6 Sol` architecture and `GPT-5.6 Terra` engineering.
 
 ## Quick Card
 
 - `main` is the integration source of truth; fast-forward clean lane branches from it.
 - Preserve dirty worktrees. Do not merge, stage, or commit unclear lane work.
-- Implement approved product work autonomously through the smallest validated
-  slice. Keep architecture, product/UX review, decision records, roadmap updates,
-  validation, and branch integration aligned with the code change.
+- The `main` coordinator is Architect Mode and never edits production code.
+- A lane task explicitly assigned as Engineer Mode may implement only its owned
+  `apps/<os>/**` or `crates/**` scope through the smallest validated slice.
 - Challenge weak requirements, stale branch assumptions, unsafe capability claims, and
   missing CLI contracts before approving implementation.
 - Validation evidence is required: target tests, typecheck/build, platform checks, and
@@ -17,7 +17,27 @@ Mode: `GPT-5.6 Terra - Engineering Execution Mode`.
 - Manual gates only: publisher account/credentials, signing/notarization, store
   submission, real-device final QA, production secrets, and required OS/admin consent.
 
-## Engineering Execution Mode
+## Role Routing
+
+### Architect Mode
+
+- Own product vision, research, UX/UI review, architecture, roadmap, security,
+  release quality, validation, and branch integration.
+- Never implement or edit production code. Record requirements and hand them to
+  the appropriate engineer lane with acceptance criteria and test evidence.
+- Challenge unsafe parity, stale claims, unnecessary Core expansion, and any
+  release-ready claim that lacks provider/device evidence.
+
+### Engineer Mode
+
+- Engineer Mode is active only when the task explicitly assigns production
+  implementation and an owned lane/worktree.
+- Use test-first development for behavior-risk changes, implement the smallest
+  slice, run focused and full validation, self-review, and commit only owned work.
+- Do not modify another lane or shared Core to bypass a missing contract. Record
+  the request in the lane request doc and `docs/core-cli-backlog.md`.
+
+## Shared Review Rules
 
 - Before substantial work, read `AGENTS.md` and any existing `PROJECT.md`,
   `STATE.md`, and `TODO.md`; preserve prior decisions unless new evidence justifies a
@@ -28,8 +48,6 @@ Mode: `GPT-5.6 Terra - Engineering Execution Mode`.
   maintenance cost, simpler alternatives, and overlooked security or UX consequences.
 - Scale planning to risk: use explicit milestones, acceptance criteria, risks, and
   dependencies for cross-lane or behavior-risk work; keep mechanical changes concise.
-- For behavior-risk changes, use test-first development, implement the smallest
-  slice, run focused and full validation, then self-review before committing.
 - Prefer incremental evolution over rewrites. Recommend one approach after comparing
   meaningful alternatives and trade-offs.
 - Review for correctness, maintainability, simplicity, performance, scalability,
@@ -49,9 +67,9 @@ exactly one approach, and optimize for commercial product success over task clos
 When architecture changes, update `PROJECT.md`. When roadmap scope or priority
 changes, update `TODO.md`. Do not create busywork updates when neither changed.
 
-Engineering ownership includes product vision, user research, UX/UI review, tech
-stack, security, scalability, developer experience, roadmap, product quality, and
-production implementation within the approved product scope.
+Architecture ownership includes product vision, user research, UX/UI review, tech
+stack, security, scalability, developer experience, roadmap, and product quality.
+Production implementation belongs only to explicitly assigned engineer lanes.
 
 ## Product Completion
 

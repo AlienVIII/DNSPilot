@@ -1,57 +1,45 @@
 # Platform Summary
 
-Last integration pass: 2026-07-11.
+Last integration pass: 2026-07-13.
 
-## Branch Integration
+## Integration State
 
-`main` is the integrated source of truth for this cross-platform slice. The
-latest lane branches merged into `main` are:
-
-- `worktree/mobile`
-- `macos`
-- `worktree/linux`
-- `worktree/windows`
-
-`worktree/core-cli` and `worktree/docs` are fast-forward lanes for shared
-contract/docs follow-up. Keep all child branches fast-forwarded from `main` after
-integration so future lane work starts from the same context.
-
-Current local sync: `worktree/core-cli`, `worktree/docs`, `macos`,
-`worktree/linux`, and `worktree/windows` are fast-forwarded to current `main`; dirty
-Linux/Windows feature files remain preserved. `worktree/mobile` is intentionally
-not synced because its gated native-DNS commit and dirty `package.json` overlap the
-integration path.
-
-Architecture note: `worktree/mobile` commit `345c41e` is intentionally not merged;
-its native iOS DNS Settings entitlement remains an isolated experiment until Apple
-capability approval and signed-device validation.
-
-## Requirement Coverage
-
-| Lane | Current status | Requirement fit | Hard gate before release claim |
+| Lane | Integrated in `main` | Isolated work | Catch-up status |
 | --- | --- | --- | --- |
-| Core CLI | Shared Rust catalog, capabilities, compare, path-compare, system-benchmark, preflight, apply-policy, apply-plan, profile/suite/history storage, and progress JSONL contracts are implemented. | Meets the current shell-consumer contract requirements. | Keep schema changes versioned and rerun full Rust workspace tests. |
-| macOS | SwiftUI UX lead shell with benchmark, history, custom DNS/suites, menu bar, guided apply, System DNS validation, localization, gated Power edition, privacy manifest, support/privacy copy, and release preflight/smoke scripts. | Meets store-safe app behavior requirements for local validation. | Signing/provisioning, App Store entitlement review, signed distribution bundle validation. |
-| Mobile | Expo/React Native bridge shell with benchmark, diagnostics, storage forms, guided settings, System Access recovery, native settings actions, localization, device setup checks, Expo SDK 57, Android debug build evidence, and iOS Simulator build/install/launch smoke evidence. | Meets test-shell and mobile-policy exploration requirements. | Native Rust adapter/backend decision, physical iOS/Android real-device QA, store account/signing flows. |
-| Linux | Rust Linux app/session model with egui desktop launcher, CLI harness, package capability detection, store-safe guidance, native-power helper contract/dry-run protocol, packaging policy templates, and README entrypoint. | Meets scoped code-complete native-app/session requirements. | Real Flatpak/Snap/deb/rpm package builds and distro QA before publish or default Power behavior. |
-| Windows | .NET/WinUI lane with core view-models, store-safe apply guidance, profile/history management, localization, tray model, Store MSIX manifest/assets, publish profile/script, privacy/listing/support docs. | Meets macOS-verifiable store-safe shell and packaging-prep requirements. | Windows App SDK runtime build, MSIX/tray/manual QA, Partner Center capability review and signing. |
+| Core CLI | Current through macOS reference merge | No separate Core commit pending | Current contract is sufficient; shared message/progress hardening remains P1 |
+| macOS | `13d3f35` via `Merge macOS reference lane` | None | Reference lane; automated Store-safe scope complete |
+| Linux | Baseline through `8cf4502` | `510867e`..`d9ad771` plus active completion work | Not caught up; Store-safe milestones and fail-closed Power gate open |
+| Windows | Baseline through `8cf4502` | `bad68e1`, `ae94c97`, and dirty Runtime Readiness work | Not caught up; consumer UX/readiness/cancellation work open |
+| Mobile | Safe baseline only | `345c41e`..current plus active consumer work | Not integrated; restricted entitlement and consumer route work remain isolated |
+| Docs | Baseline through previous main | This integration update | Fast-forward after docs commit |
 
-## Cross-Platform Rules
+`main` is the only cross-lane source of truth. Branch-ahead work is evidence only after
+review, lane validation, merge, and merged-result validation.
 
-- Default SKU is store-safe: benchmark, explain, copy guidance, settings handoff,
-  and retest. Do not silently mutate system DNS in store builds.
-- UI copy is concise by default: title/status/action inline, long explanation
-  behind info/tooltip/tutorial/copy report.
-- Each app has a first-run setup/tutorial surface and a top-right Help/Info
-  affordance to reopen it.
-- OS provider trust and signing gates are tracked in
-  `docs/os-provider-trust.md`; do not ask users to disable OS protections.
-- Power/admin DNS mutation stays explicitly gated per platform and separated
-  from store-safe UX.
-- Every shell should expose the exact capability for its OS/package type rather
-  than promising parity.
-- Benchmark UX must show step status, resolver status, elapsed time, failure
-  reason, and a copyable debug report.
-- Saved profiles, saved suites, history, IPv4/IPv6 controls, A/AAAA controls,
-  protected-network suppression, and English/Vietnamese user-facing flows are
-  now shared product expectations unless a platform doc states a scoped gap.
+## Product Reference
+
+macOS defines the store-safe product journey, not the platform implementation. Every
+lane follows `docs/reference-lane-contract.md` and adapts settings, packaging,
+privileges, and provider gates honestly.
+
+## Current Proof
+
+- macOS: 265 Swift tests plus Rust workspace tests, bundle validation, live DNS-only
+  and DNS+TCP smoke, Store/Power preflight, and release-site safety pass.
+- Linux isolated baseline: fmt/test/clippy pass. Real Linux package and privileged
+  behavior remain `NOT RUN`.
+- Windows isolated dirty baseline: 44 Core tests pass. WinUI/MSIX is `NOT RUN` on the
+  macOS host.
+- Mobile isolated dirty baseline: 81 tests and typecheck pass, but export found an
+  unresolved `profiles` route; the engineer lane is fixing the false-green gate.
+
+## Non-Negotiable Boundaries
+
+- Default Store SKUs do not silently mutate DNS.
+- Power/native mutation is separately packaged, consented, reversible, and validated
+  on the real provider/OS before release.
+- iOS `dns-settings` stays out of `main` and the default Store profile until Apple
+  approval and signed-device evidence exist.
+- Linux shell-command mutation is not a production privilege mechanism.
+- Windows Store stays `asInvoker`; no UAC, service, registry, `netsh`, or DNS write.
+- No proof/no claim: unavailable platform checks are `NOT RUN`, not inferred from mocks.

@@ -1,6 +1,6 @@
 # DNSPilot Product Architecture
 
-Last reviewed: 2026-07-11.
+Last reviewed: 2026-07-13.
 
 ## Product
 
@@ -23,9 +23,9 @@ UX, local-first data, and signed OS-native distribution.
 
 ## Commercial Sequence
 
-Ship and validate macOS first. Maintain Windows, Linux, and mobile as benchmark-first
-lanes, but do not expand privileged adapters until macOS release evidence and user
-research establish demand.
+Ship and validate macOS first. While macOS is blocked on external release gates,
+Windows, Linux, and mobile catch up to the same store-safe consumer contract. They do
+not copy macOS-specific APIs or expand privileged adapters without separate evidence.
 
 ## Decisions
 
@@ -44,12 +44,13 @@ research establish demand.
 
 ### D2: Platform Delivery Order
 
-- **Status:** Approved on 2026-07-11.
+- **Status:** Approved on 2026-07-11; amended by D6 on 2026-07-13.
 - **Problem:** parallel feature expansion across four OS lanes dilutes release focus.
 - **Options:** continue parity work; pause all but macOS; keep thin validation lanes.
 - **Trade-offs:** parity maximizes breadth but delays proof; a full pause creates stale
   ports; thin lanes preserve contracts at controlled cost.
-- **Recommendation:** macOS-first release with thin benchmark-first validation lanes.
+- **Recommendation:** macOS-first commercial release; other lanes continue only
+  store-safe product-contract parity and validation until their release gate is opened.
 - **Reason:** one trusted, publishable product creates faster commercial learning than
   four partially releasable products.
 - **Confidence:** Medium-high pending user research.
@@ -107,6 +108,24 @@ research establish demand.
   can be achieved without a new privileged service architecture.
 - **Confidence:** High.
 
+### D6: macOS As Product Reference, Not Platform Template
+
+- **Problem:** independent OS lanes drift into engineering consoles, while exact
+  macOS feature parity would copy invalid provider assumptions and privileged APIs.
+- **Options:** independent products; exact feature parity; one shared consumer
+  contract with capability-specific platform adapters.
+- **Trade-offs:** independence accelerates local work but forks the product; exact
+  parity is simple to track but unsafe across providers; contract parity needs an
+  explicit matrix but preserves one product and honest OS behavior.
+- **Recommendation:** macOS is the reference for the store-safe user journey and
+  quality bar. Every lane implements `Check DNS`, `Profiles`, and `History`, a
+  DNS-only Quick Check, honest DNS+TCP presets, recommendation safety, one primary
+  Apply/Retest action, optional tutorial/Help, concise copy, local persistence,
+  accessibility, and release evidence. OS-specific mutation remains separate.
+- **Reason:** users should recognize one DNSPilot product without hiding real OS,
+  store, privilege, or packaging differences.
+- **Confidence:** High.
+
 ## Quality Gates
 
 - No release-ready claim without platform build, automated tests, signed artifact
@@ -116,3 +135,5 @@ research establish demand.
 - Power DNS Apply must retain an exact active-service rollback record before it can
   be released outside test environments.
 - Contract changes require compatibility/version review across every consumer lane.
+- Reference parity is judged by user outcome and evidence, not identical controls,
+  runtime technology, tray behavior, or privileged capability.

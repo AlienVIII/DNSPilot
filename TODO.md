@@ -2,79 +2,50 @@
 
 Last reviewed: 2026-07-13.
 
-## P0: macOS Product UX Gate
+## P0: macOS Commercial Release
 
-- [x] Remove duplicate manual main-window creation; singleton `Window` count stays
-  `1` after `Benchmark`, `Benchmark`, and `Run Quick Test` actions.
-- [x] Reduce release navigation to Check DNS, Profiles, and History; move internal
-  readiness/platform surfaces out of the consumer sidebar.
-- [x] Replace permission-first onboarding with an optional interactive first check;
-  setup is available from Help instead of blocking first value.
-- [x] Make one result action primary. Move copy/debug/checklist actions behind
-  secondary menus, disclosure, or contextual info.
-- [x] Merge game checks into Check DNS target presets and state that DNS + TCP timing
-  is not ICMP or in-match UDP latency.
-- [x] Add native app commands and keyboard paths for Quick Test, Benchmark, Profiles,
-  History, result, cancel, Settings, and Setup without creating another window.
-- [ ] Run a five-user moderated usability pass; require all participants to complete
-  Check -> Recommendation -> Apply guidance -> Retest without assistance.
+- [x] Complete local Store-safe UX, bundle, smoke, rollback, release-asset, and
+  release-site safety automation.
+- [ ] Run five moderated users through Check -> Recommend -> Apply -> Retest.
+- [ ] Acquire Apple signing/provisioning and validate a certificate-signed bundle.
+- [ ] Host support/privacy pages and capture signed-release screenshots.
+- [ ] Complete App Store Connect privacy/review metadata and submit.
 
-## P0: macOS Release Gates
+## P1: Reference-Lane Catch-Up
 
-- [ ] Acquire Apple signing identity and provisioning for `com.dnspilot.mac`.
-- [ ] Package a certificate-signed Store-safe app and run distribution validation.
-- [x] Prepare App Store metadata/review drafts, screenshot plan, support/privacy
-  page drafts, and a moderated usability script.
-- [x] Add a bundled 1024px app icon and validate its Info.plist/Resources contract
-  for both Store-safe and Power builds.
-- [x] Prepare deploy-ready static support/privacy pages and validate their final
-  rendered form with supplied contact/HTTPS URL inputs.
-- [ ] Complete App Store Connect with hosted support/privacy URLs, signed-release
-  screenshots, final privacy answers, and review notes.
-- [ ] Perform Store-safe manual review smoke, then upload for review.
+- [ ] Linux: complete Store-safe milestones 0-6 and 8-9 in
+  `apps/linux/linux-completion-plan.md`; keep Power experimental and fail-closed.
+- [ ] Windows: complete milestones 0-4 in
+  `apps/windows/windows-predevelopment-review.md`; leave Windows-host release proof
+  as the Milestone 5 manual gate.
+- [ ] Mobile: finish Check DNS / Profiles / History navigation, remove app-open
+  permission UX, fail verification on unresolved routes, and keep native DNS
+  entitlement opt-in.
+- [ ] Re-run each lane gate after merging `main`, then update the parity matrix in
+  `docs/reference-lane-contract.md` with proof or `NOT RUN`.
 
-## P0: Commercial Validation
+## P1: Shared Core Contracts
 
-- [ ] Run the protocol in `docs/macos-v1-commercial-validation.md`.
-- [ ] Interview 5-8 target users who actively change or troubleshoot DNS.
-- [ ] Validate the primary promise: reliable DNS recommendation for the current
-  network, not generic speed improvement.
-- [ ] Define launch metrics: completed benchmark, recommendation confidence, guided
-  apply completion, successful retest, and seven-day return rate.
-- [ ] Test concise onboarding and permission copy with non-technical users.
+- [x] Expose per-sample DNS `failure_detail` without changing recommendation rules.
+- [ ] Add locale-neutral structured issue/message IDs before another lane parses
+  English Core text.
+- [ ] Document one progress JSONL contract across compare, path-compare, and
+  system-benchmark, including cancellation/history semantics.
+- [ ] Decide `runtime-info --json` only after Linux and Windows confirm the same
+  version/readiness need; do not add a Windows-only Core contract prematurely.
 
-## P1: Power Edition Release Gate
+## P1: Power Safety
 
-- [x] Implement and test service-scoped DNS rollback before Power Apply changes
-  a network service; preserve automatic/DHCP DNS as a separate restore mode.
-  Evidence: `5998142`; plan: `docs/superpowers/plans/2026-07-11-power-dns-rollback.md`.
-- [ ] On a disposable network, enable Direct Admin Actions, apply a known-safe
-  resolver, validate System DNS, restore the original DNS, and validate again.
-- [ ] Package and sign Power edition separately from the App Store app.
-
-## P1: Engineering Hygiene
-
-- [ ] Continue splitting the 3,828-line app source by scene/feature without changing
-  core contracts. Window/navigation/menu-bar and Settings/Setup/Power support are
-  already extracted, and the retired duplicate Game Ping UI is removed. Do this after
-  Store-safe usability evidence, not during release stabilization.
-
-## P2: Platform Expansion Gates
-
-- [ ] Keep Windows/Linux/mobile benchmark-first until macOS release evidence and user
-  research justify expansion.
-- [ ] Mobile: obtain Apple `dns-settings` capability and signed-device evidence before
-  considering merge of native DNS commit `345c41e`.
-- [ ] Linux: build real Flatpak/Snap/deb/rpm artifacts and run distro QA.
-- [ ] Windows: commit/review the isolated feature work, then validate WinUI/MSIX/tray
-  behavior on Windows.
-- [ ] Do not implement another direct-DNS adapter without provider approval, rollback
-  evidence, and a clear commercial use case.
+- [ ] Run macOS Power Apply -> Validate -> Restore on a disposable network.
+- [ ] Keep Linux Power disabled until a caller-bound polkit/D-Bus mechanism and exact
+  rollback pass mocked plus real Linux QA.
+- [ ] Keep Windows Power a separate future SKU; no Store elevation or DNS mutation.
+- [ ] Keep mobile native DNS outside the default Store SKU until provider approval.
 
 ## References
 
-- `STATE.md`
 - `PROJECT.md`
-- `apps/macos/PUBLISHING.md`
-- `apps/macos/macos-engineering-handoff.md`
-- `docs/research/2026-07-11-macos-product-ux-review.md`
+- `STATE.md`
+- `docs/reference-lane-contract.md`
+- `docs/core-cli-backlog.md`
+- `docs/os-provider-trust.md`
