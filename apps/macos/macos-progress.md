@@ -10,8 +10,10 @@ local force flag, and still requires macOS administrator approval.
 
 Consumer UX gates now have a singleton main window, task-first navigation, optional
 setup, one primary result action, and compact technical details. Store release still
-needs external usability and publishing evidence. Further presentation-file extraction
-is post-stabilization maintenance. See `apps/macos/macos-engineering-handoff.md`.
+needs localization/interaction consistency, automated visual QA, external usability,
+and publishing evidence. Further presentation-file extraction is post-stabilization
+maintenance except where it is required to establish one text source of truth. See
+`apps/macos/macos-engineering-handoff.md`.
 
 ## Requirement Coverage
 
@@ -37,7 +39,9 @@ is post-stabilization maintenance. See `apps/macos/macos-engineering-handoff.md`
   validation evidence, and EN/VI localized user-facing copy.
 - Dota 2 SEA, CS2, and Riot/League checks are Check DNS target presets. They force
   DNS + TCP mode and state that the output is not ICMP or in-match UDP latency.
-- English/Vietnamese localization covers primary native surfaces.
+- English/Vietnamese localization is partial. A custom dictionary covers primary
+  labels, but hard-coded English strings, bilingual tooltips, English diagnostics, and
+  an incorrect English-only `System` fallback remain release blockers.
 - Power actions are disabled by default. Store-safe builds cannot enable them
   from a stale preference alone; Power/direct-install builds require
   `DNSPilotPowerActionsEnabled` plus Direct Admin opt-in, while
@@ -72,8 +76,10 @@ is post-stabilization maintenance. See `apps/macos/macos-engineering-handoff.md`
 
 ## Remaining Gates
 
-- Product UX evidence in `TODO.md`: incremental presentation-file extraction and a
-  five-user moderated usability pass.
+- Complete the localization/interaction milestone and visual-state matrix in
+  `docs/research/2026-07-14-macos-localization-interaction-review.md`.
+- Product UX evidence in `TODO.md`: a five-user moderated usability pass after the
+  consistency milestone passes.
 - Release signing identity, provisioning, and App Store entitlement approval.
 - Signed distribution bundle validation.
 - Power-edition helper/runtime QA remains separate from the Store build.
@@ -87,4 +93,6 @@ is post-stabilization maintenance. See `apps/macos/macos-engineering-handoff.md`
 - Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
 - OS provider trust/manual gates: `docs/os-provider-trust.md`.
 - Product/UX research: `docs/research/2026-07-11-macos-product-ux-review.md`.
+- Localization/interaction review:
+  `docs/research/2026-07-14-macos-localization-interaction-review.md`.
 - Engineering milestones: `apps/macos/macos-engineering-handoff.md`.

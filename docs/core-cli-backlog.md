@@ -1,10 +1,10 @@
 # Core CLI Backlog
 
-Last reviewed: 2026-07-13.
+Last reviewed: 2026-07-14.
 
-Review status: OS lane requests are resolved for the current v0.1 app slice.
-Remaining items below are follow-up backlog, not blockers for the current
-store-safe desktop/mobile shells.
+Review status: behavior contracts are resolved for the current v0.1 app slice.
+Structured issue/message IDs are now a blocker for complete localized macOS result
+and failure UI; they remain shared Core work rather than a shell-side English parser.
 
 Core CLI already provides the main shared contracts used by platform lanes:
 catalog, capabilities, compare, path-compare, system-benchmark, preflight,
@@ -64,8 +64,9 @@ v0.1 unless a lane records a new schema gap with failing evidence.
 - System-DNS validation parity is available; macOS keeps only a backward
   compatibility adapter for legacy payloads.
 - Keep Power edition explicit and gated by bundle/env metadata.
-- Next shared need, if any, is structured issue/message IDs for release UI and
-  preflight copy. No open v0.1 blocker.
+- Structured issue/message IDs are required for localized result status, caveats,
+  failure reasons, and preflight copy. Preserve raw technical detail separately for
+  issue reports.
 
 ### Mobile
 

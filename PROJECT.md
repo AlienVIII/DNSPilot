@@ -1,6 +1,6 @@
 # DNSPilot Product Architecture
 
-Last reviewed: 2026-07-13.
+Last reviewed: 2026-07-14.
 
 ## Product
 
@@ -124,6 +124,27 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
   accessibility, and release evidence. OS-specific mutation remains separate.
 - **Reason:** users should recognize one DNSPilot product without hiding real OS,
   store, privilege, or packaging differences.
+- **Confidence:** High.
+
+### D7: macOS Localization Ownership
+
+- **Problem:** macOS currently mixes a hand-built EN/VI dictionary, hard-coded
+  English presentation strings, bilingual tooltips, and English Core diagnostics.
+  The `System` language option also resolves to English instead of the user's macOS
+  language.
+- **Options:** keep extending the dictionary; use parallel EN/VI source files; adopt
+  one Apple String Catalog with a locale-aware facade and semantic diagnostic IDs.
+- **Trade-offs:** extending the dictionary is the smallest patch but preserves split
+  ownership; parallel files repeat the same key-management problem; a String Catalog
+  adds a migration but gives extraction, pluralization, translation context, and
+  standard Xcode QA.
+- **Recommendation:** use one `Localizable.xcstrings` source for macOS presentation
+  copy. Keep one app-language preference (`System`, English, Vietnamese), resolve
+  `System` from macOS, and localize non-view strings through the same explicit locale.
+  Shared Core emits structured issue IDs and raw technical details, never localized
+  prose. Do not show two languages in one user-facing tooltip.
+- **Reason:** one locale must produce one coherent UI while raw issue reports remain
+  stable for support. This also scales beyond EN/VI without another custom dictionary.
 - **Confidence:** High.
 
 ## Quality Gates

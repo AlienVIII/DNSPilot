@@ -7,7 +7,7 @@ Last integration pass: 2026-07-14.
 | Lane | Integrated in `main` | Isolated work | Catch-up status |
 | --- | --- | --- | --- |
 | Core CLI | Current through the macOS reference merge | No separate Core commit pending | Shared message/progress hardening remains P1 |
-| macOS | Through `7209b70` | None committed | Reference lane; automated Store-safe scope complete |
+| macOS | Through `7209b70` | Localization/interaction plan pending | Behavior gates pass; commercial UI consistency reopened |
 | Linux | Through `d9ad771` via `3daca3d` | No committed delta | Git-integrated; Store-safe completion and fail-closed Power gate remain open |
 | Windows | Through `ae94c97` via `8b441b5` | Dirty Runtime Readiness vertical slice | Git-integrated through committed head; milestones 0-4 remain open |
 | Mobile | Safe baseline only | `345c41e`..`3d1a34f` plus dirty tutorial work | Kept isolated by approved entitlement decision D1 |
@@ -26,6 +26,8 @@ privileges, and provider gates honestly.
 
 - macOS: 265 Swift tests plus Rust workspace tests, bundle validation, live DNS-only
   and DNS+TCP smoke, Store/Power preflight, and release-site safety pass.
+- macOS localization/interaction visual matrix is `NOT RUN`; partial localization and
+  compact hit-target defects block the commercial UI gate.
 - Linux pre-integration baseline: fmt/test/clippy pass. Real Linux package and
   privileged behavior remain `NOT RUN`; merged-result validation is rerun in this pass.
 - Windows committed baseline: 40 Core/static tests pass. The dirty Runtime Readiness

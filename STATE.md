@@ -9,9 +9,10 @@ Last updated: 2026-07-14.
 - Rust Core/CLI owns catalog, benchmark, recommendation, policy, storage, history,
   apply-plan, and JSON/JSONL contracts. DNS sample payloads now include optional
   `failure_detail` with regression coverage.
-- macOS Store-safe automated scope is complete: focused consumer IA, DNS-only Quick
-  Check, game/service presets, single-window ownership, guided Apply/Retest, Power
-  rollback isolation, release assets, and safe site generation all pass local gates.
+- macOS benchmark, single-window, guided Apply/Retest, Power isolation, release-asset,
+  and packaging gates pass. Commercial UI readiness is reopened: current localization
+  is partial, `System` falls back to English, bilingual help text remains, and some
+  compact controls expose an icon-sized rather than row-sized interaction target.
 - Linux committed packaging, settings, planning, and lane docs are integrated. The
   app remains an engineering shell; its native execute prototype is present for
   development only and is not releasable until fail-closed privilege and exact
@@ -42,6 +43,9 @@ decision journey and evidence, not identical platform features.
 - Mobile committed branch: `npm run verify` passed 86 tests, typecheck, route export,
   dependency compatibility, and production config checks. Physical-device proof is
   still `NOT RUN`.
+- macOS localization/interaction visual matrix: `NOT RUN`; implementation is pending
+  the approved review in
+  `docs/research/2026-07-14-macos-localization-interaction-review.md`.
 
 ## Manual Release Gates
 
