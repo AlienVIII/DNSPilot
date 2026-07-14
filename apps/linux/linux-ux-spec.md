@@ -8,8 +8,8 @@ Completion design and implementation order: `linux-completion-plan.md`.
 - Main app must work without tray support. Tray is optional because GNOME and
   Wayland environments can suppress or omit tray behavior.
 - Store/sandbox packages are benchmark and guidance first.
-- Real DNS mutation is only for native power packages with explicit
-  NetworkManager/systemd-resolved and polkit support.
+- Real DNS mutation is unavailable in the current build. A future native Power package
+  requires explicit NetworkManager/systemd-resolved and polkit support.
 - Flatpak, Snap, deb, and rpm must not be described as feature-parity targets.
 
 ## Capability Matrix
@@ -238,8 +238,8 @@ Native power package plan:
 3. Require polkit authorization before writing resolver settings.
 4. Flush/validate through the supported resolver stack, then rerun current/system resolver validation.
 
-The existing command executor is an experimental prototype, not this completed plan.
-Release implementation requires a native-package-only privileged system D-Bus
+No command executor ships in the default build. Release implementation requires a
+native-package-only privileged system D-Bus
 mechanism, caller-bound polkit authorization, exact DNS/configuration snapshot,
 configuration identity recheck, automatic rollback, and explicit Restore. Store builds
 must neither install nor connect to that service.
@@ -257,10 +257,9 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- apply-plan \
   --resolver-family ipv4
 ```
 
-The apply plan rejects Flatpak/Snap, requires a supported resolver stack plus
-polkit, selects NetworkManager before systemd-resolved when both are available,
-filters DNS servers by IPv4/IPv6 selection, requires rollback snapshot, and
-includes post-apply current/system resolver validation when supported.
+The apply plan rejects Flatpak/Snap and rejects deb/rpm Power requests with an explicit
+unavailable result. It remains a design contract until the separately gated service
+provides caller-bound polkit, exact rollback, and current/system validation.
 
 Native helper contract examples:
 
@@ -277,12 +276,9 @@ cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-nat
   --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
 ```
 
-The current helper contract binary is staged only for native deb/rpm local QA.
-Its current dry-run surface proves stack/server routing and explicitly reports
-that no DNS writes were executed. The request JSON path validates the polkit
-action id, resolver stack, servers, rollback requirement, validation flag, and
-mutation mode. Do not run execute mode; Milestone 0 makes it fail closed and Milestone
-7 replaces it with the required privileged mechanism.
+The helper contract binary is development-only and excluded from all package payloads.
+Its dry-run/request validation proves no DNS writes are executed. Every execute request
+fails closed; Milestone 7 may replace it with the required privileged mechanism.
 
 ## Custom Profiles
 

@@ -30,14 +30,13 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
   success/failure states before rendering diagnostics.
 - Custom plain DNS profile add/edit/delete/list and file-backed persistence are
   implemented.
-- Store-safe guidance and native power package plans are separated.
+- Store-safe guidance and the unavailable native Power boundary are separated.
 - Settings is actionable: store builds copy family-filtered DNS values and show
-  localized manual steps, while native power builds review the selected
-  profile's resolver-stack/polkit/rollback plan before execution.
+  localized manual steps; deb/rpm show diagnostics because Power is unavailable.
 - English/Vietnamese strings cover primary native app labels/help, permission,
   guided settings, publish-check, and CLI surfaces.
 - Packaging templates exist for Flatpak, Snap, deb, rpm, shared desktop/AppStream
-  metadata, icon, core CLI/native helper install paths, and polkit policy.
+  metadata, icon, and the core CLI. Default payloads exclude native helper/polkit files.
 - `scripts/build-packages.sh` builds locked Linux release binaries, rejects
   non-ELF payloads, validates metadata, stages one shared payload, and drives
   Flatpak Builder, Snapcraft, dpkg-deb, or rpmbuild without hard-requiring a
@@ -46,28 +45,23 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
   local package QA steps, manual credential/signing gates, and safety notes.
 - Native helper contract binary supports contract and dry-run inspection without
   DNS mutation.
-- Native helper request JSON models snapshot, authorization, would-write, flush,
-  validation, rollback sequencing, and an execute mutation gate; contract/dry-run
-  inspection is non-mutating.
-- Native helper has a command-backed experimental execute prototype, but it is not a
-  production privilege boundary: it uses `nmcli`/`resolvectl`, and its current snapshot
-  is insufficient for exact restore. See `linux-completion-plan.md`.
+- Native helper request JSON remains a development contract/dry-run probe. Every execute
+  request is rejected before snapshot, authorization, or a system command can run.
+- The command-backed execute prototype was removed from the default build and package
+  payload. See `linux-completion-plan.md` for the separately gated Power architecture.
 - `apps/linux/README.md` is the Linux entrypoint for install, build, run,
   smoke, profile, native helper, and package QA steps.
 
 ## Validation
 
+- Milestone 0 targeted fail-closed helper, capability, package-policy, and permission
+  tests: pass.
 - `cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check`: pass.
 - `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings`: pass.
-- `cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release`: pass.
 - `cargo test -p dnspilot-cli`: pass.
-- `cargo build --release -p dnspilot-cli`: pass.
-- `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- readiness`: pass.
-- `cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- publish-check --package deb --network-manager --polkit --system-resolver-probe`: pass.
 - `bash -n apps/linux/scripts/build-packages.sh`: pass.
-- `apps/linux/scripts/build-packages.sh --help`: pass.
 - Real `flatpak-builder`, `snapcraft`, `dpkg-deb`, `rpmbuild`, `appstreamcli`,
   and `desktop-file-validate`: NOT RUN because they are unavailable on the
   current non-Linux host.
@@ -76,7 +70,7 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
 
 - Complete Milestones 0-6 and 8-9 in `linux-completion-plan.md` for the Store-safe
   consumer app.
-- Replace or disable the current native execute prototype before native package release.
+- Native Power remains unavailable pending the separately gated D-Bus/polkit mechanism.
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.
 - `dnspilot.io` currently does not resolve; homepage/support/privacy hosting and
   public immutable source tag setup are required before store submission.

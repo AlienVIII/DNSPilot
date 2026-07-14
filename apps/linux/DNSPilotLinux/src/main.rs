@@ -12,7 +12,9 @@ use dnspilot_linux_shell::detect::{
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
 use dnspilot_linux_shell::i18n::Language;
 use dnspilot_linux_shell::native_app::{build_native_app_model, render_native_app_model};
-use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_apply_plan};
+use dnspilot_linux_shell::native_power::{
+    build_native_apply_plan, render_native_apply_plan, NativeApplyError,
+};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
 use dnspilot_linux_shell::process::LinuxBenchmarkProcessViewModel;
 use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
@@ -233,8 +235,9 @@ fn run_guide(args: impl IntoIterator<Item = String>) -> Result<String, CliError>
     }
 
     Ok(format!(
-        "Diagnostics only\nPackage: {}\nReal DNS apply is unavailable until NetworkManager or systemd-resolved plus polkit is detected.",
-        capability.package_kind.label()
+        "Native Power unavailable\nPackage: {}\n{}",
+        capability.package_kind.label(),
+        capability.notes.join("\n")
     ))
 }
 
@@ -308,7 +311,15 @@ fn run_apply_plan(args: impl IntoIterator<Item = String>) -> Result<String, CliE
         .ok_or_else(|| CliError::new(2, format!("Profile {profile_id} not found")))?;
     let capability = capability_view_model(config.to_probe());
     let plan = build_native_apply_plan(&capability, profile, config.resolver_address_family)
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+        .map_err(|error| {
+            let message = match error {
+                NativeApplyError::PowerExecutionUnavailable => {
+                    "Native DNS apply is unavailable in this build. Use guided settings in a store package, or wait for the separately verified native Power service."
+                }
+                _ => return CliError::new(2, format!("{error:?}")),
+            };
+            CliError::new(2, message)
+        })?;
     Ok(render_native_apply_plan(&plan))
 }
 

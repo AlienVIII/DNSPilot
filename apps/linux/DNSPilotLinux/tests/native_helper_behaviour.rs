@@ -5,16 +5,17 @@ fn helper_binary() -> Command {
 }
 
 #[test]
-fn native_helper_prints_polkit_contract_without_dns_mutation() {
+fn native_helper_prints_fail_closed_contract_without_dns_mutation() {
     let output = helper_binary().arg("--contract").output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("DNS Pilot Native Helper Contract"));
     assert!(stdout.contains("Polkit action: io.dnspilot.DNSPilot.apply-dns"));
-    assert!(stdout.contains("NetworkManager D-Bus"));
-    assert!(stdout.contains("systemd-resolved D-Bus"));
-    assert!(stdout.contains("does not mutate DNS without an explicit apply request"));
+    assert!(stdout.contains("Status: execution unavailable in this build"));
+    assert!(stdout.contains("NetworkManager (future native service)"));
+    assert!(stdout.contains("systemd-resolved (future native service)"));
+    assert!(stdout.contains("does not mutate DNS in any mode"));
     assert!(stdout.contains("--allow-system-dns-mutation"));
 }
 
@@ -36,7 +37,7 @@ fn native_helper_dry_run_renders_stack_and_servers_without_writing() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("Dry run: yes"));
-    assert!(stdout.contains("Resolver stack: NetworkManager D-Bus"));
+    assert!(stdout.contains("Resolver stack: NetworkManager (future native service)"));
     assert!(stdout.contains("Servers: 1.1.1.1, 9.9.9.9"));
     assert!(stdout.contains("DNS writes executed: no"));
 }
@@ -80,7 +81,7 @@ fn native_helper_request_json_runs_mock_lifecycle_without_writing_dns() {
 }
 
 #[test]
-fn native_helper_request_json_rejects_execute_mode_without_explicit_flag() {
+fn native_helper_request_json_rejects_execute_mode_even_with_explicit_flag() {
     let request = r#"{
         "schema_version": 1,
         "polkit_action_id": "io.dnspilot.DNSPilot.apply-dns",
@@ -93,11 +94,11 @@ fn native_helper_request_json_rejects_execute_mode_without_explicit_flag() {
     }"#;
 
     let output = helper_binary()
-        .args(["--request-json", request])
+        .args(["--allow-system-dns-mutation", "--request-json", request])
         .output()
         .unwrap();
 
     assert!(!output.status.success());
     let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("--allow-system-dns-mutation is required"));
+    assert!(stderr.contains("native DNS execution is unavailable in this build"));
 }

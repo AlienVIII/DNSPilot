@@ -50,7 +50,7 @@ fn snap_does_not_promise_network_manager_apply_without_power_package() {
 }
 
 #[test]
-fn deb_or_rpm_can_offer_native_power_apply_when_resolver_stack_and_polkit_exist() {
+fn deb_or_rpm_keep_native_power_unavailable_until_the_real_service_exists() {
     for package_kind in [LinuxPackageKind::Deb, LinuxPackageKind::Rpm] {
         let mut native = probe(package_kind);
         native.network_manager_available = true;
@@ -62,9 +62,13 @@ fn deb_or_rpm_can_offer_native_power_apply_when_resolver_stack_and_polkit_exist(
         assert!(capability.can_benchmark_dns);
         assert!(capability.can_benchmark_tcp);
         assert!(capability.can_validate_current_system_resolver);
-        assert!(capability.can_apply_real_dns);
-        assert_eq!(capability.apply_path, LinuxApplyPath::NativePowerPackage);
+        assert!(!capability.can_apply_real_dns);
+        assert_eq!(capability.apply_path, LinuxApplyPath::Unsupported);
         assert!(!capability.guided_settings_only);
+        assert!(capability
+            .notes
+            .iter()
+            .any(|note| note.contains("unavailable in this build")));
     }
 }
 

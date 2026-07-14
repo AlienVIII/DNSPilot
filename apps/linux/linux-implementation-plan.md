@@ -69,14 +69,14 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 `tests/native_helper_protocol_behaviour.rs`, `tests/packaging_policy_behaviour.rs`,
 `scripts/build-packages.sh`, deb/rpm recipes.
 
-- [ ] Add a failing test proving a default build rejects every execute request before
+- [x] Add a failing test proving a default build rejects every execute request before
   `snapshot_existing_dns`, `authorize`, or command execution.
-- [ ] Add a failing package test proving default deb/rpm payloads do not install the
+- [x] Add a failing package test proving default deb/rpm payloads do not install the
   helper or polkit action as a production capability.
-- [ ] Add an explicit `ExecuteUnavailable` error and keep contract/dry-run inspection.
-- [ ] Remove production D-Bus wording from command-backed code and output.
-- [ ] Run targeted native/package tests, then full Linux fmt/test/clippy.
-- [ ] Update progress/readiness/publish output and commit:
+- [x] Add an explicit `ExecuteUnavailable` error and keep contract/dry-run inspection.
+- [x] Remove production D-Bus wording from command-backed code and output.
+- [x] Run targeted native/package tests, then full Linux fmt/test/clippy.
+- [x] Update progress/readiness/publish output and commit:
   `Harden Linux native power boundary`.
 
 ## Task 1: Introduce Typed CLI Contracts And XDG Paths

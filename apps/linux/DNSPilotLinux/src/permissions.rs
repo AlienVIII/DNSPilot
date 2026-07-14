@@ -1,4 +1,4 @@
-use crate::capabilities::{LinuxApplyPath, LinuxCapabilityViewModel, LinuxPackageKind};
+use crate::capabilities::{LinuxCapabilityViewModel, LinuxPackageKind};
 use crate::i18n::{localized_text, Language, TextKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -196,24 +196,11 @@ fn snap_plan(capability: &LinuxCapabilityViewModel, language: Language) -> Linux
 }
 
 fn native_plan(capability: &LinuxCapabilityViewModel, language: Language) -> LinuxPermissionPlan {
-    let can_apply_dns = capability.apply_path == LinuxApplyPath::NativePowerPackage;
-    let resolver_status = if can_apply_dns {
-        PermissionStatus::Required
-    } else {
-        PermissionStatus::Unavailable
-    };
-    let polkit_status = if can_apply_dns {
-        PermissionStatus::Required
-    } else {
-        PermissionStatus::Unavailable
-    };
-    let mut warnings = Vec::new();
-    if !can_apply_dns {
-        warnings.push(
-            "Native package needs NetworkManager or systemd-resolved plus polkit before DNS apply is enabled."
-                .to_string(),
-        );
-    }
+    let can_apply_dns = false;
+    let mut warnings = vec![
+        "Native DNS Power is unavailable in this build; no NetworkManager, systemd-resolved, polkit, or DNS-mutation privilege is requested."
+            .to_string(),
+    ];
     warnings.extend(capability.notes.clone());
 
     LinuxPermissionPlan {
@@ -228,27 +215,23 @@ fn native_plan(capability: &LinuxCapabilityViewModel, language: Language) -> Lin
             ),
             request(
                 PermissionKind::NetworkManagerControl,
-                resolver_status,
-                "Write DNS settings for NetworkManager-owned active connections.",
+                PermissionStatus::NotRequested,
+                "Reserved for the separately verified native Power service.",
             ),
             request(
                 PermissionKind::SystemdResolvedControl,
-                PermissionStatus::OptionalFallback,
-                "Validate or write resolver state for resolved-managed links.",
+                PermissionStatus::NotRequested,
+                "Reserved for the separately verified native Power service.",
             ),
             request(
                 PermissionKind::PolkitAuthorization,
-                polkit_status,
-                "Prompt the user before changing system DNS settings.",
+                PermissionStatus::NotRequested,
+                "Reserved for caller-bound authorization in a future native Power service.",
             ),
             request(
                 PermissionKind::SystemDnsMutation,
-                if can_apply_dns {
-                    PermissionStatus::Required
-                } else {
-                    PermissionStatus::Unavailable
-                },
-                "Allowed only through the native helper after authorization.",
+                PermissionStatus::NotRequested,
+                "This build never changes system DNS automatically.",
             ),
         ],
         warnings,

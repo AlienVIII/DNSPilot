@@ -89,7 +89,7 @@ fn snap_permission_plan_marks_network_manager_as_manual_not_auto_connected() {
 }
 
 #[test]
-fn native_power_permission_plan_requires_polkit_and_resolver_stack() {
+fn native_package_does_not_request_privileged_dns_access_before_power_exists() {
     let mut native = probe(LinuxPackageKind::Deb);
     native.network_manager_available = true;
     native.polkit_available = true;
@@ -97,16 +97,21 @@ fn native_power_permission_plan_requires_polkit_and_resolver_stack() {
     let capability = capability_view_model(native);
     let plan = permission_plan(&capability, Language::English);
 
-    assert!(plan.can_apply_dns);
+    assert!(!plan.can_apply_dns);
     assert!(plan.requests.iter().any(|request| request.kind
         == PermissionKind::PolkitAuthorization
-        && request.status == PermissionStatus::Required));
+        && request.status == PermissionStatus::NotRequested));
     assert!(plan.requests.iter().any(|request| request.kind
         == PermissionKind::NetworkManagerControl
-        && request.status == PermissionStatus::Required));
+        && request.status == PermissionStatus::NotRequested));
     assert!(plan.requests.iter().any(|request| request.kind
         == PermissionKind::SystemdResolvedControl
-        && request.status == PermissionStatus::OptionalFallback));
+        && request.status == PermissionStatus::NotRequested));
+    assert!(plan
+        .requests
+        .iter()
+        .any(|request| request.kind == PermissionKind::SystemDnsMutation
+            && request.status == PermissionStatus::NotRequested));
 }
 
 #[test]

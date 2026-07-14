@@ -77,9 +77,6 @@ pub struct LinuxCapabilityViewModel {
 }
 
 pub fn capability_view_model(probe: LinuxEnvironmentProbe) -> LinuxCapabilityViewModel {
-    let has_native_resolver_stack =
-        probe.network_manager_available || probe.systemd_resolved_available;
-    let has_native_power_path = has_native_resolver_stack && probe.polkit_available;
     let mut notes = Vec::new();
 
     let (can_apply_real_dns, apply_path, guided_settings_only) = match probe.package_kind {
@@ -97,16 +94,9 @@ pub fn capability_view_model(probe: LinuxEnvironmentProbe) -> LinuxCapabilityVie
             );
             (false, LinuxApplyPath::GuidedSettings, true)
         }
-        LinuxPackageKind::Deb | LinuxPackageKind::Rpm if has_native_power_path => {
-            notes.push(
-                "Native package can route real DNS apply through NetworkManager or systemd-resolved with polkit."
-                    .to_string(),
-            );
-            (true, LinuxApplyPath::NativePowerPackage, false)
-        }
         LinuxPackageKind::Deb | LinuxPackageKind::Rpm => {
             notes.push(
-                "NetworkManager or systemd-resolved plus polkit is required before real DNS apply is offered."
+                "Native Power is unavailable in this build. A future release requires a caller-bound polkit D-Bus service for NetworkManager or systemd-resolved, exact rollback, and Linux-host evidence."
                     .to_string(),
             );
             (false, LinuxApplyPath::Unsupported, false)

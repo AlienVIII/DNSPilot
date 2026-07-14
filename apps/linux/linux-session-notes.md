@@ -12,15 +12,17 @@
   keep Settings/Help as commands and diagnostics contextual.
 - Treat mobile's foreground job, persisted locale, accessibility, and core-storage
   patterns as product input; do not port Expo/FFI or iOS/Android capability code.
-- Treat the current native execute path as experimental and fail-closed until a real
-  system D-Bus/polkit/exact-rollback mechanism is proven.
+- Treat native Power as unavailable until a real system D-Bus/polkit/exact-rollback
+  mechanism is proven. Default package payloads contain no helper or polkit action.
 
 ## Context
 - Linux shell package lives at `apps/linux/DNSPilotLinux`.
 - Current implementation includes view-models, storage, GUI process table, CLI profile management, CLI plan/run/guide surfaces, and runner boundary.
-- Current implementation also includes English/Vietnamese native app view-models, permission plans, native apply-plan contract, native helper contract binary, packaging templates, desktop/AppStream metadata, icon, and polkit policy template.
-- The GUI does not invoke mutation. A manually gated helper execute prototype exists,
-  but it is not release-safe because it is command-backed and lacks exact rollback.
+- Current implementation includes English/Vietnamese native app view-models, permission
+  plans, a fail-closed native apply-plan contract, development-only helper inspection,
+  packaging templates, desktop/AppStream metadata, and icon.
+- The GUI and shipped packages never invoke mutation. Execute requests fail before any
+  executor action; the helper and polkit action are excluded from package payloads.
 - Capability detection can be mocked so automated tests can run without Linux distro/package access.
 
 ## Open Questions

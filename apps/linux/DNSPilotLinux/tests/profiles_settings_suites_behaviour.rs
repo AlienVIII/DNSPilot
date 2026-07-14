@@ -157,7 +157,7 @@ fn ipv4_ipv6_and_record_family_controls_have_hover_help_text() {
 }
 
 #[test]
-fn store_safe_settings_are_guided_only_and_native_power_plan_is_explicit() {
+fn store_safe_settings_are_guided_only_and_native_power_is_unavailable() {
     let flatpak = capability_view_model(probe(LinuxPackageKind::Flatpak));
     let flatpak_actions = settings_actions(&flatpak);
     assert_eq!(flatpak_actions.len(), 1);
@@ -171,10 +171,10 @@ fn store_safe_settings_are_guided_only_and_native_power_plan_is_explicit() {
     let deb_actions = settings_actions(&deb);
     assert!(deb_actions
         .iter()
-        .any(|action| action.kind == SettingsActionKind::NativePowerApply));
+        .any(|action| action.kind == SettingsActionKind::DiagnosticsOnly));
     assert!(deb_actions
         .iter()
-        .any(|action| action.label.contains("Review")));
+        .any(|action| action.label.contains("diagnostics")));
 
     let plan = native_power_path_plan();
     assert!(plan

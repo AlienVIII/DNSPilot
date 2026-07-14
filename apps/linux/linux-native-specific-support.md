@@ -6,7 +6,7 @@
 - Flatpak can benchmark with network permission.
 - Snap network-manager interface is privileged and not auto-connect by default.
 - deb/rpm can host a future NetworkManager/systemd-resolved D-Bus mechanism with polkit;
-  the current command prototype is not release-safe.
+  the default build contains no command executor, helper, or polkit action.
 - Current/system resolver validation is capability-gated, not assumed.
 - Store/sandbox builds expose guided settings only.
 - Native Power can expose real apply only after caller authorization, exact snapshot,
