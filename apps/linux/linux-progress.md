@@ -30,8 +30,10 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
   SQLite database; legacy Linux JSON profiles migrate once to a `.migrated` backup.
 - Process state covers idle/running/success/failed steps and resolver rows. The
   GUI runs benchmarks on a pollable background worker, remains responsive,
-  blocks duplicate runs, and normalizes missing progress events into terminal
-  success/failure states before rendering diagnostics.
+  blocks duplicate runs, streams JSONL resolver updates while the Core CLI runs,
+  and normalizes missing progress events into terminal success/failure states before
+  rendering diagnostics. Cancel sends TERM to the Core CLI process group, escalates to
+  KILL after 500 ms, and always reaps the child.
 - Custom plain DNS profile add/edit/delete/list now use Core CLI SQLite persistence.
 - Store-safe guidance and the unavailable native Power boundary are separated.
 - Settings is actionable: store builds copy family-filtered DNS values and show
@@ -61,6 +63,8 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
   tests: pass.
 - Milestone 1 typed contract, XDG migration, Core-backed GUI/shell, and dynamic suite
   tests: pass.
+- Milestone 2 live JSONL progress, cancellation/reap, malformed-event diagnostics, and
+  Core SQLite history arguments: pass.
 - `cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check`: pass.
 - `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings`: pass.
@@ -73,7 +77,7 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
 
 ## Remaining Gates
 
-- Complete Milestones 2-6 and 8-9 in `linux-completion-plan.md` for the Store-safe
+- Complete Milestones 3-6 and 8-9 in `linux-completion-plan.md` for the Store-safe
   consumer app.
 - Native Power remains unavailable pending the separately gated D-Bus/polkit mechanism.
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.

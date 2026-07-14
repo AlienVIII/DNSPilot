@@ -24,9 +24,11 @@ and current official Linux platform documentation.
 
 ### Major: Benchmark Progress Is Post-Processed
 
-- `Command::output()` buffers until exit and the worker emits only one final result.
-- There is no child cancellation/reaping contract.
-- Resolution: Milestone 2 streams JSONL events and owns cancellation/terminal cleanup.
+- Resolved in Milestone 2 for the GUI runtime. A supervised Core CLI child pipes stdout
+  and stderr to separate readers, forwards JSONL resolver events before completion,
+  preserves malformed output in diagnostics, and cancels the Linux process group with
+  TERM/KILL plus mandatory reap. The existing synchronous runner remains only as a
+  deterministic CLI/test harness contract.
 
 ### Major: Results Do Not Complete The User Decision Loop
 

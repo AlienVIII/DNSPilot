@@ -1,7 +1,7 @@
 use dnspilot_linux_shell::app::LinuxAppSession;
 use dnspilot_linux_shell::benchmark::{
     benchmark_process_for_plan, benchmark_running_process_for_plan, build_core_cli_command,
-    LinuxBenchmarkRunResult, ProcessCoreCliRunner,
+    LinuxBenchmarkPlan, LinuxBenchmarkRunResult,
 };
 use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxCapabilityViewModel,
@@ -139,6 +139,15 @@ impl DnsPilotGui {
         session
     }
 
+    fn build_plan(&self) -> Result<LinuxBenchmarkPlan, Vec<String>> {
+        let mut plan = self.build_session().build_plan()?;
+        let database_path = self.database_path.to_string_lossy().into_owned();
+        plan.profile_db = Some(database_path.clone());
+        plan.suite_db = Some(database_path.clone());
+        plan.history_db = Some(database_path);
+        Ok(plan)
+    }
+
     fn save_profile_from_form(&mut self) {
         let profile = PlainDnsProfile {
             id: self.profile_id.trim().to_string(),
@@ -223,8 +232,7 @@ impl DnsPilotGui {
         let Some(core_cli_path) = self.resolved_core_cli_path() else {
             return;
         };
-        let session = self.build_session();
-        match session.build_plan() {
+        match self.build_plan() {
             Ok(plan) => {
                 let command = build_core_cli_command(core_cli_path, &plan);
                 self.process = Some(benchmark_process_for_plan(&plan));
@@ -250,8 +258,7 @@ impl DnsPilotGui {
         let Some(core_cli_path) = self.resolved_core_cli_path() else {
             return;
         };
-        let session = self.build_session();
-        match session.build_plan() {
+        match self.build_plan() {
             Ok(plan) => {
                 let running_process = benchmark_running_process_for_plan(&plan);
                 match spawn_benchmark_worker(
@@ -259,7 +266,6 @@ impl DnsPilotGui {
                     "linux-gui".to_string(),
                     self.capability.clone(),
                     plan,
-                    ProcessCoreCliRunner,
                 ) {
                     Ok(worker) => {
                         self.process = Some(running_process);
@@ -291,6 +297,10 @@ impl DnsPilotGui {
 
         match worker.poll() {
             BenchmarkWorkerPoll::Running => true,
+            BenchmarkWorkerPoll::Progress(process) => {
+                self.process = Some(process);
+                true
+            }
             BenchmarkWorkerPoll::Finished(result) => {
                 self.benchmark_worker = None;
                 self.finish_benchmark(result);
@@ -495,6 +505,15 @@ impl DnsPilotGui {
             {
                 self.run_benchmark();
             }
+            if ui
+                .add_enabled(!benchmark_idle, egui::Button::new("Cancel"))
+                .clicked()
+            {
+                if let Some(worker) = &self.benchmark_worker {
+                    worker.cancel();
+                    self.status = "Cancelling benchmark".to_string();
+                }
+            }
         });
 
         ui.separator();
@@ -682,8 +701,7 @@ impl DnsPilotGui {
     }
 
     fn current_process_preview(&self) -> Option<LinuxBenchmarkProcessViewModel> {
-        self.build_session()
-            .build_plan()
+        self.build_plan()
             .ok()
             .map(|plan| benchmark_process_for_plan(&plan))
     }

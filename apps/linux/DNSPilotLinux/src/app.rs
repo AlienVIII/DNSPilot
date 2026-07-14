@@ -94,6 +94,7 @@ impl LinuxAppSession {
             suite_id: self.selected_suite_id.clone(),
             suite_db: None,
             profile_db: None,
+            history_db: None,
             attempts: self.attempts,
             record_family: self.record_family,
         })

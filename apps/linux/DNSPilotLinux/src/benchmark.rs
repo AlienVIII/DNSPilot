@@ -4,6 +4,7 @@ use crate::process::{LinuxBenchmarkProcessViewModel, ProcessStepId};
 use crate::settings::DnsRecordFamily;
 use serde_json::Value;
 use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolverSelection {
@@ -21,6 +22,7 @@ pub struct LinuxBenchmarkPlan {
     pub suite_id: Option<String>,
     pub suite_db: Option<String>,
     pub profile_db: Option<String>,
+    pub history_db: Option<String>,
     pub attempts: u16,
     pub record_family: DnsRecordFamily,
 }
@@ -104,11 +106,13 @@ pub fn build_core_cli_command(
                 push_pair(&mut args, "--profile-db", profile_db);
             }
             push_common_benchmark_args(&mut args, plan);
+            push_history_args(&mut args, plan);
             args.push("--progress-jsonl".to_string());
         }
         BenchmarkMode::CurrentSystemResolver => {
             push_pair(&mut args, "--platform", &plan.package_platform);
             push_common_benchmark_args(&mut args, plan);
+            push_history_args(&mut args, plan);
             args.push("--progress-jsonl".to_string());
         }
     }
@@ -233,6 +237,21 @@ fn push_common_benchmark_args(args: &mut Vec<String>, plan: &LinuxBenchmarkPlan)
         "--ip-family",
         record_family_cli_value(plan.record_family),
     );
+}
+
+fn push_history_args(args: &mut Vec<String>, plan: &LinuxBenchmarkPlan) {
+    if let Some(history_db) = &plan.history_db {
+        push_pair(args, "--save-db", history_db);
+        push_pair(args, "--history-id", &unique_history_id());
+    }
+}
+
+fn unique_history_id() -> String {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    format!("linux-{nanos}")
 }
 
 fn push_pair(args: &mut Vec<String>, name: &str, value: &str) {

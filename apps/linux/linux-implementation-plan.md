@@ -116,16 +116,16 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 **Files:** replace internals of `worker.rs` and `benchmark.rs`; modify `process.rs`;
 expand `tests/benchmark_worker_behaviour.rs` and `benchmark_runner_behaviour.rs`.
 
-- [ ] RED: progress is observable before process completion.
-- [ ] RED: cancel kills and waits for the child, returns a localized cancellation detail,
+- [x] RED: progress is observable before process completion.
+- [x] RED: cancel kills and waits for the child, returns a cancellation detail,
   and leaves no running/idle active rows.
-- [ ] RED: large stdout/stderr cannot deadlock; invalid JSONL is retained in diagnostics;
+- [x] RED: piped stdout/stderr readers cannot deadlock; invalid JSONL is retained in diagnostics;
   disconnect and spawn failure end every row.
-- [ ] Replace `Command::output()` with piped `spawn`, dedicated stdout/stderr readers,
+- [x] Replace GUI runtime `Command::output()` with piped `spawn`, dedicated stdout/stderr readers,
   event/control channels, `try_wait`, `kill`, and mandatory `wait`.
-- [ ] Keep statuses idle/running/success/failed; cancellation is failed with a specific
+- [x] Keep statuses idle/running/success/failed; cancellation is failed with a specific
   reason so the original process-state contract remains stable.
-- [ ] Include `--save-db` and unique `--history-id` in every successful run plan.
+- [x] Include `--save-db` and unique `--history-id` in every successful run plan.
 - [ ] Run worker/process tests and full gate; commit:
   `Stream and cancel Linux benchmarks`.
 

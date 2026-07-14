@@ -318,6 +318,7 @@ fn build_plan_from_config(
         .map_err(|issues| CliError::new(2, issues.join("; ")))?;
     plan.profile_db = Some(config.store.clone());
     plan.suite_db = Some(config.store.clone());
+    plan.history_db = Some(config.store.clone());
     Ok((capability, plan))
 }
 

@@ -28,6 +28,10 @@
 - The GUI and shipped packages never invoke mutation. Execute requests fail before any
   executor action; the helper and polkit action are excluded from package payloads.
 - Capability detection can be mocked so automated tests can run without Linux distro/package access.
+- Benchmark workers now supervise a piped Core CLI child directly: stdout/stderr reader
+  threads avoid pipe deadlock, JSONL events update the process model live, cancel tears
+  down the Unix process group and reaps it, and benchmark commands save history through
+  the Core SQLite database.
 
 ## Open Questions
 - `eframe/egui` is the current Linux app stack for this lane; GTK4/libadwaita
