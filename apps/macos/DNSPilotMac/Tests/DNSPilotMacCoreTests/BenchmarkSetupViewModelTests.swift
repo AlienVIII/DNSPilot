@@ -194,18 +194,31 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
 
         let encryptedOption = viewModel.profileOptions.first { $0.id == "custom-doh" }
         XCTAssertEqual(encryptedOption?.isRunnable, false)
-        XCTAssertEqual(encryptedOption?.detailLabel, "Requires OS DNS profile flow")
-        XCTAssertTrue(encryptedOption?.helpText.contains("DNS mã hóa") == true)
+        XCTAssertEqual(
+            encryptedOption?.detailLabel(localizer: DNSPilotLocalizer(language: .english)),
+            "Requires macOS DNS profile"
+        )
+        XCTAssertEqual(
+            encryptedOption?.helpText(localizer: DNSPilotLocalizer(language: .vietnamese)),
+            "DNS mã hóa dùng luồng cấu hình DNS của macOS và chưa được đưa vào benchmark DNS thường trực tiếp."
+        )
     }
 
-    func testSetupProfileAndSuiteOptionsExposeVietnameseHelpText() {
+    func testSetupProfileAndSuiteOptionsLocalizeHelpText() {
         let viewModel = BenchmarkSetupViewModel(
             catalog: makeSetupCatalog(),
             executableAvailability: .ready(URL(fileURLWithPath: "/tmp/dnspilot-cli"))
         )
+        let vietnamese = DNSPilotLocalizer(language: .vietnamese)
 
-        XCTAssertTrue(viewModel.profileOptions.first?.helpText.contains("Địa chỉ server") == true)
-        XCTAssertTrue(viewModel.suiteOptions.first?.helpText.contains("bộ test") == true)
+        XCTAssertEqual(
+            viewModel.profileOptions.first?.helpText(localizer: vietnamese),
+            "Cấu hình DNS thường. Máy chủ được test tuân theo tùy chọn Máy chủ phân giải."
+        )
+        XCTAssertEqual(
+            viewModel.suiteOptions.first?.helpText(localizer: vietnamese),
+            "Kiểm tra các domain đã lưu trong bộ test này."
+        )
     }
 
     func testSetupSummarizesRunnableProfileSelection() {
@@ -230,6 +243,14 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
 
         XCTAssertEqual(partialSelection.profileSelectionSummary, "1 of 2 runnable selected")
         XCTAssertEqual(allSelected.profileSelectionSummary, "2 of 2 runnable selected")
+        XCTAssertEqual(
+            partialSelection.profileSelectionState,
+            .selectedRunnableProfiles(selected: 1, runnable: 2)
+        )
+        XCTAssertEqual(
+            allSelected.profileSelectionState,
+            .selectedRunnableProfiles(selected: 2, runnable: 2)
+        )
     }
 
     func testSetupWarnsWhenFilteredAndUnfilteredProfilesAreMixed() {
@@ -315,7 +336,9 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.runnableProfileIDs, ["cloudflare"])
         XCTAssertEqual(viewModel.profileSelectionSummary, "1 of 1 runnable selected")
         XCTAssertEqual(
-            viewModel.profileOptions.first { $0.id == "google-public-dns" }?.detailLabel,
+            viewModel.profileOptions.first { $0.id == "google-public-dns" }?.detailLabel(
+                localizer: DNSPilotLocalizer(language: .english)
+            ),
             "No IPv6 resolver"
         )
         XCTAssertEqual(viewModel.runPlanSummary, "DNS only, IPv6 resolver, A + AAAA, 1 resolver, 1 domain, 1 attempt")

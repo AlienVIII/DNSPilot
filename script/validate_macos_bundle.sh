@@ -52,6 +52,7 @@ HELPER_BINARY="$APP_BUNDLE/Contents/Library/Helpers/$CLI_NAME"
 LEGACY_HELPER="$APP_BUNDLE/Contents/Resources/$CLI_NAME"
 PRIVACY_MANIFEST="$APP_BUNDLE/Contents/Resources/PrivacyInfo.xcprivacy"
 APP_ICON="$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+LOCALIZATION_BUNDLE="$APP_BUNDLE/Contents/Resources/DNSPilotMac_DNSPilotMacCore.bundle"
 
 failures=0
 
@@ -170,6 +171,12 @@ if [[ -x "$APP_BINARY" ]]; then
   pass "main executable exists"
 else
   fail "main executable missing or not executable"
+fi
+
+if [[ -f "$LOCALIZATION_BUNDLE/en.lproj/Localizable.strings" && -f "$LOCALIZATION_BUNDLE/vi.lproj/Localizable.strings" ]]; then
+  pass "localization resource bundle contains English and Vietnamese strings"
+else
+  fail "localization resource bundle is missing required strings"
 fi
 
 if [[ -x "$HELPER_BINARY" ]]; then

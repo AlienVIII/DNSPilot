@@ -10,9 +10,10 @@ Last updated: 2026-07-14.
   apply-plan, and JSON/JSONL contracts. DNS sample payloads now include optional
   `failure_detail` with regression coverage.
 - macOS benchmark, single-window, guided Apply/Retest, Power isolation, release-asset,
-  and packaging gates pass. Commercial UI readiness is reopened: current localization
-  is partial, `System` falls back to English, bilingual help text remains, and some
-  compact controls expose an icon-sized rather than row-sized interaction target.
+  packaging, and localization gates pass. Presentation copy is centralized in native
+  `en.lproj`/`vi.lproj` `Localizable.strings`; `System` resolves macOS preferences,
+  tooltips render one active language, Store-safe Settings hide Power-only controls,
+  and the Benchmark Options row has full keyboard/VoiceOver button semantics.
 - Linux committed packaging, settings, planning, and lane docs are integrated. The
   app remains an engineering shell; its native execute prototype is present for
   development only and is not releasable until fail-closed privilege and exact
@@ -32,8 +33,8 @@ decision journey and evidence, not identical platform features.
 
 ## Latest Validation
 
-- macOS: `./script/ci_macos.sh` passed; 265 Swift tests, Rust workspace tests,
-  Store-safe bundle validation, DNS-only smoke, and DNS+TCP smoke.
+- macOS: `./script/ci_macos.sh` passed; 270 Swift tests, Rust workspace tests,
+  Store-safe bundle validation, localization guard, DNS-only smoke, and DNS+TCP smoke.
 - macOS: `./script/preflight_macos_release.sh --include-power` passed, including
   Store-safe/Power bundle separation and App Store site safety tests.
 - Linux pre-integration baseline: fmt, tests, clippy, and
@@ -43,8 +44,9 @@ decision journey and evidence, not identical platform features.
 - Mobile committed branch: `npm run verify` passed 86 tests, typecheck, route export,
   dependency compatibility, and production config checks. Physical-device proof is
   still `NOT RUN`.
-- macOS localization/interaction visual matrix: `NOT RUN`; implementation is pending
-  the approved review in
+- macOS localization/interaction visual matrix: implementation and static/runtime
+  checks pass; clean EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver capture
+  remains a manual release gate in
   `docs/research/2026-07-14-macos-localization-interaction-review.md`.
 
 ## Manual Release Gates

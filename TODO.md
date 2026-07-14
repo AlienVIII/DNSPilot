@@ -4,12 +4,10 @@ Last reviewed: 2026-07-14.
 
 ## P0: macOS Commercial Release
 
-- [ ] Complete the macOS localization and interaction-consistency gate in
-  `docs/research/2026-07-14-macos-localization-interaction-review.md`.
-- [ ] Replace mixed EN/VI and partial dictionary localization with one String Catalog;
-  make `System` follow macOS and keep raw technical logs separate from localized UI.
-- [ ] Make full visible option/disclosure rows clickable, keyboard reachable, and
-  VoiceOver-labelled; hide Power-only settings from the Store-safe SKU.
+- [x] Centralize EN/VI presentation copy in native SwiftPM `Localizable.strings`, make
+  `System` follow macOS, and reject bilingual `EN:`/`VI:` source text in CI.
+- [x] Make the visible Benchmark Options disclosure row clickable, keyboard reachable,
+  and VoiceOver-labelled; hide Power-only settings from the Store-safe SKU.
 - [ ] Capture the EN/VI visual-state matrix and pass the narrow-window, Dark Mode,
   keyboard, and VoiceOver review before moderated usability testing.
 - [ ] Native-review Vietnamese copy and localize App Store metadata, support/privacy

@@ -6,6 +6,27 @@ Audience: macOS Tech Lead
 
 Scope: planning and acceptance criteria only; no production implementation in this pass.
 
+## Implementation Status (2026-07-14)
+
+Implemented after this review:
+
+- `System`, English, and Vietnamese language selection with an explicit `globe EN/VI`
+  toolbar menu and immediate app-wide rendering.
+- One active-language tooltip path; CI rejects `EN:`/`VI:` source blocks across macOS
+  presentation and Core sources.
+- Store-safe Settings omit Power-only controls; Power builds retain their separate
+  presentation.
+- Full-row Benchmark Options control with native button, keyboard, and VoiceOver
+  semantics.
+- Bundle launch validation now includes localized resources; the packaged app keeps
+  `DNSPilotMac_DNSPilotMacCore.bundle` in `Contents/Resources`.
+
+Implementation uses `en.lproj`/`vi.lproj` `Localizable.strings`, not an `.xcstrings`
+catalog. This is deliberate: DNS Pilot is built by SwiftPM, where the `.strings`
+resource bundle is deterministic in both tests and the packaged app. Move to an Xcode
+String Catalog only when Xcode owns the build/resource pipeline. The remaining work is
+the manual visual/accessibility matrix and native Vietnamese review.
+
 ## BLUF
 
 The screenshot is a release-quality defect, not a translation polish issue. DNS Pilot
@@ -101,15 +122,15 @@ Pilot windows immediately. `System` follows macOS instead of forcing English.
 
 ### One Source Of Truth
 
-Use one catalog at
-`apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/Resources/Localizable.xcstrings`, set
-the package default localization to English, process the resource in the
-`DNSPilotMacCore` target, and access it through `Bundle.module`. Keep a small
+Use one semantic-key resource family at
+`apps/macos/DNSPilotMac/Sources/DNSPilotMacCore/Resources/{en,vi}.lproj/Localizable.strings`,
+set the package default localization to English, process the resource in the
+`DNSPilotMacCore` target, and access it through a package-aware bundle facade. Keep a small
 catalog-backed facade so view models and SwiftUI surfaces use the same explicit locale
 and resource bundle. Migrate the current `DNSPilotLocalizer` API incrementally, then
 remove the static dictionaries; do not run both systems permanently.
 
-Use String Catalog support for:
+Use the native resource family for:
 
 - English and Vietnamese values.
 - interpolation and plural variants.

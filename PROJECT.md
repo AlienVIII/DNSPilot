@@ -132,19 +132,22 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
   English presentation strings, bilingual tooltips, and English Core diagnostics.
   The `System` language option also resolves to English instead of the user's macOS
   language.
-- **Options:** keep extending the dictionary; use parallel EN/VI source files; adopt
-  one Apple String Catalog with a locale-aware facade and semantic diagnostic IDs.
-- **Trade-offs:** extending the dictionary is the smallest patch but preserves split
-  ownership; parallel files repeat the same key-management problem; a String Catalog
-  adds a migration but gives extraction, pluralization, translation context, and
-  standard Xcode QA.
-- **Recommendation:** use one `Localizable.xcstrings` source for macOS presentation
-  copy. Keep one app-language preference (`System`, English, Vietnamese), resolve
-  `System` from macOS, and localize non-view strings through the same explicit locale.
-  Shared Core emits structured issue IDs and raw technical details, never localized
-  prose. Do not show two languages in one user-facing tooltip.
-- **Reason:** one locale must produce one coherent UI while raw issue reports remain
-  stable for support. This also scales beyond EN/VI without another custom dictionary.
+- **Options:** keep extending the dictionary; use native localized `.strings` resources
+  in the current SwiftPM package; migrate to an Xcode-managed String Catalog after an
+  Xcode project owns the build pipeline.
+- **Trade-offs:** extending the dictionary preserves split ownership; `.strings`
+  resources are the supported, deterministic SwiftPM route but need key-completeness
+  tests; a String Catalog gives extraction and translator tooling but is not the
+  package build's reliable resource runtime today.
+- **Recommendation:** use one semantic-key `Localizable.strings` resource family under
+  `en.lproj` and `vi.lproj`, with a locale-aware facade. Keep one app-language
+  preference (`System`, English, Vietnamese), resolve `System` from macOS, and
+  localize non-view strings through the same explicit locale. Shared Core emits
+  structured issue IDs and raw technical details, never localized prose. Do not show
+  two languages in one user-facing tooltip.
+- **Reason:** one locale produces one coherent UI without a package/runtime mismatch;
+  an Xcode String Catalog remains a future tooling migration, not a second source of
+  truth today.
 - **Confidence:** High.
 
 ## Quality Gates

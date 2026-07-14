@@ -27,7 +27,47 @@ final class DNSPilotLocalizationTests: XCTestCase {
 
     func testLanguageFromCodeFallsBackToSystem() {
         XCTAssertEqual(DNSPilotLanguage(code: "vi"), .vietnamese)
+        XCTAssertEqual(DNSPilotLanguage(code: "vi-VN"), .vietnamese)
+        XCTAssertEqual(DNSPilotLanguage(code: "en-US"), .english)
         XCTAssertEqual(DNSPilotLanguage(code: "unknown"), .system)
+    }
+
+    func testLocalizerUsesResolvedSystemLanguage() {
+        let localizer = DNSPilotLocalizer(
+            language: .system,
+            preferredLanguageCodes: ["vi-VN", "en-US"]
+        )
+
+        XCTAssertEqual(localizer.resolvedLanguage, .vietnamese)
+        XCTAssertEqual(localizer.text(.checkDNS), "Kiểm tra DNS")
+    }
+
+    func testLanguageMenuLabelUsesTheEffectiveLanguage() {
+        XCTAssertEqual(
+            DNSPilotLocalizer(
+                language: .system,
+                preferredLanguageCodes: ["vi-VN"]
+            ).languageMenuLabel,
+            "VI"
+        )
+        XCTAssertEqual(DNSPilotLocalizer(language: .english).languageMenuLabel, "EN")
+    }
+
+    func testCatalogProvidesLocalizedText() {
+        XCTAssertEqual(
+            DNSPilotLocalizationCatalog.text(.overview, language: .vietnamese),
+            "Tổng quan"
+        )
+    }
+
+    func testVietnameseUsesNativeTermsForFrequentActions() {
+        let localizer = DNSPilotLocalizer(language: .vietnamese)
+
+        XCTAssertEqual(localizer.text(.powerActions), "Tác vụ nâng cao")
+        XCTAssertEqual(localizer.text(.profile), "Cấu hình")
+        XCTAssertEqual(localizer.text(.mode), "Chế độ")
+        XCTAssertEqual(localizer.text(.copyChecklist), "Sao chép danh sách")
+        XCTAssertEqual(localizer.text(.openNetworkSettings), "Mở Cài đặt Mạng")
     }
 
     func testAllTextKeysHaveConcreteEnglishAndVietnameseLabels() {

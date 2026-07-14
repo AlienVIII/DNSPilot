@@ -16,6 +16,12 @@ cargo test --workspace --tests
 run_step "macOS Swift tests"
 swift test --package-path "$ROOT_DIR/apps/macos/DNSPilotMac"
 
+run_step "macOS UI localization guard"
+if rg -n 'EN:|VI:' "$ROOT_DIR/apps/macos/DNSPilotMac/Sources" --glob '*.swift'; then
+  printf "UI copy must use one active locale; move bilingual tooltip text into Localizable.strings.\n" >&2
+  exit 1
+fi
+
 run_step "macOS sandbox bundle verification"
 "$ROOT_DIR/script/build_and_run.sh" --sandbox-verify
 

@@ -9,6 +9,12 @@ struct DNSPilotSettingsView: View {
         DNSPilotLocalizer(languageCode: languageCode)
     }
 
+    private var presentation: MacOSSettingsPresentation {
+        MacOSSettingsPresentation(
+            isPowerBuild: MacOSPowerDNSActionConfiguration.isBuildCapable()
+        )
+    }
+
     var body: some View {
         Form {
             Section {
@@ -26,10 +32,12 @@ struct DNSPilotSettingsView: View {
                 Text(localizer.text(.settingsTitle))
             }
 
-            Section {
-                DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: true)
-            } header: {
-                Text(localizer.text(.powerActions))
+            if presentation.showsPowerActions {
+                Section {
+                    DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: true)
+                } header: {
+                    Text(localizer.text(.powerActions))
+                }
             }
         }
         .formStyle(.grouped)
@@ -43,6 +51,12 @@ struct PermissionSetupSheet: View {
     @Binding var userEnabledPowerActions: Bool
     @Binding var isPresented: Bool
 
+    private var presentation: MacOSSettingsPresentation {
+        MacOSSettingsPresentation(
+            isPowerBuild: MacOSPowerDNSActionConfiguration.isBuildCapable()
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
             HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.row) {
@@ -52,37 +66,41 @@ struct PermissionSetupSheet: View {
                     .frame(width: 42)
 
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                    Text("DNS Pilot Setup")
+                    Text(localizer.text(.setup))
                         .font(.title2.weight(.semibold))
-                    Text("Test DNS, open Settings, retest. Direct Admin is optional.")
+                    Text(localizer.text(.setupSubtitle))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                Label("Benchmark: ready", systemImage: "checkmark.circle")
+                Label(localizer.text(.benchmarkReady), systemImage: "checkmark.circle")
                     .foregroundStyle(DNSPilotDesign.Palette.success)
                     .help("DNS and TCP checks use normal outbound networking.")
-                Label("Apply DNS: guided by default", systemImage: "info.circle")
+                Label(localizer.text(.guidedApply), systemImage: "info.circle")
                     .foregroundStyle(.secondary)
                     .help("macOS has no pre-grant toggle for plain DNS editing. DNSPilot copies values and opens Network Settings in Store-safe mode.")
-                Label("Direct Admin: opt-in Power build", systemImage: "person.badge.key")
-                    .foregroundStyle(.secondary)
-                    .help("Power/direct-install builds can show admin Apply/Flush after explicit opt-in. macOS still asks for administrator approval at action time.")
+                if presentation.showsPowerActions {
+                    Label("Direct Admin: opt-in Power build", systemImage: "person.badge.key")
+                        .foregroundStyle(.secondary)
+                        .help("Power/direct-install builds can show admin Apply/Flush after explicit opt-in. macOS still asks for administrator approval at action time.")
+                }
             }
 
-            DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: false)
+            if presentation.showsPowerActions {
+                DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: false)
+            }
 
             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                 Spacer()
 
-                Button("Use Guided Mode") {
+                Button(localizer.text(.useGuidedMode)) {
                     userEnabledPowerActions = false
                     isPresented = false
                 }
 
-                Button("Done") {
+                Button(localizer.text(.done)) {
                     isPresented = false
                 }
                 .keyboardShortcut(.defaultAction)

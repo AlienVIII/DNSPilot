@@ -175,19 +175,14 @@ final class BenchmarkPlanViewModelTests: XCTestCase {
         )
     }
 
-    func testBenchmarkOptionHelpExplainsDnsRecordsAndVietnameseText() {
-        XCTAssertTrue(BenchmarkRecordFamily.both.helpText.contains("AAAA returns IPv6 addresses"))
-        XCTAssertTrue(BenchmarkRecordFamily.both.helpText.contains("AAAA là địa chỉ IPv6"))
-        XCTAssertTrue(BenchmarkRecordFamily.ipv4Only.helpText.contains("mạng IPv6 yếu"))
-        XCTAssertTrue(BenchmarkRecordFamily.ipv6Only.helpText.contains("kiểm tra đường IPv6"))
-    }
+    func testBenchmarkOptionHelpIsLocalizedThroughTheCatalog() {
+        let english = DNSPilotLocalizer(language: .english)
+        let vietnamese = DNSPilotLocalizer(language: .vietnamese)
 
-    func testBenchmarkOptionHelpExplainsModeAndResolverTransport() {
-        XCTAssertTrue(BenchmarkPlanMode.dnsOnlyCompare.helpText.contains("phân giải DNS"))
-        XCTAssertTrue(BenchmarkPlanMode.connectionPathCompare.helpText.contains("kết nối TCP"))
-        XCTAssertTrue(BenchmarkPlanMode.systemDNSValidation.helpText.contains("DNS hệ thống"))
-        XCTAssertTrue(BenchmarkResolverTransport.automatic.helpText.contains("Ưu tiên DNS server IPv4"))
-        XCTAssertTrue(BenchmarkResolverTransport.ipv6Only.helpText.contains("DNS server IPv6"))
+        XCTAssertEqual(english.text(.recordAAndAAAAHelp), "Query A (IPv4) and AAAA (IPv6) records.")
+        XCTAssertEqual(vietnamese.text(.recordAAndAAAAHelp), "Hỏi cả bản ghi A (IPv4) và AAAA (IPv6).")
+        XCTAssertEqual(english.text(.modeDNSTCPHelp), "Measure DNS lookup, then TCP connect timing for resolved addresses.")
+        XCTAssertEqual(vietnamese.text(.resolverIPv6Help), "Chỉ dùng địa chỉ máy chủ DNS IPv6, ví dụ 2606:4700:4700::1111.")
     }
 
     func testBenchmarkPlanCanUseIPv6ResolverTransport() {

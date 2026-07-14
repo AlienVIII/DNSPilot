@@ -467,15 +467,39 @@ private struct DNSPilotShellView: View {
             )
         }
         .toolbar {
+            ToolbarItem(placement: .secondaryAction) {
+                Menu {
+                    ForEach(DNSPilotLanguage.allCases) { language in
+                        Button {
+                            languageCode = language.rawValue
+                        } label: {
+                            if languageCode == language.rawValue {
+                                Label(language.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(language.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "globe")
+                        Text(localizer.languageMenuLabel)
+                    }
+                    .fixedSize()
+                }
+                .help(localizer.text(.chooseLanguage))
+                .accessibilityLabel(localizer.text(.chooseLanguage))
+            }
+
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     navigation.selection = .permissions
                     navigation.isShowingPermissionSetup = true
                 } label: {
-                    Label("Show Setup", systemImage: "questionmark.circle")
+                    Label(localizer.text(.showSetup), systemImage: "questionmark.circle")
                 }
-                .help("Show DNS Pilot setup tutorial")
-                .accessibilityLabel("Show setup tutorial")
+                .help(localizer.text(.showSetup))
+                .accessibilityLabel(localizer.text(.showSetup))
             }
         }
     }
@@ -1851,7 +1875,12 @@ private struct BenchmarkDetailView: View {
                 AnyView(benchmarkSummary)
                 AnyView(benchmarkTargetPicker)
                 AnyView(benchmarkRunArtifacts)
-                DisclosureGroup(localizer.text(.options), isExpanded: $isOptionsExpanded) {
+                BenchmarkOptionsDisclosure(
+                    title: localizer.text(.options),
+                    isExpanded: $isOptionsExpanded,
+                    showHint: localizer.text(.showOptions),
+                    hideHint: localizer.text(.hideOptions)
+                ) {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                         AnyView(modeSection)
                         AnyView(networkSafeguardsSection)
@@ -1879,7 +1908,7 @@ private struct BenchmarkDetailView: View {
                 Button(action: cancelBenchmark) {
                     Label(localizer.text(.cancel), systemImage: "xmark")
                 }
-                .accessibilityLabel("Cancel benchmark")
+                .accessibilityLabel(localizer.text(.cancelBenchmark))
                 .accessibilityIdentifier("benchmark-cancel-button")
                 .disabled(!runControls.isCancelEnabled)
             }
@@ -1891,13 +1920,13 @@ private struct BenchmarkDetailView: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Label(runControls.primaryLabel, systemImage: "play.fill")
+                    Label(benchmarkRunLabel, systemImage: "play.fill")
                 }
             }
-            .accessibilityLabel(runControls.primaryLabel == "Run" ? "Run benchmark" : runControls.primaryLabel)
+            .accessibilityLabel(benchmarkRunLabel)
             .accessibilityIdentifier("benchmark-run-button")
             .disabled(!runControls.isPrimaryEnabled)
-            .help(setupViewModel.canRun ? "Run benchmark" : "Resolve readiness issues")
+            .help(localizer.text(setupViewModel.canRun ? .runBenchmark : .resolveReadinessIssues))
         }
     }
 
@@ -1989,20 +2018,20 @@ private struct BenchmarkDetailView: View {
     private var modeSection: some View {
         BenchmarkSection(title: localizer.text(.mode)) {
             Picker(localizer.text(.mode), selection: $mode) {
-                Text(BenchmarkPlanMode.dnsOnlyCompare.displayLabel)
-                    .help(BenchmarkPlanMode.dnsOnlyCompare.helpText)
+                Text(modeLabel(.dnsOnlyCompare))
+                    .help(modeHelp(.dnsOnlyCompare))
                     .tag(BenchmarkPlanMode.dnsOnlyCompare)
-                Text(BenchmarkPlanMode.connectionPathCompare.displayLabel)
-                    .help(BenchmarkPlanMode.connectionPathCompare.helpText)
+                Text(modeLabel(.connectionPathCompare))
+                    .help(modeHelp(.connectionPathCompare))
                     .tag(BenchmarkPlanMode.connectionPathCompare)
-                Text(BenchmarkPlanMode.systemDNSValidation.displayLabel)
-                    .help(BenchmarkPlanMode.systemDNSValidation.helpText)
+                Text(modeLabel(.systemDNSValidation))
+                    .help(modeHelp(.systemDNSValidation))
                     .tag(BenchmarkPlanMode.systemDNSValidation)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(maxWidth: 420, alignment: .leading)
-            .help(mode.helpText)
+            .help(modeHelp(mode))
 
             if mode == .systemDNSValidation {
                 SystemDNSResolverStatusView(
@@ -2014,49 +2043,49 @@ private struct BenchmarkDetailView: View {
             } else {
                 Picker(localizer.text(.resolver), selection: $resolverTransport) {
                     ForEach(BenchmarkResolverTransport.allCases, id: \.self) { transport in
-                        Text(transport.displayLabel)
-                            .help(transport.helpText)
+                        Text(resolverTransportLabel(transport))
+                            .help(resolverTransportHelp(transport))
                             .tag(transport)
                     }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .frame(maxWidth: 280, alignment: .leading)
-                .help(resolverTransport.helpText)
+                .help(resolverTransportHelp(resolverTransport))
             }
 
             Picker(localizer.text(.dnsRecords), selection: $recordFamily) {
                 ForEach(BenchmarkRecordFamily.allCases, id: \.self) { family in
-                    Text(family.displayLabel)
-                        .help(family.helpText)
+                    Text(recordFamilyLabel(family))
+                        .help(recordFamilyHelp(family))
                         .tag(family)
                 }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(maxWidth: 340, alignment: .leading)
-            .help(recordFamily.helpText)
+            .help(recordFamilyHelp(recordFamily))
         }
     }
 
     private var networkSafeguardsSection: some View {
         BenchmarkSection(title: localizer.text(.networkSafeguards)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                Toggle("VPN active", isOn: $vpnActive)
+                Toggle(localizer.text(.vpnActive), isOn: $vpnActive)
                     .disabled(isBenchmarkActive)
-                    .help("Protect current DNS when a VPN may own routing or DNS.")
-                Toggle("MDM managed", isOn: $mdmProfileActive)
+                .help(localizer.text(.vpnActiveHelp))
+                Toggle(localizer.text(.mdmManaged), isOn: $mdmProfileActive)
                     .disabled(isBenchmarkActive)
-                    .help("Protect current DNS when this Mac may be managed by an organization.")
-                Toggle("Corporate DNS required", isOn: $corporateDNSDetected)
+                .help(localizer.text(.mdmManagedHelp))
+                Toggle(localizer.text(.corporateDNSRequired), isOn: $corporateDNSDetected)
                     .disabled(isBenchmarkActive)
-                    .help("Protect current DNS when internal domains may require company DNS.")
-                Toggle("Captive portal", isOn: $captivePortalDetected)
+                .help(localizer.text(.corporateDNSRequiredHelp))
+                Toggle(localizer.text(.captivePortal), isOn: $captivePortalDetected)
                     .disabled(isBenchmarkActive)
-                    .help("Protect current DNS while a hotel, airport, or guest Wi-Fi login may be active.")
+                .help(localizer.text(.captivePortalHelp))
 
                 Label(
-                    "Enabled safeguards affect apply policy only; benchmark measurements still run.",
+                    localizer.text(.safeguardExplanation),
                     systemImage: "shield"
                 )
                 .font(.caption)
@@ -2069,9 +2098,9 @@ private struct BenchmarkDetailView: View {
         BenchmarkSection(title: localizer.text(.profiles)) {
             if mode == .systemDNSValidation {
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                    Label("System DNS uses the current macOS resolver; selected profiles are ignored.", systemImage: "desktopcomputer")
+                    Label(localizer.text(.systemDNSProfilesIgnored), systemImage: "desktopcomputer")
                         .font(.body.weight(.semibold))
-                    Label("Use this after manually changing DNS to validate the active OS resolver path.", systemImage: "arrow.triangle.2.circlepath")
+                    Label(localizer.text(.systemDNSValidationHelp), systemImage: "arrow.triangle.2.circlepath")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -2084,18 +2113,13 @@ private struct BenchmarkDetailView: View {
     private var profileSelectionControls: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
             Toggle(isOn: selectAllProfilesBinding) {
-                Text("Select all runnable")
+                Text(localizer.text(.selectAllRunnable))
                     .font(.body.weight(.semibold))
             }
             .disabled(setupViewModel.runnableProfileIDs.isEmpty || isBenchmarkActive)
-            .help(
-                """
-                EN: Select every plain DNS profile that can run with the current Resolver option.
-                VI: Chọn tất cả profile DNS thường có thể chạy với option Resolver hiện tại.
-                """
-            )
+            .help(localizer.text(.selectAllRunnableHelp))
 
-            Text(setupViewModel.profileSelectionSummary)
+            Text(profileSelectionSummary)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -2111,7 +2135,7 @@ private struct BenchmarkDetailView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(option.name)
                                 .font(.body.weight(.semibold))
-                            Text(option.detailLabel)
+                            Text(option.detailLabel(localizer: localizer))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -2119,7 +2143,7 @@ private struct BenchmarkDetailView: View {
                     }
                 }
                 .disabled(!option.isRunnable || isBenchmarkActive)
-                .help(option.helpText)
+                .help(option.helpText(localizer: localizer))
             }
         }
     }
@@ -2141,12 +2165,7 @@ private struct BenchmarkDetailView: View {
                 RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.control)
                     .stroke(.separator.opacity(0.5))
             }
-            .help(
-                """
-                EN: Enter domains separated by commas, spaces, or new lines.
-                VI: Nhập domain, phân tách bằng dấu phẩy, khoảng trắng hoặc xuống dòng.
-                """
-            )
+            .help(localizer.text(.customDomainsHelp))
     }
 
     private var targetSuiteEditor: some View {
@@ -2163,12 +2182,7 @@ private struct BenchmarkDetailView: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 260, alignment: .leading)
                 .disabled(isBenchmarkActive || isMutatingSuite)
-                .help(
-                    """
-                    EN: Name for saving the custom domain list as a reusable suite.
-                    VI: Tên để lưu danh sách domain thành một bộ test dùng lại.
-                    """
-                )
+                .help(localizer.text(.suiteNameHelp))
 
             Button(action: saveCustomSuite) {
                 if isSavingSuite {
@@ -2179,38 +2193,21 @@ private struct BenchmarkDetailView: View {
                 }
             }
             .disabled(!suiteForm.canSave || isBenchmarkActive || isMutatingSuite)
-            .help(
-                suiteForm.canSave
-                    ? """
-                      EN: Save these custom domains as a reusable suite.
-                      VI: Lưu các domain này thành bộ test dùng lại.
-                      """
-                    : suiteForm.issues.joined(separator: "\n")
-            )
+            .help(suiteForm.canSave ? localizer.text(.saveSuiteHelp) : suiteForm.issues.joined(separator: "\n"))
 
             if editingSuiteID != nil {
                 Button(action: clearSuiteEditor) {
                     Label(localizer.text(.newSuite), systemImage: "plus")
                 }
                 .disabled(isBenchmarkActive || isMutatingSuite)
-                .help(
-                    """
-                    EN: Create a new suite instead of updating the selected suite.
-                    VI: Tạo bộ test mới thay vì cập nhật bộ đang chọn.
-                    """
-                )
+                .help(localizer.text(.newSuiteHelp))
             }
 
             Button(action: fillAzureSuiteExample) {
                 Label(localizer.text(.azureExample), systemImage: "sparkles")
             }
             .disabled(isBenchmarkActive || isMutatingSuite)
-            .help(
-                """
-                EN: Fill common Azure and Microsoft domains for a quick example.
-                VI: Điền nhanh các domain Azure/Microsoft phổ biến làm ví dụ.
-                """
-            )
+            .help(localizer.text(.azureExampleHelp))
         }
     }
 
@@ -2259,24 +2256,14 @@ private struct BenchmarkDetailView: View {
                         .font(.body.monospacedDigit())
                 }
                 .frame(maxWidth: 220, alignment: .leading)
-                .help(
-                    """
-                    EN: More attempts reduce noise but make the benchmark take longer.
-                    VI: Nhiều lượt đo hơn sẽ ổn định hơn nhưng benchmark lâu hơn.
-                    """
-                )
+                .help(localizer.text(.attemptsHelp))
 
                 Stepper(value: $dnsTimeoutMS, in: 200...5_000, step: 100) {
                     Text("DNS timeout: \(dnsTimeoutMS) ms")
                         .font(.body.monospacedDigit())
                 }
                 .frame(maxWidth: 260, alignment: .leading)
-                .help(
-                    """
-                    EN: Maximum wait for each DNS lookup. Increase on slow networks; lower for quick smoke tests.
-                    VI: Thời gian chờ tối đa cho mỗi lần phân giải DNS. Tăng khi mạng chậm, giảm khi muốn test nhanh.
-                    """
-                )
+                .help(localizer.text(.dnsTimeoutHelp))
 
                 if mode == .connectionPathCompare {
                     Stepper(value: $connectTimeoutMS, in: 200...5_000, step: 100) {
@@ -2284,26 +2271,106 @@ private struct BenchmarkDetailView: View {
                             .font(.body.monospacedDigit())
                     }
                     .frame(maxWidth: 260, alignment: .leading)
-                    .help(
-                        """
-                        EN: Maximum wait for each TCP connect attempt after DNS resolves.
-                        VI: Thời gian chờ tối đa cho mỗi lần thử kết nối TCP sau khi DNS trả IP.
-                        """
-                    )
+                    .help(localizer.text(.tcpTimeoutHelp))
 
                     Stepper(value: $maxConnectTargetsPerDomain, in: 1...8) {
                         Text("TCP targets/domain: \(maxConnectTargetsPerDomain)")
                             .font(.body.monospacedDigit())
                     }
                     .frame(maxWidth: 260, alignment: .leading)
-                    .help(
-                        """
-                        EN: Limit how many resolved IPs are tested per domain. Lower it for CDN-heavy domains.
-                        VI: Giới hạn số IP được thử cho mỗi domain. Giảm giá trị này với domain/CDN có nhiều IP.
-                        """
-                    )
+                    .help(localizer.text(.tcpTargetsHelp))
                 }
             }
+        }
+    }
+
+    private var benchmarkRunLabel: String {
+        switch runStateMachine.state {
+        case .running, .cancelling:
+            localizer.text(.running)
+        case .idle, .completed, .cancelled, .failed:
+            localizer.text(.run)
+        }
+    }
+
+    private var profileSelectionSummary: String {
+        switch setupViewModel.profileSelectionState {
+        case .systemDNS:
+            localizer.text(.systemDNSProfilesIgnored)
+        case .noRunnableProfiles:
+            localizer.text(.noRunnableProfiles)
+        case .selectedRunnableProfiles(let selected, let runnable):
+            String(
+                format: localizer.text(.runnableProfilesSelected),
+                selected,
+                runnable
+            )
+        }
+    }
+
+    private func modeLabel(_ value: BenchmarkPlanMode) -> String {
+        switch value {
+        case .dnsOnlyCompare:
+            localizer.text(.modeDNSOnly)
+        case .connectionPathCompare:
+            localizer.text(.modeDNSTCP)
+        case .systemDNSValidation:
+            localizer.text(.modeSystemDNS)
+        }
+    }
+
+    private func modeHelp(_ value: BenchmarkPlanMode) -> String {
+        switch value {
+        case .dnsOnlyCompare:
+            localizer.text(.modeDNSOnlyHelp)
+        case .connectionPathCompare:
+            localizer.text(.modeDNSTCPHelp)
+        case .systemDNSValidation:
+            localizer.text(.modeSystemDNSHelp)
+        }
+    }
+
+    private func resolverTransportLabel(_ value: BenchmarkResolverTransport) -> String {
+        switch value {
+        case .automatic:
+            localizer.text(.recordAuto)
+        case .ipv4Only:
+            localizer.text(.recordIPv4)
+        case .ipv6Only:
+            localizer.text(.recordIPv6)
+        }
+    }
+
+    private func resolverTransportHelp(_ value: BenchmarkResolverTransport) -> String {
+        switch value {
+        case .automatic:
+            localizer.text(.resolverAutoHelp)
+        case .ipv4Only:
+            localizer.text(.resolverIPv4Help)
+        case .ipv6Only:
+            localizer.text(.resolverIPv6Help)
+        }
+    }
+
+    private func recordFamilyLabel(_ value: BenchmarkRecordFamily) -> String {
+        switch value {
+        case .both:
+            localizer.text(.recordAAndAAAA)
+        case .ipv4Only:
+            localizer.text(.recordAOnly)
+        case .ipv6Only:
+            localizer.text(.recordAAAAOnly)
+        }
+    }
+
+    private func recordFamilyHelp(_ value: BenchmarkRecordFamily) -> String {
+        switch value {
+        case .both:
+            localizer.text(.recordAAndAAAAHelp)
+        case .ipv4Only:
+            localizer.text(.recordAOnlyHelp)
+        case .ipv6Only:
+            localizer.text(.recordAAAAOnlyHelp)
         }
     }
 
@@ -2925,6 +2992,46 @@ private struct BenchmarkSection<Content: View>: View {
     }
 }
 
+private struct BenchmarkOptionsDisclosure<Content: View>: View {
+    let title: String
+    @Binding var isExpanded: Bool
+    let showHint: String
+    let hideHint: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
+                    Text(title)
+                        .font(.headline)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(title)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityHint(isExpanded ? hideHint : showHint)
+
+            if isExpanded {
+                content
+            }
+        }
+        .padding(DNSPilotDesign.Spacing.row)
+        .background(.background, in: RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card)
+                .stroke(.separator.opacity(0.5))
+        }
+    }
+}
+
 private struct BenchmarkIssueList: View {
     let issues: [String]
 
@@ -2956,12 +3063,7 @@ private struct SystemDNSResolverStatusView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-                .help(
-                    """
-                    EN: System DNS mode validates the resolver path currently active in macOS.
-                    VI: Mode System DNS kiểm tra đường resolver hiện đang active trong macOS.
-                    """
-                )
+                .help(localizer.text(.systemDNSResolverHelp))
 
             ForEach(viewModel.detailLines, id: \.self) { line in
                 Label(line, systemImage: "info.circle")
