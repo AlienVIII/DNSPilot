@@ -153,7 +153,7 @@ proof remains a Milestone 5 manual gate.**
 - **Validation:** TDD covers missing helper, malformed JSON, unsupported schema,
   isolated storage failure, first-run local storage directory creation, partial
   shell hydration, and static startup/retry/gating wiring. `validate-windows-lane.sh`
-  passes 46 tests on macOS; packaged-helper smoke remains Windows-host work.
+  passed 54 tests on macOS at Milestone 2; packaged-helper smoke remains Windows-host work.
 
 ### Milestone 1: Consumer Shell And Accessibility
 
@@ -179,6 +179,9 @@ manual gate.**
 
 ### Milestone 2: Benchmark Control And Cancellation
 
+**Status: automated implementation complete on 2026-07-14; Windows-host process,
+WinUI, tray, and MSIX proof remain a Milestone 5 manual gate.**
+
 - **Goal:** make the default check fast, predictable, and interruptible.
 - **Acceptance criteria:** Quick Check uses a small DNS-only plan; explicit DNS +
   TCP remains available; Core suites tagged `gaming` force DNS + TCP and show
@@ -192,7 +195,10 @@ manual gate.**
   and a documented atomic-history expectation from Core.
 - **Validation:** RED tests for cancel-before-start, cancel-during-progress,
   bounded termination, no history save, repeat run, gaming mode, and disclaimer;
-  then core tests and mocked process tests.
+  then core tests and mocked process tests. The Windows lane now has those RED/GREEN
+  tests plus a real local child-process cancellation regression. The app marks
+  history saved only when Core returns `saved_history_id`; its no-partial-row
+  guarantee remains the documented Core CLI atomic-history contract.
 
 ### Milestone 3: Result Safety And Guided Apply
 

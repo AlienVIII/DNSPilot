@@ -37,7 +37,9 @@ public sealed class BenchmarkPlanViewModel
         int maxConnectTargetsPerDomain,
         DnsRecordFamily recordFamily,
         ResolverAddressFamily resolverAddressFamily,
-        BenchmarkMode mode)
+        BenchmarkMode mode,
+        bool modeWasForcedBySuite = false,
+        string? suiteLimitationNotice = null)
     {
         Catalog = catalog;
         SelectedProfileIds = selectedProfileIds;
@@ -50,6 +52,8 @@ public sealed class BenchmarkPlanViewModel
         RecordFamily = recordFamily;
         ResolverAddressFamily = resolverAddressFamily;
         Mode = mode;
+        ModeWasForcedBySuite = modeWasForcedBySuite;
+        SuiteLimitationNotice = suiteLimitationNotice;
     }
 
     public CatalogSnapshot Catalog { get; }
@@ -63,6 +67,8 @@ public sealed class BenchmarkPlanViewModel
     public DnsRecordFamily RecordFamily { get; }
     public ResolverAddressFamily ResolverAddressFamily { get; }
     public BenchmarkMode Mode { get; }
+    public bool ModeWasForcedBySuite { get; }
+    public string? SuiteLimitationNotice { get; }
     public bool SupportsHistoryPersistence => Mode != BenchmarkMode.SystemDnsValidation;
 
     public IReadOnlyList<string> Domains

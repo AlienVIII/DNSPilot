@@ -34,10 +34,16 @@
     <value>Thử lại</value>
   </data>
   <data name="QuickBenchmarkTooltip.Content" xml:space="preserve">
-    <value>Chạy lệnh benchmark DNS + TCP mặc định.</value>
+    <value>Chạy benchmark chỉ DNS gọn nhẹ.</value>
   </data>
   <data name="QuickBenchmarkText.Text" xml:space="preserve">
-    <value>Benchmark nhanh</value>
+    <value>Kiểm tra nhanh</value>
+  </data>
+  <data name="CancelBenchmarkTooltip.Content" xml:space="preserve">
+    <value>Dừng benchmark đang chạy.</value>
+  </data>
+  <data name="CancelBenchmarkText.Text" xml:space="preserve">
+    <value>Hủy</value>
   </data>
   <data name="ValidateDnsTooltip.Content" xml:space="preserve">
     <value>Benchmark đường DNS hiện tại của Windows.</value>
@@ -149,6 +155,9 @@
   </data>
   <data name="SuiteTooltip.Content" xml:space="preserve">
     <value>Chọn suite domain đã lưu cho target benchmark.</value>
+  </data>
+  <data name="GamingSuiteNotice.Text" xml:space="preserve">
+    <value>Kiểm tra game dùng DNS + TCP. Đây không phải ping ICMP hoặc độ trễ UDP trong trận.</value>
   </data>
   <data name="CommandPreviewHeader.Text" xml:space="preserve">
     <value>Xem trước lệnh</value>

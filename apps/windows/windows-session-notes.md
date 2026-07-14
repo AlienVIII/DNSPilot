@@ -31,6 +31,19 @@
   Profiles, and technical reports move behind Advanced diagnostics. Root-grid
   size changes drive compact/wide stacking; static contracts cover keyboard and
   Narrator metadata pending Windows-host proof.
+- Quick Check now uses the macOS-equivalent bounded DNS-only preset: first two
+  plain profiles, the default three-domain suite, and one attempt. It deliberately
+  ignores the current advanced selection so toolbar/tray behavior is predictable.
+- A selected catalog suite tagged `gaming` forces DNS+TCP in the current preview
+  and renders the catalog description as the limitation notice. The shell does
+  not introduce Windows-specific game targets or ranking rules.
+- Benchmark cancellation now flows from visible Cancel/Escape through a
+  `CancellationToken` to the process boundary. The runner kills the full child
+  tree, waits at most five seconds, and returns a typed cancelled result. A late
+  cancel cannot overwrite a process that already exited successfully.
+- The app reports saved history only when the Core result includes
+  `saved_history_id`; Core remains responsible for atomic no-partial-history
+  semantics, already requested in `windows-core-cli-request.md`.
 
 ## Context
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
@@ -42,7 +55,9 @@
 - Benchmark success diagnostics now render a localized structured copyable recommendation report from result JSON, including health, reasons, resolver metrics, warning, and saved history ID, with raw stdout fallback for unknown CLI output.
 - Diagnostics UI also renders the same parsed recommendation as summary text, resolver metric rows, and notes without waiting for raw report copy.
 - Benchmark controls now share a core plan factory so command preview and idle process rows update as mode/A-AAAA/resolver-family/timeouts change.
-- Toolbar Quick forces DNS+TCP quick plan, in-panel Run uses the current preview, and toolbar Validate DNS forces system-DNS validation while preserving selected A/AAAA/attempts/timeout.
+- Toolbar/tray Quick Check runs a bounded DNS-only preset; in-panel Run uses the
+  current preview, while gaming-tagged suites force DNS+TCP. Toolbar Validate DNS
+  forces system-DNS validation while preserving selected A/AAAA/attempts/timeout.
 - Completed benchmark progress now preserves final per-resolver success/degraded/failed details.
 - Persisted plain DNS profiles from `profile-list` are merged into the benchmark catalog, exposed in the Benchmark resolver profile picker, and preserved across apply-guidance refreshes when still valid.
 - Profile rows now expose edit/delete safety state; only `use_case=custom` profiles are treated as editable/deletable by the Windows shell, and built-in update/delete is blocked by profile ID before any CLI mutation call.
@@ -74,8 +89,8 @@
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
 - Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
-- Milestones 0 and 1 are automated-complete. Start the next engineering session at
-  Milestone 2 in `windows-predevelopment-review.md`; use TDD and commit each
+- Milestones 0 through 2 are automated-complete. Start the next engineering
+  session at Milestone 3 in `windows-predevelopment-review.md`; use TDD and commit each
   verified milestone.
 - Root `STATE.md` and `TODO.md` are stale relative to Windows commit `bad68e1f`.
   Refresh them from an integration/docs lane; do not widen Windows ownership.

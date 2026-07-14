@@ -42,9 +42,18 @@
 - Select a domain suite in the Benchmark panel; expected: command preview uses the suite domains, including custom suites loaded from `suite-list`.
 - Unselect all resolver profiles and run DNS-only or DNS + TCP; expected: benchmark is blocked with copyable diagnostics instead of launching the CLI without resolvers.
 - Use in-panel `Run benchmark`; expected: it runs the current command preview exactly.
-- Run toolbar `Quick benchmark`; expected: it forces DNS + TCP quick mode while preserving selected A/AAAA, resolver address family, and numeric controls.
+- Run toolbar `Quick Check`; expected: it runs DNS-only with the first two plain
+  resolver profiles, the default three-domain suite, and one attempt. It does
+  not silently use the advanced DNS+TCP controls.
+- Select a catalog suite tagged `gaming`; expected: the preview switches to
+  DNS+TCP and displays the suite's catalog limitation notice. This is not ICMP
+  ping or in-match UDP latency.
 - While a benchmark is running, confirm toolbar Quick/Validate and in-panel Run
   are disabled; a tray benchmark action must not start a second run.
+- While a benchmark is running, confirm Cancel is visible and Escape works.
+  Expected: Cancel becomes disabled after one request, the CLI child tree exits
+  within five seconds, result diagnostics say cancelled, no saved history row is
+  reported, and a subsequent Quick Check can run without restarting the app.
 - After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
 - After successful benchmark, expected: recommendation summary, resolver metric rows, notes, and diagnostics show localized health, recommendation, reasons, warning, and saved history ID when the CLI returns benchmark-result JSON.
 - After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.

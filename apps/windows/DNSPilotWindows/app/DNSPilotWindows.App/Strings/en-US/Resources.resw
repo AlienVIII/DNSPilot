@@ -34,10 +34,16 @@
     <value>Retry</value>
   </data>
   <data name="QuickBenchmarkTooltip.Content" xml:space="preserve">
-    <value>Run the default DNS + TCP benchmark command.</value>
+    <value>Run the small DNS-only benchmark.</value>
   </data>
   <data name="QuickBenchmarkText.Text" xml:space="preserve">
-    <value>Quick benchmark</value>
+    <value>Quick Check</value>
+  </data>
+  <data name="CancelBenchmarkTooltip.Content" xml:space="preserve">
+    <value>Stop the running benchmark.</value>
+  </data>
+  <data name="CancelBenchmarkText.Text" xml:space="preserve">
+    <value>Cancel</value>
   </data>
   <data name="ValidateDnsTooltip.Content" xml:space="preserve">
     <value>Benchmark the current Windows resolver path.</value>
@@ -149,6 +155,9 @@
   </data>
   <data name="SuiteTooltip.Content" xml:space="preserve">
     <value>Choose a saved domain suite for benchmark targets.</value>
+  </data>
+  <data name="GamingSuiteNotice.Text" xml:space="preserve">
+    <value>Game checks use DNS + TCP. They are not ICMP ping or in-match UDP latency.</value>
   </data>
   <data name="CommandPreviewHeader.Text" xml:space="preserve">
     <value>Command preview</value>

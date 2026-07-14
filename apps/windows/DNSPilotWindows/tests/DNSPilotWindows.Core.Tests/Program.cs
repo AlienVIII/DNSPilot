@@ -27,7 +27,13 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows shell state exposes benchmark, apply, profile, history, and tray surfaces", WindowsShellStateExposesStoreSafeSurfaces);
         Run("Default Windows shell blocks apply actions until runtime policy loads", DefaultWindowsShellBlocksApplyUntilRuntimePolicyLoads);
         Run("Benchmark control selection builds live preview plans", BenchmarkControlSelectionBuildsLivePreviewPlans);
+        Run("Quick Check uses a bounded DNS-only preset", QuickCheckUsesBoundedDnsOnlyPreset);
+        Run("Quick Check avoids a gaming suite when a general suite exists", QuickCheckAvoidsGamingSuite);
+        Run("Gaming suites force DNS plus TCP and retain the Core limitation notice", GamingSuiteForcesDnsAndTcpWithCatalogNotice);
         Run("Benchmark runner validates plan, appends progress and history args, and reports process failure", BenchmarkRunnerBuildsProcessBoundary);
+        Run("Cancelled benchmarks avoid process launch before start and never report saved history", CancelledBenchmarkAvoidsHistorySaveBeforeLaunch);
+        Run("Cancelled benchmark process results remain repeatable without reporting history", CancelledBenchmarkProcessResultIsRepeatable);
+        Run("System process runner terminates a cancelled child within its bounded timeout", SystemProcessRunnerTerminatesCancelledChild);
         Run("CLI payload decoders map catalog, capabilities, and apply-plan contracts", CliPayloadDecodersMapCoreContracts);
         Run("CLI contract runners invoke catalog, capabilities, apply-plan, profile, and history commands", CliContractRunnersInvokeCommands);
         Run("Suite list decoder and runner map persisted suite management contracts", SuiteListDecoderAndRunnerMapPersistedSuites);
@@ -47,6 +53,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
         Run("Windows shell confirms and serializes persistent deletion actions", WindowsShellConfirmsAndSerializesPersistentDeletionActions);
         Run("Windows shell serializes benchmark launches", WindowsShellSerializesBenchmarkLaunches);
+        Run("Windows app renders the cancellation and gaming-mode contracts", WindowsAppRendersCancellationAndGamingContracts);
         Run("Windows app uses runtime readiness for startup, recovery, and surface gating", WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating);
         Run("Windows app follows the Check DNS, Profiles, and History consumer contract", WindowsAppFollowsConsumerNavigationContract);
         Run("macOS validation only tolerates the Windows-only XAML compiler failure", MacOsValidationOnlyToleratesWindowsXamlCompilerFailure);
@@ -328,7 +335,9 @@ internal sealed class WindowsCoreTestSuite
         Assert.SequenceEqual(
             new[] { TrayActionKind.QuickBenchmark, TrayActionKind.ValidateSystemDns, TrayActionKind.OpenSettings },
             tray.Actions.Select(action => action.Kind));
-        Assert.Equal(BenchmarkMode.DnsAndTcp, tray.QuickBenchmarkPlan.Mode);
+        Assert.Equal(BenchmarkMode.DnsOnly, tray.QuickBenchmarkPlan.Mode);
+        Assert.Equal(1, tray.QuickBenchmarkPlan.Attempts);
+        Assert.Equal(2, tray.QuickBenchmarkPlan.ProgressSummary.ResolverCount);
         Assert.Contains("microsoft.com", string.Join(" ", tray.QuickBenchmarkPlan.CommandArguments));
         Assert.Equal("system-benchmark", tray.ValidateSystemDnsPlan.CommandArguments.First());
         Assert.Equal("ms-settings:network-advancedsettings", tray.OpenSettingsUri.PrimaryUri);
@@ -451,9 +460,82 @@ internal sealed class WindowsCoreTestSuite
             DnsTimeoutMs: 900,
             TcpTimeoutMs: 1_400,
             TcpTargetsPerDomain: 6));
-        Assert.Equal(BenchmarkMode.DnsAndTcp, quick.Mode);
+        Assert.Equal(BenchmarkMode.DnsOnly, quick.Mode);
+        Assert.Equal(1, quick.Attempts);
+        Assert.Equal(2, quick.ProgressSummary.ResolverCount);
         Assert.Contains("--ip-family ipv4-only", string.Join(" ", quick.CommandArguments));
-        Assert.Contains("--max-connect-targets-per-domain 6", string.Join(" ", quick.CommandArguments));
+        Assert.DoesNotContain("--max-connect-targets-per-domain", string.Join(" ", quick.CommandArguments));
+    }
+
+    private static void QuickCheckUsesBoundedDnsOnlyPreset()
+    {
+        var shell = WindowsShellViewModel.CreateDefault("profiles.sqlite");
+        var quick = shell.BuildQuickBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 1,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 9,
+            DnsTimeoutMs: 900,
+            TcpTimeoutMs: 1_400,
+            TcpTargetsPerDomain: 6,
+            SelectedProfileIds: new[] { "quad9" },
+            SelectedSuiteId: "daily"));
+
+        Assert.Equal(BenchmarkMode.DnsOnly, quick.Mode);
+        Assert.Equal(1, quick.Attempts);
+        Assert.Equal(2, quick.ProgressSummary.ResolverCount);
+        Assert.Equal(3, quick.ProgressSummary.DomainCount);
+        Assert.SequenceEqual(new[] { "cloudflare", "google" }, quick.SelectedProfileIds);
+        Assert.Equal("developer", quick.SelectedSuiteId);
+        Assert.DoesNotContain("path-compare", string.Join(" ", quick.CommandArguments));
+    }
+
+    private static void GamingSuiteForcesDnsAndTcpWithCatalogNotice()
+    {
+        var gamingSuite = new CatalogTestSuite("game-sea", "Game SEA", new[] { "game.example" })
+        {
+            Tags = new[] { "gaming" },
+            Description = "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency.",
+        };
+        var catalog = new CatalogSnapshot(TestData.Catalog.Profiles, TestData.Catalog.TestSuites.Concat(new[] { gamingSuite }).ToArray());
+        var plan = BenchmarkControlPlanFactory.Build(catalog, new BenchmarkControlSelection(
+            ModeIndex: 0,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 1,
+            DnsTimeoutMs: 800,
+            TcpTimeoutMs: 800,
+            TcpTargetsPerDomain: 2,
+            SelectedProfileIds: new[] { "cloudflare" },
+            SelectedSuiteId: gamingSuite.Id));
+
+        Assert.Equal(BenchmarkMode.DnsAndTcp, plan.Mode);
+        Assert.True(plan.ModeWasForcedBySuite, "Gaming suites must not silently run DNS-only.");
+        Assert.Equal(gamingSuite.Description, plan.SuiteLimitationNotice);
+        Assert.Contains("path-compare", string.Join(" ", plan.CommandArguments));
+    }
+
+    private static void QuickCheckAvoidsGamingSuite()
+    {
+        var gamingSuite = new CatalogTestSuite("game-sea", "Game SEA", new[] { "game.example" })
+        {
+            Tags = new[] { "gaming" },
+            Description = "Game check estimates DNS and TCP connection timing.",
+        };
+        var generalSuite = new CatalogTestSuite("daily", "Daily", new[] { "example.com" });
+        var catalog = new CatalogSnapshot(TestData.Catalog.Profiles, new[] { gamingSuite, generalSuite });
+        var quick = BenchmarkControlPlanFactory.BuildQuickBenchmark(catalog, new BenchmarkControlSelection(
+            ModeIndex: 1,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 3,
+            DnsTimeoutMs: 800,
+            TcpTimeoutMs: 800,
+            TcpTargetsPerDomain: 2));
+
+        Assert.Equal(BenchmarkMode.DnsOnly, quick.Mode);
+        Assert.Equal(generalSuite.Id, quick.SelectedSuiteId);
+        Assert.False(quick.ModeWasForcedBySuite, "Quick Check must remain DNS-only even when the catalog starts with a gaming suite.");
     }
 
     private static void BenchmarkRunnerBuildsProcessBoundary()
@@ -481,6 +563,64 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("network timeout", failure.DebugLog);
         Assert.Contains("path-compare", failure.DebugLog);
         Assert.Contains("Elapsed: 404 ms", failure.CopyableReport("DNS + TCP"));
+    }
+
+    private static void CancelledBenchmarkAvoidsHistorySaveBeforeLaunch()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var processRunner = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.BenchmarkResult, ""));
+        var result = new BenchmarkRunner("dnspilot-cli", processRunner).Run(
+            TestData.Plan(mode: BenchmarkMode.DnsOnly),
+            new BenchmarkHistoryPersistence("profiles.sqlite", "cancel-before-start"),
+            cancellationToken: cancellation.Token);
+
+        Assert.True(result.WasCancelled, "A cancelled token must create a cancelled result.");
+        Assert.False(result.Succeeded, "A cancelled result must not be treated as a successful benchmark.");
+        Assert.Equal(0, processRunner.InvocationCount);
+        Assert.DoesNotContain("--save-db", string.Join(" ", result.CommandArguments));
+        Assert.False(result.HistoryWasSaved, "A cancelled run must never report saved history.");
+    }
+
+    private static void CancelledBenchmarkProcessResultIsRepeatable()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var processRunner = new CancellationReportingProcessRunner(cancellation);
+        var runner = new BenchmarkRunner("dnspilot-cli", processRunner);
+        var cancelled = runner.Run(
+            TestData.Plan(mode: BenchmarkMode.DnsAndTcp),
+            new BenchmarkHistoryPersistence("profiles.sqlite", "cancel-during-run"),
+            cancellationToken: cancellation.Token,
+            progressHandler: _ => { });
+
+        Assert.True(cancelled.WasCancelled, "A process interrupted during progress must report cancelled.");
+        Assert.False(cancelled.HistoryWasSaved, "A cancelled process result must not report saved history.");
+        Assert.Contains("--save-db", string.Join(" ", processRunner.LastArguments));
+
+        var repeatRunner = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.BenchmarkResult, ""));
+        var repeated = new BenchmarkRunner("dnspilot-cli", repeatRunner).Run(
+            TestData.Plan(mode: BenchmarkMode.DnsOnly),
+            new BenchmarkHistoryPersistence("profiles.sqlite", "repeat-run"));
+        Assert.True(repeated.Succeeded, "A subsequent benchmark must run after cancellation.");
+        Assert.True(repeated.HistoryWasSaved, "A successful Core result with saved_history_id must report history saved.");
+    }
+
+    private static void SystemProcessRunnerTerminatesCancelledChild()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(100));
+        var runner = new SystemCliProcessRunner();
+        var executablePath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var arguments = OperatingSystem.IsWindows()
+            ? new[] { "/c", "ping -n 31 127.0.0.1 > nul" }
+            : new[] { "-c", "sleep 30" };
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var result = runner.Run(executablePath, arguments, progressHandler: null, cancellationToken: cancellation.Token);
+
+        stopwatch.Stop();
+        Assert.True(result.WasCancelled, "The process runner must report cancellation after killing the child tree.");
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(6), "Cancellation must complete inside the five-second termination bound plus scheduling overhead.");
     }
 
     private static void CliPayloadDecodersMapCoreContracts()
@@ -1377,6 +1517,34 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("x:Name=\"RunBenchmarkButton\"", xaml);
     }
 
+    private static void WindowsAppRendersCancellationAndGamingContracts()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+        var englishResources = File.ReadAllText(Path.Combine(appRoot, "Strings", "en-US", "Resources.resw"));
+        var vietnameseResources = File.ReadAllText(Path.Combine(appRoot, "Strings", "vi-VN", "Resources.resw"));
+
+        Assert.Contains("x:Name=\"CancelBenchmarkButton\"", xaml);
+        Assert.Contains("Click=\"CancelBenchmark_Click\"", xaml);
+        Assert.Contains("Visibility=\"Collapsed\"", xaml);
+        Assert.Contains("x:Name=\"SuiteLimitationNoticeText\"", xaml);
+        Assert.Contains("private CancellationTokenSource? _benchmarkCancellation;", mainWindow);
+        Assert.Contains("CancelBenchmark_Click", mainWindow);
+        Assert.Contains("cancellationToken: cancellation.Token", mainWindow);
+        Assert.Contains("result.WasCancelled", mainWindow);
+        Assert.Contains("historySaved: result.HistoryWasSaved", mainWindow);
+        Assert.Contains("ModeWasForcedBySuite", mainWindow);
+        Assert.Contains("SuiteLimitationNotice", mainWindow);
+        Assert.Contains("Kill(entireProcessTree: true)", File.ReadAllText(Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "src", "DNSPilotWindows.Core", "BenchmarkRunner.cs")));
+        Assert.Contains("CancellationExitTimeoutMilliseconds = 5_000", File.ReadAllText(Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "src", "DNSPilotWindows.Core", "BenchmarkRunner.cs")));
+        Assert.Contains("CancelBenchmarkText.Text", englishResources);
+        Assert.Contains("CancelBenchmarkText.Text", vietnameseResources);
+        Assert.Contains("GamingSuiteNotice.Text", englishResources);
+        Assert.Contains("GamingSuiteNotice.Text", vietnameseResources);
+    }
+
     private static void WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating()
     {
         var repoRoot = FindRepoRoot();
@@ -1604,7 +1772,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("Cảnh báo: Path comparison estimates DNS plus TCP connect timing only.", resultReport.CopyableReport);
 
         var tray = TrayQuickActionsViewModel.CreateDefault(TestData.Catalog);
-        Assert.Equal("Benchmark nhanh", tray.Actions.First().Label);
+        Assert.Equal("Kiểm tra nhanh", tray.Actions.First().Label);
         Assert.Equal("Kiểm tra DNS hiện tại", tray.Actions.Skip(1).First().Label);
     }
 
@@ -2009,9 +2177,15 @@ internal sealed class RecordingProcessRunner : ICliProcessRunner
 
     public string LastExecutablePath { get; private set; } = "";
     public IReadOnlyList<string> LastArguments { get; private set; } = Array.Empty<string>();
+    public int InvocationCount { get; private set; }
 
-    public CliProcessOutput Run(string executablePath, IReadOnlyList<string> arguments, Action<BenchmarkProgressEvent>? progressHandler)
+    public CliProcessOutput Run(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken)
     {
+        InvocationCount++;
         LastExecutablePath = executablePath;
         LastArguments = arguments.ToArray();
         progressHandler?.Invoke(new BenchmarkProgressEvent(ProgressEventType.ResolverStarted, "cloudflare", "1.1.1.1:53", 1, 1));
@@ -2030,12 +2204,41 @@ internal sealed class ScriptedProcessRunner : ICliProcessRunner
 
     public int InvocationCount { get; private set; }
 
-    public CliProcessOutput Run(string executablePath, IReadOnlyList<string> arguments, Action<BenchmarkProgressEvent>? progressHandler)
+    public CliProcessOutput Run(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken)
     {
         InvocationCount++;
         var command = arguments.FirstOrDefault() ?? "";
         return _outputs.TryGetValue(command, out var output)
             ? output
             : new CliProcessOutput(127, "", $"No scripted output for {command}.");
+    }
+}
+
+internal sealed class CancellationReportingProcessRunner : ICliProcessRunner
+{
+    private readonly CancellationTokenSource _cancellation;
+
+    public CancellationReportingProcessRunner(CancellationTokenSource cancellation)
+    {
+        _cancellation = cancellation;
+    }
+
+    public IReadOnlyList<string> LastArguments { get; private set; } = Array.Empty<string>();
+
+    public CliProcessOutput Run(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken)
+    {
+        LastArguments = arguments.ToArray();
+        progressHandler?.Invoke(new BenchmarkProgressEvent(ProgressEventType.ResolverStarted, "cloudflare", "1.1.1.1:53", 1, 1));
+        _cancellation.Cancel();
+        Assert.True(cancellationToken.IsCancellationRequested, "The process boundary must receive the active cancellation token.");
+        return new CliProcessOutput(-1, "", "Benchmark cancelled.", WasCancelled: true);
     }
 }

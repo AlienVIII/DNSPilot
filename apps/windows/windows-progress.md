@@ -20,6 +20,12 @@ remain with Profiles; raw reports are behind Advanced diagnostics. The shell has
 compact/wide layout logic, keyboard command wiring, and Narrator live status
 metadata; real Windows accessibility/layout proof remains open.
 
+Milestone 2 is automated-complete: Quick Check is a bounded DNS-only preset,
+gaming-tagged catalog suites force DNS+TCP with their Core limitation notice,
+and a visible Cancel action terminates the child process tree within five seconds.
+Cancelled runs are not treated as successful or saved history; successful history
+is shown only when Core returns `saved_history_id`.
+
 Cross-lane pre-development review is complete. The next work is selective
 consumer/release hardening, ordered in
 `apps/windows/windows-predevelopment-review.md`; it does not reopen the
@@ -31,9 +37,10 @@ Store/Power architecture boundary.
   `DNSPilotWindows.Core` view-model/domain layer.
 - Benchmark commands cover DNS-only, DNS+TCP, system-DNS validation, A/AAAA,
   resolver address-family controls, numeric controls, live preview, and
-  progress/failure diagnostics. Toolbar Quick forces DNS+TCP, in-panel Run
-  uses the current preview, and Validate DNS forces system-DNS validation while
-  preserving relevant controls.
+  progress/failure diagnostics. Toolbar/tray Quick Check uses a bounded DNS-only
+  preset; in-panel Run uses the current preview; gaming-tagged suites force
+  DNS+TCP and display their catalog limitation notice; Validate DNS forces
+  system-DNS validation while preserving relevant controls.
 - Persisted custom plain DNS profiles from `profile-list` are merged into the
   benchmark catalog, surfaced as selectable resolver profiles, and can be used
   in DNS-only or DNS+TCP runs.
@@ -61,6 +68,10 @@ Store/Power architecture boundary.
 - Persisted delete/clear actions require native confirmation and disable the
   triggering button while the CLI mutation runs.
 - Benchmark launch is single-flight across toolbar, in-panel, and tray actions.
+- While a benchmark runs, Cancel is visible and keyboard-reachable with Escape.
+  The process boundary receives a cancellation token, kills the entire child
+  tree, waits up to five seconds, and reports a cancelled result without treating
+  history as saved.
 - Profile and history add/update/delete/list/clear flows use CLI contract
   runners and management row models. Built-in profile update/delete is blocked
   by profile ID before any CLI mutation call.
@@ -81,7 +92,9 @@ Store/Power architecture boundary.
   build, store-safe static checks, localization/packaging checks, and expected
   macOS-only WinUI build-probe handling. The script only tolerates the known
   Windows-only XAML compiler signature; unrelated WinUI failures remain fatal.
-- Current automated count: 46 Windows core/static tests.
+- Current automated count: 54 Windows core/static tests, including cancellation
+  before launch, cancellation during progress, repeat-run, gaming-mode, and a
+  bounded real-child-process termination regression.
 
 ## Remaining Gates
 

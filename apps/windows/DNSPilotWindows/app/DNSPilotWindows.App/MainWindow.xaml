@@ -20,6 +20,7 @@
         </VisualStateManager.VisualStateGroups>
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Q" Modifiers="Control" Invoked="QuickBenchmarkAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Escape" Invoked="CancelBenchmarkAccelerator_Invoked" />
             <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="SettingsAccelerator_Invoked" />
             <KeyboardAccelerator Key="H" Modifiers="Control" Invoked="HelpAccelerator_Invoked" />
         </Grid.KeyboardAccelerators>
@@ -36,7 +37,7 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Button x:Name="QuickBenchmarkButton" Click="QuickBenchmark_Click" AutomationProperties.Name="Quick Check" AutomationProperties.AutomationId="QuickCheckButton">
                     <ToolTipService.ToolTip>
-                        <ToolTip x:Uid="QuickBenchmarkTooltip" Content="Run the default DNS + TCP benchmark command." />
+                        <ToolTip x:Uid="QuickBenchmarkTooltip" Content="Run the small DNS-only benchmark." />
                     </ToolTipService.ToolTip>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <SymbolIcon Symbol="Play" />
@@ -169,6 +170,7 @@
                                 <ToolTip x:Uid="SuiteTooltip" Content="Choose a saved domain suite for benchmark targets." />
                             </ToolTipService.ToolTip>
                         </ComboBox>
+                        <TextBlock x:Name="SuiteLimitationNoticeText" x:Uid="GamingSuiteNotice" Text="Game checks use DNS + TCP. They are not ICMP ping or in-match UDP latency." TextWrapping="Wrap" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
                         <TextBlock x:Uid="CommandPreviewHeader" Text="Command preview" FontWeight="SemiBold" />
                         <TextBox x:Name="CommandPreviewBox" IsReadOnly="True" TextWrapping="Wrap" MinHeight="76" />
@@ -177,6 +179,15 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <SymbolIcon Symbol="Play" />
                                     <TextBlock x:Uid="RunBenchmarkText" Text="Run benchmark" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="CancelBenchmarkButton" Click="CancelBenchmark_Click" Visibility="Collapsed" AutomationProperties.Name="Cancel benchmark" AutomationProperties.AutomationId="CancelBenchmarkButton">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Uid="CancelBenchmarkTooltip" Content="Stop the running benchmark." />
+                                </ToolTipService.ToolTip>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Cancel" />
+                                    <TextBlock x:Uid="CancelBenchmarkText" Text="Cancel" />
                                 </StackPanel>
                             </Button>
                             <Button Click="CopyCommand_Click">

@@ -14,6 +14,7 @@ public sealed partial class MainWindow : Window
     private const string TutorialSeenKey = "dnspilot.setupTutorialSeen";
     private readonly List<BenchmarkProgressEvent> _progressEvents = [];
     private bool _benchmarkRunning;
+    private CancellationTokenSource? _benchmarkCancellation;
     private bool _hasShownFirstRunTutorial;
     private bool _tutorialOpen;
     private string _lastDiagnostics = "";
@@ -64,6 +65,12 @@ public sealed partial class MainWindow : Window
         await StartBenchmarkAsync(ViewModel.BuildQuickBenchmarkPlan(CurrentBenchmarkSelection()));
     }
 
+    private void CancelBenchmarkAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        CancelBenchmark();
+    }
+
     private async void SettingsAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
@@ -79,6 +86,11 @@ public sealed partial class MainWindow : Window
     private async void RunBenchmark_Click(object sender, RoutedEventArgs e)
     {
         await StartBenchmarkAsync(BuildSelectedBenchmarkPlan());
+    }
+
+    private void CancelBenchmark_Click(object sender, RoutedEventArgs e)
+    {
+        CancelBenchmark();
     }
 
     private async void ValidateSystemDns_Click(object sender, RoutedEventArgs e)
@@ -539,6 +551,8 @@ public sealed partial class MainWindow : Window
         }
 
         _benchmarkRunning = true;
+        var cancellation = new CancellationTokenSource();
+        _benchmarkCancellation = cancellation;
         SetBenchmarkActionsEnabled(false);
         RenderProgress(BenchmarkRunState.Running, plan.Mode, plan.ProgressSummary);
 
@@ -559,13 +573,26 @@ public sealed partial class MainWindow : Window
                         _progressEvents.Add(progressEvent);
                         RenderProgress(BenchmarkRunState.Running, plan.Mode, plan.ProgressSummary);
                     });
-                }));
+                }, cancellationToken: cancellation.Token));
+
+            if (result.WasCancelled)
+            {
+                var failure = new BenchmarkExecutionFailure(
+                    FailureStepFor(plan.Mode),
+                    WindowsDisplayText.Text("Benchmark cancelled.", "Benchmark đã hủy."),
+                    DateTimeOffset.UtcNow - startedAt,
+                    result.StandardError);
+                RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, failure: failure);
+                _lastDiagnostics = failure.CopyableReport(WindowsDisplayText.ModeLabel(plan.Mode));
+                DiagnosticsBox.Text = _lastDiagnostics;
+                return;
+            }
 
             if (result.Succeeded)
             {
                 var benchmarkReport = TryBuildBenchmarkReport(result.StandardOutput);
                 var applyPlanMessage = await TryRefreshApplyGuidanceFromBenchmarkAsync(result.StandardOutput);
-                RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: history is not null);
+                RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: result.HistoryWasSaved);
                 RenderRecommendationReport(benchmarkReport);
                 _lastDiagnostics = FormatBenchmarkSuccessDiagnostics(result, applyPlanMessage, benchmarkReport);
                 DiagnosticsBox.Text = _lastDiagnostics;
@@ -591,6 +618,11 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
+            if (ReferenceEquals(_benchmarkCancellation, cancellation))
+            {
+                _benchmarkCancellation = null;
+            }
+            cancellation.Dispose();
             _benchmarkRunning = false;
             SetBenchmarkActionsEnabled(true);
         }
@@ -602,6 +634,8 @@ public sealed partial class MainWindow : Window
         QuickBenchmarkButton.IsEnabled = canBenchmark;
         ValidateSystemDnsButton.IsEnabled = canBenchmark;
         RunBenchmarkButton.IsEnabled = canBenchmark;
+        CancelBenchmarkButton.Visibility = _benchmarkRunning ? Visibility.Visible : Visibility.Collapsed;
+        CancelBenchmarkButton.IsEnabled = _benchmarkRunning && _benchmarkCancellation is { IsCancellationRequested: false };
     }
 
     private void RenderStaticState(bool resetDiagnostics = true)
@@ -1008,10 +1042,31 @@ public sealed partial class MainWindow : Window
         }
 
         var plan = BuildSelectedBenchmarkPlan();
+        SuiteLimitationNoticeText.Text = plan.SuiteLimitationNotice ?? "";
+        SuiteLimitationNoticeText.Visibility = plan.ModeWasForcedBySuite
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        if (plan.ModeWasForcedBySuite && ModeCombo.SelectedIndex != 1)
+        {
+            ModeCombo.SelectedIndex = 1;
+        }
         CommandPreviewBox.Text = plan.Validation.CanRun
             ? FormatCommand(plan.CommandArguments)
             : string.Join(Environment.NewLine, plan.Validation.Issues);
         RenderProgress(BenchmarkRunState.Idle, plan.Mode, plan.ProgressSummary);
+    }
+
+    private void CancelBenchmark()
+    {
+        if (!_benchmarkRunning || _benchmarkCancellation is not { IsCancellationRequested: false } cancellation)
+        {
+            return;
+        }
+
+        cancellation.Cancel();
+        CancelBenchmarkButton.IsEnabled = false;
+        var plan = BuildSelectedBenchmarkPlan();
+        RenderProgress(BenchmarkRunState.Cancelling, plan.Mode, plan.ProgressSummary);
     }
 
     private static int SafeNumberValue(NumberBox? box, int fallback)
