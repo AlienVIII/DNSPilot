@@ -14,6 +14,7 @@ pub mod process;
 pub mod profiles;
 pub mod publish;
 pub mod readiness;
+pub mod result;
 pub mod settings;
 pub mod storage;
 pub mod suites;

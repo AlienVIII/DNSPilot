@@ -24,6 +24,9 @@ use dnspilot_linux_shell::process::{
     process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus,
 };
 use dnspilot_linux_shell::profiles::PlainDnsProfile;
+use dnspilot_linux_shell::result::{
+    decode_benchmark_decision, BenchmarkDecision, PrimaryResultAction,
+};
 use dnspilot_linux_shell::settings::{
     build_guided_settings_plan, dns_record_family_controls, render_guided_settings_plan,
     resolver_address_family_controls, settings_actions, DnsRecordFamily, ResolverAddressFamily,
@@ -68,6 +71,7 @@ struct DnsPilotGui {
     core_cli: Result<CoreCliResolution, CoreCliResolutionError>,
     status: String,
     diagnostics: String,
+    result: Option<BenchmarkDecision>,
     process: Option<LinuxBenchmarkProcessViewModel>,
     benchmark_worker: Option<BenchmarkWorker>,
     show_tutorial: bool,
@@ -120,6 +124,7 @@ impl DnsPilotGui {
             core_cli,
             status,
             diagnostics: String::new(),
+            result: None,
             process: None,
             benchmark_worker: None,
             show_tutorial,
@@ -342,8 +347,11 @@ impl DnsPilotGui {
         self.process = Some(result.process);
         self.diagnostics = result.debug_report;
         if let Some(payload) = result.final_payload {
+            self.result = decode_benchmark_decision(&payload, &self.capability).ok();
             self.diagnostics.push_str("\n\nFinal payload:\n");
             self.diagnostics.push_str(&payload);
+        } else {
+            self.result = None;
         }
         self.status = match result.error {
             Some(error) => format!("Benchmark failed: {error}"),
@@ -577,6 +585,10 @@ impl DnsPilotGui {
         });
 
         ui.separator();
+        if let Some(result) = self.result.clone() {
+            self.result_ui(ui, &result);
+            ui.separator();
+        }
         if let Some(process) = self
             .process
             .clone()
@@ -767,6 +779,48 @@ impl DnsPilotGui {
             Err(error) => {
                 ui.label(format!("Could not load history: {error}"));
             }
+        }
+    }
+
+    fn result_ui(&mut self, ui: &mut egui::Ui, result: &BenchmarkDecision) {
+        ui.heading("Result");
+        ui.label(format!("Health: {}", result.health));
+        ui.label(format!(
+            "Recommended: {}",
+            result
+                .recommended_profile_id
+                .as_deref()
+                .unwrap_or("Keep current")
+        ));
+        ui.label(format!(
+            "Fastest observed: {}",
+            result
+                .fastest_observed_profile_id
+                .as_deref()
+                .unwrap_or("No completed resolver")
+        ));
+        for reason in &result.gate_reasons {
+            ui.label(reason);
+        }
+        if !result.warning.is_empty() {
+            ui.label(&result.warning);
+        }
+        match result.primary_action {
+            PrimaryResultAction::ApplyGuidance => {
+                if ui.button("Apply guidance").clicked() {
+                    if let Some(profile_id) = &result.recommended_profile_id {
+                        self.settings_profile_id = profile_id.clone();
+                    }
+                    self.show_settings = true;
+                }
+            }
+            PrimaryResultAction::RetestSystemDns => {
+                if ui.button("Retest system DNS").clicked() {
+                    self.selected_mode = BenchmarkMode::CurrentSystemResolver;
+                    self.status = "System DNS retest ready".to_string();
+                }
+            }
+            PrimaryResultAction::None => {}
         }
     }
 
