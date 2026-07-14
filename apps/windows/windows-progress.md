@@ -32,6 +32,13 @@ Apply action copies the Core-selected servers, opens Windows Settings, then offe
 System DNS retest. VPN, managed DNS, corporate DNS, and captive portal signals are
 explicit `apply-plan` inputs; protected dispositions suppress the primary action.
 
+Milestone 4 is automated-complete: a versioned LocalSettings adapter persists
+normalized benchmark selections and language preference only after runtime
+contracts load. Removed/corrupt catalog values fail back safely, Default and
+Vietnam quick picks derive from catalog tags, capability rows distinguish Ready,
+Recovery needed, OS-gated, and Unsupported, and copied diagnostic surfaces
+redact user paths and common environment values.
+
 Cross-lane pre-development review is complete. The next work is selective
 consumer/release hardening, ordered in
 `apps/windows/windows-predevelopment-review.md`; it does not reopen the
@@ -91,6 +98,11 @@ Store/Power architecture boundary.
   locator, and publish/QA runbooks are present.
 - WinUI shell now has a top-right Help button and first-run setup dialog
   persisted through `ApplicationData.LocalSettings`.
+- The top-right EN/VI language selector persists for the next launch. Benchmark
+  preferences persist as one versioned LocalSettings JSON document; no resolver
+  data, benchmark history, or DNS changes are written outside Core storage.
+- Advanced diagnostics includes per-capability readiness rows and redacts user
+  paths and common environment values before reports are copied.
 - Check DNS, Profiles, and History are the only primary navigation destinations.
   Technical diagnostics no longer compete with the decision workflow.
 - Privacy policy draft, Store listing copy, support text, and certification
@@ -102,10 +114,12 @@ Store/Power architecture boundary.
   build, store-safe static checks, localization/packaging checks, and expected
   macOS-only WinUI build-probe handling. The script only tolerates the known
   Windows-only XAML compiler signature; unrelated WinUI failures remain fatal.
-- Current automated count: 57 Windows core/static tests, including cancellation
+- Current automated count: 63 Windows core/static tests, including cancellation
   before launch, cancellation during progress, repeat-run, gaming-mode, and a
   bounded real-child-process termination regression, Core result-safety states,
-  protected-network request flags, and confirmed guided-apply static wiring.
+  protected-network request flags, versioned preference normalization,
+  catalog-derived quick picks, capability state rows, diagnostic/failure redaction, and
+  confirmed guided-apply static wiring.
 
 ## Remaining Gates
 

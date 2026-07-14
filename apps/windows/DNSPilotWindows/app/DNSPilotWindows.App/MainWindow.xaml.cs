@@ -18,12 +18,17 @@ public sealed partial class MainWindow : Window
     private BenchmarkResultPayload? _lastBenchmarkResult;
     private bool _hasShownFirstRunTutorial;
     private bool _tutorialOpen;
+    private bool _runtimeContractsLoaded;
+    private bool _preferencesRestored;
+    private bool _restoringPreferences;
+    private WindowsPreferenceState? _storedPreferences;
     private string _lastDiagnostics = "";
 
     public MainWindow()
     {
         ViewModel = WindowsShellViewModel.CreateDefault(DefaultDatabasePath());
         InitializeComponent();
+        _storedPreferences = AppPreferenceStore.Load();
         RenderStaticState();
         RenderRuntimeReadiness();
         RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
@@ -249,16 +254,34 @@ public sealed partial class MainWindow : Window
     private void BenchmarkSelection_Changed(object sender, SelectionChangedEventArgs e)
     {
         RefreshBenchmarkDraft();
+        PersistPreferences();
     }
 
     private void BenchmarkNumber_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         RefreshBenchmarkDraft();
+        PersistPreferences();
     }
 
     private void BenchmarkProfiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         RefreshBenchmarkDraft();
+        PersistPreferences();
+    }
+
+    private void Language_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        PersistPreferences();
+    }
+
+    private void DefaultSuiteQuickPick_Click(object sender, RoutedEventArgs e)
+    {
+        SelectSuiteQuickPick(DefaultSuiteQuickPickButton.Tag as string);
+    }
+
+    private void VietnamSuiteQuickPick_Click(object sender, RoutedEventArgs e)
+    {
+        SelectSuiteQuickPick(VietnamSuiteQuickPickButton.Tag as string);
     }
 
     private void PreviewProfileSave_Click(object sender, RoutedEventArgs e)
@@ -697,11 +720,17 @@ public sealed partial class MainWindow : Window
         var benchmarkSuiteOptions = ViewModel.BenchmarkSuiteOptions;
         SuiteCombo.ItemsSource = benchmarkSuiteOptions;
         SelectBenchmarkSuite(benchmarkSuiteOptions, selectedSuiteId);
+        RenderCatalogQuickPicks();
+        RestorePreferencesIfReady();
         ProfilesList.ItemsSource = ViewModel.ProfileRows;
         SuitesList.ItemsSource = ViewModel.SuiteRows;
         HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
             ? Array.Empty<BenchmarkHistoryRow>()
             : ViewModel.HistoryRows;
+        CapabilityRowsList.ItemsSource = WindowsCapabilityStatusRows.From(
+            ViewModel.StorePlatformCapability,
+            ViewModel.PowerPlatformCapability,
+            ViewModel.RuntimeReadiness);
         SetRuntimeSurfaceAvailability();
 
         if (!resetDiagnostics)
@@ -780,6 +809,7 @@ public sealed partial class MainWindow : Window
             var loaded = await Task.Run(() => new RuntimeContractLoader().Load(DefaultCliPath(), databasePath));
 
             ViewModel = WindowsShellViewModel.CreateFromRuntimeLoad(databasePath, loaded);
+            _runtimeContractsLoaded = true;
             RenderStaticState(resetDiagnostics);
             RenderRuntimeReadiness(replaceDiagnostics: !ViewModel.RuntimeReadiness.CanBenchmark || !ViewModel.RuntimeReadiness.CanApplyGuidance);
             RefreshBenchmarkDraft();
@@ -859,14 +889,14 @@ public sealed partial class MainWindow : Window
         string applyPlanMessage,
         BenchmarkResultReportViewModel? benchmarkReport)
     {
-        return string.Join(
+        return WindowsDiagnosticRedactor.Redact(string.Join(
             Environment.NewLine,
             WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
             $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
             applyPlanMessage,
             benchmarkReport?.CopyableReport
                 ?? (string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim()),
-            string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
+            string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim()));
     }
 
     private static BenchmarkResultPayload? TryDecodeBenchmarkResult(string standardOutput)
@@ -1113,6 +1143,97 @@ public sealed partial class MainWindow : Window
             ? options.FirstOrDefault()
             : options.FirstOrDefault(option => option.Id == preferredSuiteId) ?? options.FirstOrDefault();
         SuiteCombo.SelectedItem = selection;
+    }
+
+    private void RenderCatalogQuickPicks()
+    {
+        var quickPicks = CatalogQuickPicks.FromCatalog(ViewModel.Catalog);
+        ConfigureSuiteQuickPick(DefaultSuiteQuickPickButton, quickPicks.DefaultSuiteId);
+        ConfigureSuiteQuickPick(VietnamSuiteQuickPickButton, quickPicks.VietnamSuiteId);
+    }
+
+    private static void ConfigureSuiteQuickPick(Button button, string? suiteId)
+    {
+        button.Tag = suiteId;
+        button.Visibility = string.IsNullOrWhiteSpace(suiteId)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+    }
+
+    private void SelectSuiteQuickPick(string? suiteId)
+    {
+        if (string.IsNullOrWhiteSpace(suiteId))
+        {
+            return;
+        }
+
+        SelectBenchmarkSuite(ViewModel.BenchmarkSuiteOptions, suiteId);
+        RefreshBenchmarkDraft();
+        PersistPreferences();
+    }
+
+    private void RestorePreferencesIfReady()
+    {
+        if (!_runtimeContractsLoaded || _preferencesRestored)
+        {
+            return;
+        }
+
+        var preference = WindowsPreferenceState.Normalize(_storedPreferences, ViewModel.Catalog);
+        _restoringPreferences = true;
+        try
+        {
+            ModeCombo.SelectedIndex = preference.ModeIndex;
+            RecordFamilyCombo.SelectedIndex = preference.RecordFamilyIndex;
+            ResolverFamilyCombo.SelectedIndex = preference.ResolverFamilyIndex;
+            AttemptsBox.Value = preference.Attempts;
+            DnsTimeoutBox.Value = preference.DnsTimeoutMs;
+            TcpTimeoutBox.Value = preference.TcpTimeoutMs;
+            TcpTargetsBox.Value = preference.TcpTargetsPerDomain;
+            SelectBenchmarkProfiles(ViewModel.BenchmarkProfileOptions, preference.SelectedProfileIds);
+            SelectBenchmarkSuite(ViewModel.BenchmarkSuiteOptions, preference.SelectedSuiteId);
+            LanguageCombo.SelectedIndex = preference.LanguageTag == "vi-VN" ? 1 : 0;
+        }
+        finally
+        {
+            _restoringPreferences = false;
+            _preferencesRestored = true;
+        }
+
+        PersistPreferences();
+    }
+
+    private void PersistPreferences()
+    {
+        if (!_runtimeContractsLoaded || _restoringPreferences)
+        {
+            return;
+        }
+
+        var selection = CurrentBenchmarkSelection();
+        var preference = WindowsPreferenceState.Normalize(
+            new WindowsPreferenceState(
+                WindowsPreferenceState.CurrentSchemaVersion,
+                selection.ModeIndex,
+                selection.RecordFamilyIndex,
+                selection.ResolverFamilyIndex,
+                selection.Attempts,
+                selection.DnsTimeoutMs,
+                selection.TcpTimeoutMs,
+                selection.TcpTargetsPerDomain,
+                selection.SelectedProfileIds ?? Array.Empty<string>(),
+                selection.SelectedSuiteId,
+                SelectedLanguageTag()),
+            ViewModel.Catalog);
+        _storedPreferences = preference;
+        AppPreferenceStore.Save(preference);
+    }
+
+    private string SelectedLanguageTag()
+    {
+        return (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag as string is "vi-VN"
+            ? "vi-VN"
+            : "en-US";
     }
 
     private void RefreshBenchmarkDraft()

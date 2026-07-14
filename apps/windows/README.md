@@ -81,6 +81,9 @@ Manual smoke flow:
 7. Test tray actions: Quick benchmark, Validate current DNS, Open settings.
 8. Confirm profile/suite/history deletes require confirmation and Cancel is the
    default action.
+9. Select Vietnamese in the top-right language control, relaunch, then restore
+   English. Confirm benchmark selections persist only when their catalog IDs are
+   still valid and Advanced diagnostics contains privacy-safe capability status.
 
 ## Build Store Package
 

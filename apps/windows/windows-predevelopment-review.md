@@ -241,6 +241,12 @@ WinUI, Narrator, and MSIX proof remain a Milestone 5 manual gate.**
 - **Validation:** preference migration/corruption tests; catalog-removal tests;
   EN/VI copy tests; report redaction tests.
 
+**Status: automated-complete.** `WindowsPreferenceState` is schema-versioned
+and normalized against the loaded catalog before it reaches LocalSettings.
+Default and Vietnam selectors derive from suite tags, while diagnostics render
+catalog/runtime capability rows. Windows-host rendering, language-restart
+behavior, and packaged persistence remain Milestone 5 QA evidence.
+
 ### Milestone 5: Windows Release Evidence
 
 - **Goal:** produce a Store candidate for which only account, signing, final

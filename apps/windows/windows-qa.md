@@ -36,7 +36,20 @@
   surfaces recover without restarting the app. If profile storage alone fails,
   benchmark/apply/suites/history retain their own readiness states.
 - Confirm the app launches without UAC/admin prompt.
-- Confirm English and Vietnamese localized UI labels render by switching Windows app/display language or using the Windows language override available during QA.
+- Change the top-right language selector to Vietnamese, close and relaunch; expected:
+  the EN/VI selection persists and native labels load in the selected language.
+  Change it back to English and relaunch. Verify dynamic progress, validation,
+  and readiness text in each language.
+- Change benchmark mode, families, numeric controls, selected profiles/suite,
+  close and relaunch after runtime reaches Ready; expected: valid values restore.
+  Delete a selected custom profile/suite outside the app or corrupt the LocalSettings
+  preference value, relaunch; expected: DNS Pilot falls back to valid catalog defaults
+  and never launches a command with stale IDs.
+- Confirm Default and Vietnam suite quick picks are visible only when catalog tags
+  provide those suites, and that selecting either updates the domain-suite preview.
+- Expand Advanced diagnostics; expected: capability rows use Ready, Recovery
+  needed, OS-gated, or Unsupported states. Copy the report and confirm it contains
+  no local user path, HOME, APPDATA, or token-like environment value.
 - Change benchmark mode, record family, resolver address family, and timeout controls before running; expected: command preview and idle process rows update immediately.
 - Select and unselect resolver profiles in the Benchmark panel; expected: DNS-only and DNS + TCP command preview uses exactly the selected plain DNS profiles, including custom profiles loaded from `profile-list`.
 - Select a domain suite in the Benchmark panel; expected: command preview uses the suite domains, including custom suites loaded from `suite-list`.

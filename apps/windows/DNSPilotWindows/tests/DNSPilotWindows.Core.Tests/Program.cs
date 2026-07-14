@@ -50,6 +50,11 @@ internal sealed class WindowsCoreTestSuite
         Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
         Run("Result safety distinguishes recommended, fastest observed, and keep-current states", ResultSafetyDistinguishesDecisionStates);
         Run("Apply-plan request forwards user-confirmed protected-network signals", ApplyPlanRequestForwardsProtectedNetworkSignals);
+        Run("Versioned preferences migrate corrupt and removed catalog selections safely", VersionedPreferencesMigrateSafely);
+        Run("Catalog quick picks derive default and Vietnam suites from tags", CatalogQuickPicksDeriveFromTags);
+        Run("Capability status rows distinguish ready, recovery, OS-gated, and unsupported", CapabilityStatusRowsDescribeRuntimeAndPlatformState);
+        Run("Diagnostic reports redact user-specific paths and environment values", DiagnosticReportsRedactPrivatePaths);
+        Run("Benchmark failure reasons redact user-specific diagnostics", BenchmarkFailureReasonsRedactPrivateDiagnostics);
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
@@ -59,6 +64,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows app keeps one confirmed Store-safe apply path and System DNS retest", WindowsAppUsesConfirmedGuidedApplyFlow);
         Run("Windows app uses runtime readiness for startup, recovery, and surface gating", WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating);
         Run("Windows app follows the Check DNS, Profiles, and History consumer contract", WindowsAppFollowsConsumerNavigationContract);
+        Run("Windows app persists catalog-safe preferences and exposes capability status", WindowsAppPersistsPreferencesAndCapabilities);
         Run("macOS validation only tolerates the Windows-only XAML compiler failure", MacOsValidationOnlyToleratesWindowsXamlCompilerFailure);
         Run("Windows publish docs include privacy, listing, and certification copy", WindowsPublishDocsIncludePrivacyListingAndCertificationCopy);
         Run("Windows README documents install, run, validation, and package steps", WindowsReadmeDocumentsInstallRunValidationAndPackageSteps);
@@ -1080,6 +1086,98 @@ internal sealed class WindowsCoreTestSuite
             request.CommandArguments);
     }
 
+    private static void VersionedPreferencesMigrateSafely()
+    {
+        var catalog = TestData.Catalog;
+        var loaded = WindowsPreferenceState.Normalize(new WindowsPreferenceState(
+            SchemaVersion: 99,
+            ModeIndex: 99,
+            RecordFamilyIndex: -1,
+            ResolverFamilyIndex: 99,
+            Attempts: 0,
+            DnsTimeoutMs: -5,
+            TcpTimeoutMs: 0,
+            TcpTargetsPerDomain: 0,
+            SelectedProfileIds: new[] { "missing", "cloudflare", "cloudflare" },
+            SelectedSuiteId: "missing",
+            LanguageTag: "fr-FR"), catalog);
+
+        Assert.Equal(WindowsPreferenceState.CurrentSchemaVersion, loaded.SchemaVersion);
+        Assert.Equal(1, loaded.ModeIndex);
+        Assert.Equal(0, loaded.RecordFamilyIndex);
+        Assert.Equal(0, loaded.ResolverFamilyIndex);
+        Assert.Equal(1, loaded.Attempts);
+        Assert.Equal(800, loaded.DnsTimeoutMs);
+        Assert.SequenceEqual(new[] { "cloudflare" }, loaded.SelectedProfileIds);
+        Assert.Equal("developer", loaded.SelectedSuiteId);
+        Assert.Equal("en-US", loaded.LanguageTag);
+    }
+
+    private static void CatalogQuickPicksDeriveFromTags()
+    {
+        var catalog = new CatalogSnapshot(TestData.Catalog.Profiles, new[]
+        {
+            new CatalogTestSuite("global", "Global", new[] { "example.com" }) { Tags = new[] { "default" } },
+            new CatalogTestSuite("vietnam", "Vietnam", new[] { "vnexpress.net" }) { Tags = new[] { "vietnam", "vn" } },
+        });
+        var quickPicks = CatalogQuickPicks.FromCatalog(catalog);
+
+        Assert.Equal("global", quickPicks.DefaultSuiteId);
+        Assert.Equal("vietnam", quickPicks.VietnamSuiteId);
+    }
+
+    private static void CapabilityStatusRowsDescribeRuntimeAndPlatformState()
+    {
+        var degraded = RuntimeReadinessViewModel.Create(
+            "dnspilot-cli.exe",
+            "1.0.0",
+            new[]
+            {
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.Benchmark),
+                new RuntimeSurfaceReadiness(RuntimeSurface.ApplyGuidance, false, RuntimeFailureKind.MalformedPayload, "Apply payload is malformed.", "Retry after updating the helper."),
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.Profiles),
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.Suites),
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.History),
+            });
+
+        var rows = WindowsCapabilityStatusRows.From(
+            new PlatformCapability("windows-store", true, "guided-settings", "none", true, new[] { "Store-safe." }),
+            new PlatformCapability("windows-power", false, "desktop-admin-service", "elevated", false, new[] { "Separate edition." }),
+            degraded);
+
+        Assert.Equal("Ready", rows.Single(row => row.Id == "store-benchmark").State);
+        Assert.Equal("Recovery needed", rows.Single(row => row.Id == "store-apply").State);
+        Assert.Equal("OS-gated", rows.Single(row => row.Id == "power-apply").State);
+        Assert.Equal("Unsupported", rows.Single(row => row.Id == "power-benchmark").State);
+    }
+
+    private static void DiagnosticReportsRedactPrivatePaths()
+    {
+        var report = WindowsDiagnosticRedactor.Redact(
+            "Command: C:\\Users\\aart\\AppData\\Local\\DNSPilot\\dnspilot-cli.exe --db C:\\Users\\aart\\secret.sqlite\nstderr: HOME=/Users/aart/token");
+
+        Assert.DoesNotContain("aart", report);
+        Assert.DoesNotContain("token", report);
+        Assert.Contains("<user-path>", report);
+        Assert.Contains("HOME=<redacted>", report);
+    }
+
+    private static void BenchmarkFailureReasonsRedactPrivateDiagnostics()
+    {
+        var result = new BenchmarkRunResult(
+            1,
+            "",
+            "HOME=/Users/aart/token at C:\\Users\\aart\\secret.log",
+            "C:\\Users\\aart\\dnspilot-cli.exe",
+            Array.Empty<string>());
+
+        var failure = result.ToFailure(BenchmarkFailureStep.PreparingBenchmark);
+
+        Assert.DoesNotContain("aart", failure.Reason);
+        Assert.DoesNotContain("token", failure.Reason);
+        Assert.Contains("HOME=<redacted>", failure.Reason);
+    }
+
     private static void ProfileAndHistoryRowsExposeManagementState()
     {
         var profiles = ProfileListJsonDecoder.Decode(SampleJson.ProfileList);
@@ -1320,6 +1418,7 @@ internal sealed class WindowsCoreTestSuite
             "AppSubtitle",
             "RuntimeStatusBar",
             "RuntimeRetryText",
+            "LanguageCombo",
             "QuickBenchmarkText",
             "ValidateDnsText",
             "SettingsText",
@@ -1345,6 +1444,10 @@ internal sealed class WindowsCoreTestSuite
             "TcpTargetsBox",
             "BenchmarkProfilesList",
             "SuiteCombo",
+            "DefaultSuiteQuickPickButton",
+            "DefaultSuiteQuickPickText",
+            "VietnamSuiteQuickPickButton",
+            "VietnamSuiteQuickPickText",
             "CommandPreviewHeader",
             "RunBenchmarkText",
             "CopyCommandText",
@@ -1384,6 +1487,7 @@ internal sealed class WindowsCoreTestSuite
             "DeleteSuiteText",
             "HistoryHeader",
             "AdvancedDiagnosticsExpander",
+            "CapabilityRowsList",
             "HistoryList",
             "RefreshStorageText",
             "ClearHistoryText",
@@ -1415,6 +1519,7 @@ internal sealed class WindowsCoreTestSuite
             "AppSubtitle.Text",
             "RuntimeStatusBar.Title",
             "RuntimeRetryText.Text",
+            "LanguageTooltip.Content",
             "QuickBenchmarkText.Text",
             "ValidateDnsText.Text",
             "SettingsText.Text",
@@ -1440,6 +1545,8 @@ internal sealed class WindowsCoreTestSuite
             "TcpTargetsBox.Header",
             "BenchmarkProfilesList.Header",
             "SuiteCombo.Header",
+            "DefaultSuiteQuickPickText.Text",
+            "VietnamSuiteQuickPickText.Text",
             "CommandPreviewHeader.Text",
             "RunBenchmarkText.Text",
             "CopyCommandText.Text",
@@ -1479,6 +1586,7 @@ internal sealed class WindowsCoreTestSuite
             "DeleteSuiteText.Text",
             "HistoryHeader.Text",
             "AdvancedDiagnosticsExpander.Header",
+            "CapabilityRowsList.Header",
             "HistoryList.Header",
             "RefreshStorageText.Text",
             "ClearHistoryText.Text",
@@ -1682,6 +1790,28 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("QuickBenchmarkAccelerator_Invoked", mainWindow);
         Assert.Contains("SettingsAccelerator_Invoked", mainWindow);
         Assert.Contains("HelpAccelerator_Invoked", mainWindow);
+    }
+
+    private static void WindowsAppPersistsPreferencesAndCapabilities()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+        var app = File.ReadAllText(Path.Combine(appRoot, "App.xaml.cs"));
+        var preferences = File.ReadAllText(Path.Combine(appRoot, "AppPreferenceStore.cs"));
+
+        Assert.Contains("AppPreferenceStore.ApplyPreferredLanguage", app);
+        Assert.Contains("WindowsPreferenceState.Normalize", mainWindow);
+        Assert.Contains("PersistPreferences", mainWindow);
+        Assert.Contains("CatalogQuickPicks.FromCatalog", mainWindow);
+        Assert.Contains("WindowsCapabilityStatusRows.From", mainWindow);
+        Assert.Contains("x:Name=\"LanguageCombo\"", xaml);
+        Assert.Contains("x:Name=\"DefaultSuiteQuickPickButton\"", xaml);
+        Assert.Contains("x:Name=\"VietnamSuiteQuickPickButton\"", xaml);
+        Assert.Contains("x:Name=\"CapabilityRowsList\"", xaml);
+        Assert.Contains("dnspilot.preferences.v1", preferences);
+        Assert.Contains("ApplicationData.Current.LocalSettings", preferences);
     }
 
     private static void MacOsValidationOnlyToleratesWindowsXamlCompilerFailure()

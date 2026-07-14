@@ -120,7 +120,7 @@ public sealed class RuntimeReadinessViewModel
             $"App version: {appVersion}",
             $"CLI version: {CliVersion ?? "unavailable (runtime-info pending)"}",
             $"Payload schema: {PayloadSchemaVersion}",
-            $"Helper: {HelperPath}",
+            $"Helper: {WindowsDiagnosticRedactor.Redact(HelperPath)}",
         };
 
         foreach (var surface in Enum.GetValues<RuntimeSurface>())

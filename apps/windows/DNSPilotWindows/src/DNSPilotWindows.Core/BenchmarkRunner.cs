@@ -35,19 +35,19 @@ public sealed record BenchmarkRunResult(
     {
         var debugLines = new[]
         {
-            $"Command: {CommandLineFormatter.Format(ExecutablePath, CommandArguments)}",
+            $"Command: {WindowsDiagnosticRedactor.Redact(CommandLineFormatter.Format(ExecutablePath, CommandArguments))}",
             WindowsDisplayText.Text(
                 $"Process failed with exit code {ExitCode}.",
                 $"Tiến trình thất bại với exit code {ExitCode}."),
-            string.IsNullOrWhiteSpace(StandardOutput) ? "stdout: <empty>" : $"stdout: {StandardOutput.Trim()}",
-            string.IsNullOrWhiteSpace(StandardError) ? "stderr: <empty>" : $"stderr: {StandardError.Trim()}",
+            string.IsNullOrWhiteSpace(StandardOutput) ? "stdout: <empty>" : $"stdout: {WindowsDiagnosticRedactor.Redact(StandardOutput.Trim())}",
+            string.IsNullOrWhiteSpace(StandardError) ? "stderr: <empty>" : $"stderr: {WindowsDiagnosticRedactor.Redact(StandardError.Trim())}",
         };
 
         var reason = string.IsNullOrWhiteSpace(StandardError)
             ? WindowsDisplayText.Text(
                 $"CLI exited with code {ExitCode}.",
                 $"CLI thoát với code {ExitCode}.")
-            : StandardError.Trim();
+            : WindowsDiagnosticRedactor.Redact(StandardError.Trim());
 
         return new BenchmarkExecutionFailure(
             failedStep,

@@ -35,6 +35,13 @@
                 <TextBlock x:Uid="AppSubtitle" Text="Windows Store-safe DNS benchmark shell" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <ComboBox x:Name="LanguageCombo" x:Uid="LanguageCombo" Width="88" SelectedIndex="0" SelectionChanged="Language_Changed" AutomationProperties.Name="Display language" AutomationProperties.AutomationId="LanguageSelector">
+                    <ToolTipService.ToolTip>
+                        <ToolTip x:Uid="LanguageTooltip" Content="Choose English or Vietnamese. The app updates on next launch." />
+                    </ToolTipService.ToolTip>
+                    <ComboBoxItem Tag="en-US" Content="EN" />
+                    <ComboBoxItem Tag="vi-VN" Content="VI" />
+                </ComboBox>
                 <Button x:Name="QuickBenchmarkButton" Click="QuickBenchmark_Click" AutomationProperties.Name="Quick Check" AutomationProperties.AutomationId="QuickCheckButton">
                     <ToolTipService.ToolTip>
                         <ToolTip x:Uid="QuickBenchmarkTooltip" Content="Run the small DNS-only benchmark." />
@@ -170,6 +177,14 @@
                                 <ToolTip x:Uid="SuiteTooltip" Content="Choose a saved domain suite for benchmark targets." />
                             </ToolTipService.ToolTip>
                         </ComboBox>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="DefaultSuiteQuickPickButton" x:Uid="DefaultSuiteQuickPickButton" Click="DefaultSuiteQuickPick_Click" Visibility="Collapsed" AutomationProperties.Name="Choose default domain suite">
+                                <TextBlock x:Uid="DefaultSuiteQuickPickText" Text="Default" />
+                            </Button>
+                            <Button x:Name="VietnamSuiteQuickPickButton" x:Uid="VietnamSuiteQuickPickButton" Click="VietnamSuiteQuickPick_Click" Visibility="Collapsed" AutomationProperties.Name="Choose Vietnam domain suite">
+                                <TextBlock x:Uid="VietnamSuiteQuickPickText" Text="Vietnam" />
+                            </Button>
+                        </StackPanel>
                         <TextBlock x:Name="SuiteLimitationNoticeText" x:Uid="GamingSuiteNotice" Text="Game checks use DNS + TCP. They are not ICMP ping or in-match UDP latency." TextWrapping="Wrap" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
                         <TextBlock x:Uid="CommandPreviewHeader" Text="Command preview" FontWeight="SemiBold" />
@@ -213,6 +228,7 @@
                             <ListView x:Name="RecommendationNotesList" x:Uid="RecommendationNotesList" Header="Notes" MaxHeight="120" />
                             <Expander x:Name="AdvancedDiagnosticsExpander" x:Uid="AdvancedDiagnosticsExpander" Header="Advanced diagnostics">
                                 <StackPanel Spacing="8">
+                                    <ListView x:Name="CapabilityRowsList" x:Uid="CapabilityRowsList" Header="Capability status" MaxHeight="140" />
                                     <TextBox x:Name="DiagnosticsBox" x:Uid="DiagnosticsBox" Header="Report" IsReadOnly="True" TextWrapping="Wrap" MinHeight="160" />
                                     <Button Click="CopyDiagnostics_Click" AutomationProperties.Name="Copy technical report" AutomationProperties.AutomationId="CopyDiagnosticsButton">
                                         <StackPanel Orientation="Horizontal" Spacing="6">

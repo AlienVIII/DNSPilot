@@ -33,6 +33,9 @@
   <data name="RuntimeRetryText.Text" xml:space="preserve">
     <value>Thử lại</value>
   </data>
+  <data name="LanguageTooltip.Content" xml:space="preserve">
+    <value>Chọn tiếng Anh hoặc tiếng Việt. Ứng dụng cập nhật ở lần mở tiếp theo.</value>
+  </data>
   <data name="QuickBenchmarkTooltip.Content" xml:space="preserve">
     <value>Chạy benchmark chỉ DNS gọn nhẹ.</value>
   </data>
@@ -155,6 +158,12 @@
   </data>
   <data name="SuiteTooltip.Content" xml:space="preserve">
     <value>Chọn suite domain đã lưu cho target benchmark.</value>
+  </data>
+  <data name="DefaultSuiteQuickPickText.Text" xml:space="preserve">
+    <value>Mặc định</value>
+  </data>
+  <data name="VietnamSuiteQuickPickText.Text" xml:space="preserve">
+    <value>Việt Nam</value>
   </data>
   <data name="GamingSuiteNotice.Text" xml:space="preserve">
     <value>Kiểm tra game dùng DNS + TCP. Đây không phải ping ICMP hoặc độ trễ UDP trong trận.</value>
@@ -290,6 +299,9 @@
   </data>
   <data name="AdvancedDiagnosticsExpander.Header" xml:space="preserve">
     <value>Chẩn đoán nâng cao</value>
+  </data>
+  <data name="CapabilityRowsList.Header" xml:space="preserve">
+    <value>Trạng thái khả năng</value>
   </data>
   <data name="HistoryList.Header" xml:space="preserve">
     <value>Lịch sử</value>
