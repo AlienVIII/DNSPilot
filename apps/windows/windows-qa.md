@@ -1,5 +1,9 @@
 # Windows QA Checklist
 
+Record this checklist's results in
+`apps/windows/windows-release-evidence-template.md`; do not mark a release
+ready from a checklist without package hash and Windows-host evidence.
+
 ## Automated Validation Run on macOS
 - `bash apps/windows/validate-windows-lane.sh`
 - `dotnet build apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`

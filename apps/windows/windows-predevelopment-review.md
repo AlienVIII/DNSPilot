@@ -265,6 +265,12 @@ behavior, and packaged persistence remain Milestone 5 QA evidence.
 - **Validation:** `Validate-WindowsLane.ps1 -Configuration Release`, installed
   package smoke, `windows-qa.md`, and `windows-publish.md`.
 
+**Status: automation-ready.** The package scaffolding, validation entrypoints,
+publish runbook, and versioned release-evidence template are committed. A
+Windows host is still required for WinUI/MSIX/tray proof; Partner Center identity,
+signing, hosted URLs, restricted-capability review, and submission require their
+respective external access.
+
 Recommended order is Milestone 0 through Milestone 5. Automated and mocked work
 continues when a Windows device or Store account is unavailable; manual gates do
 not pause implementation.

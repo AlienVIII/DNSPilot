@@ -57,7 +57,8 @@ Expected:
 - WinUI solution builds on Windows.
 
 ## Manual Real-Device QA
-Run `apps/windows/windows-qa.md` end to end. Minimum release gate:
+Run `apps/windows/windows-qa.md` end to end and record the result in
+`apps/windows/windows-release-evidence-template.md`. Minimum release gate:
 - Launch app without UAC.
 - Confirm English and Vietnamese resource smoke by switching Windows display/app language or by forcing app language during QA if available.
 - Run Quick benchmark.
@@ -145,6 +146,9 @@ QA evidence can be batched once.
 Only publish after all are true:
 - `Validate-WindowsLane.ps1 -Configuration Release` passes on Windows.
 - Manual QA checklist passes on a real Windows device.
+- A completed `windows-release-evidence-template.md` has evidence for the
+  package/helper smoke, Store-safe workflow, accessibility/localization, tray,
+  and network-condition checks.
 - MSIX package installs, launches, and finds bundled `dnspilot-cli.exe`.
 - Store capability declarations are accepted or explicitly approved.
 - Signing and Partner Center identity match the package manifest.

@@ -1851,6 +1851,7 @@ internal sealed class WindowsCoreTestSuite
         var privacy = File.ReadAllText(Path.Combine(windowsRoot, "windows-privacy.md"));
         var listing = File.ReadAllText(Path.Combine(windowsRoot, "windows-store-listing.md"));
         var publish = File.ReadAllText(Path.Combine(windowsRoot, "windows-publish.md"));
+        var evidence = File.ReadAllText(Path.Combine(windowsRoot, "windows-release-evidence-template.md"));
         var packagePrep = File.ReadAllText(Path.Combine(windowsRoot, "Prepare-WindowsStorePackage.ps1"));
 
         Assert.Contains("Privacy Policy Draft", privacy);
@@ -1891,6 +1892,11 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("Generated Store package manifest", packagePrep);
         Assert.Contains("Package.appxmanifest", publish);
         Assert.Contains("GenerateAppxPackageOnBuild=true", publish);
+        Assert.Contains("windows-release-evidence-template.md", publish);
+        Assert.Contains("Release Metadata", evidence);
+        Assert.Contains("Package Install And Helper Smoke", evidence);
+        Assert.Contains("Accessibility And Localization", evidence);
+        Assert.Contains("Store Submission", evidence);
     }
 
     private static void WindowsReadmeDocumentsInstallRunValidationAndPackageSteps()

@@ -44,6 +44,12 @@ consumer/release hardening, ordered in
 `apps/windows/windows-predevelopment-review.md`; it does not reopen the
 Store/Power architecture boundary.
 
+Milestone 5 automation is prepared: the Windows-host validator, Store manifest
+preparation script, publish runbook, QA checklist, and fillable release-evidence
+template are present. No Windows host, signing identity, Partner Center account,
+or hosted public URL is available in this lane, so package/device/submission
+evidence remains explicitly manual.
+
 ## Requirement Coverage
 
 - `.NET` solution under `apps/windows/DNSPilotWindows` with
@@ -125,6 +131,7 @@ Store/Power architecture boundary.
 
 - Run `apps/windows/Validate-WindowsLane.ps1 -Configuration Release` on Windows.
 - Run `apps/windows/windows-qa.md` manual QA on Windows.
+- Record the Windows-host result in `apps/windows/windows-release-evidence-template.md`.
 - Validate MSIX packaging, tray behavior, signing, and Partner Center
   `runFullTrust` justification.
 - Ensure `dnspilot-cli.exe` is bundled or discoverable for live UI runs.
