@@ -27,6 +27,12 @@
   <data name="AppSubtitle.Text" xml:space="preserve">
     <value>Benchmark DNS an toàn cho Windows Store</value>
   </data>
+  <data name="RuntimeStatusBar.Title" xml:space="preserve">
+    <value>Đang kiểm tra DNS Pilot runtime</value>
+  </data>
+  <data name="RuntimeRetryText.Text" xml:space="preserve">
+    <value>Thử lại</value>
+  </data>
   <data name="QuickBenchmarkTooltip.Content" xml:space="preserve">
     <value>Chạy lệnh benchmark DNS + TCP mặc định.</value>
   </data>

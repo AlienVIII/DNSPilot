@@ -8,6 +8,12 @@ custom domain suites, localization, single-project MSIX scaffolding, and tray
 models are implemented.
 Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 
+Runtime Readiness is implemented and automated-validated: startup and Retry use
+one helper-contract loader, independently gate benchmark/apply/profiles/suites/
+history, retain healthy surfaces when local storage fails, and expose an EN/VI
+recovery status plus a copyable technical report. Windows-host rendering and
+packaged-helper proof remain open.
+
 Cross-lane pre-development review is complete. The next work is selective
 consumer/release hardening, ordered in
 `apps/windows/windows-predevelopment-review.md`; it does not reopen the
@@ -38,6 +44,10 @@ Store/Power architecture boundary.
   Network Settings without admin DNS mutation.
 - Startup keeps apply actions blocked with no placeholder DNS servers until a
   valid runtime apply-plan loads; CLI load failure remains fail-closed.
+- Runtime readiness classifies missing helper, malformed payload, unsupported
+  schema, process, and local-storage failures. It creates the local app-data
+  directory for first run, keeps independent healthy surfaces usable, and offers
+  a Retry action without requiring elevation.
 - Protected-network apply-plan dispositions suppress DNS copy and Settings
   apply actions, leaving only a copyable protection checklist.
 - Domain suite validation matches Core CLI trailing-dot/case canonicalization,
@@ -63,6 +73,7 @@ Store/Power architecture boundary.
   build, store-safe static checks, localization/packaging checks, and expected
   macOS-only WinUI build-probe handling. The script only tolerates the known
   Windows-only XAML compiler signature; unrelated WinUI failures remain fatal.
+- Current automated count: 46 Windows core/static tests.
 
 ## Remaining Gates
 

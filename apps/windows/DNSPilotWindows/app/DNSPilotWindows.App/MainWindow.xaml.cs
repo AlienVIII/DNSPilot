@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.System;
+using System.Reflection;
 
 namespace DNSPilotWindows.App;
 
@@ -21,6 +22,7 @@ public sealed partial class MainWindow : Window
         ViewModel = WindowsShellViewModel.CreateDefault(DefaultDatabasePath());
         InitializeComponent();
         RenderStaticState();
+        RenderRuntimeReadiness();
         RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
         CommandPreviewBox.Text = FormatCommand(ViewModel.BenchmarkPlan.CommandArguments);
         _ = LoadRuntimeContractsAsync();
@@ -107,6 +109,11 @@ public sealed partial class MainWindow : Window
     private async void ShowTutorial_Click(object sender, RoutedEventArgs e)
     {
         await ShowTutorialAsync();
+    }
+
+    private async void RetryRuntime_Click(object sender, RoutedEventArgs e)
+    {
+        await LoadRuntimeContractsAsync();
     }
 
     private async Task<bool> ShowTutorialAsync()
@@ -452,6 +459,13 @@ public sealed partial class MainWindow : Window
 
     private async Task StartBenchmarkAsync(BenchmarkPlanViewModel plan)
     {
+        if (!ViewModel.RuntimeReadiness.CanBenchmark)
+        {
+            _lastDiagnostics = ViewModel.RuntimeReadiness.CopyableReport(AppVersion());
+            DiagnosticsBox.Text = _lastDiagnostics;
+            return;
+        }
+
         if (_benchmarkRunning)
         {
             return;
@@ -532,9 +546,10 @@ public sealed partial class MainWindow : Window
 
     private void SetBenchmarkActionsEnabled(bool isEnabled)
     {
-        QuickBenchmarkButton.IsEnabled = isEnabled;
-        ValidateSystemDnsButton.IsEnabled = isEnabled;
-        RunBenchmarkButton.IsEnabled = isEnabled;
+        var canBenchmark = isEnabled && ViewModel.RuntimeReadiness.CanBenchmark;
+        QuickBenchmarkButton.IsEnabled = canBenchmark;
+        ValidateSystemDnsButton.IsEnabled = canBenchmark;
+        RunBenchmarkButton.IsEnabled = canBenchmark;
     }
 
     private void RenderStaticState(bool resetDiagnostics = true)
@@ -549,6 +564,10 @@ public sealed partial class MainWindow : Window
         OpenApplySettingsButton.Visibility = ViewModel.ApplyGuidance.Actions.Any(action => action.Kind == ApplyActionKind.OpenWindowsSettings)
             ? Visibility.Visible
             : Visibility.Collapsed;
+        var canApplyGuidance = ViewModel.RuntimeReadiness.CanApplyGuidance;
+        CopyDnsButton.IsEnabled = canApplyGuidance;
+        OpenApplySettingsButton.IsEnabled = canApplyGuidance;
+        CopyChecklistButton.IsEnabled = canApplyGuidance;
         var benchmarkProfileOptions = ViewModel.BenchmarkProfileOptions;
         BenchmarkProfilesList.ItemsSource = benchmarkProfileOptions;
         SelectBenchmarkProfiles(benchmarkProfileOptions, selectedProfileIds);
@@ -560,6 +579,7 @@ public sealed partial class MainWindow : Window
         HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
             ? Array.Empty<BenchmarkHistoryRow>()
             : ViewModel.HistoryRows;
+        SetRuntimeSurfaceAvailability();
 
         if (!resetDiagnostics)
         {
@@ -586,40 +606,58 @@ public sealed partial class MainWindow : Window
         RenderRecommendationReport(null);
     }
 
+    private void RenderRuntimeReadiness(bool replaceDiagnostics = false)
+    {
+        var readiness = ViewModel.RuntimeReadiness;
+        RuntimeStatusBar.Title = readiness.Title;
+        RuntimeStatusBar.Message = readiness.Summary;
+        RuntimeStatusBar.Severity = readiness.State switch
+        {
+            RuntimeReadinessState.Ready => InfoBarSeverity.Success,
+            RuntimeReadinessState.Incompatible => InfoBarSeverity.Error,
+            RuntimeReadinessState.Degraded => InfoBarSeverity.Warning,
+            _ => InfoBarSeverity.Informational,
+        };
+        RetryRuntimeButton.Visibility = readiness.State == RuntimeReadinessState.Checking
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        SetRuntimeSurfaceAvailability();
+
+        if (replaceDiagnostics || readiness.State is RuntimeReadinessState.Degraded or RuntimeReadinessState.Incompatible)
+        {
+            _lastDiagnostics = readiness.CopyableReport(AppVersion());
+            DiagnosticsBox.Text = _lastDiagnostics;
+        }
+    }
+
+    private void SetRuntimeSurfaceAvailability()
+    {
+        var readiness = ViewModel.RuntimeReadiness;
+        SetBenchmarkActionsEnabled(!_benchmarkRunning);
+        ProfilesSection.IsEnabled = readiness.CanManageProfiles;
+        SuitesSection.IsEnabled = readiness.CanManageSuites;
+        HistoryList.IsEnabled = readiness.CanReadHistory;
+        RefreshStorageButton.IsEnabled = readiness.CanReadHistory;
+        ClearHistoryButton.IsEnabled = readiness.CanReadHistory;
+        DeleteHistoryButton.IsEnabled = readiness.CanReadHistory;
+        CopyDnsButton.IsEnabled = readiness.CanApplyGuidance;
+        OpenApplySettingsButton.IsEnabled = readiness.CanApplyGuidance;
+        CopyChecklistButton.IsEnabled = readiness.CanApplyGuidance;
+    }
+
     private async Task LoadRuntimeContractsAsync(bool resetDiagnostics = true)
     {
+        ViewModel = ViewModel.WithRuntimeReadiness(RuntimeReadinessViewModel.Checking(DefaultCliPath()));
+        RenderRuntimeReadiness();
+
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ViewModel.DatabasePath) ?? ".");
-            var loaded = await Task.Run(() =>
-            {
-                var executablePath = DefaultCliPath();
-                var catalog = new CatalogRunner(executablePath).Load();
-                var capabilities = new CapabilityMatrixRunner(executablePath).Load();
-                var profiles = new ProfileListRunner(executablePath).Load(ViewModel.DatabasePath);
-                var suites = new SuiteListRunner(executablePath).Load(ViewModel.DatabasePath);
-                var history = new BenchmarkHistoryRunner(executablePath).Load(ViewModel.DatabasePath);
-                var firstProfile = catalog.Profiles.FirstOrDefault(profile => profile.Protocol == DnsProtocol.Plain);
-                var testedResolver = firstProfile?.Ipv4Servers.FirstOrDefault() is { } ipv4 ? $"{ipv4}:53" : null;
-                var applyPlan = new ApplyPlanRunner(executablePath).Load(
-                    new ApplyPlanRequest(
-                        firstProfile?.Id,
-                        testedResolver,
-                        ApplyPlanConfidence.High,
-                        ApplyPlanGateHealth.Healthy));
+            var databasePath = ViewModel.DatabasePath;
+            var loaded = await Task.Run(() => new RuntimeContractLoader().Load(DefaultCliPath(), databasePath));
 
-                return WindowsShellViewModel.CreateLoaded(
-                    ViewModel.DatabasePath,
-                    catalog,
-                    capabilities,
-                    applyPlan,
-                    profiles,
-                    suites,
-                    history);
-            });
-
-            ViewModel = loaded;
+            ViewModel = WindowsShellViewModel.CreateFromRuntimeLoad(databasePath, loaded);
             RenderStaticState(resetDiagnostics);
+            RenderRuntimeReadiness(replaceDiagnostics: !ViewModel.RuntimeReadiness.CanBenchmark || !ViewModel.RuntimeReadiness.CanApplyGuidance);
             RefreshBenchmarkDraft();
         }
         catch (Exception ex)
@@ -950,6 +988,11 @@ public sealed partial class MainWindow : Window
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return Path.Combine(localAppData, "DNSPilot", "dnspilot.sqlite");
+    }
+
+    private static string AppVersion()
+    {
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unavailable";
     }
 
     private static async Task CopyTextAsync(string text)

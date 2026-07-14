@@ -47,10 +47,16 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
         Run("Windows shell confirms and serializes persistent deletion actions", WindowsShellConfirmsAndSerializesPersistentDeletionActions);
         Run("Windows shell serializes benchmark launches", WindowsShellSerializesBenchmarkLaunches);
+        Run("Windows app uses runtime readiness for startup, recovery, and surface gating", WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating);
         Run("macOS validation only tolerates the Windows-only XAML compiler failure", MacOsValidationOnlyToleratesWindowsXamlCompilerFailure);
         Run("Windows publish docs include privacy, listing, and certification copy", WindowsPublishDocsIncludePrivacyListingAndCertificationCopy);
         Run("Windows README documents install, run, validation, and package steps", WindowsReadmeDocumentsInstallRunValidationAndPackageSteps);
         Run("Windows dynamic shell text follows current UI culture", WindowsDynamicShellTextFollowsCurrentUiCulture);
+        Run("Runtime readiness blocks every surface when the helper is missing", RuntimeReadinessBlocksMissingHelper);
+        Run("Runtime readiness degrades malformed benchmark contracts without hiding storage", RuntimeReadinessDegradesMalformedBenchmarkContract);
+        Run("Runtime readiness marks unsupported payload schemas incompatible", RuntimeReadinessMarksUnsupportedSchemaIncompatible);
+        Run("Runtime readiness preserves healthy surfaces when profile storage fails", RuntimeReadinessPreservesHealthySurfacesWhenProfileStorageFails);
+        Run("Runtime readiness creates the local storage directory before probing storage", RuntimeReadinessCreatesStorageDirectory);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -935,6 +941,177 @@ internal sealed class WindowsCoreTestSuite
         }
     }
 
+    private static void RuntimeReadinessBlocksMissingHelper()
+    {
+        var runner = new ScriptedProcessRunner(new Dictionary<string, CliProcessOutput>());
+        var helperPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "dnspilot-cli.exe");
+
+        var result = new RuntimeContractLoader(runner).Load(helperPath, "/tmp/dnspilot.sqlite");
+
+        Assert.Equal(RuntimeReadinessState.Degraded, result.Readiness.State);
+        Assert.False(result.Readiness.CanBenchmark);
+        Assert.False(result.Readiness.CanApplyGuidance);
+        Assert.False(result.Readiness.CanManageProfiles);
+        Assert.False(result.Readiness.CanManageSuites);
+        Assert.False(result.Readiness.CanReadHistory);
+        Assert.Equal(RuntimeFailureKind.MissingHelper, result.Readiness.For(RuntimeSurface.Benchmark).FailureKind);
+        Assert.Contains("bundle", result.Readiness.For(RuntimeSurface.Benchmark).RecoveryAction.ToLowerInvariant());
+        Assert.Equal(0, runner.InvocationCount);
+    }
+
+    private static void RuntimeReadinessDegradesMalformedBenchmarkContract()
+    {
+        WithFakeCli((helperPath, databasePath) =>
+        {
+            var runner = RuntimeProcessRunner(
+                catalog: "not-json",
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan);
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+
+            Assert.Equal(RuntimeReadinessState.Degraded, result.Readiness.State);
+            Assert.False(result.Readiness.CanBenchmark);
+            Assert.False(result.Readiness.CanApplyGuidance);
+            Assert.True(result.Readiness.CanManageProfiles);
+            Assert.True(result.Readiness.CanManageSuites);
+            Assert.True(result.Readiness.CanReadHistory);
+            Assert.Equal(RuntimeFailureKind.MalformedPayload, result.Readiness.For(RuntimeSurface.Benchmark).FailureKind);
+            Assert.Equal(RuntimeFailureKind.MalformedPayload, result.Readiness.For(RuntimeSurface.ApplyGuidance).FailureKind);
+            Assert.True(result.ProfileList is not null);
+        });
+    }
+
+    private static void RuntimeReadinessMarksUnsupportedSchemaIncompatible()
+    {
+        WithFakeCli((helperPath, databasePath) =>
+        {
+            var runner = RuntimeProcessRunner(
+                catalog: "{\"schema_version\":2,\"profiles\":[],\"testSuites\":[]}",
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan);
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+
+            Assert.Equal(RuntimeReadinessState.Incompatible, result.Readiness.State);
+            Assert.Equal(RuntimeFailureKind.UnsupportedSchema, result.Readiness.For(RuntimeSurface.Benchmark).FailureKind);
+            Assert.Contains("Update", result.Readiness.For(RuntimeSurface.Benchmark).RecoveryAction);
+            Assert.Contains("Payload schema: 1", result.Readiness.CopyableReport("1.0.0"));
+        });
+    }
+
+    private static void RuntimeReadinessPreservesHealthySurfacesWhenProfileStorageFails()
+    {
+        WithFakeCli((helperPath, databasePath) =>
+        {
+            var runner = RuntimeProcessRunner(
+                catalog: SampleJson.Catalog,
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan,
+                failedCommand: "profile-list");
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+            var shell = WindowsShellViewModel.CreateFromRuntimeLoad(databasePath, result);
+
+            Assert.Equal(RuntimeReadinessState.Degraded, result.Readiness.State);
+            Assert.True(shell.RuntimeReadiness.CanBenchmark);
+            Assert.True(shell.RuntimeReadiness.CanApplyGuidance);
+            Assert.False(shell.RuntimeReadiness.CanManageProfiles);
+            Assert.True(shell.RuntimeReadiness.CanManageSuites);
+            Assert.True(shell.RuntimeReadiness.CanReadHistory);
+            Assert.Equal(RuntimeFailureKind.StorageFailure, shell.RuntimeReadiness.For(RuntimeSurface.Profiles).FailureKind);
+            Assert.True(shell.SuiteRows.Any(row => row.Id == "custom-azure-lab"));
+            Assert.Equal(1, shell.HistoryRows.Count);
+        });
+    }
+
+    private static void RuntimeReadinessCreatesStorageDirectory()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "dnspilot-runtime-storage-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            var helperPath = Path.Combine(root, "dnspilot-cli.exe");
+            File.WriteAllText(helperPath, "test helper");
+            var databasePath = Path.Combine(root, "local", "DNSPilot", "dnspilot.sqlite");
+            var runner = RuntimeProcessRunner(
+                catalog: SampleJson.Catalog,
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan);
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+
+            Assert.True(Directory.Exists(Path.GetDirectoryName(databasePath)!));
+            Assert.True(result.Readiness.CanManageProfiles);
+            Assert.True(result.Readiness.CanManageSuites);
+            Assert.True(result.Readiness.CanReadHistory);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    private static ScriptedProcessRunner RuntimeProcessRunner(
+        string catalog,
+        string capabilities,
+        string profileList,
+        string suiteList,
+        string historyList,
+        string applyPlan,
+        string? failedCommand = null)
+    {
+        var outputs = new Dictionary<string, CliProcessOutput>(StringComparer.Ordinal)
+        {
+            ["catalog"] = new CliProcessOutput(0, catalog, ""),
+            ["capabilities"] = new CliProcessOutput(0, capabilities, ""),
+            ["profile-list"] = new CliProcessOutput(0, profileList, ""),
+            ["suite-list"] = new CliProcessOutput(0, suiteList, ""),
+            ["history-list"] = new CliProcessOutput(0, historyList, ""),
+            ["apply-plan"] = new CliProcessOutput(0, applyPlan, ""),
+        };
+        if (failedCommand is not null)
+        {
+            outputs[failedCommand] = new CliProcessOutput(9, "", $"{failedCommand} failed");
+        }
+
+        return new ScriptedProcessRunner(outputs);
+    }
+
+    private static void WithFakeCli(Action<string, string> action)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "dnspilot-runtime-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            var helperPath = Path.Combine(root, "dnspilot-cli.exe");
+            File.WriteAllText(helperPath, "test helper");
+            action(helperPath, Path.Combine(root, "dnspilot.sqlite"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     private static void WindowsAppDeclaresLocalizationAndPackagingReadiness()
     {
         var repoRoot = FindRepoRoot();
@@ -944,6 +1121,8 @@ internal sealed class WindowsCoreTestSuite
         {
             "AppTitle",
             "AppSubtitle",
+            "RuntimeStatusBar",
+            "RuntimeRetryText",
             "QuickBenchmarkText",
             "ValidateDnsText",
             "SettingsText",
@@ -1033,6 +1212,8 @@ internal sealed class WindowsCoreTestSuite
             "AppDescription",
             "AppTitle.Text",
             "AppSubtitle.Text",
+            "RuntimeStatusBar.Title",
+            "RuntimeRetryText.Text",
             "QuickBenchmarkText.Text",
             "ValidateDnsText.Text",
             "SettingsText.Text",
@@ -1197,6 +1378,27 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("x:Name=\"QuickBenchmarkButton\"", xaml);
         Assert.Contains("x:Name=\"ValidateSystemDnsButton\"", xaml);
         Assert.Contains("x:Name=\"RunBenchmarkButton\"", xaml);
+    }
+
+    private static void WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+
+        Assert.Contains("new RuntimeContractLoader().Load", mainWindow);
+        Assert.Contains("WindowsShellViewModel.CreateFromRuntimeLoad", mainWindow);
+        Assert.DoesNotContain("new CatalogRunner(executablePath).Load()", mainWindow);
+        Assert.DoesNotContain("WindowsShellViewModel.CreateLoaded(", mainWindow);
+        Assert.Contains("RenderRuntimeReadiness", mainWindow);
+        Assert.Contains("SetRuntimeSurfaceAvailability", mainWindow);
+        Assert.Contains("ViewModel.RuntimeReadiness.CanBenchmark", mainWindow);
+        Assert.Contains("ViewModel.RuntimeReadiness.CanApplyGuidance", mainWindow);
+        Assert.Contains("RetryRuntime_Click", mainWindow);
+        Assert.Contains("x:Name=\"RuntimeStatusBar\"", xaml);
+        Assert.Contains("Click=\"RetryRuntime_Click\"", xaml);
+        Assert.Contains("x:Name=\"RetryRuntimeButton\"", xaml);
     }
 
     private static void MacOsValidationOnlyToleratesWindowsXamlCompilerFailure()
@@ -1791,5 +1993,26 @@ internal sealed class RecordingProcessRunner : ICliProcessRunner
         LastArguments = arguments.ToArray();
         progressHandler?.Invoke(new BenchmarkProgressEvent(ProgressEventType.ResolverStarted, "cloudflare", "1.1.1.1:53", 1, 1));
         return _output;
+    }
+}
+
+internal sealed class ScriptedProcessRunner : ICliProcessRunner
+{
+    private readonly IReadOnlyDictionary<string, CliProcessOutput> _outputs;
+
+    public ScriptedProcessRunner(IReadOnlyDictionary<string, CliProcessOutput> outputs)
+    {
+        _outputs = outputs;
+    }
+
+    public int InvocationCount { get; private set; }
+
+    public CliProcessOutput Run(string executablePath, IReadOnlyList<string> arguments, Action<BenchmarkProgressEvent>? progressHandler)
+    {
+        InvocationCount++;
+        var command = arguments.FirstOrDefault() ?? "";
+        return _outputs.TryGetValue(command, out var output)
+            ? output
+            : new CliProcessOutput(127, "", $"No scripted output for {command}.");
     }
 }

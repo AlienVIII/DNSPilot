@@ -22,6 +22,10 @@
   is optional and cannot be a release dependency.
 - In-process Rust is deferred unless packaged-helper or Store evidence rejects
   the current architecture.
+- Runtime Readiness is now a single startup/retry path: it probes the helper
+  contracts independently, maps missing helper/malformed payload/unsupported
+  schema/process/storage failures to recoverable EN/VI status, creates the
+  local storage parent on first run, and gates only affected surfaces.
 
 ## Context
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
@@ -65,7 +69,8 @@
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
 - Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
-- Start the next engineering session at Milestone 0 in
-  `windows-predevelopment-review.md`; use TDD and commit each verified milestone.
+- Milestone 0 is automated-complete. Start the next engineering session at
+  Milestone 1 in `windows-predevelopment-review.md`; use TDD and commit each
+  verified milestone.
 - Root `STATE.md` and `TODO.md` are stale relative to Windows commit `bad68e1f`.
   Refresh them from an integration/docs lane; do not widen Windows ownership.

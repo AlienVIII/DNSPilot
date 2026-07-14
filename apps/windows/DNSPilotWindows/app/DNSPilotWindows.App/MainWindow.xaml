@@ -9,6 +9,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -77,7 +78,18 @@
             </NavigationView.MenuItems>
         </NavigationView>
 
-        <ScrollViewer Grid.Row="2">
+        <InfoBar x:Name="RuntimeStatusBar" x:Uid="RuntimeStatusBar" Grid.Row="2" IsOpen="True" IsClosable="False" Severity="Informational">
+            <InfoBar.ActionButton>
+                <Button x:Name="RetryRuntimeButton" Click="RetryRuntime_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <SymbolIcon Symbol="Refresh" />
+                        <TextBlock x:Uid="RuntimeRetryText" Text="Retry" />
+                    </StackPanel>
+                </Button>
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <ScrollViewer Grid.Row="3">
             <Grid ColumnSpacing="16" RowSpacing="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.1*" />
@@ -192,7 +204,7 @@
                                     <TextBlock x:Uid="OpenSettingsText" Text="Open settings" />
                                 </StackPanel>
                             </Button>
-                            <Button Click="CopyChecklist_Click">
+                            <Button x:Name="CopyChecklistButton" Click="CopyChecklist_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <SymbolIcon Symbol="List" />
                                     <TextBlock x:Uid="CopyChecklistText" Text="Copy checklist" />
@@ -299,19 +311,19 @@
                             <TextBlock x:Uid="DiagnosticsHeader" Text="Diagnostics" FontSize="20" FontWeight="SemiBold" />
                             <ListView x:Name="HistoryList" x:Uid="HistoryList" Header="History" MaxHeight="160" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button Click="RefreshStorage_Click">
+                                <Button x:Name="RefreshStorageButton" Click="RefreshStorage_Click">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <SymbolIcon Symbol="Refresh" />
                                         <TextBlock x:Uid="RefreshStorageText" Text="Refresh" />
                                     </StackPanel>
                                 </Button>
-                                <Button Click="ClearHistory_Click">
+                                <Button x:Name="ClearHistoryButton" Click="ClearHistory_Click">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <SymbolIcon Symbol="Delete" />
                                         <TextBlock x:Uid="ClearHistoryText" Text="Clear history" />
                                     </StackPanel>
                                 </Button>
-                                <Button Click="DeleteHistory_Click">
+                                <Button x:Name="DeleteHistoryButton" Click="DeleteHistory_Click">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <SymbolIcon Symbol="Remove" />
                                         <TextBlock x:Uid="DeleteSelectedHistoryText" Text="Delete selected" />

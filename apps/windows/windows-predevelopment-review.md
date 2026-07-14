@@ -134,6 +134,9 @@ real package reaches Partner Center.
 
 ### Milestone 0: Runtime Readiness
 
+**Status: automated implementation complete on 2026-07-14; Windows-host WinUI/MSIX
+proof remains a Milestone 5 manual gate.**
+
 - **Goal:** make helper and contract availability explicit, recoverable, and
   fail-closed.
 - **Acceptance criteria:** Checking, Ready, Degraded, and Incompatible states are
@@ -147,8 +150,10 @@ real package reaches Partner Center.
 - **Dependencies:** existing locator, catalog/capabilities decoders, and the Core
   requests in `windows-core-cli-request.md`. Initial work may probe existing
   commands while the requested runtime metadata contract is pending.
-- **Validation:** TDD for readiness/capability models; missing/malformed/schema
-  fixtures; core tests; lane validation; packaged-helper smoke on Windows later.
+- **Validation:** TDD covers missing helper, malformed JSON, unsupported schema,
+  isolated storage failure, first-run local storage directory creation, partial
+  shell hydration, and static startup/retry/gating wiring. `validate-windows-lane.sh`
+  passes 46 tests on macOS; packaged-helper smoke remains Windows-host work.
 
 ### Milestone 1: Consumer Shell And Accessibility
 

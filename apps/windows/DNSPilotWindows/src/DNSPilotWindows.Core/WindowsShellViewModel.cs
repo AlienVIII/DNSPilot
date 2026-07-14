@@ -13,7 +13,8 @@ public sealed class WindowsShellViewModel
         PlatformCapability powerPlatformCapability,
         IReadOnlyList<ProfileManagementRow> profileRows,
         IReadOnlyList<SuiteManagementRow> suiteRows,
-        IReadOnlyList<BenchmarkHistoryRow> historyRows)
+        IReadOnlyList<BenchmarkHistoryRow> historyRows,
+        RuntimeReadinessViewModel runtimeReadiness)
     {
         DatabasePath = databasePath;
         Catalog = catalog;
@@ -26,6 +27,7 @@ public sealed class WindowsShellViewModel
         ProfileRows = profileRows;
         SuiteRows = suiteRows;
         HistoryRows = historyRows;
+        RuntimeReadiness = runtimeReadiness;
     }
 
     public string DatabasePath { get; }
@@ -39,6 +41,7 @@ public sealed class WindowsShellViewModel
     public IReadOnlyList<ProfileManagementRow> ProfileRows { get; }
     public IReadOnlyList<SuiteManagementRow> SuiteRows { get; }
     public IReadOnlyList<BenchmarkHistoryRow> HistoryRows { get; }
+    public RuntimeReadinessViewModel RuntimeReadiness { get; }
     public IReadOnlyList<BenchmarkProfileOptionRow> BenchmarkProfileOptions =>
         Catalog.Profiles
             .Select(profile => new BenchmarkProfileOptionRow(
@@ -171,7 +174,8 @@ public sealed class WindowsShellViewModel
                 profile.Ipv6Servers,
                 string.IsNullOrWhiteSpace(profile.UseCase) ? "built-in" : profile.UseCase)).ToArray(),
             new SuiteManagementViewModel(catalog.TestSuites).Rows,
-            Array.Empty<BenchmarkHistoryRow>());
+            Array.Empty<BenchmarkHistoryRow>(),
+            RuntimeReadinessViewModel.Checking(CliExecutableLocator.ExecutableName));
     }
 
     public static WindowsShellViewModel CreateLoaded(
@@ -181,7 +185,8 @@ public sealed class WindowsShellViewModel
         ApplyPlan applyPlan,
         ProfileListPayload profileList,
         SuiteListPayload suiteList,
-        BenchmarkHistoryPayload history)
+        BenchmarkHistoryPayload history,
+        RuntimeReadinessViewModel? runtimeReadiness = null)
     {
         var benchmarkCatalog = MergeSuitesForBenchmark(MergeProfilesForBenchmark(catalog, profileList), suiteList);
         var selectedProfiles = benchmarkCatalog.Profiles
@@ -226,7 +231,41 @@ public sealed class WindowsShellViewModel
             capabilities.RequirePlatform("windows-power"),
             new ProfileManagementViewModel(profileList).Rows,
             new SuiteManagementViewModel(benchmarkCatalog.TestSuites).Rows,
-            new BenchmarkHistoryViewModel(history, benchmarkCatalog).Rows);
+            new BenchmarkHistoryViewModel(history, benchmarkCatalog).Rows,
+            runtimeReadiness ?? ReadyRuntime());
+    }
+
+    public static WindowsShellViewModel CreateFromRuntimeLoad(
+        string databasePath,
+        RuntimeContractLoadResult result)
+    {
+        if (result.Catalog is null || result.Capabilities is null || result.ApplyPlan is null)
+        {
+            return CreateDefault(databasePath).WithRuntimeReadiness(result.Readiness);
+        }
+
+        var profiles = result.ProfileList ?? new ProfileListPayload(
+            databasePath,
+            result.Catalog.Profiles.Count,
+            result.Catalog.Profiles);
+        var suites = result.SuiteList ?? new SuiteListPayload(
+            databasePath,
+            result.Catalog.TestSuites.Count,
+            result.Catalog.TestSuites);
+        var history = result.History ?? new BenchmarkHistoryPayload(
+            databasePath,
+            0,
+            Array.Empty<BenchmarkHistoryRecord>());
+
+        return CreateLoaded(
+            databasePath,
+            result.Catalog,
+            result.Capabilities,
+            result.ApplyPlan,
+            profiles,
+            suites,
+            history,
+            result.Readiness);
     }
 
     public WindowsShellViewModel WithApplyPlan(ApplyPlan applyPlan)
@@ -242,7 +281,35 @@ public sealed class WindowsShellViewModel
             PowerPlatformCapability,
             ProfileRows,
             SuiteRows,
-            HistoryRows);
+            HistoryRows,
+            RuntimeReadiness);
+    }
+
+    public WindowsShellViewModel WithRuntimeReadiness(RuntimeReadinessViewModel runtimeReadiness)
+    {
+        return new WindowsShellViewModel(
+            DatabasePath,
+            Catalog,
+            BenchmarkPlan,
+            SystemDnsValidationPlan,
+            ApplyGuidance,
+            TrayQuickActions,
+            StorePlatformCapability,
+            PowerPlatformCapability,
+            ProfileRows,
+            SuiteRows,
+            HistoryRows,
+            runtimeReadiness);
+    }
+
+    private static RuntimeReadinessViewModel ReadyRuntime()
+    {
+        return RuntimeReadinessViewModel.Create(
+            CliExecutableLocator.ExecutableName,
+            cliVersion: null,
+            Enum.GetValues<RuntimeSurface>()
+                .Select(RuntimeSurfaceReadiness.Ready)
+                .ToArray());
     }
 
     private static PlatformCapability DefaultStoreCapability()

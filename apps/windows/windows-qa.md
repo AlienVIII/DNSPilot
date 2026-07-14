@@ -6,7 +6,7 @@
 - `apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/bin/Debug/net8.0/DNSPilotWindows.Core.Tests`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.slnx`
 - `dotnet build apps/windows/DNSPilotWindows/DNSPilotWindows.WinUI.slnx` was attempted on macOS and reached the Windows App SDK XAML compiler, then failed because `XamlCompiler.exe` is Windows-only. Re-run this on Windows.
-- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, protected-network apply suppression, benchmark results, structured recommendation reports, profile-list, suite-list, history-list, profile mutations, suite mutations, history mutations, hydrated shell state, persisted custom profile/suite merge into the benchmark catalog, resolver profile selection, domain suite selection, built-in profile/suite mutation guards, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, native localization resources, dynamic Vietnamese shell text, package PNG assets, README install/run/package instructions, privacy/listing docs, MSIX project/profile wiring, package manifest, and package permission template checks.
+- Automated tests cover CLI contract decoding for catalog, capabilities, apply-plan, protected-network apply suppression, benchmark results, structured recommendation reports, profile-list, suite-list, history-list, profile mutations, suite mutations, history mutations, hydrated shell state, persisted custom profile/suite merge into the benchmark catalog, resolver profile selection, domain suite selection, built-in profile/suite mutation guards, live benchmark control previews, completed resolver statuses, apply-plan request generation from recommendations, CLI helper lookup, runtime readiness, native localization resources, dynamic Vietnamese shell text, package PNG assets, README install/run/package instructions, privacy/listing docs, MSIX project/profile wiring, package manifest, and package permission template checks.
 
 ## Windows Build Validation
 - Install .NET 8 SDK, Windows App SDK build tooling, and Windows SDK.
@@ -18,10 +18,15 @@
 
 ## Manual Windows UI Flow
 - Launch DNS Pilot.
-- Before runtime contracts finish loading, confirm Apply has no DNS servers and
-  Copy DNS/Open settings apply actions are hidden. If CLI loading fails, they
-  must remain hidden.
-- Confirm diagnostics do not report CLI contract load failure; expected: locator finds env, bundled, release, or debug CLI path.
+- Before runtime contracts finish loading, confirm the runtime status shows
+  Checking and benchmark/apply/storage controls are disabled without an admin
+  prompt. After a successful probe, status becomes Ready.
+- Temporarily point `DNSPILOT_CLI_PATH` at a missing path, then use Retry;
+  expected: status becomes Degraded, the report identifies the missing helper,
+  every dependent surface stays disabled, and no DNS settings are changed.
+- Restore a valid env path or bundled helper and choose Retry; expected: ready
+  surfaces recover without restarting the app. If profile storage alone fails,
+  benchmark/apply/suites/history retain their own readiness states.
 - Confirm the app launches without UAC/admin prompt.
 - Confirm English and Vietnamese localized UI labels render by switching Windows app/display language or using the Windows language override available during QA.
 - Change benchmark mode, record family, resolver address family, and timeout controls before running; expected: command preview and idle process rows update immediately.
