@@ -47,10 +47,93 @@ public sealed record BenchmarkRecommendation(
     IReadOnlyList<string> Reasons,
     IReadOnlyList<string> Caveats);
 
+public enum BenchmarkResultSafetyState
+{
+    Recommended,
+    FastestObserved,
+    KeepCurrent,
+}
+
+public sealed record BenchmarkResultSafetyViewModel(
+    BenchmarkResultSafetyState State,
+    string DecisionLine,
+    string FastestObservedLine,
+    bool CanPresentApplyRecommendation)
+{
+    public static BenchmarkResultSafetyViewModel FromResult(BenchmarkResultPayload result)
+    {
+        var fastestObservedLine = FastestObservedLineFor(result.Runs);
+        var profileId = result.Summary.RecommendedProfileId ?? result.Recommendation?.ProfileId;
+        var confidence = result.Recommendation?.Confidence;
+        var canRecommend = result.Summary.CanRecommend
+            && string.Equals(result.Summary.Health, "healthy", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(confidence, "high", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(profileId);
+
+        if (canRecommend)
+        {
+            return new BenchmarkResultSafetyViewModel(
+                BenchmarkResultSafetyState.Recommended,
+                WindowsDisplayText.Text(
+                    $"Recommended: {profileId}",
+                    $"Khuyến nghị: {profileId}"),
+                fastestObservedLine,
+                CanPresentApplyRecommendation: true);
+        }
+
+        if (ShouldKeepCurrent(result.Summary))
+        {
+            return new BenchmarkResultSafetyViewModel(
+                BenchmarkResultSafetyState.KeepCurrent,
+                WindowsDisplayText.Text("Keep current DNS", "Giữ DNS hiện tại"),
+                fastestObservedLine,
+                CanPresentApplyRecommendation: false);
+        }
+
+        return new BenchmarkResultSafetyViewModel(
+            BenchmarkResultSafetyState.FastestObserved,
+            WindowsDisplayText.Text("Fastest observed", "Nhanh nhất đã đo"),
+            fastestObservedLine,
+            CanPresentApplyRecommendation: false);
+    }
+
+    private static bool ShouldKeepCurrent(BenchmarkResultSummary summary)
+    {
+        return !summary.CanRecommend
+            || string.Equals(summary.PrimaryIssue, "all-resolvers-low-reliability", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(summary.Health, "failed", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(summary.Health, "inconclusive", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FastestObservedLineFor(IReadOnlyList<BenchmarkResultRun> runs)
+    {
+        var fastest = runs
+            .Where(run => run.Metrics.MedianDnsLatencyMs is not null)
+            .OrderBy(run => run.Metrics.MedianDnsLatencyMs)
+            .ThenBy(run => run.Metrics.FailureRate)
+            .FirstOrDefault();
+
+        if (fastest is null)
+        {
+            return WindowsDisplayText.Text("Fastest observed DNS: unavailable", "DNS nhanh nhất đã đo: không có");
+        }
+
+        return WindowsDisplayText.Text(
+            $"Fastest observed DNS: {fastest.ProfileId} ({FormatNumber(fastest.Metrics.MedianDnsLatencyMs!.Value)} ms median)",
+            $"DNS nhanh nhất đã đo: {fastest.ProfileId} (trung vị {FormatNumber(fastest.Metrics.MedianDnsLatencyMs!.Value)} ms)");
+    }
+
+    private static string FormatNumber(double value)
+    {
+        return value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+}
+
 public sealed record BenchmarkResultReportViewModel(
     string Title,
     string SummaryLine,
     string RecommendationLine,
+    BenchmarkResultSafetyViewModel Safety,
     IReadOnlyList<string> ResolverLines,
     IReadOnlyList<string> NoteLines,
     string CopyableReport)
@@ -59,7 +142,8 @@ public sealed record BenchmarkResultReportViewModel(
     {
         var title = WindowsDisplayText.Text("Benchmark result", "Kết quả benchmark");
         var summaryLine = SummaryLineFor(result.Summary);
-        var recommendationLine = RecommendationLineFor(result);
+        var safety = BenchmarkResultSafetyViewModel.FromResult(result);
+        var recommendationLine = RecommendationLineFor(result, safety);
         var resolverLines = result.Runs.Select(ResolverLineFor).ToArray();
         var noteLines = NoteLinesFor(result).ToArray();
 
@@ -81,6 +165,7 @@ public sealed record BenchmarkResultReportViewModel(
         }
 
         lines.Add(recommendationLine);
+        lines.Add(safety.FastestObservedLine);
 
         foreach (var reason in result.Recommendation?.Reasons ?? Array.Empty<string>())
         {
@@ -112,6 +197,7 @@ public sealed record BenchmarkResultReportViewModel(
             title,
             summaryLine,
             recommendationLine,
+            safety,
             resolverLines,
             noteLines,
             string.Join(Environment.NewLine, lines));
@@ -128,16 +214,16 @@ public sealed record BenchmarkResultReportViewModel(
         return $"Scope: {summary.MeasurementScope}; Mode: {summary.Mode}; Health: {summary.Health}; Can recommend: {(summary.CanRecommend ? "yes" : "no")}";
     }
 
-    private static string RecommendationLineFor(BenchmarkResultPayload result)
+    private static string RecommendationLineFor(BenchmarkResultPayload result, BenchmarkResultSafetyViewModel safety)
     {
-        if (result.Recommendation is null || !result.Summary.CanRecommend)
+        if (safety.State != BenchmarkResultSafetyState.Recommended || result.Recommendation is null)
         {
-            return WindowsDisplayText.Text("Recommendation: none", "Khuyến nghị: không có");
+            return safety.DecisionLine;
         }
 
         return WindowsDisplayText.Text(
-            $"Recommendation: {result.Recommendation.ProfileId} ({result.Recommendation.Confidence}, score {FormatNumber(result.Recommendation.Score)})",
-            $"Khuyến nghị: {result.Recommendation.ProfileId} ({ConfidenceLabel(result.Recommendation.Confidence)}, điểm {FormatNumber(result.Recommendation.Score)})");
+            $"{safety.DecisionLine} ({result.Recommendation.Confidence}, score {FormatNumber(result.Recommendation.Score)})",
+            $"{safety.DecisionLine} ({ConfidenceLabel(result.Recommendation.Confidence)}, điểm {FormatNumber(result.Recommendation.Score)})");
     }
 
     private static string ResolverLineFor(BenchmarkResultRun run)
@@ -303,7 +389,12 @@ public static class BenchmarkResultJsonDecoder
 
 public static class BenchmarkApplyPlanRequestFactory
 {
-    public static ApplyPlanRequest MakeRequest(BenchmarkResultPayload result)
+    public static ApplyPlanRequest MakeRequest(
+        BenchmarkResultPayload result,
+        bool vpnActive = false,
+        bool mdmProfileActive = false,
+        bool corporateDnsDetected = false,
+        bool captivePortalDetected = false)
     {
         var profileId = result.Summary.CanRecommend
             ? result.Summary.RecommendedProfileId ?? result.Recommendation?.ProfileId
@@ -316,7 +407,11 @@ public static class BenchmarkApplyPlanRequestFactory
             profileId,
             testedResolver,
             ConfidenceFor(result.Recommendation?.Confidence),
-            GateHealthFor(result.Summary.Health));
+            GateHealthFor(result.Summary.Health),
+            vpnActive,
+            mdmProfileActive,
+            corporateDnsDetected,
+            captivePortalDetected);
     }
 
     private static ApplyPlanConfidence ConfidenceFor(string? confidence)

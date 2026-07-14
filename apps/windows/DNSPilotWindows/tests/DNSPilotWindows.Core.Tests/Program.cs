@@ -48,12 +48,15 @@ internal sealed class WindowsCoreTestSuite
         Run("Suite management guards built-in update and delete by suite ID", SuiteManagementGuardsBuiltInMutationById);
         Run("Suite ownership matches Core CLI custom markers exactly", SuiteOwnershipMatchesCoreCliMarkersExactly);
         Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
+        Run("Result safety distinguishes recommended, fastest observed, and keep-current states", ResultSafetyDistinguishesDecisionStates);
+        Run("Apply-plan request forwards user-confirmed protected-network signals", ApplyPlanRequestForwardsProtectedNetworkSignals);
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
         Run("Windows shell confirms and serializes persistent deletion actions", WindowsShellConfirmsAndSerializesPersistentDeletionActions);
         Run("Windows shell serializes benchmark launches", WindowsShellSerializesBenchmarkLaunches);
         Run("Windows app renders the cancellation and gaming-mode contracts", WindowsAppRendersCancellationAndGamingContracts);
+        Run("Windows app keeps one confirmed Store-safe apply path and System DNS retest", WindowsAppUsesConfirmedGuidedApplyFlow);
         Run("Windows app uses runtime readiness for startup, recovery, and surface gating", WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating);
         Run("Windows app follows the Check DNS, Profiles, and History consumer contract", WindowsAppFollowsConsumerNavigationContract);
         Run("macOS validation only tolerates the Windows-only XAML compiler failure", MacOsValidationOnlyToleratesWindowsXamlCompilerFailure);
@@ -242,6 +245,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.DoesNotContain(ApplyActionKind.MutateSystemDns.ToString(), string.Join(" ", guidance.Actions.Select(action => action.Kind)));
         Assert.Equal("1.1.1.1\r\n1.0.0.1", guidance.CopyableDnsServers);
         Assert.Contains("No silent DNS mutation", guidance.CopyableChecklist);
+        Assert.True(guidance.CanStartGuidedApply, "Guide-only plans with copy/settings actions may expose the confirmed Store-safe CTA.");
     }
 
     private static void ProtectedApplyGuidanceSuppressesApplyActions()
@@ -256,6 +260,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.SequenceEqual(new[] { ApplyActionKind.CopyChecklist }, guidance.Actions.Select(action => action.Kind));
         Assert.Contains("Keep current DNS settings", guidance.CopyableChecklist);
         Assert.Contains("VPN is active", guidance.CopyableChecklist);
+        Assert.False(guidance.CanStartGuidedApply, "Protected plans must suppress the primary apply CTA.");
     }
 
     private static void CustomDnsProfileFormBuildsStorageCommands()
@@ -1004,7 +1009,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.Equal(12.5, result.Runs.Single(run => run.ProfileId == "cloudflare").Metrics.MedianDnsLatencyMs);
 
         var report = BenchmarkResultReportViewModel.FromResult(result);
-        Assert.Equal("Recommendation: cloudflare (high, score 0.98)", report.RecommendationLine);
+        Assert.Equal("Recommended: cloudflare (high, score 0.98)", report.RecommendationLine);
         Assert.Contains("Scope: dns-tcp; Mode: best-overall; Health: healthy; Can recommend: yes", report.CopyableReport);
         Assert.Contains("Recommended profile: cloudflare", report.CopyableReport);
         Assert.Contains("Saved history: windows-run-1", report.CopyableReport);
@@ -1022,6 +1027,57 @@ internal sealed class WindowsCoreTestSuite
             .WithApplyPlan(ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan));
 
         Assert.Contains("2606:4700:4700::1001", shell.ApplyGuidance.CopyableDnsServers);
+    }
+
+    private static void ResultSafetyDistinguishesDecisionStates()
+    {
+        var recommended = BenchmarkResultJsonDecoder.Decode(SampleJson.BenchmarkResult);
+        var recommendedSafety = BenchmarkResultSafetyViewModel.FromResult(recommended);
+        Assert.Equal(BenchmarkResultSafetyState.Recommended, recommendedSafety.State);
+        Assert.Contains("Recommended: cloudflare", recommendedSafety.DecisionLine);
+        Assert.Contains("Fastest observed DNS:", recommendedSafety.FastestObservedLine);
+
+        var lowConfidence = recommended with
+        {
+            Recommendation = recommended.Recommendation! with { Confidence = "low" },
+        };
+        var observedSafety = BenchmarkResultSafetyViewModel.FromResult(lowConfidence);
+        Assert.Equal(BenchmarkResultSafetyState.FastestObserved, observedSafety.State);
+        Assert.Contains("Fastest observed", observedSafety.DecisionLine);
+        Assert.False(observedSafety.CanPresentApplyRecommendation, "Low confidence must not be presented as an apply recommendation.");
+
+        var keepCurrent = recommended with
+        {
+            Summary = recommended.Summary with
+            {
+                CanRecommend = false,
+                PrimaryIssue = "all-resolvers-low-reliability",
+            },
+        };
+        var keepCurrentSafety = BenchmarkResultSafetyViewModel.FromResult(keepCurrent);
+        Assert.Equal(BenchmarkResultSafetyState.KeepCurrent, keepCurrentSafety.State);
+        Assert.Equal("Keep current DNS", keepCurrentSafety.DecisionLine);
+        Assert.False(keepCurrentSafety.CanPresentApplyRecommendation, "Unhealthy Core gates must not produce an apply recommendation.");
+    }
+
+    private static void ApplyPlanRequestForwardsProtectedNetworkSignals()
+    {
+        var result = BenchmarkResultJsonDecoder.Decode(SampleJson.BenchmarkResult);
+        var request = BenchmarkApplyPlanRequestFactory.MakeRequest(
+            result,
+            vpnActive: true,
+            mdmProfileActive: true,
+            corporateDnsDetected: true,
+            captivePortalDetected: true);
+
+        Assert.SequenceEqual(
+            new[]
+            {
+                "apply-plan", "windows-store", "--confidence", "high", "--gate-health", "healthy",
+                "--profile-id", "cloudflare", "--tested-resolver", "1.1.1.1:53",
+                "--vpn-active", "--mdm-profile-active", "--corporate-dns-detected", "--captive-portal-detected",
+            },
+            request.CommandArguments);
     }
 
     private static void ProfileAndHistoryRowsExposeManagementState()
@@ -1297,10 +1353,16 @@ internal sealed class WindowsCoreTestSuite
             "ResolversList",
             "ApplyHeader",
             "DnsServersBox",
+            "ApplyInSettingsText",
             "CopyDnsText",
-            "OpenSettingsText",
+            "RetestSystemDnsText",
             "CopyChecklistText",
             "ChecklistBox",
+            "NetworkSignalsExpander",
+            "VpnActiveCheckBox",
+            "ManagedDnsCheckBox",
+            "CorporateDnsCheckBox",
+            "CaptivePortalCheckBox",
             "ProfilesHeader",
             "ProfilesList",
             "ProfileNameBox",
@@ -1386,10 +1448,16 @@ internal sealed class WindowsCoreTestSuite
             "ResolversList.Header",
             "ApplyHeader.Text",
             "DnsServersBox.Header",
+            "ApplyInSettingsText.Text",
             "CopyDnsText.Text",
-            "OpenSettingsText.Text",
+            "RetestSystemDnsText.Text",
             "CopyChecklistText.Text",
             "ChecklistBox.Header",
+            "NetworkSignalsExpander.Header",
+            "VpnActiveCheckBox.Content",
+            "ManagedDnsCheckBox.Content",
+            "CorporateDnsCheckBox.Content",
+            "CaptivePortalCheckBox.Content",
             "ProfilesHeader.Text",
             "ProfilesList.Header",
             "ProfileNameBox.Header",
@@ -1543,6 +1611,30 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("CancelBenchmarkText.Text", vietnameseResources);
         Assert.Contains("GamingSuiteNotice.Text", englishResources);
         Assert.Contains("GamingSuiteNotice.Text", vietnameseResources);
+    }
+
+    private static void WindowsAppUsesConfirmedGuidedApplyFlow()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+
+        Assert.Contains("x:Name=\"ApplyInSettingsButton\"", xaml);
+        Assert.Contains("Click=\"ApplyInWindowsSettings_Click\"", xaml);
+        Assert.Contains("x:Name=\"RetestSystemDnsButton\"", xaml);
+        Assert.DoesNotContain("x:Name=\"OpenApplySettingsButton\"", xaml);
+        Assert.Contains("x:Name=\"VpnActiveCheckBox\"", xaml);
+        Assert.Contains("x:Name=\"ManagedDnsCheckBox\"", xaml);
+        Assert.Contains("x:Name=\"CorporateDnsCheckBox\"", xaml);
+        Assert.Contains("x:Name=\"CaptivePortalCheckBox\"", xaml);
+        Assert.Contains("ConfirmGuidedApplyAsync", mainWindow);
+        Assert.Contains("CopyTextAsync(ViewModel.ApplyGuidance.CopyableDnsServers)", mainWindow);
+        Assert.Contains("await OpenSettingsAsync()", mainWindow);
+        Assert.Contains("RetestSystemDns_Click", mainWindow);
+        Assert.Contains("BenchmarkApplyPlanRequestFactory.MakeRequest", mainWindow);
+        Assert.Contains("ClearApplyGuidanceForNewBenchmark", mainWindow);
+        Assert.Contains("&& !_benchmarkRunning", mainWindow);
     }
 
     private static void WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating()

@@ -44,6 +44,17 @@
 - The app reports saved history only when the Core result includes
   `saved_history_id`; Core remains responsible for atomic no-partial-history
   semantics, already requested in `windows-core-cli-request.md`.
+- Result safety now keeps three distinct statements: `Recommended` is the Core
+  high-confidence healthy recommendation; `Fastest observed` is a non-actionable
+  median-DNS observation; `Keep current DNS` follows a failed/inconclusive or
+  explicitly blocked Core gate. The Windows shell does not re-rank resolvers.
+- Store apply now has one confirmed `Apply in Windows Settings` path. Confirmation
+  copies the Core-selected servers then launches Settings; Windows remains the
+  only writer. `Retest System DNS` appears after that handoff. Copy DNS/checklist
+  and technical report remain secondary.
+- VPN, managed DNS, corporate DNS, and captive portal are explicit user signals
+  forwarded to `apply-plan`; no read-only adapter discovery or hidden detection
+  was added. A protected Core disposition suppresses the primary CTA.
 
 ## Context
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
@@ -89,8 +100,8 @@
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
 - Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
-- Milestones 0 through 2 are automated-complete. Start the next engineering
-  session at Milestone 3 in `windows-predevelopment-review.md`; use TDD and commit each
+- Milestones 0 through 3 are automated-complete. Start the next engineering
+  session at Milestone 4 in `windows-predevelopment-review.md`; use TDD and commit each
   verified milestone.
 - Root `STATE.md` and `TODO.md` are stale relative to Windows commit `bad68e1f`.
   Refresh them from an integration/docs lane; do not widen Windows ownership.

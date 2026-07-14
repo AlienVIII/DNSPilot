@@ -55,13 +55,24 @@
   within five seconds, result diagnostics say cancelled, no saved history row is
   reported, and a subsequent Quick Check can run without restarting the app.
 - After successful benchmark, expected: step rows show success and resolver rows keep final success/degraded/failed details instead of reverting to idle.
-- After successful benchmark, expected: recommendation summary, resolver metric rows, notes, and diagnostics show localized health, recommendation, reasons, warning, and saved history ID when the CLI returns benchmark-result JSON.
-- After a successful recommendable benchmark, expected: Apply guidance DNS servers refresh from `apply-plan windows-store` for the recommended profile/tested resolver.
+- After successful benchmark, expected: recommendation summary explicitly shows
+  Recommended, Fastest observed DNS, or Keep current DNS. Fastest observed is
+  diagnostic only and must not be presented as an apply recommendation.
+- After a successful recommendable benchmark, expected: Apply guidance refreshes
+  from `apply-plan windows-store` for the recommended profile/tested resolver.
 - Run toolbar `Validate DNS`; expected: it uses `system-benchmark --platform windows-store` while preserving selected A/AAAA, attempts, and DNS timeout.
 - Change `Record family` to `A only` and `AAAA only`; expected: command preview uses `--ip-family ipv4-only` or `--ip-family ipv6-only`.
 - Change `Resolver address` to `IPv4` and `IPv6`; expected: resolver args use matching DNS server families.
-- Use `Copy DNS`; expected: clipboard contains one DNS server per line.
-- Use `Open settings`; expected: Windows opens Network & internet advanced settings, or Network status fallback.
+- Use `Apply in Windows Settings`; expected: a confirmation defaults to Cancel.
+  After confirmation, the app copies one DNS server per line and opens Network &
+  internet advanced settings, or Network status fallback. The app never writes DNS.
+- After the confirmed handoff, use `Retest System DNS`; expected: it runs
+  `system-benchmark --platform windows-store` against the user-saved settings.
+- Toggle VPN active, Managed DNS profile, Corporate DNS, or Captive portal under
+  Network safeguards; expected: the app refreshes Core `apply-plan` guidance and
+  suppresses the primary Apply action when Core returns a protected disposition.
+- Use `Copy DNS`; expected: clipboard contains one DNS server per line as a
+  secondary action.
 - Use `Copy checklist`; expected: clipboard text states no silent DNS mutation.
 - Manually paste DNS servers into Windows Settings; expected: app does not perform the mutation for the user.
 - Return to DNS Pilot and run `Validate DNS`; expected: current/system DNS benchmark reflects the user-applied resolver path or reports a copyable reason.
@@ -75,7 +86,7 @@
   duplicate before invoking the CLI.
 - Delete a custom suite; expected: a native confirmation defaults to Cancel.
 - Select a built-in suite or type a built-in suite ID and try update/delete; expected: blocked with diagnostics before any CLI mutation call.
-- Force or mock an `apply-plan` payload with `disposition=protect-current-dns`; expected: Copy DNS and Open settings are hidden and only the protection checklist remains copyable.
+- Force or mock an `apply-plan` payload with `disposition=protect-current-dns`; expected: Copy DNS and Apply in Windows Settings are hidden and only the protection checklist remains copyable.
 - Select a history row and delete selected; expected: the row is removed after refresh.
 - Refresh storage; expected: saved profiles and history rows reload from the CLI-backed SQLite store.
 - Clear history; expected: history rows empty after refresh.

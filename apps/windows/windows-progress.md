@@ -26,6 +26,12 @@ and a visible Cancel action terminates the child process tree within five second
 Cancelled runs are not treated as successful or saved history; successful history
 is shown only when Core returns `saved_history_id`.
 
+Milestone 3 is automated-complete: results distinguish Core-backed Recommended,
+observation-only Fastest observed, and Keep current DNS. One confirmed Store-safe
+Apply action copies the Core-selected servers, opens Windows Settings, then offers
+System DNS retest. VPN, managed DNS, corporate DNS, and captive portal signals are
+explicit `apply-plan` inputs; protected dispositions suppress the primary action.
+
 Cross-lane pre-development review is complete. The next work is selective
 consumer/release hardening, ordered in
 `apps/windows/windows-predevelopment-review.md`; it does not reopen the
@@ -55,6 +61,10 @@ Store/Power architecture boundary.
   copyable report.
 - Store-safe apply guidance copies DNS servers/checklists and opens Windows
   Network Settings without admin DNS mutation.
+- Results render the Core recommendation separately from the fastest observed DNS
+  metric and keep-current safety state. The app never promotes an observation into
+  an apply recommendation; the primary guided action is enabled only by Core's
+  `apply-plan` guide disposition.
 - Startup keeps apply actions blocked with no placeholder DNS servers until a
   valid runtime apply-plan loads; CLI load failure remains fail-closed.
 - Runtime readiness classifies missing helper, malformed payload, unsupported
@@ -92,9 +102,10 @@ Store/Power architecture boundary.
   build, store-safe static checks, localization/packaging checks, and expected
   macOS-only WinUI build-probe handling. The script only tolerates the known
   Windows-only XAML compiler signature; unrelated WinUI failures remain fatal.
-- Current automated count: 54 Windows core/static tests, including cancellation
+- Current automated count: 57 Windows core/static tests, including cancellation
   before launch, cancellation during progress, repeat-run, gaming-mode, and a
-  bounded real-child-process termination regression.
+  bounded real-child-process termination regression, Core result-safety states,
+  protected-network request flags, and confirmed guided-apply static wiring.
 
 ## Remaining Gates
 

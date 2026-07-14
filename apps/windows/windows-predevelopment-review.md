@@ -202,6 +202,9 @@ WinUI, tray, and MSIX proof remain a Milestone 5 manual gate.**
 
 ### Milestone 3: Result Safety And Guided Apply
 
+**Status: automated implementation complete on 2026-07-14; Windows-host Settings,
+WinUI, Narrator, and MSIX proof remain a Milestone 5 manual gate.**
+
 - **Goal:** make the recommendation trustworthy and the Store-safe next action
   obvious.
 - **Acceptance criteria:** results distinguish Recommended, Fastest observed, and
@@ -217,7 +220,10 @@ WinUI, tray, and MSIX proof remain a Milestone 5 manual gate.**
   `apply-plan windows-store` payloads. Read-only adapter discovery is not required.
 - **Validation:** decision-state and CTA tests first; protected-plan fixtures;
   localization tests; mocked clipboard/Settings launch tests; real Settings and
-  System DNS retest QA later.
+  System DNS retest QA later. The lane now covers Core-derived recommendation,
+  fastest-observed, keep-current, protected-network request flags, guide/protect
+  CTA gating, and static confirmed-copy/open/retest wiring. Clipboard, Settings,
+  and Narrator behavior remain Windows-host QA.
 
 ### Milestone 4: Preferences And Diagnostics
 

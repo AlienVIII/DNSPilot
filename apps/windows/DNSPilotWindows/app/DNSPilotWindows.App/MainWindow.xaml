@@ -231,16 +231,22 @@
                         <TextBlock x:Uid="ApplyHeader" Text="Apply guidance" FontSize="20" FontWeight="SemiBold" />
                         <TextBox x:Name="DnsServersBox" x:Uid="DnsServersBox" Header="DNS servers" IsReadOnly="True" TextWrapping="Wrap" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="ApplyInSettingsButton" Click="ApplyInWindowsSettings_Click" AutomationProperties.Name="Apply in Windows Settings" AutomationProperties.AutomationId="ApplyInSettingsButton">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Setting" />
+                                    <TextBlock x:Uid="ApplyInSettingsText" Text="Apply in Windows Settings" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="CopyDnsButton" Click="CopyDnsServers_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <SymbolIcon Symbol="Copy" />
                                     <TextBlock x:Uid="CopyDnsText" Text="Copy DNS" />
                                 </StackPanel>
                             </Button>
-                            <Button x:Name="OpenApplySettingsButton" Click="OpenSettings_Click">
+                            <Button x:Name="RetestSystemDnsButton" Click="RetestSystemDns_Click" Visibility="Collapsed" AutomationProperties.Name="Retest System DNS" AutomationProperties.AutomationId="RetestSystemDnsButton">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <SymbolIcon Symbol="Setting" />
-                                    <TextBlock x:Uid="OpenSettingsText" Text="Open settings" />
+                                    <SymbolIcon Symbol="Refresh" />
+                                    <TextBlock x:Uid="RetestSystemDnsText" Text="Retest System DNS" />
                                 </StackPanel>
                             </Button>
                             <Button x:Name="CopyChecklistButton" Click="CopyChecklist_Click">
@@ -251,6 +257,14 @@
                             </Button>
                         </StackPanel>
                         <TextBox x:Name="ChecklistBox" x:Uid="ChecklistBox" Header="Checklist" IsReadOnly="True" TextWrapping="Wrap" MinHeight="120" />
+                        <Expander x:Name="NetworkSignalsExpander" x:Uid="NetworkSignalsExpander" Header="Network safeguards">
+                            <StackPanel Spacing="6">
+                                <CheckBox x:Name="VpnActiveCheckBox" x:Uid="VpnActiveCheckBox" Content="VPN active" Checked="NetworkSignal_Changed" Unchecked="NetworkSignal_Changed" />
+                                <CheckBox x:Name="ManagedDnsCheckBox" x:Uid="ManagedDnsCheckBox" Content="Managed DNS profile" Checked="NetworkSignal_Changed" Unchecked="NetworkSignal_Changed" />
+                                <CheckBox x:Name="CorporateDnsCheckBox" x:Uid="CorporateDnsCheckBox" Content="Corporate DNS" Checked="NetworkSignal_Changed" Unchecked="NetworkSignal_Changed" />
+                                <CheckBox x:Name="CaptivePortalCheckBox" x:Uid="CaptivePortalCheckBox" Content="Captive portal" Checked="NetworkSignal_Changed" Unchecked="NetworkSignal_Changed" />
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
                 </Border>
 

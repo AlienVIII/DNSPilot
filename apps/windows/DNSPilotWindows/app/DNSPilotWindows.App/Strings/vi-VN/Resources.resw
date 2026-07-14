@@ -186,6 +186,27 @@
   <data name="CopyDnsText.Text" xml:space="preserve">
     <value>Sao chép DNS</value>
   </data>
+  <data name="ApplyInSettingsText.Text" xml:space="preserve">
+    <value>Áp dụng trong Windows Settings</value>
+  </data>
+  <data name="RetestSystemDnsText.Text" xml:space="preserve">
+    <value>Kiểm tra lại DNS hệ thống</value>
+  </data>
+  <data name="NetworkSignalsExpander.Header" xml:space="preserve">
+    <value>Bảo vệ mạng</value>
+  </data>
+  <data name="VpnActiveCheckBox.Content" xml:space="preserve">
+    <value>VPN đang bật</value>
+  </data>
+  <data name="ManagedDnsCheckBox.Content" xml:space="preserve">
+    <value>Hồ sơ DNS được quản lý</value>
+  </data>
+  <data name="CorporateDnsCheckBox.Content" xml:space="preserve">
+    <value>DNS doanh nghiệp</value>
+  </data>
+  <data name="CaptivePortalCheckBox.Content" xml:space="preserve">
+    <value>Cổng captive</value>
+  </data>
   <data name="OpenSettingsText.Text" xml:space="preserve">
     <value>Mở cài đặt</value>
   </data>

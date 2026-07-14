@@ -15,6 +15,7 @@ public sealed partial class MainWindow : Window
     private readonly List<BenchmarkProgressEvent> _progressEvents = [];
     private bool _benchmarkRunning;
     private CancellationTokenSource? _benchmarkCancellation;
+    private BenchmarkResultPayload? _lastBenchmarkResult;
     private bool _hasShownFirstRunTutorial;
     private bool _tutorialOpen;
     private string _lastDiagnostics = "";
@@ -121,6 +122,34 @@ public sealed partial class MainWindow : Window
     private async void OpenSettings_Click(object sender, RoutedEventArgs e)
     {
         await OpenSettingsAsync();
+    }
+
+    private async void ApplyInWindowsSettings_Click(object sender, RoutedEventArgs e)
+    {
+        await RunWithButtonDisabledAsync(sender, async () =>
+        {
+            if (!ViewModel.ApplyGuidance.CanStartGuidedApply || !await ConfirmGuidedApplyAsync())
+            {
+                return;
+            }
+
+            await CopyTextAsync(ViewModel.ApplyGuidance.CopyableDnsServers);
+            await OpenSettingsAsync();
+            RetestSystemDnsButton.Visibility = Visibility.Visible;
+        });
+    }
+
+    private async void RetestSystemDns_Click(object sender, RoutedEventArgs e)
+    {
+        await StartBenchmarkAsync(ViewModel.BuildSystemDnsValidationPlan(CurrentBenchmarkSelection()));
+    }
+
+    private async void NetworkSignal_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_lastBenchmarkResult is not null)
+        {
+            await TryRefreshApplyGuidanceFromBenchmarkAsync(_lastBenchmarkResult);
+        }
     }
 
     private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -536,6 +565,7 @@ public sealed partial class MainWindow : Window
         }
 
         _progressEvents.Clear();
+        ClearApplyGuidanceForNewBenchmark();
         CommandPreviewBox.Text = FormatCommand(plan.CommandArguments);
         if (!plan.Validation.CanRun)
         {
@@ -590,8 +620,15 @@ public sealed partial class MainWindow : Window
 
             if (result.Succeeded)
             {
-                var benchmarkReport = TryBuildBenchmarkReport(result.StandardOutput);
-                var applyPlanMessage = await TryRefreshApplyGuidanceFromBenchmarkAsync(result.StandardOutput);
+                _lastBenchmarkResult = TryDecodeBenchmarkResult(result.StandardOutput);
+                var benchmarkReport = _lastBenchmarkResult is null
+                    ? null
+                    : BenchmarkResultReportViewModel.FromResult(_lastBenchmarkResult);
+                var applyPlanMessage = _lastBenchmarkResult is null
+                    ? WindowsDisplayText.Text(
+                        "Apply-plan refresh skipped: benchmark output did not match the supported result schema.",
+                        "Bỏ qua cập nhật apply-plan: kết quả benchmark không khớp schema được hỗ trợ.")
+                    : await TryRefreshApplyGuidanceFromBenchmarkAsync(_lastBenchmarkResult);
                 RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: result.HistoryWasSaved);
                 RenderRecommendationReport(benchmarkReport);
                 _lastDiagnostics = FormatBenchmarkSuccessDiagnostics(result, applyPlanMessage, benchmarkReport);
@@ -647,12 +684,12 @@ public sealed partial class MainWindow : Window
         CopyDnsButton.Visibility = ViewModel.ApplyGuidance.Actions.Any(action => action.Kind == ApplyActionKind.CopyDnsServers)
             ? Visibility.Visible
             : Visibility.Collapsed;
-        OpenApplySettingsButton.Visibility = ViewModel.ApplyGuidance.Actions.Any(action => action.Kind == ApplyActionKind.OpenWindowsSettings)
+        ApplyInSettingsButton.Visibility = ViewModel.ApplyGuidance.CanStartGuidedApply
             ? Visibility.Visible
             : Visibility.Collapsed;
-        var canApplyGuidance = ViewModel.RuntimeReadiness.CanApplyGuidance;
+        var canApplyGuidance = ViewModel.RuntimeReadiness.CanApplyGuidance && !_benchmarkRunning;
         CopyDnsButton.IsEnabled = canApplyGuidance;
-        OpenApplySettingsButton.IsEnabled = canApplyGuidance;
+        ApplyInSettingsButton.IsEnabled = canApplyGuidance && ViewModel.ApplyGuidance.CanStartGuidedApply;
         CopyChecklistButton.IsEnabled = canApplyGuidance;
         var benchmarkProfileOptions = ViewModel.BenchmarkProfileOptions;
         BenchmarkProfilesList.ItemsSource = benchmarkProfileOptions;
@@ -726,9 +763,10 @@ public sealed partial class MainWindow : Window
         RefreshStorageButton.IsEnabled = readiness.CanReadHistory;
         ClearHistoryButton.IsEnabled = readiness.CanReadHistory;
         DeleteHistoryButton.IsEnabled = readiness.CanReadHistory;
-        CopyDnsButton.IsEnabled = readiness.CanApplyGuidance;
-        OpenApplySettingsButton.IsEnabled = readiness.CanApplyGuidance;
-        CopyChecklistButton.IsEnabled = readiness.CanApplyGuidance;
+        var canApplyGuidance = readiness.CanApplyGuidance && !_benchmarkRunning;
+        CopyDnsButton.IsEnabled = canApplyGuidance;
+        ApplyInSettingsButton.IsEnabled = canApplyGuidance && ViewModel.ApplyGuidance.CanStartGuidedApply;
+        CopyChecklistButton.IsEnabled = canApplyGuidance;
     }
 
     private async Task LoadRuntimeContractsAsync(bool resetDiagnostics = true)
@@ -752,12 +790,16 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async Task<string> TryRefreshApplyGuidanceFromBenchmarkAsync(string standardOutput)
+    private async Task<string> TryRefreshApplyGuidanceFromBenchmarkAsync(BenchmarkResultPayload result)
     {
         try
         {
-            var result = BenchmarkResultJsonDecoder.Decode(standardOutput);
-            var request = BenchmarkApplyPlanRequestFactory.MakeRequest(result);
+            var request = BenchmarkApplyPlanRequestFactory.MakeRequest(
+                result,
+                vpnActive: VpnActiveCheckBox.IsChecked == true,
+                mdmProfileActive: ManagedDnsCheckBox.IsChecked == true,
+                corporateDnsDetected: CorporateDnsCheckBox.IsChecked == true,
+                captivePortalDetected: CaptivePortalCheckBox.IsChecked == true);
             var applyPlan = await Task.Run(() => new ApplyPlanRunner(DefaultCliPath()).Load(request));
             ViewModel = ViewModel.WithApplyPlan(applyPlan);
             RenderStaticState(resetDiagnostics: false);
@@ -775,6 +817,24 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void ClearApplyGuidanceForNewBenchmark()
+    {
+        _lastBenchmarkResult = null;
+        ViewModel = ViewModel.WithApplyPlan(
+            new ApplyPlan(
+                ApplyDecision.Block,
+                WindowsDisplayText.Text("Benchmark in progress", "Benchmark đang chạy"),
+                Array.Empty<string>(),
+                TestedResolver: null,
+                WindowsDisplayText.Text(
+                    "Apply guidance stays blocked until this benchmark completes and Core returns a new plan.",
+                    "Hướng dẫn apply bị chặn cho đến khi benchmark hoàn tất và Core trả về kế hoạch mới."))
+            {
+                Disposition = "benchmark-in-progress",
+            });
+        RenderStaticState(resetDiagnostics: false);
+    }
+
     private void RenderRecommendationReport(BenchmarkResultReportViewModel? report)
     {
         if (report is null)
@@ -788,7 +848,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        RecommendationSummaryText.Text = report.SummaryLine;
+        RecommendationSummaryText.Text = string.Join(Environment.NewLine, report.SummaryLine, report.Safety.FastestObservedLine);
         RecommendationLineText.Text = report.RecommendationLine;
         RecommendationResolversList.ItemsSource = report.ResolverLines;
         RecommendationNotesList.ItemsSource = report.NoteLines;
@@ -809,17 +869,38 @@ public sealed partial class MainWindow : Window
             string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
     }
 
-    private static BenchmarkResultReportViewModel? TryBuildBenchmarkReport(string standardOutput)
+    private static BenchmarkResultPayload? TryDecodeBenchmarkResult(string standardOutput)
     {
         try
         {
-            return BenchmarkResultReportViewModel
-                .FromResult(BenchmarkResultJsonDecoder.Decode(standardOutput));
+            return BenchmarkResultJsonDecoder.Decode(standardOutput);
         }
         catch
         {
             return null;
         }
+    }
+
+    private async Task<bool> ConfirmGuidedApplyAsync()
+    {
+        if (RootGrid.XamlRoot is null)
+        {
+            return false;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = WindowsDisplayText.Text("Apply in Windows Settings", "Áp dụng trong Windows Settings"),
+            Content = WindowsDisplayText.Text(
+                "DNS Pilot will copy the recommended DNS servers and open Windows Settings. You make and save the DNS change yourself.",
+                "DNS Pilot sẽ sao chép DNS server được khuyến nghị và mở Windows Settings. Bạn tự thực hiện và lưu thay đổi DNS."),
+            PrimaryButtonText = WindowsDisplayText.Text("Copy and open Settings", "Sao chép và mở Settings"),
+            CloseButtonText = WindowsDisplayText.Text("Cancel", "Hủy"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
     private async Task<bool> ConfirmDestructiveActionAsync(
