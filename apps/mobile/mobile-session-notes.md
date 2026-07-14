@@ -5,8 +5,8 @@
 - Use settings/profile guidance before any VPN/proxy design.
 - Use Expo SDK 57 for the shared mobile test shell.
 - Bind to existing core/CLI through a local Node bridge for Expo Go testing.
-- Stream foreground benchmark progress through bridge jobs; keep this as a dev
-  bridge capability until native Rust/platform adapters are chosen.
+- Stream foreground benchmark progress through bridge jobs only for the Expo
+  Go/web fallback; installable builds already use the native Rust adapter.
 
 ## Context
 - `apps/mobile/DNSPilotMobile` contains the mobile shell.
@@ -44,13 +44,14 @@
   sections when width allows it.
 
 ## Open Questions
-- Release path: direct Rust native module/FFI versus separate SwiftUI/Kotlin
-  shells.
-- How much of the bridge job contract should become a native module contract
-  once release-grade mobile builds start.
+- No release-runtime architecture decision is pending: installable builds use
+  the Rust adapter and Expo Go/web use the bridge fallback. Provider signing,
+  real-device evidence, and the optional Apple capability remain manual gates.
 
 ## Handoff
 - Keep lane changes in `apps/mobile/**`.
 - Record Core CLI binding needs in `mobile-core-cli-request.md`.
 - Run `npm run bridge` and `npm start` from `apps/mobile/DNSPilotMobile` for
   local testing.
+- Read `STATE.md` and `TODO.md` before treating older session notes as current
+  release truth.

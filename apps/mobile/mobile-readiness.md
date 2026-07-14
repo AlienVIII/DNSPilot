@@ -136,6 +136,6 @@
 - `npm run verify:router` (fails on unresolved Expo Router route warnings)
 - `git diff --check`
 
-Current iOS local smoke status: Debug build passed on `iPhone 17e` with iOS
-26.5. Re-run simulator UI smoke for the current Check DNS / Profiles / History
-consumer shell before release submission.
+Current iOS local smoke status: the current Release bundle built, installed, and
+launched on `iPhone 17e` with iOS 26.5. It showed the first-run tutorial and
+header Help icon with no permission sheet. Signed-device proof remains `NOT RUN`.

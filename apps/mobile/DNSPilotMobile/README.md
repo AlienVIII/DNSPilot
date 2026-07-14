@@ -23,10 +23,14 @@ Standalone Expo/React Native DNSPilot app for iOS/iPadOS and Android.
   testing.
 - `expo-system-ui` backs native automatic light/dark appearance metadata during
   prebuild.
-- `@react-native-async-storage/async-storage` persists the selected language.
+- `@react-native-async-storage/async-storage` persists the selected language
+  and versioned tutorial completion.
 - Check DNS is the release entry point: Quick Check defaults to DNS-only;
   Advanced exposes DNS + TCP and System DNS validation. Setup is contextual,
   never an app-open permission sheet, and DNS flush remains unsupported.
+- The optional first-run tutorial appears only after local preferences load.
+  Skip or Done records completion; the top-right Help icon reopens it from each
+  consumer tab without requesting a system permission.
 - A local iOS Expo module wraps `NEDNSSettingsManager` for user-approved DoH/DoT
   DNS Settings install/remove/status. The entitlement is enabled only by the
   `production-ios-dns` profile after Apple approval; the default Store profile

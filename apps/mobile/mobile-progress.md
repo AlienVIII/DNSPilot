@@ -7,7 +7,8 @@ adapter around `dnspilot-core` for catalog, policy, profile/suite/history,
 recommendation, DNS-only, DNS+TCP/TLS, and system-resolver actions. The Node
 bridge remains an Expo Go/web development fallback only. Android debug builds
 compile on SDK 57. Production iOS entitlement generation, Android release
-assembly, and the current iOS Simulator consumer UI are validated locally.
+assembly, and the current iOS Simulator consumer UI are validated locally. The
+durable lane handoff is now `STATE.md`; this file remains a feature summary.
 
 ## Requirement Coverage
 
@@ -55,8 +56,8 @@ assembly, and the current iOS Simulator consumer UI are validated locally.
   Rust artifacts consumed by native modules; EAS invokes the matching hook.
 - `npm run verify`: preferred full local gate before real-device QA or EAS
   builds.
-- `npm test`: pass with behavior/view-model/plugin tests; do not treat the count
-  as a release invariant.
+- `npm test`: 89 behavior/view-model/plugin tests pass at `5a49a2b`; do not
+  treat the count as a release invariant.
 - `npm run typecheck`: pass after `npm ci`.
 - `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
 - `npx expo install --check`: pass with `expo-dev-client`.
@@ -68,8 +69,8 @@ assembly, and the current iOS Simulator consumer UI are validated locally.
   default Store build. The opt-in config has the DNS Settings plugin and flag.
 - `EAS_BUILD_PROFILE=production xcodebuild ... -configuration Release ...`:
   current bundle built, installed, launched, and was visually checked on an
-  iPhone 17e simulator. It opens Check DNS directly with the three consumer
-  tabs and no permission modal.
+  iPhone 17e simulator. First launch showed the title-first tutorial and header
+  Help icon; it made no permission request.
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:
   pass with SDK 36/JDK 17.
 - `EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:assembleRelease`:
@@ -91,5 +92,7 @@ assembly, and the current iOS Simulator consumer UI are validated locally.
 
 - Main checklist and manual flow: `apps/mobile/mobile-readiness.md`.
 - Publish steps: `apps/mobile/mobile-publish-checklist.md`.
+- Durable current truth and manual-gate report: `apps/mobile/STATE.md` and
+  `apps/mobile/TODO.md`.
 - Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
 - OS provider trust/manual gates: `docs/os-provider-trust.md`.
