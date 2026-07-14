@@ -454,9 +454,9 @@ fn cli_app_model_renders_main_window_sections_without_tray_requirement() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("DNS Pilot"));
     assert!(stdout.contains("Tray: optional"));
-    assert!(stdout.contains("Benchmark"));
+    assert!(stdout.contains("Check DNS"));
     assert!(stdout.contains("Profiles"));
-    assert!(stdout.contains("Diagnostics"));
+    assert!(stdout.contains("History"));
     assert!(!stdout.contains("Apply with native helper [enabled]"));
 }
 

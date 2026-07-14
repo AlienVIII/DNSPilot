@@ -34,6 +34,9 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
   and normalizes missing progress events into terminal success/failure states before
   rendering diagnostics. Cancel sends TERM to the Core CLI process group, escalates to
   KILL after 500 ms, and always reaps the child.
+- Primary GUI navigation is now `Check DNS`, `Profiles`, and `History`; Settings and
+  Help are top commands. Quick Check starts in DNS-only mode. System/English/Vietnamese
+  language choice persists locally, and setup completes only after Skip or Done.
 - Custom plain DNS profile add/edit/delete/list now use Core CLI SQLite persistence.
 - Store-safe guidance and the unavailable native Power boundary are separated.
 - Settings is actionable: store builds copy family-filtered DNS values and show
@@ -65,6 +68,9 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
   tests: pass.
 - Milestone 2 live JSONL progress, cancellation/reap, malformed-event diagnostics, and
   Core SQLite history arguments: pass.
+- Milestone 3 consumer navigation, DNS-only Quick Check, History surface, and persisted
+  System/English/Vietnamese preferences: pass. GUI module extraction and full localized
+  view coverage continue with the remaining consumer workflow work.
 - `cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check`: pass.
 - `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings`: pass.

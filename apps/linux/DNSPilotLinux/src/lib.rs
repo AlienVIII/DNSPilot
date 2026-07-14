@@ -9,6 +9,7 @@ pub mod i18n;
 pub mod native_app;
 pub mod native_power;
 pub mod permissions;
+pub mod preferences;
 pub mod process;
 pub mod profiles;
 pub mod publish;

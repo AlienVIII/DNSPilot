@@ -4,11 +4,9 @@ use crate::permissions::{permission_plan, LinuxPermissionPlan};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeAppSectionKind {
-    Benchmark,
+    CheckDns,
     Profiles,
-    Settings,
-    Diagnostics,
-    Permissions,
+    History,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,9 +79,9 @@ pub fn build_native_app_model(
         tray_note: tray_note(language).to_string(),
         sections: vec![
             section(
-                NativeAppSectionKind::Benchmark,
-                localized_text(TextKey::Benchmark, language),
-                section_help(NativeAppSectionKind::Benchmark, language),
+                NativeAppSectionKind::CheckDns,
+                localized_text(TextKey::CheckDns, language),
+                section_help(NativeAppSectionKind::CheckDns, language),
             ),
             section(
                 NativeAppSectionKind::Profiles,
@@ -91,19 +89,9 @@ pub fn build_native_app_model(
                 section_help(NativeAppSectionKind::Profiles, language),
             ),
             section(
-                NativeAppSectionKind::Settings,
-                localized_text(TextKey::Settings, language),
-                section_help(NativeAppSectionKind::Settings, language),
-            ),
-            section(
-                NativeAppSectionKind::Diagnostics,
-                localized_text(TextKey::Diagnostics, language),
-                section_help(NativeAppSectionKind::Diagnostics, language),
-            ),
-            section(
-                NativeAppSectionKind::Permissions,
-                localized_text(TextKey::Permissions, language),
-                section_help(NativeAppSectionKind::Permissions, language),
+                NativeAppSectionKind::History,
+                localized_text(TextKey::History, language),
+                section_help(NativeAppSectionKind::History, language),
             ),
         ],
         primary_actions,
@@ -174,11 +162,11 @@ fn tray_note(language: Language) -> &'static str {
 
 fn section_help(kind: NativeAppSectionKind, language: Language) -> &'static str {
     match (kind, language) {
-        (NativeAppSectionKind::Benchmark, Language::English) => {
-            "Mode, resolver, suite, IPv4/IPv6, and A/AAAA controls."
+        (NativeAppSectionKind::CheckDns, Language::English) => {
+            "Quick DNS-only check with advanced resolver, suite, IPv4/IPv6, and A/AAAA controls."
         }
-        (NativeAppSectionKind::Benchmark, Language::Vietnamese) => {
-            "Chế độ, resolver, bộ kiểm thử, IPv4/IPv6, và điều khiển A/AAAA."
+        (NativeAppSectionKind::CheckDns, Language::Vietnamese) => {
+            "Kiểm tra DNS nhanh với điều khiển nâng cao cho resolver, bộ kiểm thử, IPv4/IPv6 và A/AAAA."
         }
         (NativeAppSectionKind::Profiles, Language::English) => {
             "Add, edit, delete, and validate custom DNS profiles."
@@ -186,23 +174,11 @@ fn section_help(kind: NativeAppSectionKind, language: Language) -> &'static str 
         (NativeAppSectionKind::Profiles, Language::Vietnamese) => {
             "Thêm, sửa, xoá, và kiểm tra hồ sơ DNS tùy chỉnh."
         }
-        (NativeAppSectionKind::Settings, Language::English) => {
-            "Capability-based apply path and guided/native DNS controls."
+        (NativeAppSectionKind::History, Language::English) => {
+            "Saved local benchmark results and rerun context."
         }
-        (NativeAppSectionKind::Settings, Language::Vietnamese) => {
-            "Đường áp dụng dựa trên capability và điều khiển DNS hướng dẫn/native."
-        }
-        (NativeAppSectionKind::Diagnostics, Language::English) => {
-            "Per-step status, per-resolver status, and copyable debug report."
-        }
-        (NativeAppSectionKind::Diagnostics, Language::Vietnamese) => {
-            "Trạng thái từng bước, từng resolver, và báo cáo debug có thể sao chép."
-        }
-        (NativeAppSectionKind::Permissions, Language::English) => {
-            "Package-specific permission requests and rationale."
-        }
-        (NativeAppSectionKind::Permissions, Language::Vietnamese) => {
-            "Quyền theo từng loại gói và lý do cần quyền."
+        (NativeAppSectionKind::History, Language::Vietnamese) => {
+            "Kết quả đo kiểm đã lưu cục bộ và ngữ cảnh chạy lại."
         }
     }
 }

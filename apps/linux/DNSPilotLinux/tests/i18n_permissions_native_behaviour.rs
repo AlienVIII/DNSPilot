@@ -124,7 +124,7 @@ fn native_app_model_has_full_main_window_without_tray_dependency() {
     assert!(model
         .sections
         .iter()
-        .any(|section| section.kind == NativeAppSectionKind::Benchmark));
+        .any(|section| section.kind == NativeAppSectionKind::CheckDns));
     assert!(model
         .sections
         .iter()
@@ -132,11 +132,8 @@ fn native_app_model_has_full_main_window_without_tray_dependency() {
     assert!(model
         .sections
         .iter()
-        .any(|section| section.kind == NativeAppSectionKind::Settings));
-    assert!(model
-        .sections
-        .iter()
-        .any(|section| section.kind == NativeAppSectionKind::Diagnostics));
+        .any(|section| section.kind == NativeAppSectionKind::History));
+    assert_eq!(model.sections.len(), 3);
     assert!(model
         .primary_actions
         .iter()

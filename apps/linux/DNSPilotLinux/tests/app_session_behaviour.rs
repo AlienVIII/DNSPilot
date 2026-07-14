@@ -51,7 +51,7 @@ fn suites(include_vietnam: bool) -> Vec<dnspilot_linux_shell::suites::SuiteViewM
 }
 
 #[test]
-fn new_session_defaults_to_dns_tcp_with_first_profiles_and_default_suite() {
+fn new_session_defaults_to_dns_only_with_first_profiles_and_default_suite() {
     let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
     let profiles = vec![
         profile(
@@ -65,7 +65,7 @@ fn new_session_defaults_to_dns_tcp_with_first_profiles_and_default_suite() {
 
     let session = LinuxAppSession::new(capability, suites(true), profiles);
 
-    assert_eq!(session.selected_mode, BenchmarkMode::DnsAndTcp);
+    assert_eq!(session.selected_mode, BenchmarkMode::DnsOnly);
     assert_eq!(session.selected_profile_ids, vec!["cloudflare", "quad9"]);
     assert_eq!(session.selected_suite_id.as_deref(), Some("general"));
     assert_eq!(session.resolver_address_family, ResolverAddressFamily::Auto);
@@ -88,7 +88,7 @@ fn session_rejects_unavailable_system_resolver_mode() {
         .unwrap_err();
 
     assert!(error.contains("not available"));
-    assert_eq!(session.selected_mode, BenchmarkMode::DnsAndTcp);
+    assert_eq!(session.selected_mode, BenchmarkMode::DnsOnly);
 }
 
 #[test]
@@ -161,6 +161,7 @@ fn build_plan_maps_package_profile_family_domains_and_suite_to_runner_plan() {
             profile("quad9", "Quad9", vec!["9.9.9.9"], vec!["2620:fe::fe"]),
         ],
     );
+    session.select_mode(BenchmarkMode::DnsAndTcp).unwrap();
     session.set_selected_profiles(vec!["quad9".to_string()]);
     session.resolver_address_family = ResolverAddressFamily::Ipv6Only;
     session.record_family = DnsRecordFamily::AaaaOnly;

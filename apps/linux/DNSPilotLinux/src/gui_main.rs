@@ -17,6 +17,9 @@ use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, NativeAppSectionKind};
 use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_apply_plan};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
+use dnspilot_linux_shell::preferences::{
+    load_language_preference, save_language_preference, LanguagePreference,
+};
 use dnspilot_linux_shell::process::{
     process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus,
 };
@@ -51,6 +54,7 @@ fn main() -> eframe::Result<()> {
 
 struct DnsPilotGui {
     language: Language,
+    language_preference: LanguagePreference,
     capability: LinuxCapabilityViewModel,
     active_section: NativeAppSectionKind,
     profiles: Vec<PlainDnsProfile>,
@@ -67,11 +71,13 @@ struct DnsPilotGui {
     process: Option<LinuxBenchmarkProcessViewModel>,
     benchmark_worker: Option<BenchmarkWorker>,
     show_tutorial: bool,
+    show_settings: bool,
     profile_id: String,
     profile_name: String,
     profile_ipv4: String,
     profile_ipv6: String,
     database_path: PathBuf,
+    language_preference_path: PathBuf,
     settings_profile_id: String,
     settings_output: String,
 }
@@ -81,11 +87,13 @@ impl DnsPilotGui {
         let capability = capability_view_model(detect_linux_environment());
         let data_paths = LinuxDataPaths::from_environment();
         let database_path = data_paths.core_database_path();
+        let language_preference_path = data_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("language-preference");
+        let language_preference = load_language_preference(&language_preference_path);
+        let language = language_preference.resolve(env::var("LANG").ok().as_deref());
         let setup_seen_path = setup_tutorial_seen_path();
         let show_tutorial = !has_seen_setup_tutorial(&setup_seen_path);
-        if show_tutorial {
-            mark_setup_tutorial_seen(&setup_seen_path);
-        }
         let core_cli = resolve_core_cli();
         let (profiles, suites, status) =
             load_core_state(&core_cli, &database_path, &data_paths.legacy_profile_path());
@@ -97,13 +105,14 @@ impl DnsPilotGui {
         let selected_suite_id = suites.first().map(|suite| suite.id.clone());
 
         Self {
-            language: Language::English,
+            language,
+            language_preference,
             capability,
-            active_section: NativeAppSectionKind::Benchmark,
+            active_section: NativeAppSectionKind::CheckDns,
             profiles,
             suites,
             selected_profile_ids,
-            selected_mode: BenchmarkMode::DnsAndTcp,
+            selected_mode: BenchmarkMode::DnsOnly,
             selected_suite_id,
             resolver_family: ResolverAddressFamily::Auto,
             record_family: DnsRecordFamily::AAndAaaa,
@@ -114,11 +123,13 @@ impl DnsPilotGui {
             process: None,
             benchmark_worker: None,
             show_tutorial,
+            show_settings: false,
             profile_id: String::new(),
             profile_name: String::new(),
             profile_ipv4: String::new(),
             profile_ipv6: String::new(),
             database_path,
+            language_preference_path,
             settings_profile_id,
             settings_output: String::new(),
         }
@@ -137,6 +148,14 @@ impl DnsPilotGui {
         session.record_family = self.record_family;
         session.set_custom_domains(split_words(&self.custom_domains));
         session
+    }
+
+    fn set_language_preference(&mut self, preference: LanguagePreference) {
+        self.language_preference = preference;
+        self.language = preference.resolve(env::var("LANG").ok().as_deref());
+        if let Err(error) = save_language_preference(&self.language_preference_path, preference) {
+            self.status = format!("Could not save language preference: {error}");
+        }
     }
 
     fn build_plan(&self) -> Result<LinuxBenchmarkPlan, Vec<String>> {
@@ -358,9 +377,25 @@ impl eframe::App for DnsPilotGui {
             ui.separator();
             ui.label(format!("Package: {}", self.capability.package_kind.label()));
             ui.separator();
-            ui.selectable_value(&mut self.language, Language::English, "EN");
-            ui.selectable_value(&mut self.language, Language::Vietnamese, "VI");
+            let mut language_preference = self.language_preference;
+            ui.selectable_value(
+                &mut language_preference,
+                LanguagePreference::System,
+                "System",
+            );
+            ui.selectable_value(&mut language_preference, LanguagePreference::English, "EN");
+            ui.selectable_value(
+                &mut language_preference,
+                LanguagePreference::Vietnamese,
+                "VI",
+            );
+            if language_preference != self.language_preference {
+                self.set_language_preference(language_preference);
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Settings").clicked() {
+                    self.show_settings = true;
+                }
                 if ui
                     .button("?")
                     .on_hover_text("Show setup tutorial")
@@ -373,6 +408,7 @@ impl eframe::App for DnsPilotGui {
         ui.separator();
 
         if self.show_tutorial {
+            let mut tutorial_completed = false;
             egui::Window::new("DNSPilot Setup")
                 .collapsible(false)
                 .resizable(false)
@@ -385,7 +421,33 @@ impl eframe::App for DnsPilotGui {
                     ui.separator();
                     ui.label("Sandbox packages are guidance-first.");
                     ui.label("Power DNS apply stays explicit and package-gated.");
+                    ui.horizontal(|ui| {
+                        if ui.button("Skip").clicked() {
+                            tutorial_completed = true;
+                        }
+                        if ui.button("Done").clicked() {
+                            tutorial_completed = true;
+                        }
+                    });
                 });
+            if tutorial_completed {
+                mark_setup_tutorial_seen(&setup_tutorial_seen_path());
+                self.show_tutorial = false;
+            }
+        }
+
+        if self.show_settings {
+            let mut show_settings = self.show_settings;
+            egui::Window::new(localized_text(TextKey::Settings, self.language))
+                .open(&mut show_settings)
+                .show(&ctx, |ui| {
+                    self.settings_ui(ui);
+                    ui.separator();
+                    self.diagnostics_ui(ui);
+                    ui.separator();
+                    self.permissions_ui(ui);
+                });
+            self.show_settings = show_settings;
         }
 
         ui.horizontal(|ui| {
@@ -404,11 +466,9 @@ impl eframe::App for DnsPilotGui {
 
             ui.separator();
             ui.vertical(|ui| match self.active_section {
-                NativeAppSectionKind::Benchmark => self.benchmark_ui(ui),
+                NativeAppSectionKind::CheckDns => self.benchmark_ui(ui),
                 NativeAppSectionKind::Profiles => self.profiles_ui(ui),
-                NativeAppSectionKind::Settings => self.settings_ui(ui),
-                NativeAppSectionKind::Diagnostics => self.diagnostics_ui(ui),
-                NativeAppSectionKind::Permissions => self.permissions_ui(ui),
+                NativeAppSectionKind::History => self.history_ui(ui),
             });
         });
     }
@@ -650,7 +710,8 @@ impl DnsPilotGui {
                 }
                 SettingsActionKind::DiagnosticsOnly => {
                     if ui.button(action.label).clicked() {
-                        self.active_section = NativeAppSectionKind::Diagnostics;
+                        self.settings_output = self.diagnostics.clone();
+                        self.status = "Diagnostics copied into Settings".to_string();
                     }
                 }
             }
@@ -672,6 +733,41 @@ impl DnsPilotGui {
             .iter()
             .find(|profile| profile.id == self.settings_profile_id)
             .cloned()
+    }
+
+    fn history_ui(&mut self, ui: &mut egui::Ui) {
+        ui.heading(localized_text(TextKey::History, self.language));
+        match self
+            .core_adapter()
+            .and_then(|mut adapter| adapter.load_history().map_err(|error| format!("{error:?}")))
+        {
+            Ok(history) if history.is_empty() => {
+                ui.label("No saved benchmark history yet.");
+            }
+            Ok(history) => {
+                egui::Grid::new("history_grid")
+                    .striped(true)
+                    .show(ui, |ui| {
+                        ui.strong("Started");
+                        ui.strong("Resolvers");
+                        ui.strong("Recommendation");
+                        ui.end_row();
+                        for record in history.into_iter().rev() {
+                            ui.label(record.started_at);
+                            ui.label(record.resolver_profile_ids.join(", "));
+                            ui.label(
+                                record
+                                    .recommendation_profile_id
+                                    .unwrap_or_else(|| "Keep current".to_string()),
+                            );
+                            ui.end_row();
+                        }
+                    });
+            }
+            Err(error) => {
+                ui.label(format!("Could not load history: {error}"));
+            }
+        }
     }
 
     fn diagnostics_ui(&mut self, ui: &mut egui::Ui) {

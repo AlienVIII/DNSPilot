@@ -39,7 +39,7 @@ impl LinuxAppSession {
             capability,
             suites,
             profiles,
-            selected_mode: BenchmarkMode::DnsAndTcp,
+            selected_mode: BenchmarkMode::DnsOnly,
             selected_profile_ids,
             selected_suite_id,
             custom_domains: Vec::new(),

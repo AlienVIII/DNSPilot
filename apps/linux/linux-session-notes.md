@@ -32,6 +32,9 @@
   threads avoid pipe deadlock, JSONL events update the process model live, cancel tears
   down the Unix process group and reaps it, and benchmark commands save history through
   the Core SQLite database.
+- Consumer navigation is now limited to Check DNS, Profiles, and History. Settings and
+  Help stay in the top command surface; Quick Check defaults to DNS-only; user locale
+  preference is persisted as System/English/Vietnamese.
 
 ## Open Questions
 - `eframe/egui` is the current Linux app stack for this lane; GTK4/libadwaita

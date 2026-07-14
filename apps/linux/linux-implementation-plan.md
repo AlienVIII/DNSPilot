@@ -150,12 +150,12 @@ expand `tests/benchmark_worker_behaviour.rs` and `benchmark_runner_behaviour.rs`
 `native_app.rs`, `i18n.rs`; create `tests/gui_navigation_behaviour.rs` and
 `tests/preferences_behaviour.rs`.
 
-- [ ] RED: navigation contains exactly Check DNS, Profiles, History.
-- [ ] RED: first launch setup is not marked complete merely by appearing; Skip/Done
+- [x] RED: navigation contains exactly Check DNS, Profiles, History.
+- [x] RED: first launch setup is not marked complete merely by appearing; Skip/Done
   persist; Help reopens setup.
-- [ ] RED: Quick Check selects DNS-only; advanced options preserve DNS+TCP/System DNS,
+- [x] RED: Quick Check selects DNS-only; advanced options preserve DNS+TCP/System DNS,
   family, records, attempts, profiles, suites, and custom domains.
-- [ ] RED: System locale resolves vi/en, unsupported locale falls back to English, and
+- [x] RED: System locale resolves vi/en, unsupported locale falls back to English, and
   manual selection persists.
 - [ ] Extract focused GUI modules without changing benchmark contracts.
 - [ ] Keep capability/permissions/diagnostics in Settings, Help, result Details, or
