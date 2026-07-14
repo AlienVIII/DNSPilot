@@ -8,6 +8,9 @@
 - Keep tray optional; main app works without tray.
 - Keep `dnspilot-cli` as the Linux runtime and replace hardcoded shell data with typed
   CLI JSON/JSONL contracts.
+- Core CLI is now the sole runtime source for Linux catalog/profiles/suites/history and
+  policy/apply/result contracts; legacy `profiles.json` is migration-only and renamed
+  to `.migrated` after a successful import.
 - Adopt the macOS consumer information architecture: Check DNS, Profiles, History;
   keep Settings/Help as commands and diagnostics contextual.
 - Treat mobile's foreground job, persisted locale, accessibility, and core-storage
@@ -17,7 +20,8 @@
 
 ## Context
 - Linux shell package lives at `apps/linux/DNSPilotLinux`.
-- Current implementation includes view-models, storage, GUI process table, CLI profile management, CLI plan/run/guide surfaces, and runner boundary.
+- Current implementation includes view-models, Core SQLite storage, GUI process table,
+  CLI profile management, CLI plan/run/guide surfaces, and runner boundary.
 - Current implementation includes English/Vietnamese native app view-models, permission
   plans, a fail-closed native apply-plan contract, development-only helper inspection,
   packaging templates, desktop/AppStream metadata, and icon.
@@ -39,6 +43,7 @@
 - Keep lane changes in `apps/linux/**`.
 - Record Core CLI needs in `linux-core-cli-request.md`.
 - Run `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`.
+- Run `cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --all-targets -- -D warnings`.
 - CLI examples are documented in `linux-ux-spec.md`.
 - Current critique/risk summary is documented in `linux-self-review.md`.
 - Publish/manual QA steps are documented in `linux-publish-checklist.md`.

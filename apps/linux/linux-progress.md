@@ -4,7 +4,7 @@
 
 The original Linux engineering-shell scope is implemented and tested, but the lane is
 not yet a production consumer app. A 2026-07-13 cross-lane audit found missing
-core-backed catalog/storage/history, live progress/cancellation, structured result and
+live progress/cancellation, structured result and
 apply/retest UX, complete localization/accessibility, submission-ready Flatpak sources,
 and a releasable privileged mechanism.
 
@@ -22,14 +22,17 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
 - Capability model covers Flatpak, Snap, deb, and rpm.
 - Benchmark planning covers DNS-only, DNS+TCP, and current/system resolver
   validation with mode gating.
-- The GUI resolves the packaged `dnspilot-cli` engine automatically, with an
-  explicit `DNSPILOT_CLI_PATH` development override and `PATH` fallback.
+- The GUI and shell resolve the packaged `dnspilot-cli` engine automatically, with an
+  explicit `DNSPILOT_CLI_PATH` development override, packaged-sibling and `PATH`
+  resolution, and a source-checkout debug fallback that is never a package dependency.
+- Catalog, profiles, suites, history, apply policy/plan, and benchmark-result payloads
+  use schema-checked typed Core CLI contracts. The GUI and shell use one Core-owned
+  SQLite database; legacy Linux JSON profiles migrate once to a `.migrated` backup.
 - Process state covers idle/running/success/failed steps and resolver rows. The
   GUI runs benchmarks on a pollable background worker, remains responsive,
   blocks duplicate runs, and normalizes missing progress events into terminal
   success/failure states before rendering diagnostics.
-- Custom plain DNS profile add/edit/delete/list and file-backed persistence are
-  implemented.
+- Custom plain DNS profile add/edit/delete/list now use Core CLI SQLite persistence.
 - Store-safe guidance and the unavailable native Power boundary are separated.
 - Settings is actionable: store builds copy family-filtered DNS values and show
   localized manual steps; deb/rpm show diagnostics because Power is unavailable.
@@ -56,6 +59,8 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
 
 - Milestone 0 targeted fail-closed helper, capability, package-policy, and permission
   tests: pass.
+- Milestone 1 typed contract, XDG migration, Core-backed GUI/shell, and dynamic suite
+  tests: pass.
 - `cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check`: pass.
 - `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings`: pass.
@@ -68,7 +73,7 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
 
 ## Remaining Gates
 
-- Complete Milestones 0-6 and 8-9 in `linux-completion-plan.md` for the Store-safe
+- Complete Milestones 2-6 and 8-9 in `linux-completion-plan.md` for the Store-safe
   consumer app.
 - Native Power remains unavailable pending the separately gated D-Bus/polkit mechanism.
 - Real Flatpak/Snap/deb/rpm builds and distro/package QA.

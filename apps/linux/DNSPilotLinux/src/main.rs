@@ -6,10 +6,14 @@ use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxEnvironmentProbe,
     LinuxPackageKind,
 };
+use dnspilot_linux_shell::core_adapter::{
+    CoreCliAdapter, CoreCliAdapterError, ProcessCoreCliCommandRunner,
+};
 use dnspilot_linux_shell::detect::{
     detect_linux_environment, detect_linux_environment_from_snapshot, LinuxDetectionSnapshot,
 };
 use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
+use dnspilot_linux_shell::executable::resolve_core_cli;
 use dnspilot_linux_shell::i18n::Language;
 use dnspilot_linux_shell::native_app::{build_native_app_model, render_native_app_model};
 use dnspilot_linux_shell::native_power::{
@@ -24,8 +28,6 @@ use dnspilot_linux_shell::settings::{
     build_guided_settings_plan, native_power_path_plan, render_guided_settings_plan,
     DnsRecordFamily, ResolverAddressFamily,
 };
-use dnspilot_linux_shell::storage::FileProfileRepository;
-use dnspilot_linux_shell::suites::default_suite_catalog;
 use std::env;
 use std::process;
 
@@ -79,64 +81,36 @@ fn run_legacy_report(args: impl IntoIterator<Item = String>) -> Result<String, C
 
 fn run_profile_add(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let config = ProfileAddConfig::parse(args)?;
-    let repo = FileProfileRepository::new(config.store.clone());
-    let loaded = repo
-        .load_profiles()
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    let mut store = CustomProfileStore::new();
-    for profile in loaded {
-        store
-            .add(profile_to_draft(profile))
-            .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    }
+    let mut adapter = core_adapter(&config.store)?;
+    let loaded = load_plain_profiles(&mut adapter)?;
     let id = config.id.clone();
-    store
-        .add(PlainDnsProfileDraft {
-            id: config.id,
-            name: config.name,
-            ipv4_servers: config.ipv4_servers,
-            ipv6_servers: config.ipv6_servers,
-        })
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    repo.save_profiles(store.list())
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let profile = profile_from_config(&config);
+    validate_profile(&loaded, &profile, false)?;
+    adapter
+        .save_plain_profile(&profile, false)
+        .map_err(core_adapter_error)?;
     Ok(format!("Saved profile {id}"))
 }
 
 fn run_profile_edit(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let config = ProfileAddConfig::parse(args)?;
-    let repo = FileProfileRepository::new(config.store.clone());
-    let loaded = repo
-        .load_profiles()
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    let mut store = CustomProfileStore::new();
-    for profile in loaded {
-        store
-            .add(profile_to_draft(profile))
-            .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    }
+    let mut adapter = core_adapter(&config.store)?;
+    let loaded = load_plain_profiles(&mut adapter)?;
     let id = config.id.clone();
-    store
-        .edit(PlainDnsProfileDraft {
-            id: config.id,
-            name: config.name,
-            ipv4_servers: config.ipv4_servers,
-            ipv6_servers: config.ipv6_servers,
-        })
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    repo.save_profiles(store.list())
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let profile = profile_from_config(&config);
+    validate_profile(&loaded, &profile, true)?;
+    adapter
+        .save_plain_profile(&profile, true)
+        .map_err(core_adapter_error)?;
     Ok(format!("Updated profile {id}"))
 }
 
 fn run_profile_list(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let config = StoreConfig::parse(args)?;
-    let repo = FileProfileRepository::new(config.store.clone());
-    let profiles = repo
-        .load_profiles()
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let mut adapter = core_adapter(&config.store)?;
+    let profiles = load_plain_profiles(&mut adapter)?;
     if profiles.is_empty() {
-        return Ok("No custom profiles".to_string());
+        return Ok("No DNS profiles".to_string());
     }
 
     Ok(profiles
@@ -156,17 +130,10 @@ fn run_profile_list(args: impl IntoIterator<Item = String>) -> Result<String, Cl
 
 fn run_profile_delete(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let config = ProfileDeleteConfig::parse(args)?;
-    let repo = FileProfileRepository::new(config.store);
-    let mut profiles = repo
-        .load_profiles()
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    let before = profiles.len();
-    profiles.retain(|profile| profile.id != config.id);
-    if before == profiles.len() {
-        return Err(CliError::new(2, format!("Profile {} not found", config.id)));
-    }
-    repo.save_profiles(&profiles)
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let mut adapter = core_adapter(&config.store)?;
+    adapter
+        .delete_profile(&config.id)
+        .map_err(core_adapter_error)?;
     Ok(format!("Deleted profile {}", config.id))
 }
 
@@ -200,10 +167,8 @@ fn run_execute(args: impl IntoIterator<Item = String>) -> Result<String, CliErro
 
 fn run_guide(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let config = PlanConfig::parse(args)?;
-    let repo = FileProfileRepository::new(config.store.clone());
-    let profiles = repo
-        .load_profiles()
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let mut adapter = core_adapter(&config.store)?;
+    let profiles = load_plain_profiles(&mut adapter)?;
     let capability = capability_view_model(config.to_probe());
 
     if capability.guided_settings_only {
@@ -300,10 +265,8 @@ fn run_apply_plan(args: impl IntoIterator<Item = String>) -> Result<String, CliE
         ));
     }
 
-    let repo = FileProfileRepository::new(config.store.clone());
-    let profiles = repo
-        .load_profiles()
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    let mut adapter = core_adapter(&config.store)?;
+    let profiles = load_plain_profiles(&mut adapter)?;
     let profile_id = &config.profile_ids[0];
     let profile = profiles
         .iter()
@@ -332,16 +295,13 @@ fn build_plan_from_config(
     ),
     CliError,
 > {
-    let repo = FileProfileRepository::new(config.store.clone());
-    let profiles = repo
-        .load_profiles()
-        .map_err(|error| CliError::new(2, format!("{error:?}")))?;
-    let capability = capability_view_model(config.to_probe());
-    let mut session = LinuxAppSession::new(
-        capability.clone(),
-        default_suite_catalog(config.catalog_vietnam),
-        profiles,
+    let mut adapter = core_adapter(&config.store)?;
+    let profiles = load_plain_profiles(&mut adapter)?;
+    let suites = dnspilot_linux_shell::suites::suite_catalog_from_core(
+        adapter.load_suites().map_err(core_adapter_error)?,
     );
+    let capability = capability_view_model(config.to_probe());
+    let mut session = LinuxAppSession::new(capability.clone(), suites, profiles);
     session
         .select_mode(config.mode)
         .map_err(|error| CliError::new(2, error))?;
@@ -353,9 +313,11 @@ fn build_plan_from_config(
     session.selected_suite_id = config.suite_id.clone();
     session.set_custom_domains(config.domains.clone());
 
-    let plan = session
+    let mut plan = session
         .build_plan()
         .map_err(|issues| CliError::new(2, issues.join("; ")))?;
+    plan.profile_db = Some(config.store.clone());
+    plan.suite_db = Some(config.store.clone());
     Ok((capability, plan))
 }
 
@@ -462,7 +424,6 @@ struct PlanConfig {
     record_family: DnsRecordFamily,
     suite_id: Option<String>,
     domains: Vec<String>,
-    catalog_vietnam: bool,
     network_manager_available: bool,
     systemd_resolved_available: bool,
     polkit_available: bool,
@@ -631,7 +592,6 @@ impl PlanConfig {
             record_family: DnsRecordFamily::AAndAaaa,
             suite_id: None,
             domains: Vec::new(),
-            catalog_vietnam: false,
             network_manager_available: false,
             systemd_resolved_available: false,
             polkit_available: false,
@@ -659,7 +619,6 @@ impl PlanConfig {
                 }
                 "--suite-id" => config.suite_id = Some(next_arg(&mut args, "--suite-id")?),
                 "--domain" => config.domains.push(next_arg(&mut args, "--domain")?),
-                "--catalog-vietnam" => config.catalog_vietnam = true,
                 "--network-manager" => config.network_manager_available = true,
                 "--systemd-resolved" => config.systemd_resolved_available = true,
                 "--polkit" => config.polkit_available = true,
@@ -833,12 +792,65 @@ fn split_core_cli_arg(
     ))
 }
 
-fn profile_to_draft(profile: PlainDnsProfile) -> PlainDnsProfileDraft {
+fn core_adapter(
+    database_path: &str,
+) -> Result<CoreCliAdapter<ProcessCoreCliCommandRunner>, CliError> {
+    let resolution = resolve_core_cli().map_err(|error| CliError::new(2, error.to_string()))?;
+    Ok(CoreCliAdapter::new(
+        resolution.path.to_string_lossy(),
+        database_path,
+        ProcessCoreCliCommandRunner,
+    ))
+}
+
+fn load_plain_profiles(
+    adapter: &mut CoreCliAdapter<ProcessCoreCliCommandRunner>,
+) -> Result<Vec<PlainDnsProfile>, CliError> {
+    adapter
+        .load_profiles()
+        .map(|profiles| profiles.into_iter().map(Into::into).collect())
+        .map_err(core_adapter_error)
+}
+
+fn core_adapter_error(error: CoreCliAdapterError) -> CliError {
+    CliError::new(2, format!("Core CLI error: {error:?}"))
+}
+
+fn profile_from_config(config: &ProfileAddConfig) -> PlainDnsProfile {
+    PlainDnsProfile {
+        id: config.id.clone(),
+        name: config.name.clone(),
+        ipv4_servers: config.ipv4_servers.clone(),
+        ipv6_servers: config.ipv6_servers.clone(),
+    }
+}
+
+fn validate_profile(
+    existing_profiles: &[PlainDnsProfile],
+    profile: &PlainDnsProfile,
+    update: bool,
+) -> Result<(), CliError> {
+    let mut store = CustomProfileStore::new();
+    for existing in existing_profiles {
+        store
+            .add(profile_to_draft(existing))
+            .map_err(|error| CliError::new(2, format!("{error:?}")))?;
+    }
+    let draft = profile_to_draft(profile);
+    let result = if update {
+        store.edit(draft)
+    } else {
+        store.add(draft)
+    };
+    result.map_err(|error| CliError::new(2, format!("{error:?}")))
+}
+
+fn profile_to_draft(profile: &PlainDnsProfile) -> PlainDnsProfileDraft {
     PlainDnsProfileDraft {
-        id: profile.id,
-        name: profile.name,
-        ipv4_servers: profile.ipv4_servers,
-        ipv6_servers: profile.ipv6_servers,
+        id: profile.id.clone(),
+        name: profile.name.clone(),
+        ipv4_servers: profile.ipv4_servers.clone(),
+        ipv6_servers: profile.ipv6_servers.clone(),
     }
 }
 

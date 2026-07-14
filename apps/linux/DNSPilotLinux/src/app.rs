@@ -128,7 +128,7 @@ impl LinuxAppSession {
         }
 
         if let Some(suite_id) = &self.selected_suite_id {
-            if !self.suites.iter().any(|suite| suite.id == suite_id) {
+            if !self.suites.iter().any(|suite| suite.id == *suite_id) {
                 issues.push(format!("Selected suite '{suite_id}' is missing"));
             }
         }

@@ -16,10 +16,11 @@ and current official Linux platform documentation.
 
 ### Major: Shared Product Contracts Are Forked
 
-- Linux hardcodes resolver/suite data and persists a Linux-only JSON profile schema.
-- The shared CLI already owns catalog, profile, suite, history, policy, and apply-plan
-  contracts through SQLite and versioned JSON.
-- Resolution: Milestone 1 migrates Linux to a typed CLI adapter and one XDG SQLite DB.
+- Resolved in Milestone 1. Linux now schema-checks typed Core CLI catalog, profile,
+  suite, history, policy, apply-plan, and benchmark-result contracts. GUI and shell
+  share one Core SQLite database. The former Linux JSON profile store is used only for
+  a one-time `.migrated` backup import; hardcoded runtime suites and seeded profiles
+  are removed.
 
 ### Major: Benchmark Progress Is Post-Processed
 
@@ -70,9 +71,9 @@ and current official Linux platform documentation.
 | Guided settings only for store/sandbox builds | Covered | profile/family selection, copy action, localized in-app guide, settings/CLI tests |
 | Native power path plan | Design covered; execute prototype not release-safe | `linux-completion-plan.md`, `native_power.rs`, helper tests |
 | Tray optional | Covered as invariant | capability/report output and native app model say tray optional |
-| Custom DNS profile add/edit/delete | Covered | in-memory store plus file-backed CLI commands |
+| Custom DNS profile add/edit/delete | Covered | Core CLI SQLite profile commands and GUI bridge |
 | IPv4/IPv6 and A/AAAA controls | Covered | settings/app/session tests |
-| Vietnam/default suites | Covered | suite catalog tests |
+| Vietnam/default suites | Covered | Core suite adapter tests; no Linux fallback catalog |
 | Capability detection without real DNS mutation | Covered | detector snapshot/runtime path, CLI `detect` |
 | Native app permission model | Covered as GUI/view-model/CLI | `gui_main.rs`, `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
 | English/Vietnamese localization | Covered for Linux shell/native app/publish surfaces | `i18n.rs`, `native_app.rs`, `publish.rs`, i18n behavior tests |

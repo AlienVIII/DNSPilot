@@ -6,6 +6,9 @@ use dnspilot_linux_shell::benchmark::{
 use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxCapabilityViewModel,
 };
+use dnspilot_linux_shell::core_adapter::{
+    CoreCliAdapter, LinuxDataPaths, ProcessCoreCliCommandRunner,
+};
 use dnspilot_linux_shell::detect::detect_linux_environment;
 use dnspilot_linux_shell::executable::{
     resolve_core_cli, CoreCliResolution, CoreCliResolutionError,
@@ -17,14 +20,13 @@ use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan}
 use dnspilot_linux_shell::process::{
     process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus,
 };
-use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
+use dnspilot_linux_shell::profiles::PlainDnsProfile;
 use dnspilot_linux_shell::settings::{
     build_guided_settings_plan, dns_record_family_controls, render_guided_settings_plan,
     resolver_address_family_controls, settings_actions, DnsRecordFamily, ResolverAddressFamily,
     SettingsActionKind,
 };
-use dnspilot_linux_shell::storage::FileProfileRepository;
-use dnspilot_linux_shell::suites::default_suite_catalog;
+use dnspilot_linux_shell::suites::{suite_catalog_from_core, SuiteViewModel};
 use dnspilot_linux_shell::worker::{spawn_benchmark_worker, BenchmarkWorker, BenchmarkWorkerPoll};
 use eframe::egui;
 use std::env;
@@ -52,6 +54,7 @@ struct DnsPilotGui {
     capability: LinuxCapabilityViewModel,
     active_section: NativeAppSectionKind,
     profiles: Vec<PlainDnsProfile>,
+    suites: Vec<SuiteViewModel>,
     selected_profile_ids: Vec<String>,
     selected_mode: BenchmarkMode,
     selected_suite_id: Option<String>,
@@ -68,7 +71,7 @@ struct DnsPilotGui {
     profile_name: String,
     profile_ipv4: String,
     profile_ipv6: String,
-    store_path: String,
+    database_path: PathBuf,
     settings_profile_id: String,
     settings_output: String,
 }
@@ -76,32 +79,29 @@ struct DnsPilotGui {
 impl DnsPilotGui {
     fn new() -> Self {
         let capability = capability_view_model(detect_linux_environment());
-        let store_path = profile_store_path().to_string_lossy().to_string();
+        let data_paths = LinuxDataPaths::from_environment();
+        let database_path = data_paths.core_database_path();
         let setup_seen_path = setup_tutorial_seen_path();
         let show_tutorial = !has_seen_setup_tutorial(&setup_seen_path);
         if show_tutorial {
             mark_setup_tutorial_seen(&setup_seen_path);
         }
-        let profiles = load_or_seed_profiles(&store_path);
+        let core_cli = resolve_core_cli();
+        let (profiles, suites, status) =
+            load_core_state(&core_cli, &database_path, &data_paths.legacy_profile_path());
         let settings_profile_id = profiles
             .first()
             .map(|profile| profile.id.clone())
             .unwrap_or_default();
         let selected_profile_ids = profiles.iter().map(|profile| profile.id.clone()).collect();
-        let selected_suite_id = default_suite_catalog(true)
-            .first()
-            .map(|suite| suite.id.to_string());
-        let core_cli = resolve_core_cli();
-        let status = core_cli
-            .as_ref()
-            .map(|_| "Ready".to_string())
-            .unwrap_or_else(|error| error.to_string());
+        let selected_suite_id = suites.first().map(|suite| suite.id.clone());
 
         Self {
             language: Language::English,
             capability,
             active_section: NativeAppSectionKind::Benchmark,
             profiles,
+            suites,
             selected_profile_ids,
             selected_mode: BenchmarkMode::DnsAndTcp,
             selected_suite_id,
@@ -118,7 +118,7 @@ impl DnsPilotGui {
             profile_name: String::new(),
             profile_ipv4: String::new(),
             profile_ipv6: String::new(),
-            store_path,
+            database_path,
             settings_profile_id,
             settings_output: String::new(),
         }
@@ -127,7 +127,7 @@ impl DnsPilotGui {
     fn build_session(&self) -> LinuxAppSession {
         let mut session = LinuxAppSession::new(
             self.capability.clone(),
-            default_suite_catalog(true),
+            self.suites.clone(),
             self.profiles.clone(),
         );
         let _ = session.select_mode(self.selected_mode);
@@ -140,22 +140,24 @@ impl DnsPilotGui {
     }
 
     fn save_profile_from_form(&mut self) {
-        let draft = PlainDnsProfileDraft {
+        let profile = PlainDnsProfile {
             id: self.profile_id.trim().to_string(),
             name: self.profile_name.trim().to_string(),
             ipv4_servers: split_words(&self.profile_ipv4),
             ipv6_servers: split_words(&self.profile_ipv6),
         };
-        let mut store = store_from_profiles(&self.profiles);
-        let result = if self.profiles.iter().any(|profile| profile.id == draft.id) {
-            store.edit(draft)
-        } else {
-            store.add(draft)
-        };
-
-        match result {
-            Ok(()) => {
-                self.profiles = store.list().to_vec();
+        let update = self.profiles.iter().any(|item| item.id == profile.id);
+        match self.core_adapter().and_then(|mut adapter| {
+            adapter
+                .save_plain_profile(&profile, update)
+                .map_err(|error| format!("{error:?}"))?;
+            adapter
+                .load_profiles()
+                .map(|profiles| profiles.into_iter().map(Into::into).collect())
+                .map_err(|error| format!("{error:?}"))
+        }) {
+            Ok(profiles) => {
+                self.profiles = profiles;
                 if self.settings_profile_id.is_empty() {
                     self.settings_profile_id = self
                         .profiles
@@ -163,40 +165,47 @@ impl DnsPilotGui {
                         .map(|profile| profile.id.clone())
                         .unwrap_or_default();
                 }
-                if let Err(error) = FileProfileRepository::new(self.store_path.clone())
-                    .save_profiles(&self.profiles)
-                {
-                    self.status = format!("Profile save failed: {error:?}");
-                } else {
-                    self.status = "Profile saved".to_string();
-                }
+                self.status = "Profile saved by core storage".to_string();
             }
             Err(error) => {
-                self.status = format!("Profile validation failed: {error:?}");
+                self.status = format!("Profile save failed: {error:?}");
             }
         }
     }
 
     fn delete_profile(&mut self, profile_id: &str) {
-        let mut store = store_from_profiles(&self.profiles);
-        if store.delete(profile_id) {
-            self.profiles = store.list().to_vec();
-            self.selected_profile_ids.retain(|id| id != profile_id);
-            if self.settings_profile_id == profile_id {
-                self.settings_profile_id = self
-                    .profiles
-                    .first()
-                    .map(|profile| profile.id.clone())
-                    .unwrap_or_default();
+        match self.core_adapter().and_then(|mut adapter| {
+            adapter
+                .delete_profile(profile_id)
+                .map_err(|error| format!("{error:?}"))?;
+            adapter
+                .load_profiles()
+                .map(|profiles| profiles.into_iter().map(Into::into).collect())
+                .map_err(|error| format!("{error:?}"))
+        }) {
+            Ok(profiles) => {
+                self.profiles = profiles;
+                self.selected_profile_ids.retain(|id| id != profile_id);
+                if self.settings_profile_id == profile_id {
+                    self.settings_profile_id = self
+                        .profiles
+                        .first()
+                        .map(|profile| profile.id.clone())
+                        .unwrap_or_default();
+                }
+                self.status = "Profile deleted by core storage".to_string();
             }
-            if let Err(error) =
-                FileProfileRepository::new(self.store_path.clone()).save_profiles(&self.profiles)
-            {
-                self.status = format!("Profile delete failed: {error:?}");
-            } else {
-                self.status = "Profile deleted".to_string();
-            }
+            Err(error) => self.status = format!("Profile delete failed: {error:?}"),
         }
+    }
+
+    fn core_adapter(&self) -> Result<CoreCliAdapter<ProcessCoreCliCommandRunner>, String> {
+        let resolution = self.core_cli.as_ref().map_err(ToString::to_string)?;
+        Ok(CoreCliAdapter::new(
+            resolution.path.to_string_lossy(),
+            self.database_path.clone(),
+            ProcessCoreCliCommandRunner,
+        ))
     }
 
     fn fill_profile_form(&mut self, profile: &PlainDnsProfile) {
@@ -426,11 +435,11 @@ impl DnsPilotGui {
             )
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut self.selected_suite_id, None, "Custom domains only");
-                for suite in default_suite_catalog(true) {
+                for suite in &self.suites {
                     ui.selectable_value(
                         &mut self.selected_suite_id,
-                        Some(suite.id.to_string()),
-                        suite.name,
+                        Some(suite.id.clone()),
+                        &suite.name,
                     )
                     .on_hover_text(suite.domains.join(", "));
                 }
@@ -713,13 +722,6 @@ impl DnsPilotGui {
     }
 }
 
-fn profile_store_path() -> PathBuf {
-    if let Some(data_dir) = data_dir() {
-        return data_dir.join("profiles.json");
-    }
-    PathBuf::from("dnspilot-profiles.json")
-}
-
 fn setup_tutorial_seen_path() -> PathBuf {
     if let Some(data_dir) = data_dir() {
         return data_dir.join("setup-tutorial-seen");
@@ -750,48 +752,57 @@ fn mark_setup_tutorial_seen(path: &PathBuf) {
     let _ = fs::write(path, "true\n");
 }
 
-fn load_or_seed_profiles(path: &str) -> Vec<PlainDnsProfile> {
-    let loaded = FileProfileRepository::new(path.to_string())
-        .load_profiles()
-        .unwrap_or_default();
-    if loaded.is_empty() {
-        seeded_profiles()
-    } else {
-        loaded
-    }
-}
-
-fn seeded_profiles() -> Vec<PlainDnsProfile> {
-    vec![
-        PlainDnsProfile {
-            id: "cloudflare".to_string(),
-            name: "Cloudflare".to_string(),
-            ipv4_servers: vec!["1.1.1.1".to_string(), "1.0.0.1".to_string()],
-            ipv6_servers: vec![
-                "2606:4700:4700::1111".to_string(),
-                "2606:4700:4700::1001".to_string(),
-            ],
-        },
-        PlainDnsProfile {
-            id: "quad9".to_string(),
-            name: "Quad9".to_string(),
-            ipv4_servers: vec!["9.9.9.9".to_string(), "149.112.112.112".to_string()],
-            ipv6_servers: vec!["2620:fe::fe".to_string(), "2620:fe::9".to_string()],
-        },
-    ]
-}
-
-fn store_from_profiles(profiles: &[PlainDnsProfile]) -> CustomProfileStore {
-    let mut store = CustomProfileStore::new();
-    for profile in profiles {
-        let _ = store.add(PlainDnsProfileDraft {
-            id: profile.id.clone(),
-            name: profile.name.clone(),
-            ipv4_servers: profile.ipv4_servers.clone(),
-            ipv6_servers: profile.ipv6_servers.clone(),
-        });
-    }
-    store
+fn load_core_state(
+    core_cli: &Result<CoreCliResolution, CoreCliResolutionError>,
+    database_path: &std::path::Path,
+    legacy_profile_path: &std::path::Path,
+) -> (Vec<PlainDnsProfile>, Vec<SuiteViewModel>, String) {
+    let resolution = match core_cli {
+        Ok(resolution) => resolution,
+        Err(error) => return (Vec::new(), Vec::new(), error.to_string()),
+    };
+    let mut adapter = CoreCliAdapter::new(
+        resolution.path.to_string_lossy(),
+        database_path,
+        ProcessCoreCliCommandRunner,
+    );
+    let migration_status = match adapter.migrate_legacy_profiles_once(legacy_profile_path) {
+        Ok(outcome) if outcome.migrated_profile_count > 0 => {
+            format!(
+                "Migrated {} legacy profiles. ",
+                outcome.migrated_profile_count
+            )
+        }
+        Ok(_) => String::new(),
+        Err(error) => {
+            return (
+                Vec::new(),
+                Vec::new(),
+                format!("Profile migration failed: {error:?}"),
+            )
+        }
+    };
+    let profiles = match adapter.load_profiles() {
+        Ok(profiles) => profiles.into_iter().map(Into::into).collect(),
+        Err(error) => {
+            return (
+                Vec::new(),
+                Vec::new(),
+                format!("Core profile load failed: {error:?}"),
+            )
+        }
+    };
+    let suites = match adapter.load_suites() {
+        Ok(suites) => suite_catalog_from_core(suites),
+        Err(error) => {
+            return (
+                profiles,
+                Vec::new(),
+                format!("Core suite load failed: {error:?}"),
+            )
+        }
+    };
+    (profiles, suites, format!("{migration_status}Ready"))
 }
 
 fn split_words(value: &str) -> Vec<String> {

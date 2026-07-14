@@ -2,9 +2,10 @@ use dnspilot_linux_shell::app::LinuxAppSession;
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, BenchmarkMode, LinuxEnvironmentProbe, LinuxPackageKind,
 };
+use dnspilot_linux_shell::core_adapter::CoreSuite;
 use dnspilot_linux_shell::profiles::PlainDnsProfile;
 use dnspilot_linux_shell::settings::{DnsRecordFamily, ResolverAddressFamily};
-use dnspilot_linux_shell::suites::default_suite_catalog;
+use dnspilot_linux_shell::suites::suite_catalog_from_core;
 
 fn probe(package_kind: LinuxPackageKind) -> LinuxEnvironmentProbe {
     LinuxEnvironmentProbe {
@@ -25,6 +26,30 @@ fn profile(id: &str, name: &str, ipv4: Vec<&str>, ipv6: Vec<&str>) -> PlainDnsPr
     }
 }
 
+fn core_suites(include_vietnam: bool) -> Vec<CoreSuite> {
+    let mut suites = vec![CoreSuite {
+        id: "general".to_string(),
+        name: "General".to_string(),
+        description: "Core fixture".to_string(),
+        domains: vec!["example.com".to_string()],
+        tags: vec!["general".to_string()],
+    }];
+    if include_vietnam {
+        suites.push(CoreSuite {
+            id: "vietnam-daily".to_string(),
+            name: "Vietnam / Daily".to_string(),
+            description: "Core fixture".to_string(),
+            domains: vec!["vnexpress.net".to_string()],
+            tags: vec!["vietnam".to_string()],
+        });
+    }
+    suites
+}
+
+fn suites(include_vietnam: bool) -> Vec<dnspilot_linux_shell::suites::SuiteViewModel> {
+    suite_catalog_from_core(core_suites(include_vietnam))
+}
+
 #[test]
 fn new_session_defaults_to_dns_tcp_with_first_profiles_and_default_suite() {
     let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
@@ -38,7 +63,7 @@ fn new_session_defaults_to_dns_tcp_with_first_profiles_and_default_suite() {
         profile("quad9", "Quad9", vec!["9.9.9.9"], vec![]),
     ];
 
-    let session = LinuxAppSession::new(capability, default_suite_catalog(true), profiles);
+    let session = LinuxAppSession::new(capability, suites(true), profiles);
 
     assert_eq!(session.selected_mode, BenchmarkMode::DnsAndTcp);
     assert_eq!(session.selected_profile_ids, vec!["cloudflare", "quad9"]);
@@ -54,7 +79,7 @@ fn session_rejects_unavailable_system_resolver_mode() {
     let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
     let mut session = LinuxAppSession::new(
         capability,
-        default_suite_catalog(false),
+        suites(false),
         vec![profile("cloudflare", "Cloudflare", vec!["1.1.1.1"], vec![])],
     );
 
@@ -71,7 +96,7 @@ fn readiness_requires_profile_selection_for_direct_benchmarks() {
     let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
     let mut session = LinuxAppSession::new(
         capability,
-        default_suite_catalog(false),
+        suites(false),
         vec![profile("cloudflare", "Cloudflare", vec!["1.1.1.1"], vec![])],
     );
 
@@ -90,7 +115,7 @@ fn readiness_accepts_system_resolver_without_selected_profiles_when_capability_a
     let mut env = probe(LinuxPackageKind::Deb);
     env.system_resolver_probe_available = true;
     let capability = capability_view_model(env);
-    let mut session = LinuxAppSession::new(capability, default_suite_catalog(false), vec![]);
+    let mut session = LinuxAppSession::new(capability, suites(false), vec![]);
 
     session
         .select_mode(BenchmarkMode::CurrentSystemResolver)
@@ -105,7 +130,7 @@ fn readiness_rejects_invalid_custom_domains_before_core_cli_run() {
     let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
     let mut session = LinuxAppSession::new(
         capability,
-        default_suite_catalog(false),
+        suites(false),
         vec![profile("cloudflare", "Cloudflare", vec!["1.1.1.1"], vec![])],
     );
     session.selected_suite_id = None;
@@ -125,7 +150,7 @@ fn build_plan_maps_package_profile_family_domains_and_suite_to_runner_plan() {
     let capability = capability_view_model(probe(LinuxPackageKind::Snap));
     let mut session = LinuxAppSession::new(
         capability,
-        default_suite_catalog(true),
+        suites(true),
         vec![
             profile(
                 "cloudflare",
@@ -161,7 +186,7 @@ fn build_plan_reports_selected_profile_missing_requested_address_family() {
     let capability = capability_view_model(probe(LinuxPackageKind::Flatpak));
     let mut session = LinuxAppSession::new(
         capability,
-        default_suite_catalog(false),
+        suites(false),
         vec![profile("quad9", "Quad9", vec!["9.9.9.9"], vec![])],
     );
     session.resolver_address_family = ResolverAddressFamily::Ipv6Only;

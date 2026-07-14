@@ -85,14 +85,14 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 `Cargo.toml`; create `tests/core_contract_behaviour.rs` and
 `tests/core_client_behaviour.rs`.
 
-- [ ] Add RED fixtures for schema 1 catalog, profile list, suite list, history list,
+- [x] Add RED fixtures for schema 1 catalog, profile list, suite list, history list,
   compare/path-compare/system result, policy, and apply-plan payloads.
 - [ ] Add RED tests for unsupported schema, malformed JSON, nonzero CLI exit, missing
   executable, and invalid UTF-8 lossy diagnostic handling.
 - [ ] Add `serde = { version = "1", features = ["derive"] }`; keep versions locked.
-- [ ] Implement one `CoreClient` that accepts executable + DB path and returns typed
+- [x] Implement one `CoreClient` that accepts executable + DB path and returns typed
   results. Do not expose raw `Command` construction to GUI modules.
-- [ ] Implement XDG data/state paths with deterministic test overrides.
+- [x] Implement XDG data paths with deterministic test overrides.
 - [ ] Run core adapter tests plus `cargo test -p dnspilot-cli`; commit:
   `Use typed Linux core contracts`.
 
@@ -101,13 +101,14 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 **Files:** create `migration.rs`, `tests/profile_migration_behaviour.rs`; modify
 `app.rs`, `profiles.rs`, `suites.rs`, `gui_main.rs`; retire `storage.rs` only after GREEN.
 
-- [ ] RED: first launch imports valid legacy custom profiles through CLI `profile-add`,
-  writes a `.migrated` marker, and retains a read-only `.bak`.
-- [ ] RED: second launch is idempotent; built-in ID conflicts do not overwrite core
+- [x] RED: first launch imports valid legacy custom profiles through CLI `profile-add`
+  and renames the source JSON to a `.migrated` backup only after import succeeds.
+- [x] RED: second launch is idempotent; built-in ID conflicts do not overwrite core
   data; malformed legacy data is preserved and reported, not deleted.
-- [ ] Load catalog, custom profiles, suites, and history from `CoreClient`.
-- [ ] Remove seeded Cloudflare/Quad9 and hardcoded suite domains.
-- [ ] Pass the same DB path as profile/suite input and benchmark history output.
+- [x] Load catalog/profile/suite/history contracts from `CoreClient`; History UI remains
+  in the later consumer workflow task.
+- [x] Remove seeded Cloudflare/Quad9 and hardcoded suite domains.
+- [x] Pass the same DB path as profile/suite input; benchmark history output is Task 3.
 - [ ] Run migration/storage/CLI tests; commit: `Unify Linux local data with core`.
 
 ## Task 3: Stream Progress And Cancel Correctly

@@ -1,6 +1,7 @@
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, LinuxEnvironmentProbe, LinuxPackageKind,
 };
+use dnspilot_linux_shell::core_adapter::CoreSuite;
 use dnspilot_linux_shell::i18n::Language;
 use dnspilot_linux_shell::profiles::{
     CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft, ProfileValidationIssue,
@@ -11,7 +12,7 @@ use dnspilot_linux_shell::settings::{
     settings_actions, DnsRecordFamily, GuidedSettingsError, ResolverAddressFamily,
     SettingsActionKind,
 };
-use dnspilot_linux_shell::suites::default_suite_catalog;
+use dnspilot_linux_shell::suites::suite_catalog_from_core;
 
 fn probe(package_kind: LinuxPackageKind) -> LinuxEnvironmentProbe {
     LinuxEnvironmentProbe {
@@ -251,20 +252,38 @@ fn guided_settings_plan_rejects_native_or_empty_family_selection() {
 }
 
 #[test]
-fn default_suites_include_vietnam_only_when_catalog_supports_it() {
-    let suites = default_suite_catalog(true);
+fn core_suites_preserve_catalog_vietnam_tags_without_linux_fallback_data() {
+    let suites = suite_catalog_from_core(vec![
+        CoreSuite {
+            id: "general".to_string(),
+            name: "General".to_string(),
+            description: "Core fixture".to_string(),
+            domains: vec!["example.com".to_string()],
+            tags: vec!["general".to_string()],
+        },
+        CoreSuite {
+            id: "vietnam-daily".to_string(),
+            name: "Vietnam / Daily".to_string(),
+            description: "Core fixture".to_string(),
+            domains: vec!["zing.vn".to_string()],
+            tags: vec!["vietnam".to_string()],
+        },
+    ]);
     assert!(suites.iter().any(|suite| suite.id == "general"));
-    assert!(suites.iter().any(|suite| suite.id == "developer"));
     assert!(suites.iter().any(|suite| suite.id == "vietnam-daily"));
     assert!(suites
         .iter()
         .find(|suite| suite.id == "vietnam-daily")
         .unwrap()
         .domains
-        .contains(&"zing.vn"));
+        .contains(&"zing.vn".to_string()));
 
-    let suites_without_vietnam = default_suite_catalog(false);
-    assert!(suites_without_vietnam
-        .iter()
-        .all(|suite| suite.id != "vietnam-daily"));
+    assert_eq!(
+        suites
+            .iter()
+            .find(|suite| suite.id == "vietnam-daily")
+            .unwrap()
+            .tags,
+        vec!["vietnam"]
+    );
 }

@@ -12,7 +12,7 @@ fn temp_path(name: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!(
-        "dnspilot-linux-cli-{name}-{}-{nanos}.json",
+        "dnspilot-linux-cli-{name}-{}-{nanos}.sqlite",
         std::process::id()
     ))
 }
@@ -70,9 +70,9 @@ fn cli_can_add_list_and_delete_custom_profiles_in_store() {
         .output()
         .unwrap();
     assert!(list.status.success());
-    assert!(String::from_utf8(list.stdout)
+    assert!(!String::from_utf8(list.stdout)
         .unwrap()
-        .contains("No custom profiles"));
+        .contains("local\tLocal DNS"));
 }
 
 #[test]
@@ -122,8 +122,11 @@ fn cli_can_edit_custom_profiles_in_store() {
         .unwrap();
     assert!(list.status.success());
     let stdout = String::from_utf8(list.stdout).unwrap();
-    assert!(stdout.contains("local\tEdited DNS\t9.9.9.9\t2620:fe::fe"));
-    assert!(!stdout.contains("1.1.1.1"));
+    let local_profile = stdout
+        .lines()
+        .find(|line| line.starts_with("local\t"))
+        .expect("custom profile should be listed");
+    assert_eq!(local_profile, "local\tEdited DNS\t9.9.9.9\t2620:fe::fe");
 }
 
 #[test]
@@ -204,7 +207,6 @@ fn cli_plan_uses_stored_profiles_and_session_controls() {
             store.to_str().unwrap(),
             "--package",
             "snap",
-            "--catalog-vietnam",
             "--profile-id",
             "local",
             "--resolver-family",
