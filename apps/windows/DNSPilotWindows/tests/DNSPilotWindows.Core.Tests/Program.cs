@@ -48,6 +48,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows shell confirms and serializes persistent deletion actions", WindowsShellConfirmsAndSerializesPersistentDeletionActions);
         Run("Windows shell serializes benchmark launches", WindowsShellSerializesBenchmarkLaunches);
         Run("Windows app uses runtime readiness for startup, recovery, and surface gating", WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating);
+        Run("Windows app follows the Check DNS, Profiles, and History consumer contract", WindowsAppFollowsConsumerNavigationContract);
         Run("macOS validation only tolerates the Windows-only XAML compiler failure", MacOsValidationOnlyToleratesWindowsXamlCompilerFailure);
         Run("Windows publish docs include privacy, listing, and certification copy", WindowsPublishDocsIncludePrivacyListingAndCertificationCopy);
         Run("Windows README documents install, run, validation, and package steps", WindowsReadmeDocumentsInstallRunValidationAndPackageSteps);
@@ -1126,12 +1127,9 @@ internal sealed class WindowsCoreTestSuite
             "QuickBenchmarkText",
             "ValidateDnsText",
             "SettingsText",
-            "NavBenchmark",
-            "NavApply",
+            "NavCheckDns",
             "NavProfiles",
-            "NavSuites",
             "NavHistory",
-            "NavDiagnostics",
             "BenchmarkHeader",
             "ModeCombo",
             "ModeDnsOnly",
@@ -1182,7 +1180,8 @@ internal sealed class WindowsCoreTestSuite
             "AddSuiteText",
             "UpdateSuiteText",
             "DeleteSuiteText",
-            "DiagnosticsHeader",
+            "HistoryHeader",
+            "AdvancedDiagnosticsExpander",
             "HistoryList",
             "RefreshStorageText",
             "ClearHistoryText",
@@ -1217,12 +1216,9 @@ internal sealed class WindowsCoreTestSuite
             "QuickBenchmarkText.Text",
             "ValidateDnsText.Text",
             "SettingsText.Text",
-            "NavBenchmark.Content",
-            "NavApply.Content",
+            "NavCheckDns.Content",
             "NavProfiles.Content",
-            "NavSuites.Content",
             "NavHistory.Content",
-            "NavDiagnostics.Content",
             "BenchmarkHeader.Text",
             "ModeCombo.Header",
             "ModeDnsOnly.Content",
@@ -1273,7 +1269,8 @@ internal sealed class WindowsCoreTestSuite
             "AddSuiteText.Text",
             "UpdateSuiteText.Text",
             "DeleteSuiteText.Text",
-            "DiagnosticsHeader.Text",
+            "HistoryHeader.Text",
+            "AdvancedDiagnosticsExpander.Header",
             "HistoryList.Header",
             "RefreshStorageText.Text",
             "ClearHistoryText.Text",
@@ -1399,6 +1396,32 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("x:Name=\"RuntimeStatusBar\"", xaml);
         Assert.Contains("Click=\"RetryRuntime_Click\"", xaml);
         Assert.Contains("x:Name=\"RetryRuntimeButton\"", xaml);
+    }
+
+    private static void WindowsAppFollowsConsumerNavigationContract()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+
+        Assert.Contains("x:Uid=\"NavCheckDns\"", xaml);
+        Assert.Contains("x:Uid=\"NavProfiles\"", xaml);
+        Assert.Contains("x:Uid=\"NavHistory\"", xaml);
+        Assert.DoesNotContain("x:Uid=\"NavApply\"", xaml);
+        Assert.DoesNotContain("x:Uid=\"NavSuites\"", xaml);
+        Assert.DoesNotContain("x:Uid=\"NavDiagnostics\"", xaml);
+        Assert.Contains("x:Name=\"HistorySection\"", xaml);
+        Assert.Contains("x:Name=\"AdvancedDiagnosticsExpander\"", xaml);
+        Assert.Contains("VisualState x:Name=\"CompactLayout\"", xaml);
+        Assert.Contains("VisualState x:Name=\"WideLayout\"", xaml);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", xaml);
+        Assert.Contains("KeyboardAccelerator", xaml);
+        Assert.Contains("ShowConsumerDestination", mainWindow);
+        Assert.Contains("ApplyResponsiveLayout", mainWindow);
+        Assert.Contains("QuickBenchmarkAccelerator_Invoked", mainWindow);
+        Assert.Contains("SettingsAccelerator_Invoked", mainWindow);
+        Assert.Contains("HelpAccelerator_Invoked", mainWindow);
     }
 
     private static void MacOsValidationOnlyToleratesWindowsXamlCompilerFailure()

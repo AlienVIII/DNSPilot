@@ -1,6 +1,7 @@
 using DNSPilotWindows.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.System;
@@ -25,6 +26,8 @@ public sealed partial class MainWindow : Window
         RenderRuntimeReadiness();
         RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
         CommandPreviewBox.Text = FormatCommand(ViewModel.BenchmarkPlan.CommandArguments);
+        RootGrid.SizeChanged += RootGrid_SizeChanged;
+        ShowConsumerDestination("CheckDns");
         _ = LoadRuntimeContractsAsync();
         Activated += MainWindow_Activated;
     }
@@ -53,6 +56,24 @@ public sealed partial class MainWindow : Window
     private async void QuickBenchmark_Click(object sender, RoutedEventArgs e)
     {
         await StartBenchmarkAsync(ViewModel.BuildQuickBenchmarkPlan(CurrentBenchmarkSelection()));
+    }
+
+    private async void QuickBenchmarkAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await StartBenchmarkAsync(ViewModel.BuildQuickBenchmarkPlan(CurrentBenchmarkSelection()));
+    }
+
+    private async void SettingsAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await OpenSettingsAsync();
+    }
+
+    private async void HelpAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await ShowTutorialAsync();
     }
 
     private async void RunBenchmark_Click(object sender, RoutedEventArgs e)
@@ -444,17 +465,48 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var target = tag switch
-        {
-            "Benchmark" => BenchmarkSection,
-            "Apply" => ApplySection,
-            "Profiles" => ProfilesSection,
-            "Suites" => SuitesSection,
-            "History" => DiagnosticsSection,
-            "Diagnostics" => DiagnosticsSection,
-            _ => BenchmarkSection,
-        };
+        ShowConsumerDestination(tag);
+    }
+
+    private void ShowConsumerDestination(string tag)
+    {
+        var showCheckDns = tag == "CheckDns";
+        var showProfiles = tag == "Profiles";
+        var showHistory = tag == "History";
+
+        BenchmarkSection.Visibility = showCheckDns ? Visibility.Visible : Visibility.Collapsed;
+        ProcessSection.Visibility = showCheckDns ? Visibility.Visible : Visibility.Collapsed;
+        ApplySection.Visibility = showCheckDns ? Visibility.Visible : Visibility.Collapsed;
+        ProfilesSection.Visibility = showProfiles ? Visibility.Visible : Visibility.Collapsed;
+        HistorySection.Visibility = showHistory ? Visibility.Visible : Visibility.Collapsed;
+
+        var target = showProfiles
+            ? ProfilesSection
+            : showHistory
+                ? HistorySection
+                : BenchmarkSection;
         target.StartBringIntoView();
+    }
+
+    private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ApplyResponsiveLayout(e.NewSize.Width);
+    }
+
+    private void ApplyResponsiveLayout(double width)
+    {
+        var compact = width < 960;
+        ContentPrimaryColumn.Width = compact ? new GridLength(1, GridUnitType.Star) : new GridLength(1.1, GridUnitType.Star);
+        ContentSecondaryColumn.Width = compact ? new GridLength(0) : new GridLength(0.9, GridUnitType.Star);
+        ProcessSection.SetValue(Grid.ColumnProperty, compact ? 0 : 1);
+        ProcessSection.SetValue(Grid.RowProperty, compact ? 1 : 0);
+        ApplySection.SetValue(Grid.ColumnProperty, 0);
+        ApplySection.SetValue(Grid.RowProperty, compact ? 2 : 1);
+        ProfilesSection.SetValue(Grid.ColumnProperty, compact ? 0 : 1);
+        ProfilesSection.SetValue(Grid.RowProperty, compact ? 3 : 1);
+        HistorySection.SetValue(Grid.ColumnProperty, compact ? 0 : 1);
+        HistorySection.SetValue(Grid.RowProperty, compact ? 3 : 1);
+        VisualStateManager.GoToElementState(RootGrid, compact ? "CompactLayout" : "WideLayout", useTransitions: false);
     }
 
     private async Task StartBenchmarkAsync(BenchmarkPlanViewModel plan)

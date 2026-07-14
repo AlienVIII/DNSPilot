@@ -14,6 +14,12 @@ history, retain healthy surfaces when local storage fails, and expose an EN/VI
 recovery status plus a copyable technical report. Windows-host rendering and
 packaged-helper proof remain open.
 
+The consumer shell now follows the shared reference contract: primary navigation
+is Check DNS, Profiles, and History; apply/results remain in Check DNS; suites
+remain with Profiles; raw reports are behind Advanced diagnostics. The shell has
+compact/wide layout logic, keyboard command wiring, and Narrator live status
+metadata; real Windows accessibility/layout proof remains open.
+
 Cross-lane pre-development review is complete. The next work is selective
 consumer/release hardening, ordered in
 `apps/windows/windows-predevelopment-review.md`; it does not reopen the
@@ -64,6 +70,8 @@ Store/Power architecture boundary.
   locator, and publish/QA runbooks are present.
 - WinUI shell now has a top-right Help button and first-run setup dialog
   persisted through `ApplicationData.LocalSettings`.
+- Check DNS, Profiles, and History are the only primary navigation destinations.
+  Technical diagnostics no longer compete with the decision workflow.
 - Privacy policy draft, Store listing copy, support text, and certification
   notes are present for Partner Center preparation.
 

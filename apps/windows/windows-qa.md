@@ -18,6 +18,14 @@
 
 ## Manual Windows UI Flow
 - Launch DNS Pilot.
+- Confirm the only primary destinations are Check DNS, Profiles, and History.
+  Apply/results stay in Check DNS, custom suites stay in Profiles, and raw report
+  text appears only after expanding Advanced diagnostics.
+- Resize from a wide desktop window to a narrow window; expected: Check DNS cards
+  stack without overlap or clipped controls. At 200% text scaling and high
+  contrast, labels/actions remain visible and status is not color-only.
+- With keyboard only, use Ctrl+Q for Quick Check, Ctrl+S for Settings, and Ctrl+H
+  for Help. With Narrator, confirm runtime status changes are announced.
 - Before runtime contracts finish loading, confirm the runtime status shows
   Checking and benchmark/apply/storage controls are disabled without an admin
   prompt. After a successful probe, status becomes Ready.

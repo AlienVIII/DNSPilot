@@ -157,6 +157,10 @@ proof remains a Milestone 5 manual gate.**
 
 ### Milestone 1: Consumer Shell And Accessibility
 
+**Status: automated implementation complete on 2026-07-14; Windows-host layout,
+keyboard, Narrator, high-contrast, and 200% scaling proof remain a Milestone 5
+manual gate.**
+
 - **Goal:** turn the current feature console into a native consumer task flow.
 - **Acceptance criteria:** primary navigation is Check DNS, Profiles, and History;
   suites live with Profiles; results/apply remain in Check DNS; Diagnostics is an
@@ -168,8 +172,10 @@ proof remains a Milestone 5 manual gate.**
   localization resource bindings.
 - **Dependencies:** Milestone 0 readiness surfaces and the current localized
   resource keys.
-- **Validation:** navigation/view-model tests first; XAML resource/static tests;
-  Windows narrow/wide, 200%, high-contrast, keyboard, and Narrator QA later.
+- **Validation:** navigation/resource/static tests cover the three destinations,
+  contextual diagnostics, EN/VI resources, keyboard accelerator wiring, live
+  readiness announcements, and compact/wide layout contract. Windows narrow/wide,
+  200%, high-contrast, keyboard, and Narrator QA remain host work.
 
 ### Milestone 2: Benchmark Control And Cancellation
 

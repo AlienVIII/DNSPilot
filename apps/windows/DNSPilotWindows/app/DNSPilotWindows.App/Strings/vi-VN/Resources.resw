@@ -60,6 +60,9 @@
   <data name="NavBenchmark.Content" xml:space="preserve">
     <value>Benchmark</value>
   </data>
+  <data name="NavCheckDns.Content" xml:space="preserve">
+    <value>Kiểm tra DNS</value>
+  </data>
   <data name="NavApply.Content" xml:space="preserve">
     <value>Áp dụng</value>
   </data>
@@ -251,6 +254,12 @@
   </data>
   <data name="DiagnosticsHeader.Text" xml:space="preserve">
     <value>Chẩn đoán</value>
+  </data>
+  <data name="HistoryHeader.Text" xml:space="preserve">
+    <value>Lịch sử</value>
+  </data>
+  <data name="AdvancedDiagnosticsExpander.Header" xml:space="preserve">
+    <value>Chẩn đoán nâng cao</value>
   </data>
   <data name="HistoryList.Header" xml:space="preserve">
     <value>Lịch sử</value>

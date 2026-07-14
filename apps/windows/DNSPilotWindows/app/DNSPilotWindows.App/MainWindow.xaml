@@ -12,6 +12,17 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="WideLayout" />
+                <VisualState x:Name="CompactLayout" />
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="Q" Modifiers="Control" Invoked="QuickBenchmarkAccelerator_Invoked" />
+            <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="SettingsAccelerator_Invoked" />
+            <KeyboardAccelerator Key="H" Modifiers="Control" Invoked="HelpAccelerator_Invoked" />
+        </Grid.KeyboardAccelerators>
 
         <Grid ColumnSpacing="16">
             <Grid.ColumnDefinitions>
@@ -23,7 +34,7 @@
                 <TextBlock x:Uid="AppSubtitle" Text="Windows Store-safe DNS benchmark shell" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <Button x:Name="QuickBenchmarkButton" Click="QuickBenchmark_Click">
+                <Button x:Name="QuickBenchmarkButton" Click="QuickBenchmark_Click" AutomationProperties.Name="Quick Check" AutomationProperties.AutomationId="QuickCheckButton">
                     <ToolTipService.ToolTip>
                         <ToolTip x:Uid="QuickBenchmarkTooltip" Content="Run the default DNS + TCP benchmark command." />
                     </ToolTipService.ToolTip>
@@ -32,7 +43,7 @@
                         <TextBlock x:Uid="QuickBenchmarkText" Text="Quick benchmark" />
                     </StackPanel>
                 </Button>
-                <Button x:Name="ValidateSystemDnsButton" Click="ValidateSystemDns_Click">
+                <Button x:Name="ValidateSystemDnsButton" Click="ValidateSystemDns_Click" AutomationProperties.Name="Validate current DNS" AutomationProperties.AutomationId="ValidateDnsButton">
                     <ToolTipService.ToolTip>
                         <ToolTip x:Uid="ValidateDnsTooltip" Content="Benchmark the current Windows resolver path." />
                     </ToolTipService.ToolTip>
@@ -41,7 +52,7 @@
                         <TextBlock x:Uid="ValidateDnsText" Text="Validate DNS" />
                     </StackPanel>
                 </Button>
-                <Button Click="OpenSettings_Click">
+                <Button Click="OpenSettings_Click" AutomationProperties.Name="Open Windows Network Settings" AutomationProperties.AutomationId="OpenSettingsButton">
                     <ToolTipService.ToolTip>
                         <ToolTip x:Uid="SettingsTooltip" Content="Open Windows Network settings without changing DNS." />
                     </ToolTipService.ToolTip>
@@ -50,7 +61,7 @@
                         <TextBlock x:Uid="SettingsText" Text="Settings" />
                     </StackPanel>
                 </Button>
-                <Button Click="ShowTutorial_Click">
+                <Button Click="ShowTutorial_Click" AutomationProperties.Name="Show setup help" AutomationProperties.AutomationId="HelpButton">
                     <ToolTipService.ToolTip>
                         <ToolTip x:Uid="TutorialTooltip" Content="Show setup tutorial." />
                     </ToolTipService.ToolTip>
@@ -69,16 +80,13 @@
             IsSettingsVisible="False"
             SelectionChanged="SectionNav_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem x:Uid="NavBenchmark" Content="Benchmark" Tag="Benchmark" Icon="Play" IsSelected="True" />
-                <NavigationViewItem x:Uid="NavApply" Content="Apply" Tag="Apply" Icon="Copy" />
+                <NavigationViewItem x:Uid="NavCheckDns" Content="Check DNS" Tag="CheckDns" Icon="Play" IsSelected="True" />
                 <NavigationViewItem x:Uid="NavProfiles" Content="Profiles" Tag="Profiles" Icon="Edit" />
-                <NavigationViewItem x:Uid="NavSuites" Content="Suites" Tag="Suites" Icon="Bookmarks" />
                 <NavigationViewItem x:Uid="NavHistory" Content="History" Tag="History" Icon="Clock" />
-                <NavigationViewItem x:Uid="NavDiagnostics" Content="Diagnostics" Tag="Diagnostics" Icon="ReportHacked" />
             </NavigationView.MenuItems>
         </NavigationView>
 
-        <InfoBar x:Name="RuntimeStatusBar" x:Uid="RuntimeStatusBar" Grid.Row="2" IsOpen="True" IsClosable="False" Severity="Informational">
+        <InfoBar x:Name="RuntimeStatusBar" x:Uid="RuntimeStatusBar" Grid.Row="2" IsOpen="True" IsClosable="False" Severity="Informational" AutomationProperties.LiveSetting="Polite">
             <InfoBar.ActionButton>
                 <Button x:Name="RetryRuntimeButton" Click="RetryRuntime_Click">
                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -90,12 +98,14 @@
         </InfoBar>
 
         <ScrollViewer Grid.Row="3">
-            <Grid ColumnSpacing="16" RowSpacing="16">
+            <Grid x:Name="ContentGrid" ColumnSpacing="16" RowSpacing="16">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.1*" />
-                    <ColumnDefinition Width="0.9*" />
+                    <ColumnDefinition x:Name="ContentPrimaryColumn" Width="1.1*" />
+                    <ColumnDefinition x:Name="ContentSecondaryColumn" Width="0.9*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -184,6 +194,24 @@
                         <TextBlock x:Uid="ProcessHeader" Text="Process" FontSize="20" FontWeight="SemiBold" />
                         <ListView x:Name="StepsList" x:Uid="StepsList" Header="Steps" MaxHeight="220" />
                         <ListView x:Name="ResolversList" x:Uid="ResolversList" Header="Resolvers" MaxHeight="220" />
+                        <StackPanel Spacing="8">
+                            <TextBlock x:Uid="RecommendationReportHeader" Text="Recommendation" FontWeight="SemiBold" />
+                            <TextBlock x:Name="RecommendationSummaryText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="RecommendationLineText" TextWrapping="Wrap" FontSize="16" FontWeight="SemiBold" />
+                            <ListView x:Name="RecommendationResolversList" x:Uid="RecommendationResolversList" Header="Resolver metrics" MaxHeight="140" />
+                            <ListView x:Name="RecommendationNotesList" x:Uid="RecommendationNotesList" Header="Notes" MaxHeight="120" />
+                            <Expander x:Name="AdvancedDiagnosticsExpander" x:Uid="AdvancedDiagnosticsExpander" Header="Advanced diagnostics">
+                                <StackPanel Spacing="8">
+                                    <TextBox x:Name="DiagnosticsBox" x:Uid="DiagnosticsBox" Header="Report" IsReadOnly="True" TextWrapping="Wrap" MinHeight="160" />
+                                    <Button Click="CopyDiagnostics_Click" AutomationProperties.Name="Copy technical report" AutomationProperties.AutomationId="CopyDiagnosticsButton">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Copy" />
+                                            <TextBlock x:Uid="CopyDiagnosticsText" Text="Copy report" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -215,7 +243,7 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="1" Grid.Column="1" RowSpacing="16">
+                <Grid x:Name="ProfilesSection" Grid.Row="1" Grid.Column="1" RowSpacing="16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -306,47 +334,34 @@
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="DiagnosticsSection" Grid.Row="2" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                        <StackPanel Spacing="12">
-                            <TextBlock x:Uid="DiagnosticsHeader" Text="Diagnostics" FontSize="20" FontWeight="SemiBold" />
-                            <ListView x:Name="HistoryList" x:Uid="HistoryList" Header="History" MaxHeight="160" />
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button x:Name="RefreshStorageButton" Click="RefreshStorage_Click">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <SymbolIcon Symbol="Refresh" />
-                                        <TextBlock x:Uid="RefreshStorageText" Text="Refresh" />
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="ClearHistoryButton" Click="ClearHistory_Click">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <SymbolIcon Symbol="Delete" />
-                                        <TextBlock x:Uid="ClearHistoryText" Text="Clear history" />
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="DeleteHistoryButton" Click="DeleteHistory_Click">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <SymbolIcon Symbol="Remove" />
-                                        <TextBlock x:Uid="DeleteSelectedHistoryText" Text="Delete selected" />
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                            <StackPanel Spacing="8">
-                                <TextBlock x:Uid="RecommendationReportHeader" Text="Recommendation" FontWeight="SemiBold" />
-                                <TextBlock x:Name="RecommendationSummaryText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock x:Name="RecommendationLineText" TextWrapping="Wrap" FontSize="16" FontWeight="SemiBold" />
-                                <ListView x:Name="RecommendationResolversList" x:Uid="RecommendationResolversList" Header="Resolver metrics" MaxHeight="140" />
-                                <ListView x:Name="RecommendationNotesList" x:Uid="RecommendationNotesList" Header="Notes" MaxHeight="120" />
-                            </StackPanel>
-                            <TextBox x:Name="DiagnosticsBox" x:Uid="DiagnosticsBox" Header="Report" IsReadOnly="True" TextWrapping="Wrap" MinHeight="160" />
-                            <Button Click="CopyDiagnostics_Click">
+                </Grid>
+
+                <Border x:Name="HistorySection" Grid.Row="1" Grid.Column="1" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Visibility="Collapsed">
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Uid="HistoryHeader" Text="History" FontSize="20" FontWeight="SemiBold" />
+                        <ListView x:Name="HistoryList" x:Uid="HistoryList" Header="Saved checks" MaxHeight="320" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="RefreshStorageButton" Click="RefreshStorage_Click" AutomationProperties.Name="Refresh history">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <SymbolIcon Symbol="Copy" />
-                                    <TextBlock x:Uid="CopyDiagnosticsText" Text="Copy report" />
+                                    <SymbolIcon Symbol="Refresh" />
+                                    <TextBlock x:Uid="RefreshStorageText" Text="Refresh" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="ClearHistoryButton" Click="ClearHistory_Click" AutomationProperties.Name="Clear history">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Delete" />
+                                    <TextBlock x:Uid="ClearHistoryText" Text="Clear history" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="DeleteHistoryButton" Click="DeleteHistory_Click" AutomationProperties.Name="Delete selected history">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <SymbolIcon Symbol="Remove" />
+                                    <TextBlock x:Uid="DeleteSelectedHistoryText" Text="Delete selected" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
-                    </Border>
-                </Grid>
+                    </StackPanel>
+                </Border>
             </Grid>
         </ScrollViewer>
     </Grid>

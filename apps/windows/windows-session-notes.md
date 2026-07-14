@@ -26,6 +26,11 @@
   contracts independently, maps missing helper/malformed payload/unsupported
   schema/process/storage failures to recoverable EN/VI status, creates the
   local storage parent on first run, and gates only affected surfaces.
+- The consumer shell now implements the shared reference navigation: Check DNS,
+  Profiles, and History. Apply/recommendation remain in Check DNS, suites stay in
+  Profiles, and technical reports move behind Advanced diagnostics. Root-grid
+  size changes drive compact/wide stacking; static contracts cover keyboard and
+  Narrator metadata pending Windows-host proof.
 
 ## Context
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
@@ -69,8 +74,8 @@
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
 - Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
-- Milestone 0 is automated-complete. Start the next engineering session at
-  Milestone 1 in `windows-predevelopment-review.md`; use TDD and commit each
+- Milestones 0 and 1 are automated-complete. Start the next engineering session at
+  Milestone 2 in `windows-predevelopment-review.md`; use TDD and commit each
   verified milestone.
 - Root `STATE.md` and `TODO.md` are stale relative to Windows commit `bad68e1f`.
   Refresh them from an integration/docs lane; do not widen Windows ownership.
