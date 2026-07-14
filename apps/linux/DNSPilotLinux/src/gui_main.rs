@@ -84,6 +84,8 @@ struct DnsPilotGui {
     language_preference_path: PathBuf,
     settings_profile_id: String,
     settings_output: String,
+    pending_history_delete: Option<String>,
+    confirm_history_clear: bool,
 }
 
 impl DnsPilotGui {
@@ -137,6 +139,8 @@ impl DnsPilotGui {
             language_preference_path,
             settings_profile_id,
             settings_output: String::new(),
+            pending_history_delete: None,
+            confirm_history_clear: false,
         }
     }
 
@@ -749,6 +753,28 @@ impl DnsPilotGui {
 
     fn history_ui(&mut self, ui: &mut egui::Ui) {
         ui.heading(localized_text(TextKey::History, self.language));
+        if ui.button("Clear history").clicked() {
+            self.confirm_history_clear = true;
+        }
+        if self.confirm_history_clear {
+            ui.horizontal(|ui| {
+                ui.label("Clear all saved history?");
+                if ui.button("Confirm clear").clicked() {
+                    match self.core_adapter().and_then(|mut adapter| {
+                        adapter
+                            .clear_history()
+                            .map_err(|error| format!("{error:?}"))
+                    }) {
+                        Ok(()) => self.status = "History cleared".to_string(),
+                        Err(error) => self.status = format!("Could not clear history: {error}"),
+                    }
+                    self.confirm_history_clear = false;
+                }
+                if ui.button("Cancel").clicked() {
+                    self.confirm_history_clear = false;
+                }
+            });
+        }
         match self
             .core_adapter()
             .and_then(|mut adapter| adapter.load_history().map_err(|error| format!("{error:?}")))
@@ -763,6 +789,7 @@ impl DnsPilotGui {
                         ui.strong("Started");
                         ui.strong("Resolvers");
                         ui.strong("Recommendation");
+                        ui.strong("Action");
                         ui.end_row();
                         for record in history.into_iter().rev() {
                             ui.label(record.started_at);
@@ -772,6 +799,9 @@ impl DnsPilotGui {
                                     .recommendation_profile_id
                                     .unwrap_or_else(|| "Keep current".to_string()),
                             );
+                            if ui.button("Delete").clicked() {
+                                self.pending_history_delete = Some(record.id);
+                            }
                             ui.end_row();
                         }
                     });
@@ -779,6 +809,25 @@ impl DnsPilotGui {
             Err(error) => {
                 ui.label(format!("Could not load history: {error}"));
             }
+        }
+        if let Some(history_id) = self.pending_history_delete.clone() {
+            ui.horizontal(|ui| {
+                ui.label(format!("Delete history {history_id}?"));
+                if ui.button("Confirm delete").clicked() {
+                    match self.core_adapter().and_then(|mut adapter| {
+                        adapter
+                            .delete_history(&history_id)
+                            .map_err(|error| format!("{error:?}"))
+                    }) {
+                        Ok(()) => self.status = "History entry deleted".to_string(),
+                        Err(error) => self.status = format!("Could not delete history: {error}"),
+                    }
+                    self.pending_history_delete = None;
+                }
+                if ui.button("Cancel").clicked() {
+                    self.pending_history_delete = None;
+                }
+            });
         }
     }
 

@@ -71,6 +71,8 @@ fail-closed until its D-Bus/polkit/exact-rollback design and real Linux QA are c
 - Milestone 3 consumer navigation, DNS-only Quick Check, History surface, and persisted
   System/English/Vietnamese preferences: pass. GUI module extraction and full localized
   view coverage continue with the remaining consumer workflow work.
+- Core-backed history delete/clear now require explicit UI confirmation; Core adapter
+  support for custom suite add/update/delete is covered by contract tests.
 - `cargo fmt --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --check`: pass.
 - `cargo test --manifest-path apps/linux/DNSPilotLinux/Cargo.toml`: pass.
 - `cargo clippy --manifest-path apps/linux/DNSPilotLinux/Cargo.toml -- -D warnings`: pass.

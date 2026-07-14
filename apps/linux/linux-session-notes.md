@@ -35,6 +35,8 @@
 - Consumer navigation is now limited to Check DNS, Profiles, and History. Settings and
   Help stay in the top command surface; Quick Check defaults to DNS-only; user locale
   preference is persisted as System/English/Vietnamese.
+- Destructive history actions require explicit confirmation and call Core CLI storage;
+  suite CRUD commands are now available in the Linux Core adapter for the next UI slice.
 
 ## Open Questions
 - `eframe/egui` is the current Linux app stack for this lane; GTK4/libadwaita

@@ -351,8 +351,77 @@ impl<R: CoreCliCommandRunner> CoreCliAdapter<R> {
             .map(|_| ())
     }
 
+    pub fn save_suite(
+        &mut self,
+        suite: &CoreSuite,
+        update: bool,
+    ) -> Result<(), CoreCliAdapterError> {
+        self.ensure_database_parent()?;
+        let mut args = vec![
+            if update { "suite-update" } else { "suite-add" }.to_string(),
+            "--db".to_string(),
+            self.database_path_string(),
+            "--id".to_string(),
+            suite.id.clone(),
+            "--name".to_string(),
+            suite.name.clone(),
+        ];
+        for domain in &suite.domains {
+            args.push("--domain".to_string());
+            args.push(domain.clone());
+        }
+        for tag in &suite.tags {
+            args.push("--tag".to_string());
+            args.push(tag.clone());
+        }
+        self.runner.run(&self.program, &args).map(|_| ())
+    }
+
+    pub fn delete_suite(&mut self, suite_id: &str) -> Result<(), CoreCliAdapterError> {
+        self.database_command("suite-delete", "--id", suite_id)
+    }
+
+    pub fn delete_history(&mut self, history_id: &str) -> Result<(), CoreCliAdapterError> {
+        self.database_command("history-delete", "--id", history_id)
+    }
+
+    pub fn clear_history(&mut self) -> Result<(), CoreCliAdapterError> {
+        self.ensure_database_parent()?;
+        self.runner
+            .run(
+                &self.program,
+                &[
+                    "history-clear".to_string(),
+                    "--db".to_string(),
+                    self.database_path_string(),
+                ],
+            )
+            .map(|_| ())
+    }
+
     fn add_plain_profile(&mut self, profile: &PlainDnsProfile) -> Result<(), CoreCliAdapterError> {
         self.write_plain_profile(profile, "profile-add")
+    }
+
+    fn database_command(
+        &mut self,
+        command: &str,
+        option: &str,
+        value: &str,
+    ) -> Result<(), CoreCliAdapterError> {
+        self.ensure_database_parent()?;
+        self.runner
+            .run(
+                &self.program,
+                &[
+                    command.to_string(),
+                    "--db".to_string(),
+                    self.database_path_string(),
+                    option.to_string(),
+                    value.to_string(),
+                ],
+            )
+            .map(|_| ())
     }
 
     fn write_plain_profile(

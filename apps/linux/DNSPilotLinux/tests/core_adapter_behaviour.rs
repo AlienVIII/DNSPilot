@@ -107,6 +107,35 @@ fn core_profile_load_creates_the_xdg_database_parent_before_invoking_cli() {
 }
 
 #[test]
+fn core_adapter_writes_custom_suites_and_history_commands_through_core_cli() {
+    let root = temp_path("core-adapter-suite-history");
+    let paths = LinuxDataPaths::from_data_home(root);
+    let mut adapter = CoreCliAdapter::new(
+        "dnspilot-cli",
+        paths.core_database_path(),
+        RecordingRunner::default(),
+    );
+    let suite = dnspilot_linux_shell::core_adapter::CoreSuite {
+        id: "custom".to_string(),
+        name: "Custom".to_string(),
+        description: String::new(),
+        domains: vec!["example.com".to_string()],
+        tags: vec!["custom".to_string()],
+    };
+
+    adapter.save_suite(&suite, false).unwrap();
+    adapter.delete_suite("custom").unwrap();
+    adapter.delete_history("run-1").unwrap();
+    adapter.clear_history().unwrap();
+
+    let commands = &adapter.runner().commands;
+    assert!(commands.iter().any(|args| args[0] == "suite-add"));
+    assert!(commands.iter().any(|args| args[0] == "suite-delete"));
+    assert!(commands.iter().any(|args| args[0] == "history-delete"));
+    assert!(commands.iter().any(|args| args[0] == "history-clear"));
+}
+
+#[test]
 fn core_adapter_decodes_history_policy_apply_plan_and_benchmark_contracts() {
     let root = temp_path("core-adapter-contracts");
     let paths = LinuxDataPaths::from_data_home(root);
