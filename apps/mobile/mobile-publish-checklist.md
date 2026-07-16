@@ -8,9 +8,9 @@
 - Shared UX/provider gate references: `docs/ux-copy-onboarding.md` and
   `docs/os-provider-trust.md`.
 - Local Android debug smoke passes. iOS Simulator build/install/launch smoke
-  passes with Xcode 26.6 and an iOS 26.5 runtime. The app is on Expo SDK 57 /
+  passes with Xcode 26.6 and an iOS 26.5 runtime. The app is on Expo SDK 57.0.6 /
   React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26.
+  `expo-modules-jsi@57.0.3` Swift compatibility patch for Xcode 26.
 - EAS development builds include `expo-dev-client`; use `npm run
   start:dev-client` after installing the build on a device. Production/preview
   profiles exclude dev-client/dev-menu modules during Expo config and native
@@ -94,11 +94,13 @@
    xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build
    npx expo prebuild --platform android --no-install
    ./android/gradlew -p android assembleDebug
-   EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install
-   EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest
-   rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true
+   npm run preflight:release
    ```
-   The final `rg` command should print no matches.
+   This command forces the production environment through Expo and Gradle,
+   verifies Store/opt-in iOS config isolation, produces an Android AAB, and
+   rejects dev-client/VPN/overlay/storage capability leakage from the merged
+   release manifest. Do not run a Gradle release task without both
+   `EAS_BUILD_PROFILE=production` and `DNSPILOT_PRODUCTION_BUILD=1`.
 2. Install and login:
    ```bash
    npm install --global eas-cli

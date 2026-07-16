@@ -39,6 +39,8 @@ test("production Podfile patch excludes Expo dev-client modules before use_expo_
 
   assert.match(output, /EAS_BUILD_PROFILE/);
   assert.match(output, /expo-dev-client/);
+  assert.match(output, /dns-settings/);
+  assert.match(output, /DNSPILOT_IOS_DNS_SETTINGS/);
   assert.match(output, /use_expo_modules!\(dnspilot_expo_autolinking_options\)/);
   assert.ok(output.indexOf("dnspilot_expo_autolinking_options") < output.indexOf("use_expo_modules!"));
 });

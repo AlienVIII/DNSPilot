@@ -38,7 +38,7 @@
   ID/version code, EN/VI supported locales, development-only iOS Local Network
   text for bridge fallback, Android normal network permissions, and EAS build profiles.
 - Native build smoke: covered by local Android `assembleDebug`; the app is on
-  Expo SDK 57 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.1` Swift
+  Expo SDK 57.0.6 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.3` Swift
   compatibility patch for Xcode 26. iOS Simulator Debug and production Release
   build/install/launch smoke pass with Xcode 26.6 and an iOS 26.5 runtime.
 - Native release surface: covered for Android production manifests by excluding
@@ -125,12 +125,12 @@
 - `npx expo-doctor@latest`
 - `npm run start:dev-client`
 - `npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache`
-- `npx expo prebuild --clean --platform ios && xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
-- `EAS_BUILD_PROFILE=production xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Release -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
+- `npx expo prebuild --clean --platform ios && npx pod-install --project-root ios && xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
+- `EAS_BUILD_PROFILE=production DNSPILOT_PRODUCTION_BUILD=1 npx expo prebuild --clean --platform ios --no-install && npx pod-install --project-root ios && EAS_BUILD_PROFILE=production DNSPILOT_PRODUCTION_BUILD=1 xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Release -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
 - `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`
-- `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install && EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest`
-- `EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:assembleRelease`
-- `rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true`
+- `npm run preflight:release` (forces Store build environment, validates the
+  default/opt-in iOS config split, emits a local Android AAB, and rejects
+  dev-client/VPN/overlay/storage leakage in the merged manifest)
 - `npm test`
 - `npm run typecheck`
 - `npm run verify:router` (fails on unresolved Expo Router route warnings)

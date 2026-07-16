@@ -45,7 +45,7 @@ npx expo install --check
 ```
 
 `npm install` runs `patch-package` and reapplies the current
-`expo-modules-jsi@57.0.1` Xcode 26 compatibility patch.
+`expo-modules-jsi@57.0.3` Xcode 26 compatibility patch.
 
 After Expo SDK changes, prefer Expo's resolver instead of hand-pinning native
 packages:
@@ -113,14 +113,16 @@ npm run native:prepare:android
 Production Android release-surface check:
 
 ```bash
-EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install
-EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest
-rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true
+npm run preflight:release
 ```
 
-The final `rg` command should print no matches. Re-run the default development
-prebuild before local dev-client Android work if the ignored native project was
-last generated with a production profile.
+`preflight:release` is the Store gate. It verifies the default and opt-in iOS
+configs, generates Android with the production environment forced, builds the
+release AAB, and rejects dev-client/VPN/overlay/storage capability leakage from
+the merged manifest. Do not invoke Gradle release tasks without
+`EAS_BUILD_PROFILE=production` and `DNSPILOT_PRODUCTION_BUILD=1`. Re-run the
+default development prebuild before local dev-client Android work if the ignored
+native project was last generated with a production profile.
 
 The iOS Simulator command requires a Simulator runtime matching the selected
 Xcode SDK. With Xcode 26.6, use an iOS 26.5 Simulator such as `iPhone 17e`.

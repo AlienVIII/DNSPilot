@@ -6,6 +6,7 @@ const DEV_CLIENT_PACKAGES = [
   "expo-dev-menu",
   "expo-dev-menu-interface",
 ];
+const IOS_DNS_SETTINGS_PACKAGE = "dns-settings";
 
 const SETTINGS_MARKER = "// DNSPILOT_PRODUCTION_AUTOLINKING";
 const PODFILE_MARKER = "# DNSPILOT_PRODUCTION_AUTOLINKING";
@@ -49,9 +50,12 @@ function patchPodfile(contents) {
     `  ${PODFILE_MARKER}`,
     "  dnspilot_build_profile = ENV['EAS_BUILD_PROFILE'] || ''",
     "  dnspilot_production_build = ENV['DNSPILOT_PRODUCTION_BUILD'] == '1'",
+    "  dnspilot_ios_dns_settings = ENV['DNSPILOT_IOS_DNS_SETTINGS'] == '1' || dnspilot_build_profile == 'production-ios-dns'",
     "  dnspilot_exclude_dev_client = dnspilot_production_build || (dnspilot_build_profile != '' && dnspilot_build_profile != 'development')",
     `  dnspilot_dev_client_packages = ${rubyStringList(DEV_CLIENT_PACKAGES)}`,
-    "  dnspilot_expo_autolinking_options = dnspilot_exclude_dev_client ? { exclude: dnspilot_dev_client_packages } : {}",
+    `  dnspilot_expo_excluded_packages = dnspilot_exclude_dev_client ? dnspilot_dev_client_packages.dup : []`,
+    `  dnspilot_expo_excluded_packages << "${IOS_DNS_SETTINGS_PACKAGE}" unless dnspilot_ios_dns_settings`,
+    "  dnspilot_expo_autolinking_options = dnspilot_expo_excluded_packages.empty? ? {} : { exclude: dnspilot_expo_excluded_packages }",
     "  use_expo_modules!(dnspilot_expo_autolinking_options)",
   ].join("\n");
 

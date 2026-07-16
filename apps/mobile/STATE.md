@@ -1,6 +1,6 @@
 # DNSPilot Mobile State
 
-Last updated: 2026-07-14.
+Last updated: 2026-07-16.
 
 ## Current Truth
 
@@ -29,18 +29,22 @@ Last updated: 2026-07-14.
 
 ## Latest Validation
 
-- `npm run verify`: pass on commit `5a49a2b`; 89 tests, TypeScript, Expo Router
-  export gate, dependency alignment, and high-severity audit threshold pass.
+- `npm run verify`: pass on the current lane; 95 tests, TypeScript, Expo Router
+  export gate, Expo SDK 57.0.6 dependency alignment, and high-severity audit threshold pass.
   Expo tooling still reports 11 moderate `uuid` findings; its force fix would
   downgrade Expo and is intentionally not applied.
 - Production config assertions: pass. Default `production` omits the iOS DNS
   Settings plugin and flag; `production-ios-dns` alone enables both.
-- iOS Simulator: current Release bundle built, installed, and launched on
-  iPhone 17e / iOS 26.5. First launch showed the title-first tutorial and the
-  header Help icon; no permission sheet appeared.
-- Android: prior production `assembleRelease` and merged-manifest checks pass.
-  The release manifest has no dev-client, overlay, storage, VPN, or silent DNS
-  mutation capability. A signed physical Android device is `NOT RUN`.
+- iOS Simulator: clean production prebuild, CocoaPods graph, Release bundle,
+  install, and launch pass on iPhone 17e / iOS 26.5. The default pod graph has
+  no DNSSettings module; the opt-in graph installs it, and restoring production
+  removes it again. The default public config has no DNS Settings entitlement;
+  no permission sheet appeared at launch.
+- Android: `npm run preflight:release` builds an unsigned local Store AAB with
+  the production environment forced, checks the default/opt-in iOS config
+  split, and rejects dev-client, overlay, storage, VPN, or silent DNS mutation
+  capability in the merged manifest. A signed physical Android device is
+  `NOT RUN`.
 
 ## Manual Release Gates
 
