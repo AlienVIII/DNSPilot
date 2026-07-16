@@ -7,10 +7,12 @@ approach is selective parity plus release proof: keep the existing CLI boundary,
 port proven consumer UX and resilience patterns, and make the toolbar flow fully
 Store-viable even when tray integration is unavailable.
 
-The current baseline is Windows commit `bad68e1f`. It already covers the scoped
-benchmark modes, progress and diagnostics, profiles, suites, history, guided
-Settings handoff, localization, tray models, and MSIX scaffolding. The remaining
-engineering work is product hardening, not a second shell implementation.
+The implementation baseline is Windows commit `c3aa69c`; release-evidence docs
+are in `a8216c0`. They cover the scoped benchmark modes, progress and
+diagnostics, profiles, suites, history, guided Settings handoff, localization,
+tray models, runtime readiness, cancellation, result safety, preferences, and
+MSIX scaffolding. The remaining work is Windows-host release proof, not a second
+shell implementation.
 
 This review is the source of truth for the next Windows development milestones.
 It does not authorize Power-edition or privileged DNS mutation work.
@@ -38,12 +40,20 @@ Evidence sources:
 - Mobile commits `7cfb9b4`, `79df2e2`, `1ca726f`, `ab2d735`, and
   `2d46749`, plus `apps/mobile/mobile-progress.md` and
   `apps/mobile/mobile-readiness.md`.
-- Windows commit `bad68e1f`, the 40 core/view-model tests, and
+- Windows commits `c3aa69c` and `a8216c0`, the 64 core/static tests, and
   `apps/windows/validate-windows-lane.sh`.
 
 Evidence is intentionally asymmetric. Mobile does not prove streaming native
 progress better than Windows, and Windows already has persisted first-run Help.
 Those implementations should not be replaced.
+
+## Status Update: 2026-07-16
+
+Milestones 0-4 are automated-complete. The table and findings above preserve
+the pre-implementation evidence that selected their scope; they are not a claim
+that those behavior gaps remain. Milestone 5 has all safe automation and release
+artifacts prepared. Windows-host WinUI/MSIX/tray/accessibility proof, signing,
+Partner Center, and public hosting remain external manual gates.
 
 ## Principal Findings
 
@@ -297,7 +307,8 @@ not pause implementation.
 
 ## Definition Of Ready
 
-- Baseline is `bad68e1f`; no milestone reimplements its completed flows.
+- Baseline is `c3aa69c`; no future milestone reimplements completed Store-safe
+  consumer flows.
 - Each behavior milestone starts with RED view-model/process-boundary tests.
 - Core dependencies are recorded in `windows-core-cli-request.md`; Windows does
   not edit Core to bypass lane ownership.
@@ -306,11 +317,10 @@ not pause implementation.
   accessibility expectations, and failure states have acceptance criteria above.
 - Manual Windows/signing/Store gates are isolated in Milestone 5 and do not block
   implementation.
-- Direct NuGet dependencies are current and no vulnerable direct/transitive
-  packages were reported on 2026-07-13. Transitive updates are not force-pinned;
-  they should arrive through tested parent package upgrades.
-- Root `STATE.md` and `TODO.md` still describe the pre-`bad68e1f` Windows lane;
+- Direct NuGet dependencies reported no available updates on 2026-07-16.
+  Transitive updates are not force-pinned; they should arrive through tested
+  parent package upgrades and Windows-host build evidence.
+- Root `STATE.md` and `TODO.md` still describe the pre-`a8216c0` Windows lane;
   their integration owner should refresh them after this Windows-only milestone.
 
-The next engineering session starts with Milestone 0 only, then completes and
-commits each verified milestone before moving forward.
+The next engineering session starts with Windows-host Milestone 5 evidence only.

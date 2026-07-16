@@ -106,6 +106,16 @@ dotnet build apps\windows\DNSPilotWindows\DNSPilotWindows.WinUI.slnx -c Release 
 Follow `windows-qa.md` for real-device QA and `windows-publish.md` for Partner
 Center, signing, privacy, Store listing, and restricted capability notes.
 
+Partner Center reviewer notes, screenshot requirements, and deployable support/
+privacy templates live in `PartnerCenter/`. Render the public pages only after a
+support email and HTTPS URL exist:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps\windows\Build-PartnerCenterSite.ps1 `
+  -SupportEmail "support@example.com" `
+  -SiteUrl "https://example.com/dns-pilot"
+```
+
 ## Package Updates
 
 Check Windows NuGet package drift from the repository root:

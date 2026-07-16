@@ -50,6 +50,11 @@ template are present. No Windows host, signing identity, Partner Center account,
 or hosted public URL is available in this lane, so package/device/submission
 evidence remains explicitly manual.
 
+Windows publishing docs now match the macOS evidence depth: `PartnerCenter/`
+contains a reviewer walkthrough, signed-screenshot plan, public support/privacy
+sources, and a safe PowerShell renderer for generated static pages. Hosting and
+Partner Center changes remain deliberate external actions.
+
 ## Requirement Coverage
 
 - `.NET` solution under `apps/windows/DNSPilotWindows` with
@@ -143,6 +148,7 @@ evidence remains explicitly manual.
   `apps/windows/windows-predevelopment-review.md`.
 - Critique and Store risk: `apps/windows/windows-self-review.md`.
 - Publish steps: `apps/windows/windows-publish.md`.
+- Partner Center review/site sources: `apps/windows/PartnerCenter/README.md`.
 - Privacy/listing source: `apps/windows/windows-privacy.md` and
   `apps/windows/windows-store-listing.md`.
 - Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.

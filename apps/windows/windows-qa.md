@@ -4,6 +4,11 @@ Record this checklist's results in
 `apps/windows/windows-release-evidence-template.md`; do not mark a release
 ready from a checklist without package hash and Windows-host evidence.
 
+Capture the required signed Store-safe screenshots using
+`apps/windows/PartnerCenter/ScreenshotPlan.md`, then attach their paths to the
+release evidence record. Do not capture private resolver addresses or Power/admin
+surfaces.
+
 ## Automated Validation Run on macOS
 - `bash apps/windows/validate-windows-lane.sh`
 - `dotnet build apps/windows/DNSPilotWindows/tests/DNSPilotWindows.Core.Tests/DNSPilotWindows.Core.Tests.csproj`

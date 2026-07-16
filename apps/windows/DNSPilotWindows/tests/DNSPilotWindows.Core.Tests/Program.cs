@@ -67,6 +67,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows app persists catalog-safe preferences and exposes capability status", WindowsAppPersistsPreferencesAndCapabilities);
         Run("macOS validation only tolerates the Windows-only XAML compiler failure", MacOsValidationOnlyToleratesWindowsXamlCompilerFailure);
         Run("Windows publish docs include privacy, listing, and certification copy", WindowsPublishDocsIncludePrivacyListingAndCertificationCopy);
+        Run("Windows Partner Center artifacts cover review, screenshots, and hosted support", WindowsPartnerCenterArtifactsCoverReleaseEvidence);
         Run("Windows README documents install, run, validation, and package steps", WindowsReadmeDocumentsInstallRunValidationAndPackageSteps);
         Run("Windows dynamic shell text follows current UI culture", WindowsDynamicShellTextFollowsCurrentUiCulture);
         Run("Runtime readiness blocks every surface when the helper is missing", RuntimeReadinessBlocksMissingHelper);
@@ -1923,6 +1924,32 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("dotnet list apps\\windows\\DNSPilotWindows\\app\\DNSPilotWindows.App\\DNSPilotWindows.App.csproj package --outdated", readme);
         Assert.Contains("no UAC prompt", readme);
         Assert.Contains("no silent DNS mutation", readme);
+    }
+
+    private static void WindowsPartnerCenterArtifactsCoverReleaseEvidence()
+    {
+        var repoRoot = FindRepoRoot();
+        var partnerRoot = Path.Combine(repoRoot, "apps", "windows", "PartnerCenter");
+        var guide = File.ReadAllText(Path.Combine(partnerRoot, "README.md"));
+        var screenshots = File.ReadAllText(Path.Combine(partnerRoot, "ScreenshotPlan.md"));
+        var support = File.ReadAllText(Path.Combine(partnerRoot, "SupportPage.md"));
+        var privacy = File.ReadAllText(Path.Combine(partnerRoot, "PrivacyPolicy.md"));
+        var site = Path.Combine(partnerRoot, "site");
+        var builder = File.ReadAllText(Path.Combine(repoRoot, "apps", "windows", "Build-PartnerCenterSite.ps1"));
+
+        Assert.Contains("Partner Center Review Notes", guide);
+        Assert.Contains("Review walkthrough", guide);
+        Assert.Contains("runFullTrust", guide);
+        Assert.Contains("01-check-dns.png", screenshots);
+        Assert.Contains("Apply in Windows Settings", screenshots);
+        Assert.Contains("does not silently change Windows DNS", support);
+        Assert.Contains("does not collect personal data", privacy);
+        Assert.True(File.Exists(Path.Combine(site, "index.html.template")), "Expected a deployable Windows support template.");
+        Assert.True(File.Exists(Path.Combine(site, "privacy.html.template")), "Expected a deployable Windows privacy template.");
+        Assert.True(File.Exists(Path.Combine(site, "styles.css")), "Expected shared public site CSS.");
+        Assert.Contains("SupportEmail", builder);
+        Assert.Contains("SiteUrl", builder);
+        Assert.Contains("Template placeholders remain", builder);
     }
 
     private static string FindRepoRoot()

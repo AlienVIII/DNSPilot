@@ -100,6 +100,10 @@
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
 - Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
+- Windows now has macOS-equivalent `PartnerCenter/` reviewer notes, screenshot
+  plan, support/privacy sources, and `Build-PartnerCenterSite.ps1` for generated
+  public pages. The script is local-only and requires an explicit support email
+  plus HTTPS URL; hosting remains a manual release gate.
 - Milestones 0 through 4 are automated-complete. Milestone 5 is Windows-host
   release evidence only; continue automated checks while collecting its manual
   QA, signing, Partner Center, and hosted-URL gates in one final report.
@@ -107,5 +111,6 @@
   the runtime catalog, catalog-tag Default/Vietnam quick picks, diagnostics
   capability rows, and privacy-safe report redaction. Windows-host QA must prove
   packaged persistence, restart language behavior, and visual rendering.
-- Root `STATE.md` and `TODO.md` are stale relative to Windows commit `bad68e1f`.
+- Root `STATE.md` and `TODO.md` are stale relative to Windows commits `c3aa69c`
+  and `a8216c0`.
   Refresh them from an integration/docs lane; do not widen Windows ownership.
