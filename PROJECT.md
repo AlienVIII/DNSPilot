@@ -143,8 +143,10 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
   `en.lproj` and `vi.lproj`, with a locale-aware facade. Keep one app-language
   preference (`System`, English, Vietnamese), resolve `System` from macOS, and
   localize non-view strings through the same explicit locale. Shared Core emits
-  structured issue IDs and raw technical details, never localized prose. Do not show
-  two languages in one user-facing tooltip.
+  structured states and raw technical details, never localized prose. macOS renders
+  structured benchmark/result/history state through the locale facade and keeps raw
+  CLI evidence inside an explicit Technical details disclosure. Do not show two
+  languages in one user-facing tooltip.
 - **Reason:** one locale produces one coherent UI without a package/runtime mismatch;
   an Xcode String Catalog remains a future tooling migration, not a second source of
   truth today.

@@ -13,7 +13,9 @@ Last updated: 2026-07-14.
   packaging, and localization gates pass. Presentation copy is centralized in native
   `en.lproj`/`vi.lproj` `Localizable.strings`; `System` resolves macOS preferences,
   tooltips render one active language, Store-safe Settings hide Power-only controls,
-  and the Benchmark Options row has full keyboard/VoiceOver button semantics.
+  and the Benchmark Options row has full keyboard/VoiceOver button semantics. Result,
+  history, progress, Apply, and built-in target labels are rendered from structured
+  state, while raw CLI notes stay inside Technical details.
 - Linux committed packaging, settings, planning, and lane docs are integrated. The
   app remains an engineering shell; its native execute prototype is present for
   development only and is not releasable until fail-closed privilege and exact
@@ -48,6 +50,10 @@ decision journey and evidence, not identical platform features.
   checks pass; clean EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver capture
   remains a manual release gate in
   `docs/research/2026-07-14-macos-localization-interaction-review.md`.
+- macOS current lane: `./script/ci_macos.sh` and
+  `./script/preflight_macos_release.sh --include-power` pass after semantic EN/VI
+  result/history localization. Local AX smoke verifies one main window and a completed
+  Vietnamese in-app DNS-only run with progress and recommendation.
 
 ## Manual Release Gates
 

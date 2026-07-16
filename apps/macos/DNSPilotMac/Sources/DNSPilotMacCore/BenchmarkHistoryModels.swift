@@ -78,6 +78,13 @@ public struct BenchmarkHistoryViewModel: Equatable {
 
 public struct BenchmarkHistoryRow: Equatable, Identifiable {
     public let id: String
+    public let scope: BenchmarkMeasurementScope
+    public let health: BenchmarkHealth
+    public let domains: [String]
+    public let resolverCount: Int
+    public let canRecommend: Bool
+    public let keepsCurrentDNS: Bool
+    public let recommendedProfileName: String?
     public let title: String
     public let domainSummary: String
     public let resolverSummary: String
@@ -87,18 +94,26 @@ public struct BenchmarkHistoryRow: Equatable, Identifiable {
 
     init(record: BenchmarkHistoryRecord, profileNames: [String: String]) {
         id = record.id
+        scope = record.scope
+        health = record.gate.health
+        domains = record.domains
+        resolverCount = record.resolverProfileIDs.count
+        canRecommend = record.gate.canRecommend
         title = Self.scopeLabel(for: record.scope)
         domainSummary = Self.summary(values: record.domains, empty: "No domains")
         resolverSummary = "\(record.resolverProfileIDs.count) resolver\(record.resolverProfileIDs.count == 1 ? "" : "s")"
         healthLabel = Self.healthLabel(for: record.gate.health)
 
         let shouldKeepCurrentDNS = Self.shouldKeepCurrentDNS(for: record)
+        keepsCurrentDNS = shouldKeepCurrentDNS
         if shouldKeepCurrentDNS {
+            recommendedProfileName = nil
             recommendationLabel = "Keep current DNS"
             applyGuidanceLabel = "Do not apply from this saved run"
         } else if record.gate.canRecommend,
                   let profileID = record.recommendationProfileID {
             let profileName = profileNames[profileID] ?? profileID
+            recommendedProfileName = profileName
             if record.gate.health == .healthy {
                 recommendationLabel = "Recommended: \(profileName)"
             } else {
@@ -106,6 +121,7 @@ public struct BenchmarkHistoryRow: Equatable, Identifiable {
             }
             applyGuidanceLabel = "Retest before applying saved recommendation"
         } else {
+            recommendedProfileName = nil
             recommendationLabel = "No recommendation"
             applyGuidanceLabel = "Run a fresh benchmark before applying DNS"
         }

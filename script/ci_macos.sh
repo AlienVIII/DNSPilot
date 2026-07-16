@@ -21,6 +21,11 @@ if rg -n 'EN:|VI:' "$ROOT_DIR/apps/macos/DNSPilotMac/Sources" --glob '*.swift'; 
   printf "UI copy must use one active locale; move bilingual tooltip text into Localizable.strings.\n" >&2
   exit 1
 fi
+if rg -n '(Text|Label|Button|DisclosureGroup)\("[A-Za-z]|\.help\("[A-Za-z]|confirmationDialog\("[A-Za-z]' \
+  "$ROOT_DIR/apps/macos/DNSPilotMac/Sources" --glob '*.swift'; then
+  printf "User-facing macOS copy must use DNSPilotLocalizer keys.\n" >&2
+  exit 1
+fi
 
 run_step "macOS sandbox bundle verification"
 "$ROOT_DIR/script/build_and_run.sh" --sandbox-verify

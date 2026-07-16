@@ -93,11 +93,35 @@ public struct BenchmarkSetupViewModel: Equatable {
         return parts.joined(separator: ", ")
     }
 
+    public func localizedRunPlanSummary(localizer: DNSPilotLocalizer) -> String {
+        let plan = plan
+        var parts = [mode.localizedLabel(localizer: localizer)]
+        if mode != .systemDNSValidation, let resolverTransportLabel = resolverTransport.localizedSummaryLabel(localizer: localizer) {
+            parts.append(resolverTransportLabel)
+        }
+        parts += [
+            recordFamily.localizedLabel(localizer: localizer),
+            localizer.formatted(.countResolvers, plan.resolverCount),
+            localizer.formatted(.countDomains, plan.domains.count),
+            localizer.formatted(.countAttempts, attempts),
+        ]
+        if mode == .connectionPathCompare {
+            parts.append(localizer.formatted(.tcpTargetsSummary, maxConnectTargetsPerDomain))
+        }
+        return parts.joined(separator: ", ")
+    }
+
     public var flushPolicySummary: String {
         if mode == .systemDNSValidation {
             return "System DNS validation should flush macOS DNS cache before testing."
         }
         return "Direct resolver test; system DNS flush is not required."
+    }
+
+    public func localizedFlushPolicySummary(localizer: DNSPilotLocalizer) -> String {
+        mode == .systemDNSValidation
+            ? localizer.text(.systemDNSFlushSummary)
+            : localizer.text(.directResolverTestSummary)
     }
 
     public var systemDNSFlushChecklistText: String? {
@@ -126,6 +150,30 @@ public struct BenchmarkSetupViewModel: Equatable {
             return nil
         }
         return "Estimated worst-case wait: about \(BenchmarkElapsedTimeFormatter.label(milliseconds: worstCaseMilliseconds)). Reduce profiles, domains, or attempts if this looks too long."
+    }
+
+    public func localizedEstimatedDurationWarning(localizer: DNSPilotLocalizer) -> String? {
+        let plan = plan
+        guard plan.validation.canRun else {
+            return nil
+        }
+        let worstCaseMilliseconds = Self.worstCaseMilliseconds(
+            resolverCount: plan.resolverCount,
+            domainCount: plan.domains.count,
+            attempts: attempts,
+            dnsTimeoutMS: dnsTimeoutMS,
+            connectTimeoutMS: connectTimeoutMS,
+            maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
+            recordFamilyCount: recordFamily.recordTypeCount,
+            mode: mode
+        )
+        guard worstCaseMilliseconds >= Self.longBenchmarkWarningThresholdMS else {
+            return nil
+        }
+        return localizer.formatted(
+            .estimatedDurationWarning,
+            BenchmarkElapsedTimeFormatter.label(milliseconds: worstCaseMilliseconds)
+        )
     }
 
     public var suiteOptions: [BenchmarkSuiteOption] {
@@ -400,6 +448,27 @@ public struct BenchmarkSuiteOption: Equatable, Identifiable {
 
     public func domainCountLabel(localizer: DNSPilotLocalizer) -> String {
         localizer.formatted(.suiteDomainCount, domainCount)
+    }
+
+    public func localizedName(localizer: DNSPilotLocalizer) -> String {
+        switch id {
+        case "general":
+            localizer.text(.targetGeneralBrowsing)
+        case "developer":
+            localizer.text(.targetDeveloper)
+        case "vietnam-daily":
+            localizer.text(.targetVietnamDaily)
+        case "gaming-steam-valve":
+            localizer.text(.targetGamingSteam)
+        case "gaming-dota2-sea":
+            localizer.text(.targetGamingDota2SEA)
+        case "gaming-cs2":
+            localizer.text(.targetGamingCS2)
+        case "gaming-riot-lol":
+            localizer.text(.targetGamingRiotLoL)
+        default:
+            name
+        }
     }
 
     public func helpText(localizer: DNSPilotLocalizer) -> String {

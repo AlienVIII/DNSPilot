@@ -8,6 +8,11 @@ import DNSPilotMacCore
 struct DNSPilotMacApp: App {
     @NSApplicationDelegateAdaptor(DNSPilotApplicationDelegate.self) private var applicationDelegate
     @StateObject private var navigation = DNSPilotNavigationModel()
+    @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
+
+    private var localizer: DNSPilotLocalizer {
+        DNSPilotLocalizer(languageCode: languageCode)
+    }
 
     var body: some Scene {
         Window("DNS Pilot", id: DNSPilotWindowID.main) {
@@ -24,7 +29,7 @@ struct DNSPilotMacApp: App {
         }
         .commands {
             CommandMenu("DNS Pilot") {
-                Button("Run Quick Test") {
+                Button(localizer.text(.runQuickTest)) {
                     navigation.requestQuickBenchmark()
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
@@ -32,25 +37,25 @@ struct DNSPilotMacApp: App {
 
                 Divider()
 
-                Button("Open Benchmark") {
+                Button(localizer.text(.openBenchmark)) {
                     navigation.selection = .benchmark
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
                 .keyboardShortcut("b", modifiers: [.command, .shift])
 
-                Button("Open Profiles") {
+                Button(localizer.text(.openProfiles)) {
                     navigation.selection = .customDNS
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
                 .keyboardShortcut("p", modifiers: [.command, .shift])
 
-                Button("Open History") {
+                Button(localizer.text(.openHistory)) {
                     navigation.selection = .history
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
 
-                Button("Show Result") {
+                Button(localizer.text(.showResult)) {
                     navigation.selection = .benchmark
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
@@ -58,17 +63,17 @@ struct DNSPilotMacApp: App {
 
                 Divider()
 
-                Button("Cancel Benchmark") {
+                Button(localizer.text(.cancelBenchmark)) {
                     navigation.requestBenchmarkCancellation()
                 }
                 .keyboardShortcut(".", modifiers: [.command])
 
-                Button("Settings...") {
+                Button(localizer.text(.settings)) {
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 }
                 .keyboardShortcut(",", modifiers: [.command])
 
-                Button("Show Setup") {
+                Button(localizer.text(.showSetup)) {
                     navigation.isShowingPermissionSetup = true
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
@@ -137,6 +142,7 @@ private struct StoreSafeGuidedApplyConfirmationModifier: ViewModifier {
 private struct StoreSafeFlushConfirmationModifier: ViewModifier {
     @Binding var isPresented: Bool
     private let guidance = StoreSafeDNSFlushGuidanceViewModel()
+    @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var powerActionAlert: PowerDNSActionAlert?
     @State private var isRunningPowerFlush = false
@@ -145,6 +151,10 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
         MacOSPowerDNSActionViewModel(
             isEnabled: MacOSPowerDNSActionConfiguration.isEnabled(userDefaultValue: userEnabledPowerActions)
         )
+    }
+
+    private var localizer: DNSPilotLocalizer {
+        DNSPilotLocalizer(languageCode: languageCode)
     }
 
     func body(content: Content) -> some View {
@@ -175,7 +185,7 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
                 Alert(
                     title: Text(alert.title),
                     message: Text(alert.message),
-                    dismissButton: .default(Text("OK"))
+                    dismissButton: .default(Text(localizer.text(.ok)))
                 )
             }
     }
@@ -184,16 +194,17 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
         guard powerActionViewModel.isEnabled else {
             return guidance.confirmation.message
         }
-        return "\(powerActionViewModel.flushConfirmationMessage)\n\nYou can still copy the manual checklist instead."
+        return "\(powerActionViewModel.flushConfirmationMessage)\n\n\(localizer.text(.manualChecklistStillAvailable))"
     }
 
     private func runPowerFlush() {
         isRunningPowerFlush = true
+        let successMessage = localizer.text(.dnsCacheFlushed)
         Task {
             let result = await Task.detached(priority: .userInitiated) { () -> (Bool, String) in
                 do {
                     try MacOSPowerDNSActionRunner.fromEnvironment().flushDNS()
-                    return (true, "macOS DNS cache was flushed.")
+                    return (true, successMessage)
                 } catch {
                     return (false, error.localizedDescription)
                 }
@@ -201,9 +212,9 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
 
             isRunningPowerFlush = false
             if result.0 {
-                powerActionAlert = PowerDNSActionAlert(title: "DNS flush complete", message: result.1)
+                powerActionAlert = PowerDNSActionAlert(title: localizer.text(.dnsFlushComplete), message: result.1)
             } else {
-                powerActionAlert = PowerDNSActionAlert(title: "DNS flush failed", message: result.1)
+                powerActionAlert = PowerDNSActionAlert(title: localizer.text(.dnsFlushFailed), message: result.1)
             }
         }
     }
@@ -212,6 +223,7 @@ private struct StoreSafeFlushConfirmationModifier: ViewModifier {
 private struct PowerDNSApplyButton: View {
     let profileName: String?
     let dnsServers: [String]
+    @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var isShowingConfirmation = false
     @State private var isShowingRestoreConfirmation = false
@@ -232,6 +244,10 @@ private struct PowerDNSApplyButton: View {
             isEnabled: powerActionViewModel.isEnabled,
             snapshot: rollbackSnapshot
         )
+    }
+
+    private var localizer: DNSPilotLocalizer {
+        DNSPilotLocalizer(languageCode: languageCode)
     }
 
     var body: some View {
@@ -261,23 +277,23 @@ private struct PowerDNSApplyButton: View {
                         }
                     }
                     .disabled(isRunningApply || isRunningRestore)
-                    .help("Restore DNS for the same active network service after macOS administrator approval.")
+                    .help(localizer.text(.restoreDNSHelp))
                 }
             }
             .confirmationDialog(
-                "Confirm Power DNS apply",
+                localizer.text(.confirmPowerDNSApply),
                 isPresented: $isShowingConfirmation,
                 titleVisibility: .visible
             ) {
                 Button(applyButtonLabel) {
                     runPowerApply()
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(localizer.text(.cancel), role: .cancel) {}
             } message: {
                 Text(powerActionViewModel.applyConfirmationMessage(profileName: profileName, dnsServers: dnsServers))
             }
             .confirmationDialog(
-                "Restore previous DNS?",
+                localizer.text(.restorePreviousDNS),
                 isPresented: $isShowingRestoreConfirmation,
                 titleVisibility: .visible
             ) {
@@ -287,7 +303,7 @@ private struct PowerDNSApplyButton: View {
                         runPowerRestore(snapshot: snapshot)
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(localizer.text(.cancel), role: .cancel) {}
             } message: {
                 Text(rollbackViewModel.confirmationMessage)
             }
@@ -295,10 +311,10 @@ private struct PowerDNSApplyButton: View {
                 Alert(
                     title: Text(alert.title),
                     message: Text(alert.message),
-                    dismissButton: .default(Text("OK"))
+                    dismissButton: .default(Text(localizer.text(.ok)))
                 )
             }
-            .help("Ask macOS for administrator approval and apply these DNS servers to the active network service.")
+            .help(localizer.text(.askAdminApplyDNSHelp))
             .onAppear {
                 rollbackSnapshot = rollbackStore.load()
             }
@@ -307,12 +323,13 @@ private struct PowerDNSApplyButton: View {
 
     private func runPowerApply() {
         let servers = dnsServers
+        let successMessage = localizer.text(.dnsAppliedCacheFlushed)
         isRunningApply = true
         Task {
             let result = await Task.detached(priority: .userInitiated) { () -> (PowerDNSRollbackSnapshot?, String) in
                 do {
                     let snapshot = try MacOSPowerDNSActionRunner.fromEnvironment().applyDNS(servers: servers)
-                    return (snapshot, "DNS was applied and local DNS cache was flushed.")
+                    return (snapshot, successMessage)
                 } catch {
                     return (nil, error.localizedDescription)
                 }
@@ -323,22 +340,23 @@ private struct PowerDNSApplyButton: View {
                 rollbackStore.save(snapshot)
                 rollbackSnapshot = snapshot
                 powerActionAlert = PowerDNSActionAlert(
-                    title: "DNS apply complete",
-                    message: "\(result.1) Previous DNS for \(snapshot.service) is ready to restore."
+                    title: localizer.text(.dnsApplyComplete),
+                    message: localizer.formatted(.previousDNSReadyToRestore, result.1, snapshot.service)
                 )
             } else {
-                powerActionAlert = PowerDNSActionAlert(title: "DNS apply failed", message: result.1)
+                powerActionAlert = PowerDNSActionAlert(title: localizer.text(.dnsApplyFailed), message: result.1)
             }
         }
     }
 
     private func runPowerRestore(snapshot: PowerDNSRollbackSnapshot) {
         isRunningRestore = true
+        let successMessage = localizer.text(.previousDNSRestoredCacheFlushed)
         Task {
             let result = await Task.detached(priority: .userInitiated) { () -> (Bool, String) in
                 do {
                     try MacOSPowerDNSActionRunner.fromEnvironment().restoreDNS(snapshot: snapshot)
-                    return (true, "Previous DNS was restored and local DNS cache was flushed.")
+                    return (true, successMessage)
                 } catch {
                     return (false, error.localizedDescription)
                 }
@@ -348,9 +366,9 @@ private struct PowerDNSApplyButton: View {
             if result.0 {
                 rollbackStore.clear()
                 rollbackSnapshot = nil
-                powerActionAlert = PowerDNSActionAlert(title: "DNS restore complete", message: result.1)
+                powerActionAlert = PowerDNSActionAlert(title: localizer.text(.dnsRestoreComplete), message: result.1)
             } else {
-                powerActionAlert = PowerDNSActionAlert(title: "DNS restore failed", message: result.1)
+                powerActionAlert = PowerDNSActionAlert(title: localizer.text(.dnsRestoreFailed), message: result.1)
             }
         }
     }
@@ -658,6 +676,7 @@ private struct CustomDNSProfileDetailView: View {
                             ForEach(managementViewModel.rows) { row in
                                 CustomDNSProfileManagementRowView(
                                     row: row,
+                                    localizer: localizer,
                                     isSelected: row.id == editingProfileID,
                                     isDisabled: isMutatingProfile,
                                     onEdit: { editProfile(row) },
@@ -720,7 +739,7 @@ private struct CustomDNSProfileDetailView: View {
                 profilePendingDelete = nil
             }
         } message: { row in
-            Text("Delete \(row.name)? This removes it from saved profiles and Benchmark options.")
+            Text(localizer.formatted(.deleteProfileMessage, row.name))
         }
     }
 
@@ -741,7 +760,7 @@ private struct CustomDNSProfileDetailView: View {
             return
         }
         guard let factory = makePreparedHistoryPersistenceFactory() else {
-            saveState = .failed("Profile storage is unavailable.")
+            saveState = .failed(localizer.text(.profileStorageUnavailable))
             return
         }
 
@@ -785,7 +804,7 @@ private struct CustomDNSProfileDetailView: View {
             return
         }
         guard let factory = makePreparedHistoryPersistenceFactory() else {
-            profileListError = "Profile storage is unavailable."
+            profileListError = localizer.text(.profileStorageUnavailable)
             return
         }
         isLoadingProfiles = true
@@ -835,7 +854,7 @@ private struct CustomDNSProfileDetailView: View {
             return
         }
         guard let factory = makePreparedHistoryPersistenceFactory() else {
-            saveState = .failed("Profile storage is unavailable.")
+            saveState = .failed(localizer.text(.profileStorageUnavailable))
             return
         }
         isDeletingProfile = true
@@ -898,6 +917,7 @@ private struct CustomDNSServerEditor: View {
 
 private struct CustomDNSProfileManagementRowView: View {
     let row: CustomDNSProfileManagementRow
+    let localizer: DNSPilotLocalizer
     let isSelected: Bool
     let isDisabled: Bool
     let onEdit: () -> Void
@@ -913,13 +933,13 @@ private struct CustomDNSProfileManagementRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name)
                     .font(.body.weight(.semibold))
-                Text(row.detailLabel)
+                Text(row.localizedDetailLabel(localizer: localizer))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(row.id)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                if let warningLabel = row.warningLabel {
+                if let warningLabel = row.localizedWarningLabel(localizer: localizer) {
                     Label(warningLabel, systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(DNSPilotDesign.Palette.warning)
@@ -931,17 +951,17 @@ private struct CustomDNSProfileManagementRowView: View {
             Spacer()
 
             Button(action: onEdit) {
-                Label("Edit", systemImage: "pencil")
+                Label(localizer.text(.edit), systemImage: "pencil")
             }
             .labelStyle(.iconOnly)
-            .help(row.editHelpLabel)
+            .help(row.localizedEditHelpLabel(localizer: localizer))
             .disabled(isDisabled)
 
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label(localizer.text(.delete), systemImage: "trash")
             }
             .labelStyle(.iconOnly)
-            .help("Delete profile")
+            .help(localizer.text(.deleteProfileHelp))
             .disabled(isDisabled)
         }
         .padding(DNSPilotDesign.Spacing.row)
@@ -955,6 +975,7 @@ private struct CustomDNSProfileManagementRowView: View {
 
 private struct CustomDomainSuiteManagementRowView: View {
     let row: CustomDomainSuiteManagementRow
+    let localizer: DNSPilotLocalizer
     let isSelected: Bool
     let isDisabled: Bool
     let onEdit: () -> Void
@@ -970,13 +991,13 @@ private struct CustomDomainSuiteManagementRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name)
                     .font(.body.weight(.semibold))
-                Text(row.domainCountLabel)
+                Text(row.localizedDomainCountLabel(localizer: localizer))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(row.id)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                if let warningLabel = row.warningLabel {
+                if let warningLabel = row.localizedWarningLabel(localizer: localizer) {
                     Label(warningLabel, systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(DNSPilotDesign.Palette.warning)
@@ -988,17 +1009,17 @@ private struct CustomDomainSuiteManagementRowView: View {
             Spacer()
 
             Button(action: onEdit) {
-                Label("Edit", systemImage: "pencil")
+                Label(localizer.text(.edit), systemImage: "pencil")
             }
             .labelStyle(.iconOnly)
-            .help(row.editHelpLabel)
+            .help(row.localizedEditHelpLabel(localizer: localizer))
             .disabled(isDisabled)
 
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label(localizer.text(.delete), systemImage: "trash")
             }
             .labelStyle(.iconOnly)
-            .help("Delete suite")
+            .help(localizer.text(.deleteSuiteHelp))
             .disabled(isDisabled)
         }
         .padding(DNSPilotDesign.Spacing.row)
@@ -1181,7 +1202,7 @@ private struct PermissionReadinessDetailView: View {
                     Button {
                         isShowingSetup = true
                     } label: {
-                        Label("Open Setup", systemImage: "lock.shield")
+                        Label(localizer.text(.openSetup), systemImage: "lock.shield")
                     }
 
                     Button {
@@ -1342,6 +1363,7 @@ private struct CatalogOverviewDetailView: View {
                         ForEach(viewModel.profileSummaries) { summary in
                             CatalogProfileRow(
                                 summary: summary,
+                                localizer: localizer,
                                 onApply: { requestGuidedApply(summary) }
                             )
                         }
@@ -1509,7 +1531,7 @@ private struct HistoryDetailView: View {
                         Label(localizer.text(.clearAll), systemImage: "trash")
                     }
                     .disabled(isMutatingHistory || !hasLoadedHistoryRows)
-                    .help("Delete all saved benchmark runs")
+                    .help(localizer.text(.deleteHistoryHelp))
                 }
 
                 if isLoading {
@@ -1553,7 +1575,7 @@ private struct HistoryDetailView: View {
                 historyPendingDelete = nil
             }
         } message: { row in
-            Text("Delete \(row.id)? This removes it from local benchmark history.")
+            Text(localizer.formatted(.deleteHistoryMessage, row.id))
         }
         .alert(localizer.text(.clearHistory), isPresented: $isClearHistoryConfirmationPresented) {
             Button(localizer.text(.clearAll), role: .destructive) {
@@ -1561,7 +1583,7 @@ private struct HistoryDetailView: View {
             }
             Button(localizer.text(.cancel), role: .cancel) {}
         } message: {
-            Text("Delete all saved benchmark runs? This cannot be undone.")
+            Text(localizer.text(.clearHistoryMessage))
         }
     }
 
@@ -1570,7 +1592,7 @@ private struct HistoryDetailView: View {
             return
         }
         guard let factory = makePreparedHistoryPersistenceFactory() else {
-            outcome = .failed("Benchmark history storage is unavailable.")
+            outcome = .failed(localizer.text(.benchmarkHistoryStorageUnavailable))
             return
         }
 
@@ -1863,7 +1885,7 @@ private struct BenchmarkDetailView: View {
                     suitePendingDelete = nil
                 }
             } message: { row in
-                Text("Delete \(row.name)? This removes it from saved benchmark targets.")
+                Text(localizer.formatted(.deleteSuiteMessage, row.name))
             }
     }
 
@@ -1932,7 +1954,7 @@ private struct BenchmarkDetailView: View {
 
     @ViewBuilder
     private var benchmarkSummary: some View {
-        Label(setupViewModel.runPlanSummary, systemImage: "list.bullet.clipboard")
+        Label(setupViewModel.localizedRunPlanSummary(localizer: localizer), systemImage: "list.bullet.clipboard")
             .font(.caption)
             .foregroundStyle(.secondary)
         if setupViewModel.systemDNSFlushChecklistText != nil {
@@ -1943,9 +1965,9 @@ private struct BenchmarkDetailView: View {
             }
             .disabled(isBenchmarkActive)
             .accessibilityIdentifier("benchmark-copy-flush-checklist-button")
-            .help("Confirm and copy manual cache flush and validation steps for System DNS mode.")
+            .help(localizer.text(.flushManualChecklistHelp))
         }
-        if let estimatedDurationWarning = setupViewModel.estimatedDurationWarning {
+        if let estimatedDurationWarning = setupViewModel.localizedEstimatedDurationWarning(localizer: localizer) {
             Label(estimatedDurationWarning, systemImage: "hourglass")
                 .font(.caption)
                 .foregroundStyle(DNSPilotDesign.Palette.warning)
@@ -1958,7 +1980,7 @@ private struct BenchmarkDetailView: View {
                 Text(localizer.text(.customOnly))
                     .tag(Optional<String>.none)
                 ForEach(setupViewModel.suiteOptions) { option in
-                    Text(option.name)
+                    Text(option.localizedName(localizer: localizer))
                         .tag(Optional(option.id))
                 }
             }
@@ -2238,6 +2260,7 @@ private struct BenchmarkDetailView: View {
                 ForEach(suiteManagementViewModel.rows) { row in
                     CustomDomainSuiteManagementRowView(
                         row: row,
+                        localizer: localizer,
                         isSelected: row.id == editingSuiteID,
                         isDisabled: isBenchmarkActive || isMutatingSuite,
                         onEdit: { editCustomSuite(row) },
@@ -2259,7 +2282,7 @@ private struct BenchmarkDetailView: View {
                 .help(localizer.text(.attemptsHelp))
 
                 Stepper(value: $dnsTimeoutMS, in: 200...5_000, step: 100) {
-                    Text("DNS timeout: \(dnsTimeoutMS) ms")
+                    Text(localizer.formatted(.dnsTimeoutLabel, dnsTimeoutMS))
                         .font(.body.monospacedDigit())
                 }
                 .frame(maxWidth: 260, alignment: .leading)
@@ -2267,14 +2290,14 @@ private struct BenchmarkDetailView: View {
 
                 if mode == .connectionPathCompare {
                     Stepper(value: $connectTimeoutMS, in: 200...5_000, step: 100) {
-                        Text("TCP timeout: \(connectTimeoutMS) ms")
+                        Text(localizer.formatted(.tcpTimeoutLabel, connectTimeoutMS))
                             .font(.body.monospacedDigit())
                     }
                     .frame(maxWidth: 260, alignment: .leading)
                     .help(localizer.text(.tcpTimeoutHelp))
 
                     Stepper(value: $maxConnectTargetsPerDomain, in: 1...8) {
-                        Text("TCP targets/domain: \(maxConnectTargetsPerDomain)")
+                        Text(localizer.formatted(.tcpTargetsPerDomainLabel, maxConnectTargetsPerDomain))
                             .font(.body.monospacedDigit())
                     }
                     .frame(maxWidth: 260, alignment: .leading)
@@ -2938,8 +2961,19 @@ private extension BenchmarkProgressViewModel {
 }
 
 private extension BenchmarkProgressStatus {
-    var displayLabel: String {
-        rawValue.capitalized
+    func displayLabel(localizer: DNSPilotLocalizer) -> String {
+        switch self {
+        case .idle:
+            localizer.text(.progressIdle)
+        case .running:
+            localizer.text(.progressRunning)
+        case .success:
+            localizer.text(.progressSuccess)
+        case .degraded:
+            localizer.text(.progressDegraded)
+        case .failed:
+            localizer.text(.progressFailed)
+        }
     }
 
     var systemImageName: String {
@@ -2971,6 +3005,34 @@ private extension BenchmarkProgressStatus {
             .red
         }
     }
+}
+
+private func progressStepLabel(
+    id: String,
+    fallback: String,
+    localizer: DNSPilotLocalizer
+) -> String {
+    switch id {
+    case BenchmarkFailureStep.preparingBenchmark.rawValue:
+        localizer.text(.stepPreparingBenchmark)
+    case BenchmarkFailureStep.resolvingDNS.rawValue:
+        localizer.text(.stepResolvingDNS)
+    case BenchmarkFailureStep.measuringConnection.rawValue:
+        localizer.text(.stepMeasuringTCP)
+    case BenchmarkFailureStep.parsingResult.rawValue:
+        localizer.text(.stepParsingResult)
+    case BenchmarkFailureStep.savingHistory.rawValue:
+        localizer.text(.stepSavingHistory)
+    default:
+        fallback
+    }
+}
+
+private func failureStepLabel(
+    _ step: BenchmarkFailureStep,
+    localizer: DNSPilotLocalizer
+) -> String {
+    progressStepLabel(id: step.rawValue, fallback: step.label, localizer: localizer)
 }
 
 private struct BenchmarkSection<Content: View>: View {
@@ -3077,14 +3139,14 @@ private struct SystemDNSResolverStatusView: View {
                     Label(localizer.text(.refreshCurrentDNS), systemImage: "arrow.clockwise")
                 }
                 .disabled(isRefreshDisabled)
-                .help("Refresh the current macOS DNS resolver summary.")
+                .help(localizer.text(.refreshCurrentDNSHelp))
 
                 Button {
                     copyToPasteboard(viewModel.copyText)
                 } label: {
                     Label(localizer.text(.copyCurrentDNS), systemImage: "doc.on.doc")
                 }
-                .help("Copy the current macOS DNS resolver summary.")
+                .help(localizer.text(.copyCurrentDNSHelp))
             }
         }
     }
@@ -3101,16 +3163,17 @@ private struct BenchmarkProgressPanel: View {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                 BenchmarkElapsedTimeView(
                     startedAt: startedAt,
-                    completedElapsedMS: completedElapsedMS
+                    completedElapsedMS: completedElapsedMS,
+                    localizer: localizer
                 )
 
                 ForEach(viewModel.steps) { step in
                     HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                         BenchmarkProgressStatusIcon(status: step.status)
-                        Text(step.title)
+                        Text(progressStepLabel(id: step.id, fallback: step.title, localizer: localizer))
                             .font(.body.weight(step.status == .running ? .semibold : .regular))
                         Spacer()
-                        Text(step.status.displayLabel)
+                        Text(step.status.displayLabel(localizer: localizer))
                             .font(.caption.monospaced())
                             .foregroundStyle(step.status.foregroundStyle)
                     }
@@ -3159,12 +3222,13 @@ private struct BenchmarkProgressPanel: View {
 private struct BenchmarkElapsedTimeView: View {
     let startedAt: Date?
     let completedElapsedMS: Int?
+    let localizer: DNSPilotLocalizer
 
     var body: some View {
         if let startedAt {
             TimelineView(.periodic(from: startedAt, by: 1)) { context in
                 Label(
-                    "Elapsed \(Self.elapsedLabel(from: startedAt, to: context.date))",
+                    localizer.formatted(.elapsedRunning, Self.elapsedLabel(from: startedAt, to: context.date)),
                     systemImage: "timer"
                 )
                 .font(.caption.monospaced())
@@ -3172,7 +3236,10 @@ private struct BenchmarkElapsedTimeView: View {
             }
         } else if let completedElapsedMS {
             Label(
-                "Completed in \(BenchmarkElapsedTimeFormatter.label(milliseconds: completedElapsedMS))",
+                localizer.formatted(
+                    .completedIn,
+                    BenchmarkElapsedTimeFormatter.label(milliseconds: completedElapsedMS)
+                ),
                 systemImage: "timer"
             )
             .font(.caption.monospaced())
@@ -3213,7 +3280,10 @@ private struct BenchmarkFailurePanel: View {
         BenchmarkSection(title: localizer.text(.benchmarkFailed)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                 BenchmarkFailureRow(label: localizer.text(.mode), value: mode.displayLabel)
-                BenchmarkFailureRow(label: localizer.text(.failedAt), value: failure.failedStep.label)
+                BenchmarkFailureRow(
+                    label: localizer.text(.failedAt),
+                    value: failureStepLabel(failure.failedStep, localizer: localizer)
+                )
                 BenchmarkFailureRow(label: localizer.text(.reason), value: failure.message)
                 BenchmarkFailureRow(label: localizer.text(.suggestion), value: failure.suggestion)
                 if let elapsedMS {
@@ -3229,7 +3299,7 @@ private struct BenchmarkFailurePanel: View {
                             Label(localizer.text(.copyIssueReport), systemImage: "doc.on.doc")
                         }
                     }
-                    Text("Copy the full failure report when creating an issue.")
+                    Text(localizer.text(.copyFailureReportHelp))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(failure.debugLog)
@@ -3331,15 +3401,18 @@ private struct BenchmarkResultPanel: View {
         BenchmarkSection(title: localizer.text(.result)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.row) {
                 HStack(spacing: DNSPilotDesign.Spacing.panel) {
-                    Label(viewModel.healthLabel, systemImage: "waveform.path.ecg")
-                    Label(viewModel.scopeLabel, systemImage: "point.3.connected.trianglepath.dotted")
-                    Label(viewModel.confidenceLabel, systemImage: "gauge.with.dots.needle.67percent")
-                    if let recordFamilyLabel = viewModel.recordFamilyLabel {
+                    Label(viewModel.localizedHealthLabel(localizer: localizer), systemImage: "waveform.path.ecg")
+                    Label(viewModel.localizedScopeLabel(localizer: localizer), systemImage: "point.3.connected.trianglepath.dotted")
+                    Label(viewModel.localizedConfidenceLabel(localizer: localizer), systemImage: "gauge.with.dots.needle.67percent")
+                    if let recordFamilyLabel = viewModel.localizedRecordFamilyLabel(localizer: localizer) {
                         Label(recordFamilyLabel, systemImage: "list.bullet.rectangle")
                     }
                     if let elapsedMS {
                         Label(
-                            "Completed in \(BenchmarkElapsedTimeFormatter.label(milliseconds: elapsedMS))",
+                            localizer.formatted(
+                                .completedIn,
+                                BenchmarkElapsedTimeFormatter.label(milliseconds: elapsedMS)
+                            ),
                             systemImage: "timer"
                         )
                     }
@@ -3361,21 +3434,22 @@ private struct BenchmarkResultPanel: View {
                             }
                         }
                     } label: {
-                        Label("More result actions", systemImage: "ellipsis.circle")
+                        Label(localizer.text(.moreResultActions), systemImage: "ellipsis.circle")
                             .labelStyle(.iconOnly)
                     }
                     .menuStyle(.borderlessButton)
                     .accessibilityIdentifier("benchmark-result-actions-menu")
-                    .help("Copy result report or saved run ID")
+                    .help(localizer.text(.resultActionsHelp))
                 }
                 .foregroundStyle(.secondary)
 
-                Text(viewModel.recommendationLabel)
+                Text(viewModel.localizedRecommendationLabel(localizer: localizer))
                     .font(.title3.weight(.semibold))
 
                 if applyPlanPresentation.showsLocalNextStep {
                     BenchmarkResultNextStepPanel(
-                        viewModel: nextStepViewModel
+                        viewModel: nextStepViewModel,
+                        localizer: localizer
                     )
                 }
 
@@ -3383,7 +3457,8 @@ private struct BenchmarkResultPanel: View {
                     BenchmarkApplyPlanStatusPanel(
                         outcome: applyPlanOutcome,
                         isLoading: isLoadingApplyPlan,
-                        currentDNSBeforeApplySnapshot: currentDNSBeforeApplySnapshot
+                        currentDNSBeforeApplySnapshot: currentDNSBeforeApplySnapshot,
+                        localizer: localizer
                     )
                 }
 
@@ -3392,10 +3467,10 @@ private struct BenchmarkResultPanel: View {
                         Label(localizer.text(.validateSystemDNS), systemImage: "checkmark.seal")
                     }
                     .accessibilityIdentifier("benchmark-validate-system-dns-button")
-                    .help("After manual DNS apply and cache flush, run System DNS validation against the current macOS resolver.")
+                    .help(localizer.text(.validateSystemDNSHelp))
                 }
 
-                if let savedHistoryLabel = viewModel.savedHistoryLabel {
+                if let savedHistoryLabel = viewModel.localizedSavedHistoryLabel(localizer: localizer) {
                     Label(savedHistoryLabel, systemImage: "clock.arrow.circlepath")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -3420,7 +3495,7 @@ private struct BenchmarkResultPanel: View {
                             GridRow {
                                 HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                                     BenchmarkProgressStatusIcon(status: row.status)
-                                    Text(row.status.displayLabel)
+                                    Text(row.status.displayLabel(localizer: localizer))
                                 }
                                 Text(row.name)
                                 Text(row.resolver).font(.body.monospaced())
@@ -3429,8 +3504,8 @@ private struct BenchmarkResultPanel: View {
                                 if viewModel.showsConnectionMetrics {
                                     Text(row.medianConnectLatencyLabel)
                                 }
-                                Text(row.failureRateLabel)
-                                Text(row.diagnosisLabel)
+                                Text(row.localizedFailureRateLabel(localizer: localizer))
+                                Text(row.localizedDiagnosisLabel(localizer: localizer))
                             }
                         }
                     }
@@ -3438,18 +3513,25 @@ private struct BenchmarkResultPanel: View {
                 }
 
                 if !viewModel.notes.isEmpty || !viewModel.warning.isEmpty {
-                    DisclosureGroup("Why this result") {
+                    DisclosureGroup(localizer.text(.whyThisResult)) {
                         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                            Label(viewModel.fastestObservedLabel, systemImage: "bolt")
-                            Label(viewModel.balancedRecommendationLabel, systemImage: "scale.3d")
+                            Label(viewModel.localizedFastestObservedLabel(localizer: localizer), systemImage: "bolt")
+                            Label(viewModel.localizedBalancedRecommendationLabel(localizer: localizer), systemImage: "scale.3d")
 
-                            ForEach(viewModel.notes, id: \.self) { note in
-                                Label(note, systemImage: "info.circle")
-                            }
-
-                            if !viewModel.warning.isEmpty {
-                                Text(viewModel.warning)
-                                    .font(.caption)
+                            if !viewModel.notes.isEmpty || !viewModel.warning.isEmpty {
+                                DisclosureGroup(localizer.text(.technicalDetails)) {
+                                    VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
+                                        ForEach(viewModel.notes, id: \.self) { note in
+                                            Label(note, systemImage: "info.circle")
+                                        }
+                                        if !viewModel.warning.isEmpty {
+                                            Text(viewModel.warning)
+                                                .font(.caption)
+                                        }
+                                    }
+                                    .textSelection(.enabled)
+                                    .padding(.top, DNSPilotDesign.Spacing.controlGap)
+                                }
                             }
                         }
                         .foregroundStyle(.secondary)
@@ -3477,6 +3559,7 @@ private struct BenchmarkApplyPlanStatusPanel: View {
     let outcome: BenchmarkApplyPlanLoadOutcome?
     let isLoading: Bool
     let currentDNSBeforeApplySnapshot: SystemDNSResolverSnapshot
+    let localizer: DNSPilotLocalizer
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
 
@@ -3489,7 +3572,7 @@ private struct BenchmarkApplyPlanStatusPanel: View {
             Divider()
 
             if isLoading {
-                Label("Preparing apply action", systemImage: "hourglass")
+                Label(localizer.text(.preparingApplyAction), systemImage: "hourglass")
                     .font(.headline)
             } else {
                 switch outcome {
@@ -3499,20 +3582,20 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                         restoreViewModel: GuidedApplyRestoreViewModel(snapshot: currentDNSBeforeApplySnapshot)
                     )
                 case .failed(let message):
-                    Label("Apply policy unavailable", systemImage: "exclamationmark.triangle")
+                    Label(localizer.text(.applyPolicyUnavailable), systemImage: "exclamationmark.triangle")
                         .font(.headline)
                         .foregroundStyle(DNSPilotDesign.Palette.warning)
                     HStack {
-                        Text("Use the result only; retest before changing DNS.")
+                        Text(localizer.text(.resultOnlyRetest))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Button {
                             copyToPasteboard(message)
                         } label: {
-                            Label("Copy apply error", systemImage: "doc.on.doc")
+                            Label(localizer.text(.copyApplyError), systemImage: "doc.on.doc")
                                 .labelStyle(.iconOnly)
                         }
-                        .help("Copy apply policy error")
+                        .help(localizer.text(.copyApplyErrorHelp))
                     }
                 case nil:
                     EmptyView()
@@ -3527,10 +3610,16 @@ private struct BenchmarkApplyPlanStatusPanel: View {
         _ viewModel: ApplyPlanViewModel,
         restoreViewModel: GuidedApplyRestoreViewModel
     ) -> some View {
-        Label(viewModel.recommendedProfileLabel ?? "DNS action: \(viewModel.statusLabel)", systemImage: viewModel.canOfferPrimaryAction ? "checkmark.shield" : "shield")
+        Label(
+            viewModel.localizedHeadline(localizer: localizer),
+            systemImage: viewModel.canOfferPrimaryAction ? "checkmark.shield" : "shield"
+        )
             .font(.headline)
 
-        Label(viewModel.actionLabel, systemImage: applyPlanActionImage(for: viewModel.plan.disposition))
+        Label(
+            viewModel.localizedActionLabel(localizer: localizer),
+            systemImage: applyPlanActionImage(for: viewModel.plan.disposition)
+        )
             .foregroundStyle(.secondary)
 
         HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
@@ -3539,7 +3628,7 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                     profileName: viewModel.plan.profileName ?? viewModel.plan.profileID,
                     dnsServers: viewModel.plan.dnsServers
                 )
-            } else if let primaryActionLabel = viewModel.guidedPrimaryActionLabel,
+            } else if viewModel.guidedPrimaryActionLabel != nil,
                       let primaryCopyText = viewModel.guidedPrimaryActionCopyText {
                 Button {
                     pendingGuidedApplyConfirmation = PendingGuidedApplyConfirmation(
@@ -3552,20 +3641,20 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                         )
                     )
                 } label: {
-                    Label(primaryActionLabel, systemImage: "gearshape")
+                    Label(viewModel.localizedActionLabel(localizer: localizer), systemImage: "gearshape")
                 }
                 .accessibilityIdentifier("benchmark-guided-apply-button")
-                .help("Copy measured DNS servers, then open macOS Network Settings for manual apply.")
+                .help(localizer.text(.guidedNetworkSettingsHelp))
             }
 
             Menu {
                 if !viewModel.dnsServerText.isEmpty {
-                    Button("Copy DNS Servers") {
+                    Button(localizer.text(.copyDNSServers)) {
                         copyToPasteboard(viewModel.dnsServerText)
                     }
                 }
                 if let guidedApplyChecklistText = viewModel.guidedApplyChecklistText {
-                    Button("Copy Apply Checklist") {
+                    Button(localizer.text(.copyApplyChecklist)) {
                         copyToPasteboard(
                             viewModel.guidedApplyChecklistTextWithRestore(currentDNSBeforeApplySnapshot)
                                 ?? guidedApplyChecklistText
@@ -3573,30 +3662,30 @@ private struct BenchmarkApplyPlanStatusPanel: View {
                     }
                 }
                 if viewModel.guidedPrimaryActionLabel != nil {
-                    Button("Copy Restore DNS") {
+                    Button(localizer.text(.copyRestoreDNS)) {
                         copyToPasteboard(restoreViewModel.copyText)
                     }
                 }
                 Divider()
-                Button("Copy Apply Plan") {
+                Button(localizer.text(.copyApplyPlan)) {
                     copyToPasteboard(viewModel.copyText)
                 }
             } label: {
-                Label("More apply actions", systemImage: "ellipsis.circle")
+                Label(localizer.text(.moreApplyActions), systemImage: "ellipsis.circle")
                     .labelStyle(.iconOnly)
             }
             .menuStyle(.borderlessButton)
             .accessibilityIdentifier("benchmark-apply-actions-menu")
-            .help("Copy DNS, apply checklist, restore data, or plan")
+            .help(localizer.text(.applyActionsHelp))
         }
 
-        DisclosureGroup("Details") {
+        DisclosureGroup(localizer.text(.details)) {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
                 if let testedResolver = viewModel.plan.testedResolver {
-                    Label("Tested resolver: \(testedResolver)", systemImage: "scope")
+                    Label(localizer.formatted(.testedResolver, testedResolver), systemImage: "scope")
                 }
                 if !viewModel.dnsServerText.isEmpty {
-                    Label("DNS servers", systemImage: "server.rack")
+                    Label(localizer.text(.servers), systemImage: "server.rack")
                         .font(.subheadline.weight(.semibold))
                     ForEach(viewModel.plan.dnsServers, id: \.self) { server in
                         Text(server)
@@ -3638,6 +3727,7 @@ private struct BenchmarkApplyPlanStatusPanel: View {
 
 private struct BenchmarkResultNextStepPanel: View {
     let viewModel: BenchmarkResultNextStepViewModel
+    let localizer: DNSPilotLocalizer
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @State private var pendingGuidedApplyConfirmation: PendingGuidedApplyConfirmation?
 
@@ -3649,10 +3739,14 @@ private struct BenchmarkResultNextStepPanel: View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
             Divider()
 
-            Label(viewModel.title, systemImage: viewModel.canOpenNetworkSettings ? "gearshape" : "shield")
+            Label(
+                viewModel.localizedTitle(localizer: localizer),
+                systemImage: viewModel.canOpenNetworkSettings ? "gearshape" : "shield"
+            )
                 .font(.headline)
 
-            if let firstLine = viewModel.lines.first {
+            let localizedLines = viewModel.localizedLines(localizer: localizer)
+            if let firstLine = localizedLines.first {
                 Text(firstLine)
                     .foregroundStyle(.secondary)
             }
@@ -3679,43 +3773,46 @@ private struct BenchmarkResultNextStepPanel: View {
                             openNetworkSettings()
                         }
                     } label: {
-                        Label(viewModel.actionLabel, systemImage: "gearshape")
+                        Label(viewModel.localizedActionLabel(localizer: localizer), systemImage: "gearshape")
                     }
                     .accessibilityIdentifier("benchmark-open-network-settings-button")
-                    .help("Copy DNS servers, then open macOS Network Settings for manual apply.")
+                    .help(localizer.text(.guidedNetworkSettingsHelp))
                 }
 
                 Menu {
                     if let dnsSettings = viewModel.dnsSettings, dnsSettings.hasServers {
-                        Button("Copy DNS Servers") {
+                        Button(localizer.text(.copyDNSServers)) {
                             copyToPasteboard(dnsSettings.serverListText)
                         }
                     }
                     if let manualApplyChecklistText = viewModel.manualApplyChecklistText {
-                        Button("Copy Apply Checklist") {
+                        Button(localizer.text(.copyApplyChecklist)) {
                             copyToPasteboard(manualApplyChecklistText)
                         }
                     }
-                    Button("Copy Next Step") {
+                    Button(localizer.text(.copyNextStep)) {
                         copyToPasteboard(viewModel.copyText)
                     }
                 } label: {
-                    Label("More next-step actions", systemImage: "ellipsis.circle")
+                    Label(localizer.text(.moreNextStepActions), systemImage: "ellipsis.circle")
                         .labelStyle(.iconOnly)
                 }
                 .menuStyle(.borderlessButton)
                 .accessibilityIdentifier("benchmark-next-step-actions-menu")
-                .help("Copy DNS servers, apply checklist, or next-step guidance")
+                .help(localizer.text(.nextStepActionsHelp))
             }
 
-            DisclosureGroup("Details") {
+            DisclosureGroup(localizer.text(.details)) {
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                    ForEach(viewModel.lines.dropFirst(), id: \.self) { line in
+                    ForEach(localizedLines.dropFirst(), id: \.self) { line in
                         Label(line, systemImage: "info.circle")
                     }
 
                     if let dnsSettings = viewModel.dnsSettings {
-                        Label("DNS servers: \(dnsSettings.profileName)", systemImage: "server.rack")
+                        Label(
+                            localizer.formatted(.dnsServersForProfile, dnsSettings.profileName),
+                            systemImage: "server.rack"
+                        )
                             .font(.subheadline.weight(.semibold))
                         ForEach(dnsSettings.displayLines, id: \.self) { line in
                             Text(line)
@@ -3772,13 +3869,13 @@ private struct HistoryRowView: View {
                 .frame(width: 22)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
-                Text(row.title)
+                Text(row.localizedTitle(localizer: localizer))
                     .font(.body.weight(.semibold))
-                Text(row.domainSummary)
+                Text(row.localizedDomainSummary(localizer: localizer))
                     .foregroundStyle(.secondary)
-                Text(row.recommendationLabel)
+                Text(row.localizedRecommendationLabel(localizer: localizer))
                     .font(.callout.weight(.semibold))
-                Text(row.applyGuidanceLabel)
+                Text(row.localizedApplyGuidanceLabel(localizer: localizer))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(row.id)
@@ -3788,9 +3885,9 @@ private struct HistoryRowView: View {
             }
             Spacer(minLength: DNSPilotDesign.Spacing.panel)
             VStack(alignment: .trailing, spacing: 4) {
-                Text(row.healthLabel)
+                Text(row.localizedHealthLabel(localizer: localizer))
                     .font(.caption.weight(.semibold))
-                Text(row.resolverSummary)
+                Text(row.localizedResolverSummary(localizer: localizer))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -3800,12 +3897,12 @@ private struct HistoryRowView: View {
                 Label(localizer.text(.copyRunID), systemImage: "doc.on.doc")
             }
             .labelStyle(.iconOnly)
-            .help("Copy saved run ID")
+            .help(localizer.text(.copySavedRunIDHelp))
             Button(role: .destructive, action: onDelete) {
                 Label(localizer.text(.delete), systemImage: "trash")
             }
             .labelStyle(.iconOnly)
-            .help("Delete saved run")
+            .help(localizer.text(.deleteSavedRunHelp))
             .disabled(isDisabled)
         }
         .padding(.vertical, 4)
@@ -3855,6 +3952,7 @@ private struct CatalogListSection<Content: View>: View {
 
 private struct CatalogProfileRow: View {
     let summary: CatalogProfileSummary
+    let localizer: DNSPilotLocalizer
     let onApply: () -> Void
 
     var body: some View {
@@ -3881,7 +3979,7 @@ private struct CatalogProfileRow: View {
                     Button(action: onApply) {
                         Label(summary.guidedApplyButtonLabel, systemImage: "gearshape")
                     }
-                    .help("Confirm, copy DNS servers, and open macOS Network Settings. DNS Pilot will not change system DNS automatically.")
+                    .help(localizer.text(.catalogGuidedApplyHelp))
 
                     PowerDNSApplyButton(
                         profileName: summary.name,

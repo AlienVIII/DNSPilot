@@ -123,6 +123,15 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             "github.com\nlogin.microsoftonline.com\nvnexpress.net"
         )
         XCTAssertEqual(viewModel.runPlanSummary, "DNS only, A + AAAA, 2 resolvers, 3 domains, 1 attempt")
+        let vietnamese = DNSPilotLocalizer(language: .vietnamese)
+        XCTAssertEqual(
+            viewModel.localizedRunPlanSummary(localizer: vietnamese),
+            "Chỉ DNS, A + AAAA, 2 máy chủ DNS, 3 domain, 1 lần"
+        )
+        XCTAssertEqual(
+            viewModel.localizedFlushPolicySummary(localizer: vietnamese),
+            "Kiểm tra trực tiếp máy chủ DNS; không cần xóa cache DNS hệ thống."
+        )
     }
 
     func testGamingSuiteIsAvailableToBenchmarkAndExplainsItsLimit() {
@@ -219,6 +228,16 @@ final class BenchmarkSetupViewModelTests: XCTestCase {
             viewModel.suiteOptions.first?.helpText(localizer: vietnamese),
             "Kiểm tra các domain đã lưu trong bộ test này."
         )
+        let general = BenchmarkSuiteOption(
+            testSuite: CatalogTestSuite(
+                id: "general",
+                name: "General Browsing",
+                description: "Built-in suite.",
+                domains: ["example.com"],
+                tags: ["general"]
+            )
+        )
+        XCTAssertEqual(general.localizedName(localizer: vietnamese), "Duyệt web thường ngày")
     }
 
     func testSetupSummarizesRunnableProfileSelection() {
