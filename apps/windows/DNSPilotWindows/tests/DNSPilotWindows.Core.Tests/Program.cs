@@ -51,6 +51,7 @@ internal sealed class WindowsCoreTestSuite
         Run("Result safety distinguishes recommended, fastest observed, and keep-current states", ResultSafetyDistinguishesDecisionStates);
         Run("Apply-plan request forwards user-confirmed protected-network signals", ApplyPlanRequestForwardsProtectedNetworkSignals);
         Run("Versioned preferences migrate corrupt and removed catalog selections safely", VersionedPreferencesMigrateSafely);
+        Run("Profile preference restore preserves an intentional empty selection", ProfilePreferenceRestorePreservesIntentionalEmptySelection);
         Run("Catalog quick picks derive default and Vietnam suites from tags", CatalogQuickPicksDeriveFromTags);
         Run("Capability status rows distinguish ready, recovery, OS-gated, and unsupported", CapabilityStatusRowsDescribeRuntimeAndPlatformState);
         Run("Diagnostic reports redact user-specific paths and environment values", DiagnosticReportsRedactPrivatePaths);
@@ -1127,6 +1128,19 @@ internal sealed class WindowsCoreTestSuite
         Assert.Equal("vietnam", quickPicks.VietnamSuiteId);
     }
 
+    private static void ProfilePreferenceRestorePreservesIntentionalEmptySelection()
+    {
+        var options = WindowsShellViewModel.CreateDefault("test.db").BenchmarkProfileOptions;
+
+        var firstRun = BenchmarkProfilePreferenceSelection.Resolve(options, Array.Empty<string>(), selectDefaultsWhenEmpty: true);
+        var restoredEmpty = BenchmarkProfilePreferenceSelection.Resolve(options, Array.Empty<string>(), selectDefaultsWhenEmpty: false);
+        var restoredKnown = BenchmarkProfilePreferenceSelection.Resolve(options, new[] { "missing", "cloudflare" }, selectDefaultsWhenEmpty: false);
+
+        Assert.True(firstRun.Count > 0, "A first-run selection should choose benchmarkable defaults.");
+        Assert.Equal(0, restoredEmpty.Count);
+        Assert.SequenceEqual(new[] { "cloudflare" }, restoredKnown);
+    }
+
     private static void CapabilityStatusRowsDescribeRuntimeAndPlatformState()
     {
         var degraded = RuntimeReadinessViewModel.Create(
@@ -1804,6 +1818,7 @@ internal sealed class WindowsCoreTestSuite
 
         Assert.Contains("AppPreferenceStore.ApplyPreferredLanguage", app);
         Assert.Contains("WindowsPreferenceState.Normalize", mainWindow);
+        Assert.Contains("BenchmarkProfilePreferenceSelection.Resolve", mainWindow);
         Assert.Contains("PersistPreferences", mainWindow);
         Assert.Contains("CatalogQuickPicks.FromCatalog", mainWindow);
         Assert.Contains("WindowsCapabilityStatusRows.From", mainWindow);

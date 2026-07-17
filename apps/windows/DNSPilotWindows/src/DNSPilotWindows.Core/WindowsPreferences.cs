@@ -76,6 +76,28 @@ public sealed record WindowsCapabilityStatusRow(string Id, string Title, string 
     public override string ToString() => $"{Title}: {State} - {Detail}";
 }
 
+public static class BenchmarkProfilePreferenceSelection
+{
+    public static IReadOnlyList<string> Resolve(
+        IReadOnlyList<BenchmarkProfileOptionRow> options,
+        IReadOnlyList<string> preferredProfileIds,
+        bool selectDefaultsWhenEmpty)
+    {
+        var benchmarkableIds = options
+            .Where(option => option.CanBenchmark)
+            .Select(option => option.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var selected = preferredProfileIds
+            .Where(benchmarkableIds.Contains)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        return selected.Length > 0 || !selectDefaultsWhenEmpty
+            ? selected
+            : options.Where(option => option.CanBenchmark).Take(3).Select(option => option.Id).ToArray();
+    }
+}
+
 public static class WindowsCapabilityStatusRows
 {
     public static IReadOnlyList<WindowsCapabilityStatusRow> From(

@@ -125,12 +125,13 @@ Partner Center changes remain deliberate external actions.
   build, store-safe static checks, localization/packaging checks, and expected
   macOS-only WinUI build-probe handling. The script only tolerates the known
   Windows-only XAML compiler signature; unrelated WinUI failures remain fatal.
-- Current automated count: 63 Windows core/static tests, including cancellation
+- Current automated count: 65 Windows core/static tests, including cancellation
   before launch, cancellation during progress, repeat-run, gaming-mode, and a
   bounded real-child-process termination regression, Core result-safety states,
   protected-network request flags, versioned preference normalization,
   catalog-derived quick picks, capability state rows, diagnostic/failure redaction, and
-  confirmed guided-apply static wiring.
+  confirmed guided-apply static wiring. Persisted profile preferences also retain
+  a deliberate empty selection rather than silently restoring default resolvers.
 
 ## Remaining Gates
 
@@ -149,6 +150,7 @@ Partner Center changes remain deliberate external actions.
 - Critique and Store risk: `apps/windows/windows-self-review.md`.
 - Publish steps: `apps/windows/windows-publish.md`.
 - Partner Center review/site sources: `apps/windows/PartnerCenter/README.md`.
+- Main integration delta: `apps/windows/windows-integration-handoff.md`.
 - Privacy/listing source: `apps/windows/windows-privacy.md` and
   `apps/windows/windows-store-listing.md`.
 - Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.

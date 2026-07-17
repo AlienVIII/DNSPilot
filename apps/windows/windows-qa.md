@@ -63,6 +63,9 @@ surfaces.
 - Select and unselect resolver profiles in the Benchmark panel; expected: DNS-only and DNS + TCP command preview uses exactly the selected plain DNS profiles, including custom profiles loaded from `profile-list`.
 - Select a domain suite in the Benchmark panel; expected: command preview uses the suite domains, including custom suites loaded from `suite-list`.
 - Unselect all resolver profiles and run DNS-only or DNS + TCP; expected: benchmark is blocked with copyable diagnostics instead of launching the CLI without resolvers.
+- With no resolver profiles selected, close and relaunch after runtime reaches
+  Ready; expected: the deliberate empty selection remains empty and the benchmark
+  stays blocked until the user explicitly selects profiles again.
 - Use in-panel `Run benchmark`; expected: it runs the current command preview exactly.
 - Run toolbar `Quick Check`; expected: it runs DNS-only with the first two plain
   resolver profiles, the default three-domain suite, and one attempt. It does

@@ -111,6 +111,9 @@
   the runtime catalog, catalog-tag Default/Vietnam quick picks, diagnostics
   capability rows, and privacy-safe report redaction. Windows-host QA must prove
   packaged persistence, restart language behavior, and visual rendering.
+- Persisted empty resolver selections are intentional state, not a signal to
+  reselect first-run defaults. The shell preserves them across a runtime reload
+  and shows the existing no-resolver validation until the user chooses profiles.
 - Root `STATE.md` and `TODO.md` are stale relative to Windows commits `c3aa69c`
   and `a8216c0`.
   Refresh them from an integration/docs lane; do not widen Windows ownership.

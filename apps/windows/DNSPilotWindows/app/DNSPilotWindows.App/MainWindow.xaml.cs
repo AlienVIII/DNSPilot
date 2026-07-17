@@ -716,7 +716,10 @@ public sealed partial class MainWindow : Window
         CopyChecklistButton.IsEnabled = canApplyGuidance;
         var benchmarkProfileOptions = ViewModel.BenchmarkProfileOptions;
         BenchmarkProfilesList.ItemsSource = benchmarkProfileOptions;
-        SelectBenchmarkProfiles(benchmarkProfileOptions, selectedProfileIds);
+        SelectBenchmarkProfiles(
+            benchmarkProfileOptions,
+            selectedProfileIds,
+            selectDefaultsWhenEmpty: !_runtimeContractsLoaded || !_preferencesRestored);
         var benchmarkSuiteOptions = ViewModel.BenchmarkSuiteOptions;
         SuiteCombo.ItemsSource = benchmarkSuiteOptions;
         SelectBenchmarkSuite(benchmarkSuiteOptions, selectedSuiteId);
@@ -1111,16 +1114,18 @@ public sealed partial class MainWindow : Window
 
     private void SelectBenchmarkProfiles(
         IReadOnlyList<BenchmarkProfileOptionRow> options,
-        IReadOnlyList<string> preferredProfileIds)
+        IReadOnlyList<string> preferredProfileIds,
+        bool selectDefaultsWhenEmpty = true)
     {
         if (BenchmarkProfilesList is null)
         {
             return;
         }
 
-        var selection = preferredProfileIds.Count == 0
-            ? options.Where(option => option.CanBenchmark).Take(3).Select(option => option.Id).ToArray()
-            : preferredProfileIds;
+        var selection = BenchmarkProfilePreferenceSelection.Resolve(
+            options,
+            preferredProfileIds,
+            selectDefaultsWhenEmpty);
         var selectedIds = selection.ToHashSet(StringComparer.Ordinal);
 
         BenchmarkProfilesList.SelectedItems.Clear();
@@ -1190,7 +1195,10 @@ public sealed partial class MainWindow : Window
             DnsTimeoutBox.Value = preference.DnsTimeoutMs;
             TcpTimeoutBox.Value = preference.TcpTimeoutMs;
             TcpTargetsBox.Value = preference.TcpTargetsPerDomain;
-            SelectBenchmarkProfiles(ViewModel.BenchmarkProfileOptions, preference.SelectedProfileIds);
+            SelectBenchmarkProfiles(
+                ViewModel.BenchmarkProfileOptions,
+                preference.SelectedProfileIds,
+                selectDefaultsWhenEmpty: false);
             SelectBenchmarkSuite(ViewModel.BenchmarkSuiteOptions, preference.SelectedSuiteId);
             LanguageCombo.SelectedIndex = preference.LanguageTag == "vi-VN" ? 1 : 0;
         }

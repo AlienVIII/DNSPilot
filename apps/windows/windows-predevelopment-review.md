@@ -40,7 +40,7 @@ Evidence sources:
 - Mobile commits `7cfb9b4`, `79df2e2`, `1ca726f`, `ab2d735`, and
   `2d46749`, plus `apps/mobile/mobile-progress.md` and
   `apps/mobile/mobile-readiness.md`.
-- Windows commits `c3aa69c` and `a8216c0`, the 64 core/static tests, and
+- Windows commits `c3aa69c`, `a8216c0`, and `5528226`, the 65 core/static tests, and
   `apps/windows/validate-windows-lane.sh`.
 
 Evidence is intentionally asymmetric. Mobile does not prove streaming native
