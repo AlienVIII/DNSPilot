@@ -22,8 +22,8 @@ Last reviewed: 2026-07-19.
 - [ ] Continue locale-neutral detail IDs. Recommendation Gate IDs and `gate_note_ids`
   summaries are complete in `86f314b`, Capability Matrix IDs in `d6df518`, and Preflight/
   Apply Prompt Policy IDs in `015a2aa`, and exhaustive Apply Plan IDs in `bb51067`; extend
-  this additive contract to profile-security and
-  connection-path caveats before any shell removes raw Details fallback. Do not duplicate
+  this additive contract to connection-path caveats before any shell removes raw Details
+  fallback. Do not duplicate
   `primary_issue`.
 - [x] Complete progress JSONL v1 lifecycle in `cb70daf`: every event carries
   `schema_version` and `run_id`; runs end with `run_finished` or `run_cancelled` plus
