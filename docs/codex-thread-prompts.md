@@ -1,6 +1,6 @@
 # DNSPilot Engineer Prompts
 
-Last reviewed: 2026-07-13.
+Last reviewed: 2026-07-14.
 
 Use these only for explicitly assigned Engineer Mode tasks. The coordinator remains
 Architect Mode. Read `AGENTS.md`, `PROJECT.md`, `STATE.md`, `TODO.md`, and
@@ -46,10 +46,12 @@ Worktree: /Users/aart/Projects/Desktop/dnspilot-macos
 Branch: macos
 Ownership: apps/macos/**; crates/** only for an approved shared contract.
 
-State: automated Store-safe scope is frozen and locally complete. Do not refactor or
-add features without a reproduced defect or failed release gate. Preserve singleton
-Window, Check DNS / Profiles / History, one primary result action, Store/Power split,
-and exact Power rollback.
+State: behavior and packaging gates pass, but reproduced localization and hit-target
+defects reopened Milestone 3A. Execute
+docs/research/2026-07-14-macos-localization-interaction-review.md in order. Do not patch
+isolated strings while retaining the split localization architecture. Preserve the
+singleton Window, Check DNS / Profiles / History, one primary result action,
+Store/Power split, and exact Power rollback.
 
 Validation: ./script/ci_macos.sh and
 ./script/preflight_macos_release.sh --include-power.

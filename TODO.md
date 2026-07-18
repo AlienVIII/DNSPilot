@@ -1,10 +1,20 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-07-14.
+Last reviewed: 2026-07-18.
 
 ## P0: macOS Commercial Release
 
-- [x] Complete local Store-safe UX, bundle, smoke, rollback, release-asset, and
+- [x] Centralize EN/VI presentation copy in native SwiftPM `Localizable.strings`, make
+  `System` follow macOS, and reject bilingual `EN:`/`VI:` source text in CI.
+- [x] Make the visible Benchmark Options disclosure row clickable, keyboard reachable,
+  and VoiceOver-labelled; hide Power-only settings from the Store-safe SKU.
+- [ ] Capture the EN/VI visual-state matrix and pass the narrow-window, Dark Mode,
+  keyboard, and VoiceOver review before moderated usability testing. Packaged-window
+  launch and functional smoke pass; screenshot and VoiceOver capture require a signed
+  workstation with Screen Recording and Accessibility permission.
+- [ ] Native-review Vietnamese copy and localize App Store metadata, support/privacy
+  pages, and screenshot sets before submission.
+- [x] Complete local benchmark, bundle, smoke, rollback, release-asset, and
   release-site safety automation.
 - [ ] Run five moderated users through Check -> Recommend -> Apply -> Retest.
 - [ ] Acquire Apple signing/provisioning and validate a certificate-signed bundle.

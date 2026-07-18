@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "DNSPilotMac",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v14),
     ],
@@ -11,7 +12,10 @@ let package = Package(
         .library(name: "DNSPilotMacCore", targets: ["DNSPilotMacCore"]),
     ],
     targets: [
-        .target(name: "DNSPilotMacCore"),
+        .target(
+            name: "DNSPilotMacCore",
+            resources: [.process("Resources")]
+        ),
         .executableTarget(
             name: "DNSPilotMac",
             dependencies: ["DNSPilotMacCore"]

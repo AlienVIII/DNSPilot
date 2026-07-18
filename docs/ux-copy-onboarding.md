@@ -1,6 +1,6 @@
 # UX Copy And Onboarding Contract
 
-Last reviewed: 2026-07-08.
+Last reviewed: 2026-07-14.
 
 ## BLUF
 
@@ -21,6 +21,12 @@ one title, one status, one primary action. Move explanation to info affordances.
   link to the release/manual checklist.
 - Avoid long inline paragraphs in normal flows. Long text belongs in docs,
   diagnostics, release notes, or expandable help.
+- Show one selected language at a time. Never put `EN:` and `VI:` in the same
+  user-facing tooltip or detail row.
+- Localize user-facing status and guidance from semantic IDs. Keep raw technical
+  messages available only in an explicitly opened/copied issue report.
+- Language selectors show the current locale and use a menu when more than two
+  choices exist; do not use an ambiguous next-language toggle.
 
 ## Recommended Patterns By OS
 

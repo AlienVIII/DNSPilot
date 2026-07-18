@@ -1,16 +1,16 @@
 # Platform Summary
 
-Last integration pass: 2026-07-14.
+Last integration pass: 2026-07-18.
 
 ## Integration State
 
 | Lane | Integrated in `main` | Isolated work | Catch-up status |
 | --- | --- | --- | --- |
 | Core CLI | Current through the macOS reference merge | No separate Core commit pending | Shared message/progress hardening remains P1 |
-| macOS | Through `7209b70` | None committed | Reference lane; automated Store-safe scope complete |
+| macOS | Through `7209b70` | `f11fadf`..`2649c9d` | Automated release gates pass; signed visual review remains manual |
 | Linux | Through `d9ad771` via `3daca3d` | No committed delta | Git-integrated; Store-safe completion and fail-closed Power gate remain open |
 | Windows | Through `ae94c97` via `8b441b5` | Dirty Runtime Readiness vertical slice | Git-integrated through committed head; milestones 0-4 remain open |
-| Mobile | Safe baseline only | `345c41e`..`3d1a34f` plus dirty tutorial work | Kept isolated by approved entitlement decision D1 |
+| Mobile | Safe baseline only | `345c41e`..`8dd1c26` | Verified Store-safe consumer slice remains isolated by decision D1 |
 | Docs | Current integration state | Lane-local dirty docs are not copied | Sync after this docs commit |
 
 `main` is the only cross-lane source of truth. Branch-ahead work is evidence only after
@@ -24,14 +24,19 @@ privileges, and provider gates honestly.
 
 ## Current Proof
 
-- macOS: 265 Swift tests plus Rust workspace tests, bundle validation, live DNS-only
-  and DNS+TCP smoke, Store/Power preflight, and release-site safety pass.
+- macOS: 270 Swift tests plus Rust workspace tests, bundle validation, live DNS-only,
+  DNS+TCP, game-target, and System DNS history smoke, Store/Power preflight, and
+  release-site safety pass.
+- macOS localization/interaction visual matrix is `NOT RUN`; semantic EN/VI resources,
+  hit-target semantics, and automated localization guards pass, while signed visual
+  review remains a manual commercial gate.
 - Linux pre-integration baseline: fmt/test/clippy pass. Real Linux package and
   privileged behavior remain `NOT RUN`; merged-result validation is rerun in this pass.
 - Windows committed baseline: 40 Core/static tests pass. The dirty Runtime Readiness
   overlay passes 44 Core tests but is not integrated; WinUI/MSIX is `NOT RUN` on macOS.
-- Mobile isolated committed branch: 86 tests, typecheck, route export, and default
-  production entitlement checks pass. Signed physical-device QA is `NOT RUN`.
+- Mobile isolated committed branch: 95 tests, typecheck, route export, Expo SDK
+  compatibility, Store config isolation, Android Store AAB policy checks, and iOS
+  Release Simulator launch pass. Signed physical-device QA is `NOT RUN`.
 
 ## Non-Negotiable Boundaries
 

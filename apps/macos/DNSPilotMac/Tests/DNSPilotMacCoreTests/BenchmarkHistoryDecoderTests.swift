@@ -45,6 +45,16 @@ final class BenchmarkHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows[0].healthLabel, "Healthy")
         XCTAssertEqual(viewModel.rows[0].recommendationLabel, "Recommended: Cloudflare")
         XCTAssertEqual(viewModel.rows[0].applyGuidanceLabel, "Retest before applying saved recommendation")
+        let vietnamese = DNSPilotLocalizer(language: .vietnamese)
+        XCTAssertEqual(viewModel.rows[0].localizedTitle(localizer: vietnamese), "Chỉ DNS")
+        XCTAssertEqual(viewModel.rows[0].localizedDomainSummary(localizer: vietnamese), "github.com + 1 domain khác")
+        XCTAssertEqual(viewModel.rows[0].localizedResolverSummary(localizer: vietnamese), "2 máy chủ DNS")
+        XCTAssertEqual(viewModel.rows[0].localizedHealthLabel(localizer: vietnamese), "Ổn định")
+        XCTAssertEqual(viewModel.rows[0].localizedRecommendationLabel(localizer: vietnamese), "Khuyến nghị: Cloudflare")
+        XCTAssertEqual(
+            viewModel.rows[0].localizedApplyGuidanceLabel(localizer: vietnamese),
+            "Kiểm tra lại trước khi áp dụng khuyến nghị đã lưu"
+        )
     }
 
     func testViewModelShowsNewestSavedRunFirst() throws {

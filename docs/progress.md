@@ -1,6 +1,6 @@
 # Global Progress
 
-Last integration pass: 2026-07-14.
+Last integration pass: 2026-07-18.
 
 ## Completed
 
@@ -19,7 +19,7 @@ Last integration pass: 2026-07-14.
   and preserved all dirty Windows/mobile work.
 - Defined macOS-led product-contract parity in `PROJECT.md` and
   `docs/reference-lane-contract.md`.
-- Preserved uncommitted Windows/mobile overlays without staging or rewriting them.
+- Preserved the uncommitted Windows overlay without staging or rewriting it.
 
 ## In Progress Outside `main`
 
@@ -27,8 +27,9 @@ Last integration pass: 2026-07-14.
   a fail-closed privilege boundary and exact rollback are proven.
 - Windows: dirty Runtime Readiness remains outside `main`; later milestones remain
   queued in `apps/windows/windows-predevelopment-review.md`.
-- Mobile: consumer work through `3d1a34f` is verified but remains isolated with the
-  restricted entitlement branch; a tutorial follow-up is dirty and uncommitted.
+- Mobile: consumer work through `8dd1c26` is verified but remains isolated with the
+  restricted entitlement history. The default Store slice has a separate release gate;
+  no mobile worktree overlay is dirty.
 
 ## Deferred By Evidence
 

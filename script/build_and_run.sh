@@ -32,16 +32,32 @@ truthy() {
   esac
 }
 
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+terminate_existing_app() {
+  pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+
+  for _ in {1..40}; do
+    if ! pgrep -x "$APP_NAME" >/dev/null; then
+      return 0
+    fi
+    sleep 0.25
+  done
+
+  echo "$APP_NAME did not terminate before rebuilding." >&2
+  return 1
+}
+
+terminate_existing_app
 
 cargo build -p "$CLI_NAME" --manifest-path "$ROOT_DIR/Cargo.toml"
 swift build --package-path "$SWIFT_PACKAGE_DIR"
 BUILD_BINARY="$(swift build --package-path "$SWIFT_PACKAGE_DIR" --show-bin-path)/$APP_NAME"
+RESOURCE_BUNDLE="$(swift build --package-path "$SWIFT_PACKAGE_DIR" --show-bin-path)/DNSPilotMac_DNSPilotMacCore.bundle"
 CLI_BINARY="$ROOT_DIR/target/debug/$CLI_NAME"
 
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$APP_HELPERS"
 cp "$BUILD_BINARY" "$APP_BINARY"
+cp -R "$RESOURCE_BUNDLE" "$APP_RESOURCES/DNSPilotMac_DNSPilotMacCore.bundle"
 cp "$CLI_BINARY" "$APP_HELPERS/$CLI_NAME"
 cp "$PRIVACY_MANIFEST" "$APP_RESOURCES/PrivacyInfo.xcprivacy"
 cp "$APP_ICON" "$APP_RESOURCES/AppIcon.icns"
@@ -115,7 +131,7 @@ exit(appWindows.count == 1 ? 0 : 1)'
 }
 
 verify_launch() {
-  for _ in {1..20}; do
+  for _ in {1..80}; do
     if pgrep -x "$APP_NAME" >/dev/null && verify_app_window; then
       return 0
     fi

@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-07-14.
+Last updated: 2026-07-18.
 
 ## Current Truth
 
@@ -9,9 +9,13 @@ Last updated: 2026-07-14.
 - Rust Core/CLI owns catalog, benchmark, recommendation, policy, storage, history,
   apply-plan, and JSON/JSONL contracts. DNS sample payloads now include optional
   `failure_detail` with regression coverage.
-- macOS Store-safe automated scope is complete: focused consumer IA, DNS-only Quick
-  Check, game/service presets, single-window ownership, guided Apply/Retest, Power
-  rollback isolation, release assets, and safe site generation all pass local gates.
+- macOS benchmark, single-window, guided Apply/Retest, Power isolation, release-asset,
+  packaging, and localization gates pass. Presentation copy is centralized in native
+  `en.lproj`/`vi.lproj` `Localizable.strings`; `System` resolves macOS preferences,
+  tooltips render one active language, Store-safe Settings hide Power-only controls,
+  and the Benchmark Options row has full keyboard/VoiceOver button semantics. Result,
+  history, progress, Apply, and built-in target labels are rendered from structured
+  state, while raw CLI notes stay inside Technical details.
 - Linux committed packaging, settings, planning, and lane docs are integrated. The
   app remains an engineering shell; its native execute prototype is present for
   development only and is not releasable until fail-closed privilege and exact
@@ -20,9 +24,10 @@ Last updated: 2026-07-14.
   Runtime Readiness implementation remains an uncommitted worktree overlay;
   WinUI/MSIX evidence still requires Windows.
 - Mobile has a standalone Expo native runtime and a verified consumer shell through
-  `3d1a34f` on `worktree/mobile`. The branch remains outside `main` because it contains
+  `8dd1c26` on `worktree/mobile`, including a Store release-preflight gate and
+  SDK 57.0.6 alignment. The branch remains outside `main` because its history contains
   native iOS DNS Settings commit `345c41e`, pending Apple capability approval and
-  signed physical-device evidence. A newer tutorial change is still uncommitted.
+  signed physical-device evidence; the default Store configuration remains isolated.
 
 ## Reference Contract
 
@@ -31,17 +36,29 @@ decision journey and evidence, not identical platform features.
 
 ## Latest Validation
 
-- macOS: `./script/ci_macos.sh` passed; 265 Swift tests, Rust workspace tests,
-  Store-safe bundle validation, DNS-only smoke, and DNS+TCP smoke.
+- macOS: `./script/ci_macos.sh` passed; 270 Swift tests, Rust workspace tests,
+  Store-safe bundle validation, localization guard, DNS-only smoke, and DNS+TCP smoke.
 - macOS: `./script/preflight_macos_release.sh --include-power` passed, including
   Store-safe/Power bundle separation and App Store site safety tests.
 - Linux pre-integration baseline: fmt, tests, clippy, and
   `cargo test -p dnspilot-cli` passed. Merged-result rerun is pending this pass.
 - Windows committed baseline: 40 Core/static tests passed. The uncommitted Runtime
   Readiness overlay passes 44 Core tests; Windows-only XAML/MSIX remains `NOT RUN`.
-- Mobile committed branch: `npm run verify` passed 86 tests, typecheck, route export,
-  dependency compatibility, and production config checks. Physical-device proof is
-  still `NOT RUN`.
+- Mobile committed branch: `npm run verify` passed 95 tests, typecheck, route export,
+  Expo dependency compatibility, release config isolation, and local Android Store AAB
+  manifest/DEX checks. iOS Release Simulator build/install/launch also passes.
+  Signed physical-device proof is still `NOT RUN`.
+- macOS localization/interaction visual matrix: implementation and static/runtime
+  checks pass; clean EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver capture
+  remains a manual release gate in
+  `docs/research/2026-07-14-macos-localization-interaction-review.md`.
+- macOS current lane: `./script/ci_macos.sh`,
+  `./script/preflight_macos_release.sh --include-power`, and
+  `./script/smoke_macos_goal_flows.sh --include-network --include-bundles` pass after
+  semantic EN/VI result/history localization. The packaged Store-safe app launches
+  with exactly one on-screen main window. This host cannot capture a window image or
+  expose that window through Accessibility, so EN/VI visual and VoiceOver proof remains
+  a deliberate manual release gate rather than a false-green CI claim.
 
 ## Manual Release Gates
 
