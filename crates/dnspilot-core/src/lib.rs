@@ -376,6 +376,27 @@ pub enum FlushCapability {
     Unsupported,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CapabilityNote {
+    AppleDnsSettingsUserEnablement,
+    StoreGuidedCacheFlush,
+    PlainDnsUnavailableToNormalApps,
+    SystemCacheFlushUnavailableToNormalApps,
+    AndroidVpnDeferred,
+    AndroidGuidedDnsReset,
+    StoreNoAdminElevation,
+    StoreGuidedAdminFlush,
+    FlatpakNoBroadDbus,
+    FlatpakGuidedResolverFlush,
+    SnapNetworkManagerPrivilege,
+    SnapGuidedResolverFlush,
+    NativePolkitDnsApply,
+    NativeResolverFlush,
+    PowerSkuSeparate,
+    PowerApprovedAdminHelper,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlatformCapability {
     pub platform: Platform,
@@ -383,6 +404,8 @@ pub struct PlatformCapability {
     pub apply: ApplyCapability,
     pub flush: FlushCapability,
     pub store_safe: bool,
+    #[serde(default)]
+    pub note_ids: Vec<CapabilityNote>,
     pub notes: Vec<String>,
 }
 
@@ -1383,6 +1406,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::AppleNetworkExtensionDnsSettings,
             flush: FlushCapability::GuidedUserAction,
             store_safe: true,
+            note_ids: vec![
+                CapabilityNote::AppleDnsSettingsUserEnablement,
+                CapabilityNote::StoreGuidedCacheFlush,
+            ],
             notes: vec![
                 "DoH/DoT DNS Settings require explicit user enablement.".into(),
                 "Store builds should guide DNS cache flush rather than running system commands."
@@ -1395,6 +1422,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::AppleNetworkExtensionDnsSettings,
             flush: FlushCapability::Unsupported,
             store_safe: true,
+            note_ids: vec![
+                CapabilityNote::PlainDnsUnavailableToNormalApps,
+                CapabilityNote::SystemCacheFlushUnavailableToNormalApps,
+            ],
             notes: vec![
                 "Plain system DNS switching is not available to normal apps.".into(),
                 "System DNS cache flush is not available to normal apps.".into(),
@@ -1406,6 +1437,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::GuidedSettings,
             flush: FlushCapability::GuidedUserAction,
             store_safe: true,
+            note_ids: vec![
+                CapabilityNote::AndroidVpnDeferred,
+                CapabilityNote::AndroidGuidedDnsReset,
+            ],
             notes: vec![
                 "VpnService is deferred until disclosure and policy review are ready.".into(),
                 "Store builds should guide users through network/private DNS reset steps.".into(),
@@ -1417,6 +1452,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::GuidedSettings,
             flush: FlushCapability::GuidedUserAction,
             store_safe: true,
+            note_ids: vec![
+                CapabilityNote::StoreNoAdminElevation,
+                CapabilityNote::StoreGuidedAdminFlush,
+            ],
             notes: vec![
                 "Store builds must not depend on administrator elevation.".into(),
                 "DNS cache flush should be guided unless an admin service is installed.".into(),
@@ -1428,6 +1467,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::GuidedSettings,
             flush: FlushCapability::GuidedUserAction,
             store_safe: true,
+            note_ids: vec![
+                CapabilityNote::FlatpakNoBroadDbus,
+                CapabilityNote::FlatpakGuidedResolverFlush,
+            ],
             notes: vec![
                 "Flatpak should avoid broad system D-Bus access for MVP.".into(),
                 "Resolver cache flush varies by distro and should be guided in sandboxed builds."
@@ -1440,6 +1483,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::GuidedSettings,
             flush: FlushCapability::GuidedUserAction,
             store_safe: true,
+            note_ids: vec![
+                CapabilityNote::SnapNetworkManagerPrivilege,
+                CapabilityNote::SnapGuidedResolverFlush,
+            ],
             notes: vec![
                 "network-manager plug is privileged and not auto-connected.".into(),
                 "Resolver cache flush varies by distro and snap interfaces.".into(),
@@ -1451,6 +1498,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::LinuxNetworkManagerPolkit,
             flush: FlushCapability::LinuxSystemResolverPolkit,
             store_safe: false,
+            note_ids: vec![
+                CapabilityNote::NativePolkitDnsApply,
+                CapabilityNote::NativeResolverFlush,
+            ],
             notes: vec![
                 "Native deb/rpm can use NetworkManager/systemd-resolved with polkit.".into(),
                 "Resolver cache flush can use systemd-resolved or NetworkManager when available."
@@ -1463,6 +1514,10 @@ pub fn capability_for(platform: Platform) -> PlatformCapability {
             apply: ApplyCapability::DesktopAdminService,
             flush: FlushCapability::DesktopAdminService,
             store_safe: false,
+            note_ids: vec![
+                CapabilityNote::PowerSkuSeparate,
+                CapabilityNote::PowerApprovedAdminHelper,
+            ],
             notes: vec![
                 "Power edition is separate from store-safe builds.".into(),
                 "DNS cache flush requires an approved local helper/admin path.".into(),

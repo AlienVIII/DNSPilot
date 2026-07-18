@@ -4,9 +4,10 @@ use dnspilot_core::{
     built_in_test_suites, capability_for, capability_matrix_payload, catalog_payload,
     classify_resolution_outcome, recommend, recommendation_gate, ApplyCapability,
     ApplyPlanDisposition, ApplyPromptDisposition, BenchmarkMetrics, BenchmarkPreflightScope,
-    Confidence, DnsProtocol, FilteringType, FlushCapability, FlushRequirement, MeasurementScope,
-    NetworkEnvironment, Platform, RecommendationDecision, RecommendationGate, RecommendationHealth,
-    RecommendationIssue, RecommendationMode, RecommendationNote, ResolutionOutcome,
+    CapabilityNote, Confidence, DnsProtocol, FilteringType, FlushCapability, FlushRequirement,
+    MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision, RecommendationGate,
+    RecommendationHealth, RecommendationIssue, RecommendationMode, RecommendationNote,
+    ResolutionOutcome,
 };
 
 fn metrics(
@@ -148,6 +149,25 @@ fn capability_matrix_payload_matches_platform_capability_contract() {
     );
     assert_eq!(json["schema_version"], 1);
     assert!(json.get("capabilities").is_some());
+    let macos = payload
+        .capabilities
+        .iter()
+        .find(|capability| capability.platform == Platform::MacOSStore)
+        .expect("macOS Store capability");
+    assert_eq!(
+        macos.note_ids,
+        vec![
+            CapabilityNote::AppleDnsSettingsUserEnablement,
+            CapabilityNote::StoreGuidedCacheFlush,
+        ]
+    );
+    assert_eq!(
+        json["capabilities"].as_array().expect("capabilities array")[0]["note_ids"],
+        serde_json::json!([
+            "apple-dns-settings-user-enablement",
+            "store-guided-cache-flush"
+        ])
+    );
 }
 
 #[test]
