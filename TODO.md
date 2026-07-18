@@ -32,8 +32,10 @@ Last reviewed: 2026-07-19.
 - [x] Disable Android backup and exclude iOS Application Support data from backup.
 - [x] Simplify mobile first-run UI: hide empty Process/Result sections and keep advanced
   detail progressive.
-- [ ] Complete the already-running Android AAB and iOS Simulator Release builds, then
-  record the artifact paths and merge mobile source to `main`.
+- [x] Build Android Release AAB and pass its manifest/dex release gates; mobile source
+  is merged in `234a2e0`.
+- [ ] Capture iOS Simulator Release build exit evidence; signed physical-device QA and
+  store release remain manual gates.
 - [ ] Treat Expo web as dev/router QA only. After all gates pass, merge mobile source to
   `main`; keep the `production-ios-dns` artifact blocked by provider/device evidence.
 

@@ -16,10 +16,10 @@ Last updated: 2026-07-19.
   real Linux evidence remain open.
 - Windows milestones 0-4 and release preparation are committed. Core/static tests pass;
   WinUI/XAML/MSIX/tray/accessibility evidence still requires Windows.
-- Mobile is validated in `e24e893`: Expo patch versions are current, bridge access is
+- Mobile is integrated through `234a2e0`: Expo patch versions are current, bridge access is
   loopback-by-default and LAN-token protected, local data is excluded from Android/iOS
-  backup, and first-run UI hides empty technical sections. Android/iOS release builds
-  are running; the optional entitled iOS artifact remains provider/device blocked.
+  backup, and first-run UI hides empty technical sections. Android Release AAB (87 MB),
+  manifest, and dex gates pass; iOS Simulator Release exit evidence remains `NOT RUN`.
 
 ## Review Findings
 
@@ -40,8 +40,9 @@ Last updated: 2026-07-19.
   at `8a53a31` (121 tests). Live DNS requests pin the resolver source, use OS entropy
   for transaction IDs, validate response semantics, and serialize snapshot mutations.
 - Mobile: `npm run verify` passes 98 tests, typecheck, Expo config/router export,
-  dependency compatibility, and high-severity audit threshold at `e24e893`. Android
-  AAB and iOS Simulator Release builds are in progress; their completion is `NOT RUN`.
+  dependency compatibility, and high-severity audit threshold. Android `bundleRelease`
+  passes in 5m19s; the 87 MB AAB passes manifest and dex release gates. iOS Simulator
+  Release exit evidence remains `NOT RUN`.
 - Dependency review: RustSec reports no known Rust advisories; NuGet reports no known
   vulnerable Windows packages; npm reports 11 moderate and no high/critical findings.
 - Mobile web visual QA at 390px confirms tutorial/Help and three primary tabs, but also
