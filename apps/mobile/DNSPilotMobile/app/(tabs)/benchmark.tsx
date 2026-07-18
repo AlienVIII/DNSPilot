@@ -180,18 +180,18 @@ export default function BenchmarkScreen() {
     setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, startedAtMs }));
     try {
       let job = await startJob(runMode, benchmarkPlan.payload);
-      setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs));
+      setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs, t('benchmark.error.failed')));
       while (job.status === 'running') {
         await sleep(500);
         job = await getJob(job.id);
-        setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs));
+        setDiagnostics(diagnosticsForJob(runMode, job, startedAtMs, t('benchmark.error.failed')));
       }
       if (job.status === 'failed') {
-        throw new Error(job.error?.message ?? 'Bridge benchmark job failed.');
+        throw new Error(job.error?.message ?? t('benchmark.error.failed'));
       }
       const next = job.result;
       if (!next) {
-        throw new Error('Bridge benchmark job finished without a result payload.');
+        throw new Error(t('benchmark.error.noResult'));
       }
       setResult(next);
       setDiagnostics(buildBenchmarkDiagnostics({ mode: runMode, result: next, startedAtMs, endedAtMs: Date.now() }));
@@ -481,11 +481,11 @@ function applyPlanPayload(request: ApplyPlanRequest) {
   };
 }
 
-function diagnosticsForJob(mode: Mode, job: BridgeJob, startedAtMs: number) {
+function diagnosticsForJob(mode: Mode, job: BridgeJob, startedAtMs: number, failureMessage: string) {
   if (job.status === 'failed') {
     return buildBenchmarkDiagnostics({
       mode,
-      error: new Error(job.error?.message ?? 'Bridge benchmark job failed.'),
+      error: new Error(job.error?.message ?? failureMessage),
       startedAtMs,
       endedAtMs: Date.now(),
     });

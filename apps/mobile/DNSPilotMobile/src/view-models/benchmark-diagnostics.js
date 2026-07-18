@@ -64,7 +64,7 @@ export function buildBenchmarkDiagnostics({ mode, result, error, startedAtMs, en
   const args = result?.args ?? [];
 
   if (!summary && progress.length > 0) {
-    const debugLog = args.length > 0 ? `dnspilot-cli ${args.join(" ")}` : "";
+    const debugLog = debugCommand(args);
     return {
       status: "running",
       elapsedMs,
@@ -91,7 +91,7 @@ export function buildBenchmarkDiagnostics({ mode, result, error, startedAtMs, en
   const failedStepId = failedStepFor(summary);
   const status = failedStepId ? "failed" : result ? "success" : "running";
   const reason = reasonFor(summary, failedStepId);
-  const debugLog = args.length > 0 ? `dnspilot-cli ${args.join(" ")}` : "";
+  const debugLog = debugCommand(args);
 
   return {
     status,
@@ -283,6 +283,16 @@ function progressScope(progress) {
   return undefined;
 }
 
+function debugCommand(args) {
+  if (!Array.isArray(args) || args.length === 0) {
+    return "";
+  }
+  if (args[0] === "native") {
+    return `DNSPilot native runtime ${args.slice(1).join(" ")}`;
+  }
+  return `dnspilot-cli ${args.join(" ")}`;
+}
+
 function latestProgressByProfile(progress) {
   const latest = new Map();
   for (const event of progress) {
@@ -345,7 +355,7 @@ function makeReport({ mode, status, elapsedMs, failedStepLabel, reason, resolver
         `- ${resolver.profileId} ${resolver.resolver ?? ""} ${resolver.status} failure=${resolver.failureRate ?? "unknown"} timeout=${resolver.timeoutRate ?? "unknown"}`
     ),
     `Warning: ${warning ?? "none"}`,
-    `Debug: ${args.length > 0 ? `dnspilot-cli ${args.join(" ")}` : "none"}`,
+    `Debug: ${debugCommand(args) || "none"}`,
   ];
   return lines.join("\n");
 }

@@ -125,3 +125,13 @@ test("suggested suites exposes default and Vietnam quick picks when catalog supp
     vietnamSuiteId: "vietnam-daily",
   });
 });
+
+test("suggested suites recognizes the shared core general suite", () => {
+  assert.deepEqual(
+    suggestedSuites([
+      { id: "general", name: "General", domains: ["example.com"], tags: ["general"] },
+      { id: "vietnam-daily", name: "Vietnam", domains: ["vnexpress.net"], tags: ["vietnam"] },
+    ]),
+    { defaultSuiteId: "general", vietnamSuiteId: "vietnam-daily" }
+  );
+});

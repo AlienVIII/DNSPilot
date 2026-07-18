@@ -204,3 +204,19 @@ test("diagnostics show resolver progress before final runs exist", () => {
   );
   assert.match(diagnostics.report, /Progress events: 3/);
 });
+
+test("native runtime diagnostics do not mislabel actions as CLI bridge commands", () => {
+  const diagnostics = buildBenchmarkDiagnostics({
+    mode: "compare",
+    result: {
+      ...failedCompare,
+      args: ["native", "compare", "--profile-id", "cloudflare"],
+    },
+    startedAtMs: 10,
+    endedAtMs: 20,
+  });
+
+  assert.equal(diagnostics.debugLog, "DNSPilot native runtime compare --profile-id cloudflare");
+  assert.match(diagnostics.report, /Debug: DNSPilot native runtime compare/);
+  assert.doesNotMatch(diagnostics.report, /dnspilot-cli/);
+});

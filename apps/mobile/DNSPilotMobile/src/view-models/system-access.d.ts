@@ -29,5 +29,6 @@ export type SystemAccessPrompt = {
 export function buildSystemAccessPrompt(input: {
   platform: string;
   bridgeStatus?: 'success' | 'failed' | 'unknown';
+  nativeRuntime?: boolean;
   locale?: string;
 }): SystemAccessPrompt;

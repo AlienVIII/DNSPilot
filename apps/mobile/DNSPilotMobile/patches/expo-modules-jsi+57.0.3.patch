@@ -107,7 +107,7 @@ index a3a861f..4a68779 100644
  
    /// Creates a BigInt from an existing JSI BigInt.
 diff --git a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift
-index 3c2479c..9716ea9 100644
+index 936aaa2..54c533a 100644
 --- a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift
 +++ b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift
 @@ -12,7 +12,7 @@ internal import jsi
@@ -146,7 +146,7 @@ index cc15fd5..869f666 100644
  
    /// Creates a new object in the given runtime.
 diff --git a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift
-index 5f1f337..ee0972f 100644
+index c2152bc..576a4b3 100644
 --- a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift
 +++ b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift
 @@ -10,7 +10,7 @@ internal import jsi
@@ -155,9 +155,9 @@ index 5f1f337..ee0972f 100644
  
 -  private weak let runtime: JavaScriptRuntime?
 +  nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?
-   private var object: JavaScriptObject
    private let deferredPromise = DeferredPromise()
  
+   /// Owns the promise's JSI values (the object and, for a deferred promise, its resolve/reject
 diff --git a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptTypedArray.swift b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptTypedArray.swift
 index 280c18a..d19b6b7 100644
 --- a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptTypedArray.swift

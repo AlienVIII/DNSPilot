@@ -149,8 +149,17 @@ export default function StorageScreen() {
               <TextField label={t('storage.profile.ipv6')} value={ipv6} onChangeText={setIpv6} multiline placeholder="2606:4700:4700::1111" />
             </Row>
           ) : null}
-          {protocol === 'doh' ? <TextField label={t('storage.profile.doh')} value={dohUrl} onChangeText={setDohUrl} placeholder="https://dns.example/dns-query" /> : null}
-          {protocol === 'dot' ? <TextField label={t('storage.profile.dot')} value={dotHostname} onChangeText={setDotHostname} placeholder="dns.example.com" /> : null}
+          {protocol === 'doh' || protocol === 'dot' ? (
+            <>
+              {protocol === 'doh' ? <TextField label={t('storage.profile.doh')} value={dohUrl} onChangeText={setDohUrl} placeholder="https://dns.example/dns-query" /> : null}
+              {protocol === 'dot' ? <TextField label={t('storage.profile.dot')} value={dotHostname} onChangeText={setDotHostname} placeholder="dns.example.com" /> : null}
+              <Text selectable style={{ color: palette.muted, fontSize: 12, lineHeight: 17 }}>{t('storage.profile.bootstrapHelp')}</Text>
+              <Row>
+                <TextField label={t('storage.profile.bootstrapIpv4')} value={ipv4} onChangeText={setIpv4} multiline placeholder="1.1.1.1" />
+                <TextField label={t('storage.profile.bootstrapIpv6')} value={ipv6} onChangeText={setIpv6} multiline placeholder="2606:4700:4700::1111" />
+              </Row>
+            </>
+          ) : null}
           <Segmented options={filteringOptions} value={filtering} onChange={setFiltering} />
           <TextField label={t('storage.profile.tags')} value={profileTags} onChangeText={setProfileTags} placeholder="custom, office" />
           <ErrorBanner message={profileErrors} />

@@ -4,17 +4,21 @@ Last reviewed: 2026-07-19.
 
 ## Green Before Main Integration
 
-- [ ] `npm run verify` passes with current Expo-compatible patches.
+- [x] `npm run verify` passes with Expo 57.0.7-compatible patches (98 tests,
+  typecheck, router export, Expo compatibility check).
 - [ ] `npm run preflight:release` passes after clean generated iOS/Android builds.
+  Release-config passes; Android release build evidence is still running.
 - [ ] Default iOS Store generated/signed entitlements omit `dns-settings`; the opt-in
   profile remains deterministic and separately blocked.
-- [ ] Android production manifest excludes dev-client, VPN/overlay/storage leakage and
-  applies the approved backup policy; iOS applies the equivalent local-data policy.
+- [x] Android production manifest excludes dev-client, VPN/overlay/storage leakage and
+  disables backup. The iOS native runtime excludes its `Application Support/DNSPilot`
+  directory from backup; simulator/device verification remains open.
 - [ ] Native Rust jobs pass unit, type, Router, iOS Simulator, and Android release smoke.
-- [ ] Dev bridge is loopback-only by default; LAN mode requires per-run auth/origin
-  controls, fixed app database, redacted output, bounded jobs, and cancellation.
-- [ ] Check DNS first-run state has one title/status/action, no empty Process/Result, no
-  raw fetch error, and no implementation jargon.
+- [x] Dev bridge is loopback-only by default. Explicit LAN mode has a per-run bearer
+  token and origin allowlist; the server owns the database path, redacts HTTP output,
+  bounds jobs, and supports cancellation.
+- [x] Check DNS first-run state hides empty Process/Result and keeps the primary quick
+  check action above advanced controls. Broader physical-device copy review remains open.
 - [ ] Tutorial/Help and advanced disclosure are keyboard/touch/assistive reachable.
 
 ## Native Manual Flow

@@ -58,6 +58,21 @@ test("encrypted profile form validates protocol-specific target", () => {
   assert.deepEqual(dot.payload.tags, ["custom"]);
 });
 
+test("encrypted profiles preserve optional bootstrap IPs for native iOS DNS Settings", () => {
+  const profile = buildProfileForm({
+    profileId: "cloudflare-doh",
+    profileName: "Cloudflare DoH",
+    protocol: "doh",
+    dohUrl: "https://cloudflare-dns.com/dns-query",
+    ipv4: "1.1.1.1, 1.0.0.1",
+    ipv6: "2606:4700:4700::1111",
+  });
+
+  assert.equal(profile.canSubmit, true);
+  assert.deepEqual(profile.payload.ipv4Servers, ["1.1.1.1", "1.0.0.1"]);
+  assert.deepEqual(profile.payload.ipv6Servers, ["2606:4700:4700::1111"]);
+});
+
 test("suite form requires domains and preserves custom tag", () => {
   const empty = buildSuiteForm({
     suiteId: "",

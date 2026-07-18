@@ -39,6 +39,8 @@ test("production Podfile patch excludes Expo dev-client modules before use_expo_
 
   assert.match(output, /EAS_BUILD_PROFILE/);
   assert.match(output, /expo-dev-client/);
+  assert.match(output, /dns-settings/);
+  assert.match(output, /DNSPILOT_IOS_DNS_SETTINGS/);
   assert.match(output, /use_expo_modules!\(dnspilot_expo_autolinking_options\)/);
   assert.ok(output.indexOf("dnspilot_expo_autolinking_options") < output.indexOf("use_expo_modules!"));
 });
@@ -72,4 +74,37 @@ test("dynamic app config preserves Expo-provided app.json values", () => {
     "expo-router",
     "./plugins/withAndroidProductionAutolinking.cjs",
   ]);
+});
+
+test("DNS Settings entitlement is enabled only for the explicit iOS capability profile", () => {
+  const previous = process.env.EAS_BUILD_PROFILE;
+  try {
+    process.env.EAS_BUILD_PROFILE = "production";
+    const storeConfig = appConfig();
+    assert.doesNotMatch(storeConfig.plugins.join("\n"), /withIosDnsSettings/);
+    assert.equal(storeConfig.extra.iosDnsSettingsEnabled, false);
+
+    process.env.EAS_BUILD_PROFILE = "production-ios-dns";
+    const entitledConfig = appConfig();
+    assert.match(entitledConfig.plugins.join("\n"), /withIosDnsSettings/);
+    assert.equal(entitledConfig.extra.iosDnsSettingsEnabled, true);
+  } finally {
+    if (previous === undefined) delete process.env.EAS_BUILD_PROFILE;
+    else process.env.EAS_BUILD_PROFILE = previous;
+  }
+});
+
+test("production config removes the Local Network bridge declaration", () => {
+  const previous = process.env.EAS_BUILD_PROFILE;
+  process.env.EAS_BUILD_PROFILE = "production";
+  try {
+    const config = appConfig();
+    assert.equal(config.ios.infoPlist.NSLocalNetworkUsageDescription, undefined);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.EAS_BUILD_PROFILE;
+    } else {
+      process.env.EAS_BUILD_PROFILE = previous;
+    }
+  }
 });

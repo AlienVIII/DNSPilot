@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "apple": {
+    "modules": ["DNSPilotRuntimeModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.dnspilotruntime.DNSPilotRuntimeModule"]
+  }
+}

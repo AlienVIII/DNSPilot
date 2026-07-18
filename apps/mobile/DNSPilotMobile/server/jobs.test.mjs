@@ -53,3 +53,27 @@ test("job store records failed command details", async () => {
   assert.equal(failed.error.message, "invalid --domain 'bad domain'");
   assert.match(failed.error.details.stderr, /bad domain/);
 });
+
+test("job store bounds concurrent work and preserves cancellation", async () => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const store = createJobStore({
+    maxRunning: 1,
+    runCommand: async (_action, _payload, _dbPath, { signal }) => {
+      await Promise.race([
+        gate,
+        new Promise((_, reject) => signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true })),
+      ]);
+      return { ok: true, action: "compare", args: [], data: {} };
+    },
+  });
+
+  const started = store.start("compare", {}, "/tmp/dnspilot-job.sqlite");
+  assert.throws(() => store.start("compare", {}, "/tmp/dnspilot-job.sqlite"), /Too many bridge jobs/);
+  assert.equal(store.cancel(started.id), true);
+  await assert.rejects(started.done, /aborted/);
+  assert.equal(store.get(started.id).status, "cancelled");
+  release();
+});

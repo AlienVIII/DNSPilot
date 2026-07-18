@@ -20,11 +20,15 @@ import {
   startBridgeJob,
   TestSuite,
 } from '@/src/api/dnspilot';
+import { DNSPilotRuntime } from '@/modules/dnspilot-runtime/src/DNSPilotRuntimeModule';
 import {
   deserializeAppPreferences,
   serializeAppPreferences,
   type AppPreferences,
 } from '@/src/view-models/app-preferences';
+import { actionTransport } from '@/src/view-models/action-transport';
+import { createNativeJobStore } from '@/src/view-models/native-job-store';
+import { currentTutorialVersion, shouldShowTutorial } from '@/src/view-models/tutorial-state';
 import {
   createTranslator,
   languageOptions,
@@ -42,6 +46,10 @@ type DNSPilotContextValue = {
   setLanguagePreference: (value: LanguagePreference) => void;
   languageOptions: typeof languageOptions;
   t: Translator;
+  tutorialVisible: boolean;
+  openTutorial: () => void;
+  dismissTutorial: () => void;
+  completeTutorial: () => void;
   health: { ok: boolean; dbPath?: string; repoRoot?: string } | null;
   profiles: DNSProfile[];
   suites: TestSuite[];
@@ -65,6 +73,7 @@ const appPreferencesStorageKey = 'dnspilot-mobile.preferences.v1';
 const defaultAppPreferences: AppPreferences = {
   bridgeUrl: defaultBridgeUrl,
   languagePreference: 'system',
+  tutorialCompletionVersion: 0,
 };
 
 function readDeviceLocales() {
@@ -77,6 +86,8 @@ function readDeviceLocales() {
 export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
   const [bridgeUrl, setBridgeUrl] = useState(defaultBridgeUrl);
   const [languagePreference, setLanguagePreference] = useState<LanguagePreference>('system');
+  const [tutorialCompletionVersion, setTutorialCompletionVersion] = useState(0);
+  const [tutorialVisible, setTutorialVisible] = useState(false);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [deviceLocales, setDeviceLocales] = useState(readDeviceLocales);
   const [health, setHealth] = useState<DNSPilotContextValue['health']>(null);
@@ -97,6 +108,7 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
         const preferences = deserializeAppPreferences(raw, defaultAppPreferences);
         setBridgeUrl(preferences.bridgeUrl);
         setLanguagePreference(preferences.languagePreference);
+        setTutorialCompletionVersion(preferences.tutorialCompletionVersion);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -118,9 +130,23 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       serializeAppPreferences({
         bridgeUrl,
         languagePreference,
+        tutorialCompletionVersion,
       }, defaultAppPreferences)
     ).catch(() => undefined);
-  }, [bridgeUrl, languagePreference, preferencesLoaded]);
+  }, [bridgeUrl, languagePreference, preferencesLoaded, tutorialCompletionVersion]);
+
+  React.useEffect(() => {
+    if (shouldShowTutorial({ preferencesLoaded, tutorialCompletionVersion })) {
+      setTutorialVisible(true);
+    }
+  }, [preferencesLoaded, tutorialCompletionVersion]);
+
+  const openTutorial = useCallback(() => setTutorialVisible(true), []);
+  const dismissTutorial = useCallback(() => setTutorialVisible(false), []);
+  const completeTutorial = useCallback(() => {
+    setTutorialCompletionVersion(currentTutorialVersion);
+    setTutorialVisible(false);
+  }, []);
 
   React.useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -131,11 +157,18 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.remove();
   }, []);
 
-  const runAction = useCallback<DNSPilotContextValue['runAction']>(
-    async (action, payload = {}) => {
+  const runAction = useCallback(
+    async <T,>(action: string, payload: Record<string, unknown> = {}): Promise<BridgeResult<T>> => {
       setError(null);
       try {
-        return await callBridge(bridgeUrl, action, payload);
+        if (actionTransport({ action, nativeAvailable: DNSPilotRuntime.isAvailable() }) === 'native') {
+          const result = await DNSPilotRuntime.runAction<BridgeResult<T>>(action, payload);
+          if (!result.ok) {
+            throw new Error((result as { error?: string }).error ?? `Native runtime failed: ${action}`);
+          }
+          return result;
+        }
+        return await callBridge<T>(bridgeUrl, action, payload);
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : String(caught);
         setError(message);
@@ -145,10 +178,22 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
     [bridgeUrl]
   );
 
+  const nativeRunActionRef = React.useRef(runAction);
+  nativeRunActionRef.current = runAction;
+  const nativeJobStoreRef = React.useRef<ReturnType<typeof createNativeJobStore> | null>(null);
+  if (!nativeJobStoreRef.current) {
+    nativeJobStoreRef.current = createNativeJobStore({
+      run: (action, payload) => nativeRunActionRef.current(action, payload),
+    });
+  }
+
   const startJob = useCallback<DNSPilotContextValue['startJob']>(
     async (action, payload = {}) => {
       setError(null);
       try {
+        if (actionTransport({ action, nativeAvailable: DNSPilotRuntime.isAvailable() }) === 'native') {
+          return nativeJobStoreRef.current!.start(action, payload);
+        }
         return await startBridgeJob(bridgeUrl, action, payload);
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : String(caught);
@@ -159,10 +204,14 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
     [bridgeUrl]
   );
 
-  const getJob = useCallback<DNSPilotContextValue['getJob']>(
-    async (id) => {
+  const getJob = useCallback(
+    async <T,>(id: string): Promise<BridgeJob<T>> => {
       try {
-        return await getBridgeJob(bridgeUrl, id);
+        const nativeJob = nativeJobStoreRef.current?.get<T>(id);
+        if (nativeJob) {
+          return nativeJob;
+        }
+        return await getBridgeJob<T>(bridgeUrl, id);
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : String(caught);
         setError(message);
@@ -176,14 +225,17 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const nextHealth = await bridgeHealth(bridgeUrl);
+      const nativeAvailable = DNSPilotRuntime.isAvailable();
+      const nextHealth = nativeAvailable
+        ? { ok: true, dbPath: 'Native application storage' }
+        : await bridgeHealth(bridgeUrl);
       const [catalogResult, capabilitiesResult, profilesResult, suitesResult, historyResult] =
         await Promise.all([
-          callBridge(bridgeUrl, 'catalog'),
-          callBridge(bridgeUrl, 'capabilities'),
-          callBridge(bridgeUrl, 'profileList'),
-          callBridge(bridgeUrl, 'suiteList'),
-          callBridge(bridgeUrl, 'historyList'),
+          runAction('catalog'),
+          runAction('capabilities'),
+          runAction('profileList'),
+          runAction('suiteList'),
+          runAction('historyList'),
         ]);
       setHealth(nextHealth);
       setProfiles(normalizeProfiles(profilesResult.data).length > 0 ? normalizeProfiles(profilesResult.data) : normalizeProfiles(catalogResult.data));
@@ -197,7 +249,7 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [bridgeUrl]);
+  }, [bridgeUrl, runAction]);
 
   const value = useMemo(
     () => ({
@@ -208,6 +260,10 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       setLanguagePreference,
       languageOptions,
       t,
+      tutorialVisible,
+      openTutorial,
+      dismissTutorial,
+      completeTutorial,
       health,
       profiles,
       suites,
@@ -225,6 +281,10 @@ export function DNSPilotProvider({ children }: { children: React.ReactNode }) {
       locale,
       languagePreference,
       t,
+      tutorialVisible,
+      openTutorial,
+      dismissTutorial,
+      completeTutorial,
       health,
       profiles,
       suites,

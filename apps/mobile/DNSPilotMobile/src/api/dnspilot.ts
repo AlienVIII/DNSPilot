@@ -61,7 +61,7 @@ export type BridgeResult<T = unknown> = {
   progress?: unknown[];
 };
 
-export type BridgeJobStatus = 'running' | 'success' | 'failed';
+export type BridgeJobStatus = 'running' | 'success' | 'failed' | 'cancelled';
 
 export type BridgeJob<T = unknown> = {
   id: string;
@@ -134,6 +134,17 @@ export async function getBridgeJob<T = unknown>(baseUrl: string, id: string): Pr
   const body = (await response.json()) as BridgeJobBody<T>;
   if (!response.ok || !body.ok || !body.job) {
     throw new Error(body.error ?? `Bridge job not found: ${id}`);
+  }
+  return body.job;
+}
+
+export async function cancelBridgeJob<T = unknown>(baseUrl: string, id: string): Promise<BridgeJob<T>> {
+  const response = await fetch(`${trimBaseUrl(baseUrl)}/api/jobs/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  const body = (await response.json()) as BridgeJobBody<T>;
+  if (!response.ok || !body.ok || !body.job) {
+    throw new Error(body.error ?? `Bridge job could not be cancelled: ${id}`);
   }
   return body.job;
 }

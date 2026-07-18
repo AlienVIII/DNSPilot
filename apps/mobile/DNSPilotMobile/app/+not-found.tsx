@@ -2,18 +2,21 @@ import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { palette } from '@/src/components/ui';
+import { useDNSPilot } from '@/src/state/dnspilot-context';
 
 export default function NotFoundScreen() {
+  const { t } = useDNSPilot();
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
+      <Stack.Screen options={{ title: t('nav.notFound') }} />
       <View style={styles.container}>
         <Text selectable style={styles.title}>
-          Screen not found
+          {t('nav.notFound.message')}
         </Text>
 
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Open Overview</Text>
+          <Text style={styles.linkText}>{t('nav.notFound.openCheckDns')}</Text>
         </Link>
       </View>
     </>
