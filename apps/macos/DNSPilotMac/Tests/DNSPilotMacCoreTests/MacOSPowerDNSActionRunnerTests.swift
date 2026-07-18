@@ -106,6 +106,8 @@ final class MacOSPowerDNSActionRunnerTests: XCTestCase {
             service: "Wi-Fi",
             mode: .automatic,
             servers: [],
+            appliedMode: .servers,
+            appliedServers: ["1.1.1.1"],
             createdAt: Date(timeIntervalSince1970: 1_000)
         )
 
@@ -115,6 +117,53 @@ final class MacOSPowerDNSActionRunnerTests: XCTestCase {
         XCTAssertTrue(script.contains("networksetup -setdnsservers 'Wi-Fi' Empty"))
         XCTAssertTrue(script.contains("Active network service changed"))
         XCTAssertTrue(script.contains("/usr/bin/dscacheutil -flushcache"))
+    }
+
+    func testRestoreRequiresCurrentDNSToMatchTheStateAppliedByDNSPilot() throws {
+        let processRunner = RecordingPowerActionProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "Restored DNS", standardError: "")
+        )
+        let runner = MacOSPowerDNSActionRunner(
+            isEnabled: true,
+            processRunner: processRunner,
+            now: { Date(timeIntervalSince1970: 1_100) }
+        )
+        let snapshot = PowerDNSRollbackSnapshot(
+            service: "Wi-Fi",
+            mode: .servers,
+            servers: ["192.168.1.1"],
+            appliedMode: .servers,
+            appliedServers: ["1.1.1.1", "1.0.0.1"],
+            createdAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        try runner.restoreDNS(snapshot: snapshot)
+
+        let script = try XCTUnwrap(processRunner.invocations.first?.arguments.last)
+        XCTAssertTrue(script.contains("DNS configuration changed after apply"))
+        XCTAssertTrue(script.contains("'1.1.1.1' '1.0.0.1'"))
+    }
+
+    func testRestoreRejectsLegacySnapshotWithoutAppliedStateBeforeAdministratorPrompt() {
+        let processRunner = RecordingPowerActionProcessRunner(
+            output: BenchmarkProcessOutput(exitCode: 0, standardOutput: "", standardError: "")
+        )
+        let runner = MacOSPowerDNSActionRunner(
+            isEnabled: true,
+            processRunner: processRunner,
+            now: { Date(timeIntervalSince1970: 1_100) }
+        )
+        let snapshot = PowerDNSRollbackSnapshot(
+            service: "Wi-Fi",
+            mode: .servers,
+            servers: ["192.168.1.1"],
+            createdAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        XCTAssertThrowsError(try runner.restoreDNS(snapshot: snapshot)) { error in
+            XCTAssertEqual(error as? MacOSPowerDNSActionRunnerError, .missingAppliedDNSState)
+        }
+        XCTAssertTrue(processRunner.invocations.isEmpty)
     }
 
     func testRestoreRejectsStaleSnapshotBeforeAdministratorPrompt() {

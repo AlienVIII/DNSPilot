@@ -9,22 +9,41 @@ public struct PowerDNSRollbackSnapshot: Codable, Equatable, Sendable {
     public let service: String
     public let mode: PowerDNSRollbackMode
     public let servers: [String]
+    public let appliedMode: PowerDNSRollbackMode?
+    public let appliedServers: [String]
     public let createdAt: Date
 
     public init(
         service: String,
         mode: PowerDNSRollbackMode,
         servers: [String],
+        appliedMode: PowerDNSRollbackMode? = nil,
+        appliedServers: [String] = [],
         createdAt: Date
     ) {
         self.service = service
         self.mode = mode
         self.servers = servers
+        self.appliedMode = appliedMode
+        self.appliedServers = appliedServers
         self.createdAt = createdAt
     }
 
     public var isRestorable: Bool {
         !service.isEmpty && (mode == .automatic || !servers.isEmpty)
+    }
+
+    /// A Power restore may only run when the snapshot can prove what DNS Pilot applied.
+    public var hasAppliedDNSState: Bool {
+        guard let appliedMode else {
+            return false
+        }
+        switch appliedMode {
+        case .automatic:
+            return appliedServers.isEmpty
+        case .servers:
+            return !appliedServers.isEmpty
+        }
     }
 
     public func isFresh(now: Date = Date(), maxAge: TimeInterval = 86_400) -> Bool {
@@ -61,7 +80,9 @@ public final class PowerDNSRollbackStore {
         }
         do {
             let snapshot = try decoder.decode(PowerDNSRollbackSnapshot.self, from: data)
-            guard snapshot.isRestorable, snapshot.isFresh(now: now(), maxAge: maxAge) else {
+            guard snapshot.isRestorable,
+                  snapshot.hasAppliedDNSState,
+                  snapshot.isFresh(now: now(), maxAge: maxAge) else {
                 clear()
                 return nil
             }
@@ -73,7 +94,7 @@ public final class PowerDNSRollbackStore {
     }
 
     public func save(_ snapshot: PowerDNSRollbackSnapshot) {
-        guard snapshot.isRestorable, let data = try? encoder.encode(snapshot) else {
+        guard snapshot.isRestorable, snapshot.hasAppliedDNSState, let data = try? encoder.encode(snapshot) else {
             return
         }
         userDefaults.set(data, forKey: key)
