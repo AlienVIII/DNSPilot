@@ -157,6 +157,8 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 
 ### D8: DNS Benchmark Response Integrity
 
+- **Status:** Implemented and regression-tested on 2026-07-19 in `8a53a31`.
+
 - **Problem:** Core currently accepts UDP datagrams without binding the socket to the
   requested resolver and uses predictable transaction IDs. The parser does not require
   a response flag or matching question before a run is counted as successful.
@@ -172,6 +174,8 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 - **Confidence:** High.
 
 ### D9: Shared Storage Mutation Model
+
+- **Status:** Implemented and regression-tested on 2026-07-19 in `8a53a31`.
 
 - **Problem:** every CLI mutation loads one JSON snapshot, changes it, then replaces the
   row. Concurrent benchmark/profile/history commands can silently lose the earlier
