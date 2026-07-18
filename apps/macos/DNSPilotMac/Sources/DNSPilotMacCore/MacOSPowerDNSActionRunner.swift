@@ -7,6 +7,7 @@ public enum MacOSPowerDNSActionRunnerError: Error, Equatable {
     case unsafeDNSServer(String)
     case invalidRollbackCapture(String)
     case staleRollbackSnapshot
+    case missingAppliedDNSState
     case processFailed(String)
 }
 
@@ -23,6 +24,8 @@ extension MacOSPowerDNSActionRunnerError: LocalizedError {
             "Could not safely capture current DNS for rollback: \(reason)"
         case .staleRollbackSnapshot:
             "The previous DNS snapshot is stale. Capture current DNS again before applying a resolver."
+        case .missingAppliedDNSState:
+            "The previous DNS snapshot cannot prove which DNS state DNS Pilot applied. Apply again before restoring."
         case .processFailed(let message):
             message
         }
@@ -128,7 +131,14 @@ public struct MacOSPowerDNSActionRunner {
         try runAdminShellScript(
             Self.applyShellScript(servers: sanitizedServers, rollbackSnapshot: rollbackSnapshot)
         )
-        return rollbackSnapshot
+        return PowerDNSRollbackSnapshot(
+            service: rollbackSnapshot.service,
+            mode: rollbackSnapshot.mode,
+            servers: rollbackSnapshot.servers,
+            appliedMode: .servers,
+            appliedServers: sanitizedServers,
+            createdAt: rollbackSnapshot.createdAt
+        )
     }
 
     public func restoreDNS(snapshot: PowerDNSRollbackSnapshot) throws {
@@ -172,6 +182,9 @@ public struct MacOSPowerDNSActionRunner {
         guard Self.isSafeServiceName(snapshot.service) else {
             throw MacOSPowerDNSActionRunnerError.invalidRollbackCapture("invalid network service")
         }
+        guard let appliedMode = snapshot.appliedMode else {
+            throw MacOSPowerDNSActionRunnerError.missingAppliedDNSState
+        }
 
         switch snapshot.mode {
         case .automatic:
@@ -184,6 +197,17 @@ public struct MacOSPowerDNSActionRunner {
             let servers = try sanitizedDNSServers(snapshot.servers)
             guard servers.count == snapshot.servers.count else {
                 throw MacOSPowerDNSActionRunnerError.invalidRollbackCapture("empty DNS server")
+            }
+        }
+        switch appliedMode {
+        case .automatic:
+            guard snapshot.appliedServers.isEmpty else {
+                throw MacOSPowerDNSActionRunnerError.invalidRollbackCapture("automatic applied DNS cannot include server addresses")
+            }
+        case .servers:
+            let servers = try sanitizedDNSServers(snapshot.appliedServers)
+            guard servers.count == snapshot.appliedServers.count else {
+                throw MacOSPowerDNSActionRunnerError.invalidRollbackCapture("empty applied DNS server")
             }
         }
         return snapshot
@@ -366,6 +390,26 @@ public struct MacOSPowerDNSActionRunner {
     }
 
     private static func restoreShellScript(snapshot: PowerDNSRollbackSnapshot) -> String {
+        let appliedConfigurationGuard: String
+        switch snapshot.appliedMode {
+        case .automatic:
+            appliedConfigurationGuard = """
+            current_dns="$(/usr/sbin/networksetup -getdnsservers "$service")"
+            case "$current_dns" in
+              "There aren't any DNS Servers set on "*) ;;
+              *) echo "DNS configuration changed after apply; restore cancelled." >&2; exit 5 ;;
+            esac
+            """
+        case .servers:
+            let appliedServerArguments = snapshot.appliedServers.map(shellQuoted).joined(separator: " ")
+            appliedConfigurationGuard = """
+            current_dns="$(/usr/sbin/networksetup -getdnsservers "$service")"
+            expected_dns="$(/usr/bin/printf '%s\\n' \(appliedServerArguments))"
+            if [ "$current_dns" != "$expected_dns" ]; then echo "DNS configuration changed after apply; restore cancelled." >&2; exit 5; fi
+            """
+        case nil:
+            return "exit 1"
+        }
         let restoreCommand: String
         switch snapshot.mode {
         case .automatic:
@@ -378,6 +422,7 @@ public struct MacOSPowerDNSActionRunner {
         set -e
         \(activeServiceLookupShell)
         if [ "$service" != \(shellQuoted(snapshot.service)) ]; then echo "Active network service changed before restore." >&2; exit 4; fi
+        \(appliedConfigurationGuard)
         \(restoreCommand)
         \(flushShellScript)
         echo "Restored DNS on $service."

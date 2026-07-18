@@ -114,6 +114,7 @@ public struct PowerDNSRollbackViewModel: Equatable, Sendable {
         guard isEnabled,
               let snapshot,
               snapshot.isRestorable,
+              snapshot.hasAppliedDNSState,
               snapshot.isFresh(now: now, maxAge: maxAge) else {
             return nil
         }
