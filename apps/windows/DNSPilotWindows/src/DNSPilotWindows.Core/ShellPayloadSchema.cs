@@ -8,7 +8,20 @@ internal static class ShellPayloadSchema
     {
         if (schemaVersion != SupportedVersion)
         {
-            throw new InvalidOperationException($"Unsupported DNS Pilot payload schema version {schemaVersion}.");
+            throw new UnsupportedPayloadSchemaException(schemaVersion, SupportedVersion);
         }
     }
+}
+
+public sealed class UnsupportedPayloadSchemaException : InvalidOperationException
+{
+    public UnsupportedPayloadSchemaException(int actualVersion, int supportedVersion)
+        : base($"Unsupported DNS Pilot payload schema version {actualVersion}; this app supports version {supportedVersion}.")
+    {
+        ActualVersion = actualVersion;
+        SupportedVersion = supportedVersion;
+    }
+
+    public int ActualVersion { get; }
+    public int SupportedVersion { get; }
 }

@@ -63,6 +63,9 @@ public sealed class ApplyGuidanceViewModel
     public IReadOnlyList<ApplyActionDescriptor> Actions { get; }
     public string CopyableDnsServers { get; }
     public string CopyableChecklist { get; }
+    public bool CanStartGuidedApply => Plan.Decision == ApplyDecision.Guide
+        && Actions.Any(action => action.Kind == ApplyActionKind.CopyDnsServers)
+        && Actions.Any(action => action.Kind == ApplyActionKind.OpenWindowsSettings);
 
     public static ApplyGuidanceViewModel FromPlan(ApplyPlan plan)
     {

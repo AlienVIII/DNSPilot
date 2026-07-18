@@ -9,6 +9,7 @@ public partial class App : Application
 
     public App()
     {
+        AppPreferenceStore.ApplyPreferredLanguage();
         InitializeComponent();
     }
 

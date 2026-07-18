@@ -27,7 +27,13 @@ internal sealed class WindowsCoreTestSuite
         Run("Windows shell state exposes benchmark, apply, profile, history, and tray surfaces", WindowsShellStateExposesStoreSafeSurfaces);
         Run("Default Windows shell blocks apply actions until runtime policy loads", DefaultWindowsShellBlocksApplyUntilRuntimePolicyLoads);
         Run("Benchmark control selection builds live preview plans", BenchmarkControlSelectionBuildsLivePreviewPlans);
+        Run("Quick Check uses a bounded DNS-only preset", QuickCheckUsesBoundedDnsOnlyPreset);
+        Run("Quick Check avoids a gaming suite when a general suite exists", QuickCheckAvoidsGamingSuite);
+        Run("Gaming suites force DNS plus TCP and retain the Core limitation notice", GamingSuiteForcesDnsAndTcpWithCatalogNotice);
         Run("Benchmark runner validates plan, appends progress and history args, and reports process failure", BenchmarkRunnerBuildsProcessBoundary);
+        Run("Cancelled benchmarks avoid process launch before start and never report saved history", CancelledBenchmarkAvoidsHistorySaveBeforeLaunch);
+        Run("Cancelled benchmark process results remain repeatable without reporting history", CancelledBenchmarkProcessResultIsRepeatable);
+        Run("System process runner terminates a cancelled child within its bounded timeout", SystemProcessRunnerTerminatesCancelledChild);
         Run("CLI payload decoders map catalog, capabilities, and apply-plan contracts", CliPayloadDecodersMapCoreContracts);
         Run("CLI contract runners invoke catalog, capabilities, apply-plan, profile, and history commands", CliContractRunnersInvokeCommands);
         Run("Suite list decoder and runner map persisted suite management contracts", SuiteListDecoderAndRunnerMapPersistedSuites);
@@ -42,15 +48,34 @@ internal sealed class WindowsCoreTestSuite
         Run("Suite management guards built-in update and delete by suite ID", SuiteManagementGuardsBuiltInMutationById);
         Run("Suite ownership matches Core CLI custom markers exactly", SuiteOwnershipMatchesCoreCliMarkersExactly);
         Run("Benchmark result decoder and apply-plan request factory map recommendations", BenchmarkResultDecoderBuildsApplyPlanRequest);
+        Run("Result safety distinguishes recommended, fastest observed, and keep-current states", ResultSafetyDistinguishesDecisionStates);
+        Run("Apply-plan request forwards user-confirmed protected-network signals", ApplyPlanRequestForwardsProtectedNetworkSignals);
+        Run("Versioned preferences migrate corrupt and removed catalog selections safely", VersionedPreferencesMigrateSafely);
+        Run("Profile preference restore preserves an intentional empty selection", ProfilePreferenceRestorePreservesIntentionalEmptySelection);
+        Run("Catalog quick picks derive default and Vietnam suites from tags", CatalogQuickPicksDeriveFromTags);
+        Run("Capability status rows distinguish ready, recovery, OS-gated, and unsupported", CapabilityStatusRowsDescribeRuntimeAndPlatformState);
+        Run("Diagnostic reports redact user-specific paths and environment values", DiagnosticReportsRedactPrivatePaths);
+        Run("Benchmark failure reasons redact user-specific diagnostics", BenchmarkFailureReasonsRedactPrivateDiagnostics);
         Run("Profile and history management rows expose safe edit/delete state", ProfileAndHistoryRowsExposeManagementState);
         Run("CLI executable locator prefers env, bundled helper, then development target paths", CliExecutableLocatorFindsRuntime);
         Run("Windows app declares native localization resources and Store packaging permissions", WindowsAppDeclaresLocalizationAndPackagingReadiness);
         Run("Windows shell confirms and serializes persistent deletion actions", WindowsShellConfirmsAndSerializesPersistentDeletionActions);
         Run("Windows shell serializes benchmark launches", WindowsShellSerializesBenchmarkLaunches);
+        Run("Windows app renders the cancellation and gaming-mode contracts", WindowsAppRendersCancellationAndGamingContracts);
+        Run("Windows app keeps one confirmed Store-safe apply path and System DNS retest", WindowsAppUsesConfirmedGuidedApplyFlow);
+        Run("Windows app uses runtime readiness for startup, recovery, and surface gating", WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating);
+        Run("Windows app follows the Check DNS, Profiles, and History consumer contract", WindowsAppFollowsConsumerNavigationContract);
+        Run("Windows app persists catalog-safe preferences and exposes capability status", WindowsAppPersistsPreferencesAndCapabilities);
         Run("macOS validation only tolerates the Windows-only XAML compiler failure", MacOsValidationOnlyToleratesWindowsXamlCompilerFailure);
         Run("Windows publish docs include privacy, listing, and certification copy", WindowsPublishDocsIncludePrivacyListingAndCertificationCopy);
+        Run("Windows Partner Center artifacts cover review, screenshots, and hosted support", WindowsPartnerCenterArtifactsCoverReleaseEvidence);
         Run("Windows README documents install, run, validation, and package steps", WindowsReadmeDocumentsInstallRunValidationAndPackageSteps);
         Run("Windows dynamic shell text follows current UI culture", WindowsDynamicShellTextFollowsCurrentUiCulture);
+        Run("Runtime readiness blocks every surface when the helper is missing", RuntimeReadinessBlocksMissingHelper);
+        Run("Runtime readiness degrades malformed benchmark contracts without hiding storage", RuntimeReadinessDegradesMalformedBenchmarkContract);
+        Run("Runtime readiness marks unsupported payload schemas incompatible", RuntimeReadinessMarksUnsupportedSchemaIncompatible);
+        Run("Runtime readiness preserves healthy surfaces when profile storage fails", RuntimeReadinessPreservesHealthySurfacesWhenProfileStorageFails);
+        Run("Runtime readiness creates the local storage directory before probing storage", RuntimeReadinessCreatesStorageDirectory);
 
         Console.WriteLine($"Passed {_passed} Windows core tests.");
     }
@@ -228,6 +253,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.DoesNotContain(ApplyActionKind.MutateSystemDns.ToString(), string.Join(" ", guidance.Actions.Select(action => action.Kind)));
         Assert.Equal("1.1.1.1\r\n1.0.0.1", guidance.CopyableDnsServers);
         Assert.Contains("No silent DNS mutation", guidance.CopyableChecklist);
+        Assert.True(guidance.CanStartGuidedApply, "Guide-only plans with copy/settings actions may expose the confirmed Store-safe CTA.");
     }
 
     private static void ProtectedApplyGuidanceSuppressesApplyActions()
@@ -242,6 +268,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.SequenceEqual(new[] { ApplyActionKind.CopyChecklist }, guidance.Actions.Select(action => action.Kind));
         Assert.Contains("Keep current DNS settings", guidance.CopyableChecklist);
         Assert.Contains("VPN is active", guidance.CopyableChecklist);
+        Assert.False(guidance.CanStartGuidedApply, "Protected plans must suppress the primary apply CTA.");
     }
 
     private static void CustomDnsProfileFormBuildsStorageCommands()
@@ -321,7 +348,9 @@ internal sealed class WindowsCoreTestSuite
         Assert.SequenceEqual(
             new[] { TrayActionKind.QuickBenchmark, TrayActionKind.ValidateSystemDns, TrayActionKind.OpenSettings },
             tray.Actions.Select(action => action.Kind));
-        Assert.Equal(BenchmarkMode.DnsAndTcp, tray.QuickBenchmarkPlan.Mode);
+        Assert.Equal(BenchmarkMode.DnsOnly, tray.QuickBenchmarkPlan.Mode);
+        Assert.Equal(1, tray.QuickBenchmarkPlan.Attempts);
+        Assert.Equal(2, tray.QuickBenchmarkPlan.ProgressSummary.ResolverCount);
         Assert.Contains("microsoft.com", string.Join(" ", tray.QuickBenchmarkPlan.CommandArguments));
         Assert.Equal("system-benchmark", tray.ValidateSystemDnsPlan.CommandArguments.First());
         Assert.Equal("ms-settings:network-advancedsettings", tray.OpenSettingsUri.PrimaryUri);
@@ -444,9 +473,82 @@ internal sealed class WindowsCoreTestSuite
             DnsTimeoutMs: 900,
             TcpTimeoutMs: 1_400,
             TcpTargetsPerDomain: 6));
-        Assert.Equal(BenchmarkMode.DnsAndTcp, quick.Mode);
+        Assert.Equal(BenchmarkMode.DnsOnly, quick.Mode);
+        Assert.Equal(1, quick.Attempts);
+        Assert.Equal(2, quick.ProgressSummary.ResolverCount);
         Assert.Contains("--ip-family ipv4-only", string.Join(" ", quick.CommandArguments));
-        Assert.Contains("--max-connect-targets-per-domain 6", string.Join(" ", quick.CommandArguments));
+        Assert.DoesNotContain("--max-connect-targets-per-domain", string.Join(" ", quick.CommandArguments));
+    }
+
+    private static void QuickCheckUsesBoundedDnsOnlyPreset()
+    {
+        var shell = WindowsShellViewModel.CreateDefault("profiles.sqlite");
+        var quick = shell.BuildQuickBenchmarkPlan(new BenchmarkControlSelection(
+            ModeIndex: 1,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 9,
+            DnsTimeoutMs: 900,
+            TcpTimeoutMs: 1_400,
+            TcpTargetsPerDomain: 6,
+            SelectedProfileIds: new[] { "quad9" },
+            SelectedSuiteId: "daily"));
+
+        Assert.Equal(BenchmarkMode.DnsOnly, quick.Mode);
+        Assert.Equal(1, quick.Attempts);
+        Assert.Equal(2, quick.ProgressSummary.ResolverCount);
+        Assert.Equal(3, quick.ProgressSummary.DomainCount);
+        Assert.SequenceEqual(new[] { "cloudflare", "google" }, quick.SelectedProfileIds);
+        Assert.Equal("developer", quick.SelectedSuiteId);
+        Assert.DoesNotContain("path-compare", string.Join(" ", quick.CommandArguments));
+    }
+
+    private static void GamingSuiteForcesDnsAndTcpWithCatalogNotice()
+    {
+        var gamingSuite = new CatalogTestSuite("game-sea", "Game SEA", new[] { "game.example" })
+        {
+            Tags = new[] { "gaming" },
+            Description = "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency.",
+        };
+        var catalog = new CatalogSnapshot(TestData.Catalog.Profiles, TestData.Catalog.TestSuites.Concat(new[] { gamingSuite }).ToArray());
+        var plan = BenchmarkControlPlanFactory.Build(catalog, new BenchmarkControlSelection(
+            ModeIndex: 0,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 1,
+            DnsTimeoutMs: 800,
+            TcpTimeoutMs: 800,
+            TcpTargetsPerDomain: 2,
+            SelectedProfileIds: new[] { "cloudflare" },
+            SelectedSuiteId: gamingSuite.Id));
+
+        Assert.Equal(BenchmarkMode.DnsAndTcp, plan.Mode);
+        Assert.True(plan.ModeWasForcedBySuite, "Gaming suites must not silently run DNS-only.");
+        Assert.Equal(gamingSuite.Description, plan.SuiteLimitationNotice);
+        Assert.Contains("path-compare", string.Join(" ", plan.CommandArguments));
+    }
+
+    private static void QuickCheckAvoidsGamingSuite()
+    {
+        var gamingSuite = new CatalogTestSuite("game-sea", "Game SEA", new[] { "game.example" })
+        {
+            Tags = new[] { "gaming" },
+            Description = "Game check estimates DNS and TCP connection timing.",
+        };
+        var generalSuite = new CatalogTestSuite("daily", "Daily", new[] { "example.com" });
+        var catalog = new CatalogSnapshot(TestData.Catalog.Profiles, new[] { gamingSuite, generalSuite });
+        var quick = BenchmarkControlPlanFactory.BuildQuickBenchmark(catalog, new BenchmarkControlSelection(
+            ModeIndex: 1,
+            RecordFamilyIndex: 0,
+            ResolverFamilyIndex: 0,
+            Attempts: 3,
+            DnsTimeoutMs: 800,
+            TcpTimeoutMs: 800,
+            TcpTargetsPerDomain: 2));
+
+        Assert.Equal(BenchmarkMode.DnsOnly, quick.Mode);
+        Assert.Equal(generalSuite.Id, quick.SelectedSuiteId);
+        Assert.False(quick.ModeWasForcedBySuite, "Quick Check must remain DNS-only even when the catalog starts with a gaming suite.");
     }
 
     private static void BenchmarkRunnerBuildsProcessBoundary()
@@ -474,6 +576,64 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("network timeout", failure.DebugLog);
         Assert.Contains("path-compare", failure.DebugLog);
         Assert.Contains("Elapsed: 404 ms", failure.CopyableReport("DNS + TCP"));
+    }
+
+    private static void CancelledBenchmarkAvoidsHistorySaveBeforeLaunch()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var processRunner = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.BenchmarkResult, ""));
+        var result = new BenchmarkRunner("dnspilot-cli", processRunner).Run(
+            TestData.Plan(mode: BenchmarkMode.DnsOnly),
+            new BenchmarkHistoryPersistence("profiles.sqlite", "cancel-before-start"),
+            cancellationToken: cancellation.Token);
+
+        Assert.True(result.WasCancelled, "A cancelled token must create a cancelled result.");
+        Assert.False(result.Succeeded, "A cancelled result must not be treated as a successful benchmark.");
+        Assert.Equal(0, processRunner.InvocationCount);
+        Assert.DoesNotContain("--save-db", string.Join(" ", result.CommandArguments));
+        Assert.False(result.HistoryWasSaved, "A cancelled run must never report saved history.");
+    }
+
+    private static void CancelledBenchmarkProcessResultIsRepeatable()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var processRunner = new CancellationReportingProcessRunner(cancellation);
+        var runner = new BenchmarkRunner("dnspilot-cli", processRunner);
+        var cancelled = runner.Run(
+            TestData.Plan(mode: BenchmarkMode.DnsAndTcp),
+            new BenchmarkHistoryPersistence("profiles.sqlite", "cancel-during-run"),
+            cancellationToken: cancellation.Token,
+            progressHandler: _ => { });
+
+        Assert.True(cancelled.WasCancelled, "A process interrupted during progress must report cancelled.");
+        Assert.False(cancelled.HistoryWasSaved, "A cancelled process result must not report saved history.");
+        Assert.Contains("--save-db", string.Join(" ", processRunner.LastArguments));
+
+        var repeatRunner = new RecordingProcessRunner(new CliProcessOutput(0, SampleJson.BenchmarkResult, ""));
+        var repeated = new BenchmarkRunner("dnspilot-cli", repeatRunner).Run(
+            TestData.Plan(mode: BenchmarkMode.DnsOnly),
+            new BenchmarkHistoryPersistence("profiles.sqlite", "repeat-run"));
+        Assert.True(repeated.Succeeded, "A subsequent benchmark must run after cancellation.");
+        Assert.True(repeated.HistoryWasSaved, "A successful Core result with saved_history_id must report history saved.");
+    }
+
+    private static void SystemProcessRunnerTerminatesCancelledChild()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(100));
+        var runner = new SystemCliProcessRunner();
+        var executablePath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var arguments = OperatingSystem.IsWindows()
+            ? new[] { "/c", "ping -n 31 127.0.0.1 > nul" }
+            : new[] { "-c", "sleep 30" };
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var result = runner.Run(executablePath, arguments, progressHandler: null, cancellationToken: cancellation.Token);
+
+        stopwatch.Stop();
+        Assert.True(result.WasCancelled, "The process runner must report cancellation after killing the child tree.");
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(6), "Cancellation must complete inside the five-second termination bound plus scheduling overhead.");
     }
 
     private static void CliPayloadDecodersMapCoreContracts()
@@ -857,7 +1017,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.Equal(12.5, result.Runs.Single(run => run.ProfileId == "cloudflare").Metrics.MedianDnsLatencyMs);
 
         var report = BenchmarkResultReportViewModel.FromResult(result);
-        Assert.Equal("Recommendation: cloudflare (high, score 0.98)", report.RecommendationLine);
+        Assert.Equal("Recommended: cloudflare (high, score 0.98)", report.RecommendationLine);
         Assert.Contains("Scope: dns-tcp; Mode: best-overall; Health: healthy; Can recommend: yes", report.CopyableReport);
         Assert.Contains("Recommended profile: cloudflare", report.CopyableReport);
         Assert.Contains("Saved history: windows-run-1", report.CopyableReport);
@@ -875,6 +1035,162 @@ internal sealed class WindowsCoreTestSuite
             .WithApplyPlan(ApplyPlanJsonDecoder.Decode(SampleJson.ApplyPlan));
 
         Assert.Contains("2606:4700:4700::1001", shell.ApplyGuidance.CopyableDnsServers);
+    }
+
+    private static void ResultSafetyDistinguishesDecisionStates()
+    {
+        var recommended = BenchmarkResultJsonDecoder.Decode(SampleJson.BenchmarkResult);
+        var recommendedSafety = BenchmarkResultSafetyViewModel.FromResult(recommended);
+        Assert.Equal(BenchmarkResultSafetyState.Recommended, recommendedSafety.State);
+        Assert.Contains("Recommended: cloudflare", recommendedSafety.DecisionLine);
+        Assert.Contains("Fastest observed DNS:", recommendedSafety.FastestObservedLine);
+
+        var lowConfidence = recommended with
+        {
+            Recommendation = recommended.Recommendation! with { Confidence = "low" },
+        };
+        var observedSafety = BenchmarkResultSafetyViewModel.FromResult(lowConfidence);
+        Assert.Equal(BenchmarkResultSafetyState.FastestObserved, observedSafety.State);
+        Assert.Contains("Fastest observed", observedSafety.DecisionLine);
+        Assert.False(observedSafety.CanPresentApplyRecommendation, "Low confidence must not be presented as an apply recommendation.");
+
+        var keepCurrent = recommended with
+        {
+            Summary = recommended.Summary with
+            {
+                CanRecommend = false,
+                PrimaryIssue = "all-resolvers-low-reliability",
+            },
+        };
+        var keepCurrentSafety = BenchmarkResultSafetyViewModel.FromResult(keepCurrent);
+        Assert.Equal(BenchmarkResultSafetyState.KeepCurrent, keepCurrentSafety.State);
+        Assert.Equal("Keep current DNS", keepCurrentSafety.DecisionLine);
+        Assert.False(keepCurrentSafety.CanPresentApplyRecommendation, "Unhealthy Core gates must not produce an apply recommendation.");
+    }
+
+    private static void ApplyPlanRequestForwardsProtectedNetworkSignals()
+    {
+        var result = BenchmarkResultJsonDecoder.Decode(SampleJson.BenchmarkResult);
+        var request = BenchmarkApplyPlanRequestFactory.MakeRequest(
+            result,
+            vpnActive: true,
+            mdmProfileActive: true,
+            corporateDnsDetected: true,
+            captivePortalDetected: true);
+
+        Assert.SequenceEqual(
+            new[]
+            {
+                "apply-plan", "windows-store", "--confidence", "high", "--gate-health", "healthy",
+                "--profile-id", "cloudflare", "--tested-resolver", "1.1.1.1:53",
+                "--vpn-active", "--mdm-profile-active", "--corporate-dns-detected", "--captive-portal-detected",
+            },
+            request.CommandArguments);
+    }
+
+    private static void VersionedPreferencesMigrateSafely()
+    {
+        var catalog = TestData.Catalog;
+        var loaded = WindowsPreferenceState.Normalize(new WindowsPreferenceState(
+            SchemaVersion: 99,
+            ModeIndex: 99,
+            RecordFamilyIndex: -1,
+            ResolverFamilyIndex: 99,
+            Attempts: 0,
+            DnsTimeoutMs: -5,
+            TcpTimeoutMs: 0,
+            TcpTargetsPerDomain: 0,
+            SelectedProfileIds: new[] { "missing", "cloudflare", "cloudflare" },
+            SelectedSuiteId: "missing",
+            LanguageTag: "fr-FR"), catalog);
+
+        Assert.Equal(WindowsPreferenceState.CurrentSchemaVersion, loaded.SchemaVersion);
+        Assert.Equal(1, loaded.ModeIndex);
+        Assert.Equal(0, loaded.RecordFamilyIndex);
+        Assert.Equal(0, loaded.ResolverFamilyIndex);
+        Assert.Equal(1, loaded.Attempts);
+        Assert.Equal(800, loaded.DnsTimeoutMs);
+        Assert.SequenceEqual(new[] { "cloudflare" }, loaded.SelectedProfileIds);
+        Assert.Equal("developer", loaded.SelectedSuiteId);
+        Assert.Equal("en-US", loaded.LanguageTag);
+    }
+
+    private static void CatalogQuickPicksDeriveFromTags()
+    {
+        var catalog = new CatalogSnapshot(TestData.Catalog.Profiles, new[]
+        {
+            new CatalogTestSuite("global", "Global", new[] { "example.com" }) { Tags = new[] { "default" } },
+            new CatalogTestSuite("vietnam", "Vietnam", new[] { "vnexpress.net" }) { Tags = new[] { "vietnam", "vn" } },
+        });
+        var quickPicks = CatalogQuickPicks.FromCatalog(catalog);
+
+        Assert.Equal("global", quickPicks.DefaultSuiteId);
+        Assert.Equal("vietnam", quickPicks.VietnamSuiteId);
+    }
+
+    private static void ProfilePreferenceRestorePreservesIntentionalEmptySelection()
+    {
+        var options = WindowsShellViewModel.CreateDefault("test.db").BenchmarkProfileOptions;
+
+        var firstRun = BenchmarkProfilePreferenceSelection.Resolve(options, Array.Empty<string>(), selectDefaultsWhenEmpty: true);
+        var restoredEmpty = BenchmarkProfilePreferenceSelection.Resolve(options, Array.Empty<string>(), selectDefaultsWhenEmpty: false);
+        var restoredKnown = BenchmarkProfilePreferenceSelection.Resolve(options, new[] { "missing", "cloudflare" }, selectDefaultsWhenEmpty: false);
+
+        Assert.True(firstRun.Count > 0, "A first-run selection should choose benchmarkable defaults.");
+        Assert.Equal(0, restoredEmpty.Count);
+        Assert.SequenceEqual(new[] { "cloudflare" }, restoredKnown);
+    }
+
+    private static void CapabilityStatusRowsDescribeRuntimeAndPlatformState()
+    {
+        var degraded = RuntimeReadinessViewModel.Create(
+            "dnspilot-cli.exe",
+            "1.0.0",
+            new[]
+            {
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.Benchmark),
+                new RuntimeSurfaceReadiness(RuntimeSurface.ApplyGuidance, false, RuntimeFailureKind.MalformedPayload, "Apply payload is malformed.", "Retry after updating the helper."),
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.Profiles),
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.Suites),
+                RuntimeSurfaceReadiness.Ready(RuntimeSurface.History),
+            });
+
+        var rows = WindowsCapabilityStatusRows.From(
+            new PlatformCapability("windows-store", true, "guided-settings", "none", true, new[] { "Store-safe." }),
+            new PlatformCapability("windows-power", false, "desktop-admin-service", "elevated", false, new[] { "Separate edition." }),
+            degraded);
+
+        Assert.Equal("Ready", rows.Single(row => row.Id == "store-benchmark").State);
+        Assert.Equal("Recovery needed", rows.Single(row => row.Id == "store-apply").State);
+        Assert.Equal("OS-gated", rows.Single(row => row.Id == "power-apply").State);
+        Assert.Equal("Unsupported", rows.Single(row => row.Id == "power-benchmark").State);
+    }
+
+    private static void DiagnosticReportsRedactPrivatePaths()
+    {
+        var report = WindowsDiagnosticRedactor.Redact(
+            "Command: C:\\Users\\aart\\AppData\\Local\\DNSPilot\\dnspilot-cli.exe --db C:\\Users\\aart\\secret.sqlite\nstderr: HOME=/Users/aart/token");
+
+        Assert.DoesNotContain("aart", report);
+        Assert.DoesNotContain("token", report);
+        Assert.Contains("<user-path>", report);
+        Assert.Contains("HOME=<redacted>", report);
+    }
+
+    private static void BenchmarkFailureReasonsRedactPrivateDiagnostics()
+    {
+        var result = new BenchmarkRunResult(
+            1,
+            "",
+            "HOME=/Users/aart/token at C:\\Users\\aart\\secret.log",
+            "C:\\Users\\aart\\dnspilot-cli.exe",
+            Array.Empty<string>());
+
+        var failure = result.ToFailure(BenchmarkFailureStep.PreparingBenchmark);
+
+        Assert.DoesNotContain("aart", failure.Reason);
+        Assert.DoesNotContain("token", failure.Reason);
+        Assert.Contains("HOME=<redacted>", failure.Reason);
     }
 
     private static void ProfileAndHistoryRowsExposeManagementState()
@@ -935,6 +1251,177 @@ internal sealed class WindowsCoreTestSuite
         }
     }
 
+    private static void RuntimeReadinessBlocksMissingHelper()
+    {
+        var runner = new ScriptedProcessRunner(new Dictionary<string, CliProcessOutput>());
+        var helperPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "dnspilot-cli.exe");
+
+        var result = new RuntimeContractLoader(runner).Load(helperPath, "/tmp/dnspilot.sqlite");
+
+        Assert.Equal(RuntimeReadinessState.Degraded, result.Readiness.State);
+        Assert.False(result.Readiness.CanBenchmark);
+        Assert.False(result.Readiness.CanApplyGuidance);
+        Assert.False(result.Readiness.CanManageProfiles);
+        Assert.False(result.Readiness.CanManageSuites);
+        Assert.False(result.Readiness.CanReadHistory);
+        Assert.Equal(RuntimeFailureKind.MissingHelper, result.Readiness.For(RuntimeSurface.Benchmark).FailureKind);
+        Assert.Contains("bundle", result.Readiness.For(RuntimeSurface.Benchmark).RecoveryAction.ToLowerInvariant());
+        Assert.Equal(0, runner.InvocationCount);
+    }
+
+    private static void RuntimeReadinessDegradesMalformedBenchmarkContract()
+    {
+        WithFakeCli((helperPath, databasePath) =>
+        {
+            var runner = RuntimeProcessRunner(
+                catalog: "not-json",
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan);
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+
+            Assert.Equal(RuntimeReadinessState.Degraded, result.Readiness.State);
+            Assert.False(result.Readiness.CanBenchmark);
+            Assert.False(result.Readiness.CanApplyGuidance);
+            Assert.True(result.Readiness.CanManageProfiles);
+            Assert.True(result.Readiness.CanManageSuites);
+            Assert.True(result.Readiness.CanReadHistory);
+            Assert.Equal(RuntimeFailureKind.MalformedPayload, result.Readiness.For(RuntimeSurface.Benchmark).FailureKind);
+            Assert.Equal(RuntimeFailureKind.MalformedPayload, result.Readiness.For(RuntimeSurface.ApplyGuidance).FailureKind);
+            Assert.True(result.ProfileList is not null);
+        });
+    }
+
+    private static void RuntimeReadinessMarksUnsupportedSchemaIncompatible()
+    {
+        WithFakeCli((helperPath, databasePath) =>
+        {
+            var runner = RuntimeProcessRunner(
+                catalog: "{\"schema_version\":2,\"profiles\":[],\"testSuites\":[]}",
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan);
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+
+            Assert.Equal(RuntimeReadinessState.Incompatible, result.Readiness.State);
+            Assert.Equal(RuntimeFailureKind.UnsupportedSchema, result.Readiness.For(RuntimeSurface.Benchmark).FailureKind);
+            Assert.Contains("Update", result.Readiness.For(RuntimeSurface.Benchmark).RecoveryAction);
+            Assert.Contains("Payload schema: 1", result.Readiness.CopyableReport("1.0.0"));
+        });
+    }
+
+    private static void RuntimeReadinessPreservesHealthySurfacesWhenProfileStorageFails()
+    {
+        WithFakeCli((helperPath, databasePath) =>
+        {
+            var runner = RuntimeProcessRunner(
+                catalog: SampleJson.Catalog,
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan,
+                failedCommand: "profile-list");
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+            var shell = WindowsShellViewModel.CreateFromRuntimeLoad(databasePath, result);
+
+            Assert.Equal(RuntimeReadinessState.Degraded, result.Readiness.State);
+            Assert.True(shell.RuntimeReadiness.CanBenchmark);
+            Assert.True(shell.RuntimeReadiness.CanApplyGuidance);
+            Assert.False(shell.RuntimeReadiness.CanManageProfiles);
+            Assert.True(shell.RuntimeReadiness.CanManageSuites);
+            Assert.True(shell.RuntimeReadiness.CanReadHistory);
+            Assert.Equal(RuntimeFailureKind.StorageFailure, shell.RuntimeReadiness.For(RuntimeSurface.Profiles).FailureKind);
+            Assert.True(shell.SuiteRows.Any(row => row.Id == "custom-azure-lab"));
+            Assert.Equal(1, shell.HistoryRows.Count);
+        });
+    }
+
+    private static void RuntimeReadinessCreatesStorageDirectory()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "dnspilot-runtime-storage-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            var helperPath = Path.Combine(root, "dnspilot-cli.exe");
+            File.WriteAllText(helperPath, "test helper");
+            var databasePath = Path.Combine(root, "local", "DNSPilot", "dnspilot.sqlite");
+            var runner = RuntimeProcessRunner(
+                catalog: SampleJson.Catalog,
+                capabilities: SampleJson.Capabilities,
+                profileList: SampleJson.ProfileList,
+                suiteList: SampleJson.SuiteList,
+                historyList: SampleJson.HistoryList,
+                applyPlan: SampleJson.ApplyPlan);
+
+            var result = new RuntimeContractLoader(runner).Load(helperPath, databasePath);
+
+            Assert.True(Directory.Exists(Path.GetDirectoryName(databasePath)!));
+            Assert.True(result.Readiness.CanManageProfiles);
+            Assert.True(result.Readiness.CanManageSuites);
+            Assert.True(result.Readiness.CanReadHistory);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    private static ScriptedProcessRunner RuntimeProcessRunner(
+        string catalog,
+        string capabilities,
+        string profileList,
+        string suiteList,
+        string historyList,
+        string applyPlan,
+        string? failedCommand = null)
+    {
+        var outputs = new Dictionary<string, CliProcessOutput>(StringComparer.Ordinal)
+        {
+            ["catalog"] = new CliProcessOutput(0, catalog, ""),
+            ["capabilities"] = new CliProcessOutput(0, capabilities, ""),
+            ["profile-list"] = new CliProcessOutput(0, profileList, ""),
+            ["suite-list"] = new CliProcessOutput(0, suiteList, ""),
+            ["history-list"] = new CliProcessOutput(0, historyList, ""),
+            ["apply-plan"] = new CliProcessOutput(0, applyPlan, ""),
+        };
+        if (failedCommand is not null)
+        {
+            outputs[failedCommand] = new CliProcessOutput(9, "", $"{failedCommand} failed");
+        }
+
+        return new ScriptedProcessRunner(outputs);
+    }
+
+    private static void WithFakeCli(Action<string, string> action)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "dnspilot-runtime-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            var helperPath = Path.Combine(root, "dnspilot-cli.exe");
+            File.WriteAllText(helperPath, "test helper");
+            action(helperPath, Path.Combine(root, "dnspilot.sqlite"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     private static void WindowsAppDeclaresLocalizationAndPackagingReadiness()
     {
         var repoRoot = FindRepoRoot();
@@ -944,15 +1431,15 @@ internal sealed class WindowsCoreTestSuite
         {
             "AppTitle",
             "AppSubtitle",
+            "RuntimeStatusBar",
+            "RuntimeRetryText",
+            "LanguageCombo",
             "QuickBenchmarkText",
             "ValidateDnsText",
             "SettingsText",
-            "NavBenchmark",
-            "NavApply",
+            "NavCheckDns",
             "NavProfiles",
-            "NavSuites",
             "NavHistory",
-            "NavDiagnostics",
             "BenchmarkHeader",
             "ModeCombo",
             "ModeDnsOnly",
@@ -972,6 +1459,10 @@ internal sealed class WindowsCoreTestSuite
             "TcpTargetsBox",
             "BenchmarkProfilesList",
             "SuiteCombo",
+            "DefaultSuiteQuickPickButton",
+            "DefaultSuiteQuickPickText",
+            "VietnamSuiteQuickPickButton",
+            "VietnamSuiteQuickPickText",
             "CommandPreviewHeader",
             "RunBenchmarkText",
             "CopyCommandText",
@@ -980,10 +1471,16 @@ internal sealed class WindowsCoreTestSuite
             "ResolversList",
             "ApplyHeader",
             "DnsServersBox",
+            "ApplyInSettingsText",
             "CopyDnsText",
-            "OpenSettingsText",
+            "RetestSystemDnsText",
             "CopyChecklistText",
             "ChecklistBox",
+            "NetworkSignalsExpander",
+            "VpnActiveCheckBox",
+            "ManagedDnsCheckBox",
+            "CorporateDnsCheckBox",
+            "CaptivePortalCheckBox",
             "ProfilesHeader",
             "ProfilesList",
             "ProfileNameBox",
@@ -1003,7 +1500,9 @@ internal sealed class WindowsCoreTestSuite
             "AddSuiteText",
             "UpdateSuiteText",
             "DeleteSuiteText",
-            "DiagnosticsHeader",
+            "HistoryHeader",
+            "AdvancedDiagnosticsExpander",
+            "CapabilityRowsList",
             "HistoryList",
             "RefreshStorageText",
             "ClearHistoryText",
@@ -1033,15 +1532,15 @@ internal sealed class WindowsCoreTestSuite
             "AppDescription",
             "AppTitle.Text",
             "AppSubtitle.Text",
+            "RuntimeStatusBar.Title",
+            "RuntimeRetryText.Text",
+            "LanguageTooltip.Content",
             "QuickBenchmarkText.Text",
             "ValidateDnsText.Text",
             "SettingsText.Text",
-            "NavBenchmark.Content",
-            "NavApply.Content",
+            "NavCheckDns.Content",
             "NavProfiles.Content",
-            "NavSuites.Content",
             "NavHistory.Content",
-            "NavDiagnostics.Content",
             "BenchmarkHeader.Text",
             "ModeCombo.Header",
             "ModeDnsOnly.Content",
@@ -1061,6 +1560,8 @@ internal sealed class WindowsCoreTestSuite
             "TcpTargetsBox.Header",
             "BenchmarkProfilesList.Header",
             "SuiteCombo.Header",
+            "DefaultSuiteQuickPickText.Text",
+            "VietnamSuiteQuickPickText.Text",
             "CommandPreviewHeader.Text",
             "RunBenchmarkText.Text",
             "CopyCommandText.Text",
@@ -1069,10 +1570,16 @@ internal sealed class WindowsCoreTestSuite
             "ResolversList.Header",
             "ApplyHeader.Text",
             "DnsServersBox.Header",
+            "ApplyInSettingsText.Text",
             "CopyDnsText.Text",
-            "OpenSettingsText.Text",
+            "RetestSystemDnsText.Text",
             "CopyChecklistText.Text",
             "ChecklistBox.Header",
+            "NetworkSignalsExpander.Header",
+            "VpnActiveCheckBox.Content",
+            "ManagedDnsCheckBox.Content",
+            "CorporateDnsCheckBox.Content",
+            "CaptivePortalCheckBox.Content",
             "ProfilesHeader.Text",
             "ProfilesList.Header",
             "ProfileNameBox.Header",
@@ -1092,7 +1599,9 @@ internal sealed class WindowsCoreTestSuite
             "AddSuiteText.Text",
             "UpdateSuiteText.Text",
             "DeleteSuiteText.Text",
-            "DiagnosticsHeader.Text",
+            "HistoryHeader.Text",
+            "AdvancedDiagnosticsExpander.Header",
+            "CapabilityRowsList.Header",
             "HistoryList.Header",
             "RefreshStorageText.Text",
             "ClearHistoryText.Text",
@@ -1199,6 +1708,128 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("x:Name=\"RunBenchmarkButton\"", xaml);
     }
 
+    private static void WindowsAppRendersCancellationAndGamingContracts()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+        var englishResources = File.ReadAllText(Path.Combine(appRoot, "Strings", "en-US", "Resources.resw"));
+        var vietnameseResources = File.ReadAllText(Path.Combine(appRoot, "Strings", "vi-VN", "Resources.resw"));
+
+        Assert.Contains("x:Name=\"CancelBenchmarkButton\"", xaml);
+        Assert.Contains("Click=\"CancelBenchmark_Click\"", xaml);
+        Assert.Contains("Visibility=\"Collapsed\"", xaml);
+        Assert.Contains("x:Name=\"SuiteLimitationNoticeText\"", xaml);
+        Assert.Contains("private CancellationTokenSource? _benchmarkCancellation;", mainWindow);
+        Assert.Contains("CancelBenchmark_Click", mainWindow);
+        Assert.Contains("cancellationToken: cancellation.Token", mainWindow);
+        Assert.Contains("result.WasCancelled", mainWindow);
+        Assert.Contains("historySaved: result.HistoryWasSaved", mainWindow);
+        Assert.Contains("ModeWasForcedBySuite", mainWindow);
+        Assert.Contains("SuiteLimitationNotice", mainWindow);
+        Assert.Contains("Kill(entireProcessTree: true)", File.ReadAllText(Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "src", "DNSPilotWindows.Core", "BenchmarkRunner.cs")));
+        Assert.Contains("CancellationExitTimeoutMilliseconds = 5_000", File.ReadAllText(Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "src", "DNSPilotWindows.Core", "BenchmarkRunner.cs")));
+        Assert.Contains("CancelBenchmarkText.Text", englishResources);
+        Assert.Contains("CancelBenchmarkText.Text", vietnameseResources);
+        Assert.Contains("GamingSuiteNotice.Text", englishResources);
+        Assert.Contains("GamingSuiteNotice.Text", vietnameseResources);
+    }
+
+    private static void WindowsAppUsesConfirmedGuidedApplyFlow()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+
+        Assert.Contains("x:Name=\"ApplyInSettingsButton\"", xaml);
+        Assert.Contains("Click=\"ApplyInWindowsSettings_Click\"", xaml);
+        Assert.Contains("x:Name=\"RetestSystemDnsButton\"", xaml);
+        Assert.DoesNotContain("x:Name=\"OpenApplySettingsButton\"", xaml);
+        Assert.Contains("x:Name=\"VpnActiveCheckBox\"", xaml);
+        Assert.Contains("x:Name=\"ManagedDnsCheckBox\"", xaml);
+        Assert.Contains("x:Name=\"CorporateDnsCheckBox\"", xaml);
+        Assert.Contains("x:Name=\"CaptivePortalCheckBox\"", xaml);
+        Assert.Contains("ConfirmGuidedApplyAsync", mainWindow);
+        Assert.Contains("CopyTextAsync(ViewModel.ApplyGuidance.CopyableDnsServers)", mainWindow);
+        Assert.Contains("await OpenSettingsAsync()", mainWindow);
+        Assert.Contains("RetestSystemDns_Click", mainWindow);
+        Assert.Contains("BenchmarkApplyPlanRequestFactory.MakeRequest", mainWindow);
+        Assert.Contains("ClearApplyGuidanceForNewBenchmark", mainWindow);
+        Assert.Contains("&& !_benchmarkRunning", mainWindow);
+    }
+
+    private static void WindowsAppUsesRuntimeReadinessForStartupRecoveryAndGating()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+
+        Assert.Contains("new RuntimeContractLoader().Load", mainWindow);
+        Assert.Contains("WindowsShellViewModel.CreateFromRuntimeLoad", mainWindow);
+        Assert.DoesNotContain("new CatalogRunner(executablePath).Load()", mainWindow);
+        Assert.DoesNotContain("WindowsShellViewModel.CreateLoaded(", mainWindow);
+        Assert.Contains("RenderRuntimeReadiness", mainWindow);
+        Assert.Contains("SetRuntimeSurfaceAvailability", mainWindow);
+        Assert.Contains("ViewModel.RuntimeReadiness.CanBenchmark", mainWindow);
+        Assert.Contains("ViewModel.RuntimeReadiness.CanApplyGuidance", mainWindow);
+        Assert.Contains("RetryRuntime_Click", mainWindow);
+        Assert.Contains("x:Name=\"RuntimeStatusBar\"", xaml);
+        Assert.Contains("Click=\"RetryRuntime_Click\"", xaml);
+        Assert.Contains("x:Name=\"RetryRuntimeButton\"", xaml);
+    }
+
+    private static void WindowsAppFollowsConsumerNavigationContract()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+
+        Assert.Contains("x:Uid=\"NavCheckDns\"", xaml);
+        Assert.Contains("x:Uid=\"NavProfiles\"", xaml);
+        Assert.Contains("x:Uid=\"NavHistory\"", xaml);
+        Assert.DoesNotContain("x:Uid=\"NavApply\"", xaml);
+        Assert.DoesNotContain("x:Uid=\"NavSuites\"", xaml);
+        Assert.DoesNotContain("x:Uid=\"NavDiagnostics\"", xaml);
+        Assert.Contains("x:Name=\"HistorySection\"", xaml);
+        Assert.Contains("x:Name=\"AdvancedDiagnosticsExpander\"", xaml);
+        Assert.Contains("VisualState x:Name=\"CompactLayout\"", xaml);
+        Assert.Contains("VisualState x:Name=\"WideLayout\"", xaml);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", xaml);
+        Assert.Contains("KeyboardAccelerator", xaml);
+        Assert.Contains("ShowConsumerDestination", mainWindow);
+        Assert.Contains("ApplyResponsiveLayout", mainWindow);
+        Assert.Contains("QuickBenchmarkAccelerator_Invoked", mainWindow);
+        Assert.Contains("SettingsAccelerator_Invoked", mainWindow);
+        Assert.Contains("HelpAccelerator_Invoked", mainWindow);
+    }
+
+    private static void WindowsAppPersistsPreferencesAndCapabilities()
+    {
+        var repoRoot = FindRepoRoot();
+        var appRoot = Path.Combine(repoRoot, "apps", "windows", "DNSPilotWindows", "app", "DNSPilotWindows.App");
+        var mainWindow = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(appRoot, "MainWindow.xaml"));
+        var app = File.ReadAllText(Path.Combine(appRoot, "App.xaml.cs"));
+        var preferences = File.ReadAllText(Path.Combine(appRoot, "AppPreferenceStore.cs"));
+
+        Assert.Contains("AppPreferenceStore.ApplyPreferredLanguage", app);
+        Assert.Contains("WindowsPreferenceState.Normalize", mainWindow);
+        Assert.Contains("BenchmarkProfilePreferenceSelection.Resolve", mainWindow);
+        Assert.Contains("PersistPreferences", mainWindow);
+        Assert.Contains("CatalogQuickPicks.FromCatalog", mainWindow);
+        Assert.Contains("WindowsCapabilityStatusRows.From", mainWindow);
+        Assert.Contains("x:Name=\"LanguageCombo\"", xaml);
+        Assert.Contains("x:Name=\"DefaultSuiteQuickPickButton\"", xaml);
+        Assert.Contains("x:Name=\"VietnamSuiteQuickPickButton\"", xaml);
+        Assert.Contains("x:Name=\"CapabilityRowsList\"", xaml);
+        Assert.Contains("dnspilot.preferences.v1", preferences);
+        Assert.Contains("ApplicationData.Current.LocalSettings", preferences);
+    }
+
     private static void MacOsValidationOnlyToleratesWindowsXamlCompilerFailure()
     {
         var repoRoot = FindRepoRoot();
@@ -1236,6 +1867,7 @@ internal sealed class WindowsCoreTestSuite
         var privacy = File.ReadAllText(Path.Combine(windowsRoot, "windows-privacy.md"));
         var listing = File.ReadAllText(Path.Combine(windowsRoot, "windows-store-listing.md"));
         var publish = File.ReadAllText(Path.Combine(windowsRoot, "windows-publish.md"));
+        var evidence = File.ReadAllText(Path.Combine(windowsRoot, "windows-release-evidence-template.md"));
         var packagePrep = File.ReadAllText(Path.Combine(windowsRoot, "Prepare-WindowsStorePackage.ps1"));
 
         Assert.Contains("Privacy Policy Draft", privacy);
@@ -1276,6 +1908,11 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("Generated Store package manifest", packagePrep);
         Assert.Contains("Package.appxmanifest", publish);
         Assert.Contains("GenerateAppxPackageOnBuild=true", publish);
+        Assert.Contains("windows-release-evidence-template.md", publish);
+        Assert.Contains("Release Metadata", evidence);
+        Assert.Contains("Package Install And Helper Smoke", evidence);
+        Assert.Contains("Accessibility And Localization", evidence);
+        Assert.Contains("Store Submission", evidence);
     }
 
     private static void WindowsReadmeDocumentsInstallRunValidationAndPackageSteps()
@@ -1302,6 +1939,32 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("dotnet list apps\\windows\\DNSPilotWindows\\app\\DNSPilotWindows.App\\DNSPilotWindows.App.csproj package --outdated", readme);
         Assert.Contains("no UAC prompt", readme);
         Assert.Contains("no silent DNS mutation", readme);
+    }
+
+    private static void WindowsPartnerCenterArtifactsCoverReleaseEvidence()
+    {
+        var repoRoot = FindRepoRoot();
+        var partnerRoot = Path.Combine(repoRoot, "apps", "windows", "PartnerCenter");
+        var guide = File.ReadAllText(Path.Combine(partnerRoot, "README.md"));
+        var screenshots = File.ReadAllText(Path.Combine(partnerRoot, "ScreenshotPlan.md"));
+        var support = File.ReadAllText(Path.Combine(partnerRoot, "SupportPage.md"));
+        var privacy = File.ReadAllText(Path.Combine(partnerRoot, "PrivacyPolicy.md"));
+        var site = Path.Combine(partnerRoot, "site");
+        var builder = File.ReadAllText(Path.Combine(repoRoot, "apps", "windows", "Build-PartnerCenterSite.ps1"));
+
+        Assert.Contains("Partner Center Review Notes", guide);
+        Assert.Contains("Review walkthrough", guide);
+        Assert.Contains("runFullTrust", guide);
+        Assert.Contains("01-check-dns.png", screenshots);
+        Assert.Contains("Apply in Windows Settings", screenshots);
+        Assert.Contains("does not silently change Windows DNS", support);
+        Assert.Contains("does not collect personal data", privacy);
+        Assert.True(File.Exists(Path.Combine(site, "index.html.template")), "Expected a deployable Windows support template.");
+        Assert.True(File.Exists(Path.Combine(site, "privacy.html.template")), "Expected a deployable Windows privacy template.");
+        Assert.True(File.Exists(Path.Combine(site, "styles.css")), "Expected shared public site CSS.");
+        Assert.Contains("SupportEmail", builder);
+        Assert.Contains("SiteUrl", builder);
+        Assert.Contains("Template placeholders remain", builder);
     }
 
     private static string FindRepoRoot()
@@ -1379,7 +2042,7 @@ internal sealed class WindowsCoreTestSuite
         Assert.Contains("Cảnh báo: Path comparison estimates DNS plus TCP connect timing only.", resultReport.CopyableReport);
 
         var tray = TrayQuickActionsViewModel.CreateDefault(TestData.Catalog);
-        Assert.Equal("Benchmark nhanh", tray.Actions.First().Label);
+        Assert.Equal("Kiểm tra nhanh", tray.Actions.First().Label);
         Assert.Equal("Kiểm tra DNS hiện tại", tray.Actions.Skip(1).First().Label);
     }
 
@@ -1784,12 +2447,68 @@ internal sealed class RecordingProcessRunner : ICliProcessRunner
 
     public string LastExecutablePath { get; private set; } = "";
     public IReadOnlyList<string> LastArguments { get; private set; } = Array.Empty<string>();
+    public int InvocationCount { get; private set; }
 
-    public CliProcessOutput Run(string executablePath, IReadOnlyList<string> arguments, Action<BenchmarkProgressEvent>? progressHandler)
+    public CliProcessOutput Run(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken)
     {
+        InvocationCount++;
         LastExecutablePath = executablePath;
         LastArguments = arguments.ToArray();
         progressHandler?.Invoke(new BenchmarkProgressEvent(ProgressEventType.ResolverStarted, "cloudflare", "1.1.1.1:53", 1, 1));
         return _output;
+    }
+}
+
+internal sealed class ScriptedProcessRunner : ICliProcessRunner
+{
+    private readonly IReadOnlyDictionary<string, CliProcessOutput> _outputs;
+
+    public ScriptedProcessRunner(IReadOnlyDictionary<string, CliProcessOutput> outputs)
+    {
+        _outputs = outputs;
+    }
+
+    public int InvocationCount { get; private set; }
+
+    public CliProcessOutput Run(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken)
+    {
+        InvocationCount++;
+        var command = arguments.FirstOrDefault() ?? "";
+        return _outputs.TryGetValue(command, out var output)
+            ? output
+            : new CliProcessOutput(127, "", $"No scripted output for {command}.");
+    }
+}
+
+internal sealed class CancellationReportingProcessRunner : ICliProcessRunner
+{
+    private readonly CancellationTokenSource _cancellation;
+
+    public CancellationReportingProcessRunner(CancellationTokenSource cancellation)
+    {
+        _cancellation = cancellation;
+    }
+
+    public IReadOnlyList<string> LastArguments { get; private set; } = Array.Empty<string>();
+
+    public CliProcessOutput Run(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken)
+    {
+        LastArguments = arguments.ToArray();
+        progressHandler?.Invoke(new BenchmarkProgressEvent(ProgressEventType.ResolverStarted, "cloudflare", "1.1.1.1:53", 1, 1));
+        _cancellation.Cancel();
+        Assert.True(cancellationToken.IsCancellationRequested, "The process boundary must receive the active cancellation token.");
+        return new CliProcessOutput(-1, "", "Benchmark cancelled.", WasCancelled: true);
     }
 }

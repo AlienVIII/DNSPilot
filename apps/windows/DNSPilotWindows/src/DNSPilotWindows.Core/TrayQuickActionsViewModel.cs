@@ -33,25 +33,17 @@ public sealed class TrayQuickActionsViewModel
 
     public static TrayQuickActionsViewModel CreateDefault(CatalogSnapshot catalog)
     {
-        var selectedProfiles = catalog.Profiles
-            .Where(profile => profile.Protocol == DnsProtocol.Plain && profile.Ipv4Servers.Count > 0)
-            .Take(3)
-            .Select(profile => profile.Id)
-            .ToArray();
         var selectedSuiteId = catalog.TestSuites.FirstOrDefault()?.Id;
-
-        var quickBenchmarkPlan = new BenchmarkPlanViewModel(
+        var quickBenchmarkPlan = BenchmarkControlPlanFactory.BuildQuickBenchmark(
             catalog,
-            selectedProfiles,
-            selectedSuiteId,
-            customDomains: Array.Empty<string>(),
-            attempts: 2,
-            dnsTimeoutMs: 800,
-            connectTimeoutMs: 1_000,
-            maxConnectTargetsPerDomain: 4,
-            recordFamily: DnsRecordFamily.Both,
-            resolverAddressFamily: ResolverAddressFamily.Automatic,
-            mode: BenchmarkMode.DnsAndTcp);
+            new BenchmarkControlSelection(
+                ModeIndex: 0,
+                RecordFamilyIndex: 0,
+                ResolverFamilyIndex: 0,
+                Attempts: 1,
+                DnsTimeoutMs: 800,
+                TcpTimeoutMs: 800,
+                TcpTargetsPerDomain: 2));
 
         var validateSystemDnsPlan = new BenchmarkPlanViewModel(
             catalog,
@@ -71,8 +63,8 @@ public sealed class TrayQuickActionsViewModel
             {
                 new TrayActionDescriptor(
                     TrayActionKind.QuickBenchmark,
-                    WindowsDisplayText.Text("Quick benchmark", "Benchmark nhanh"),
-                    WindowsDisplayText.Text("Run the default DNS + TCP benchmark.", "Chạy benchmark DNS + TCP mặc định.")),
+                    WindowsDisplayText.Text("Quick Check", "Kiểm tra nhanh"),
+                    WindowsDisplayText.Text("Run the small DNS-only benchmark.", "Chạy benchmark chỉ DNS gọn nhẹ.")),
                 new TrayActionDescriptor(
                     TrayActionKind.ValidateSystemDns,
                     WindowsDisplayText.Text("Validate current DNS", "Kiểm tra DNS hiện tại"),

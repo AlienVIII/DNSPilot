@@ -27,11 +27,26 @@
   <data name="AppSubtitle.Text" xml:space="preserve">
     <value>Benchmark DNS an toàn cho Windows Store</value>
   </data>
+  <data name="RuntimeStatusBar.Title" xml:space="preserve">
+    <value>Đang kiểm tra DNS Pilot runtime</value>
+  </data>
+  <data name="RuntimeRetryText.Text" xml:space="preserve">
+    <value>Thử lại</value>
+  </data>
+  <data name="LanguageTooltip.Content" xml:space="preserve">
+    <value>Chọn tiếng Anh hoặc tiếng Việt. Ứng dụng cập nhật ở lần mở tiếp theo.</value>
+  </data>
   <data name="QuickBenchmarkTooltip.Content" xml:space="preserve">
-    <value>Chạy lệnh benchmark DNS + TCP mặc định.</value>
+    <value>Chạy benchmark chỉ DNS gọn nhẹ.</value>
   </data>
   <data name="QuickBenchmarkText.Text" xml:space="preserve">
-    <value>Benchmark nhanh</value>
+    <value>Kiểm tra nhanh</value>
+  </data>
+  <data name="CancelBenchmarkTooltip.Content" xml:space="preserve">
+    <value>Dừng benchmark đang chạy.</value>
+  </data>
+  <data name="CancelBenchmarkText.Text" xml:space="preserve">
+    <value>Hủy</value>
   </data>
   <data name="ValidateDnsTooltip.Content" xml:space="preserve">
     <value>Benchmark đường DNS hiện tại của Windows.</value>
@@ -53,6 +68,9 @@
   </data>
   <data name="NavBenchmark.Content" xml:space="preserve">
     <value>Benchmark</value>
+  </data>
+  <data name="NavCheckDns.Content" xml:space="preserve">
+    <value>Kiểm tra DNS</value>
   </data>
   <data name="NavApply.Content" xml:space="preserve">
     <value>Áp dụng</value>
@@ -141,6 +159,15 @@
   <data name="SuiteTooltip.Content" xml:space="preserve">
     <value>Chọn suite domain đã lưu cho target benchmark.</value>
   </data>
+  <data name="DefaultSuiteQuickPickText.Text" xml:space="preserve">
+    <value>Mặc định</value>
+  </data>
+  <data name="VietnamSuiteQuickPickText.Text" xml:space="preserve">
+    <value>Việt Nam</value>
+  </data>
+  <data name="GamingSuiteNotice.Text" xml:space="preserve">
+    <value>Kiểm tra game dùng DNS + TCP. Đây không phải ping ICMP hoặc độ trễ UDP trong trận.</value>
+  </data>
   <data name="CommandPreviewHeader.Text" xml:space="preserve">
     <value>Xem trước lệnh</value>
   </data>
@@ -167,6 +194,27 @@
   </data>
   <data name="CopyDnsText.Text" xml:space="preserve">
     <value>Sao chép DNS</value>
+  </data>
+  <data name="ApplyInSettingsText.Text" xml:space="preserve">
+    <value>Áp dụng trong Windows Settings</value>
+  </data>
+  <data name="RetestSystemDnsText.Text" xml:space="preserve">
+    <value>Kiểm tra lại DNS hệ thống</value>
+  </data>
+  <data name="NetworkSignalsExpander.Header" xml:space="preserve">
+    <value>Bảo vệ mạng</value>
+  </data>
+  <data name="VpnActiveCheckBox.Content" xml:space="preserve">
+    <value>VPN đang bật</value>
+  </data>
+  <data name="ManagedDnsCheckBox.Content" xml:space="preserve">
+    <value>Hồ sơ DNS được quản lý</value>
+  </data>
+  <data name="CorporateDnsCheckBox.Content" xml:space="preserve">
+    <value>DNS doanh nghiệp</value>
+  </data>
+  <data name="CaptivePortalCheckBox.Content" xml:space="preserve">
+    <value>Cổng captive</value>
   </data>
   <data name="OpenSettingsText.Text" xml:space="preserve">
     <value>Mở cài đặt</value>
@@ -245,6 +293,15 @@
   </data>
   <data name="DiagnosticsHeader.Text" xml:space="preserve">
     <value>Chẩn đoán</value>
+  </data>
+  <data name="HistoryHeader.Text" xml:space="preserve">
+    <value>Lịch sử</value>
+  </data>
+  <data name="AdvancedDiagnosticsExpander.Header" xml:space="preserve">
+    <value>Chẩn đoán nâng cao</value>
+  </data>
+  <data name="CapabilityRowsList.Header" xml:space="preserve">
+    <value>Trạng thái khả năng</value>
   </data>
   <data name="HistoryList.Header" xml:space="preserve">
     <value>Lịch sử</value>

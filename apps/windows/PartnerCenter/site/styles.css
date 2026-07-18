@@ -1,0 +1,36 @@
+:root {
+  color-scheme: light dark;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  color: #202124;
+  background: #f7f8fa;
+}
+
+main,
+footer {
+  width: min(720px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+main { padding: 64px 0 32px; }
+header { border-bottom: 1px solid #d9dde3; padding-bottom: 28px; }
+section { padding: 26px 0; border-bottom: 1px solid #d9dde3; }
+h1, h2 { letter-spacing: 0; }
+h1 { margin: 0; font-size: 34px; }
+h2 { margin: 0 0 8px; font-size: 20px; }
+p, ul { margin: 0; }
+ul { padding-left: 20px; }
+li + li { margin-top: 8px; }
+.eyebrow, a { color: #006d6b; }
+.eyebrow { margin: 0 0 8px; font-weight: 650; }
+footer { padding: 0 0 40px; }
+
+@media (prefers-color-scheme: dark) {
+  body { color: #edf0f2; background: #16191d; }
+  header, section { border-color: #3a4149; }
+  .eyebrow, a { color: #44c8c1; }
+}

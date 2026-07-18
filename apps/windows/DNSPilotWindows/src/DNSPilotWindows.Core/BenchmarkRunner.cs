@@ -7,14 +7,16 @@ namespace DNSPilotWindows.Core;
 public sealed record CliProcessOutput(
     int ExitCode,
     string StandardOutput,
-    string StandardError);
+    string StandardError,
+    bool WasCancelled = false);
 
 public interface ICliProcessRunner
 {
     CliProcessOutput Run(
         string executablePath,
         IReadOnlyList<string> arguments,
-        Action<BenchmarkProgressEvent>? progressHandler);
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record BenchmarkRunResult(
@@ -22,33 +24,48 @@ public sealed record BenchmarkRunResult(
     string StandardOutput,
     string StandardError,
     string ExecutablePath,
-    IReadOnlyList<string> CommandArguments)
+    IReadOnlyList<string> CommandArguments,
+    bool WasCancelled = false)
 {
-    public bool Succeeded => ExitCode == 0;
+    public bool Succeeded => !WasCancelled && ExitCode == 0;
+
+    public bool HistoryWasSaved => !WasCancelled && TryReadSavedHistoryId(StandardOutput) is not null;
 
     public BenchmarkExecutionFailure ToFailure(BenchmarkFailureStep failedStep, TimeSpan? elapsed = null)
     {
         var debugLines = new[]
         {
-            $"Command: {CommandLineFormatter.Format(ExecutablePath, CommandArguments)}",
+            $"Command: {WindowsDiagnosticRedactor.Redact(CommandLineFormatter.Format(ExecutablePath, CommandArguments))}",
             WindowsDisplayText.Text(
                 $"Process failed with exit code {ExitCode}.",
                 $"Tiến trình thất bại với exit code {ExitCode}."),
-            string.IsNullOrWhiteSpace(StandardOutput) ? "stdout: <empty>" : $"stdout: {StandardOutput.Trim()}",
-            string.IsNullOrWhiteSpace(StandardError) ? "stderr: <empty>" : $"stderr: {StandardError.Trim()}",
+            string.IsNullOrWhiteSpace(StandardOutput) ? "stdout: <empty>" : $"stdout: {WindowsDiagnosticRedactor.Redact(StandardOutput.Trim())}",
+            string.IsNullOrWhiteSpace(StandardError) ? "stderr: <empty>" : $"stderr: {WindowsDiagnosticRedactor.Redact(StandardError.Trim())}",
         };
 
         var reason = string.IsNullOrWhiteSpace(StandardError)
             ? WindowsDisplayText.Text(
                 $"CLI exited with code {ExitCode}.",
                 $"CLI thoát với code {ExitCode}.")
-            : StandardError.Trim();
+            : WindowsDiagnosticRedactor.Redact(StandardError.Trim());
 
         return new BenchmarkExecutionFailure(
             failedStep,
             reason,
             elapsed,
             string.Join(Environment.NewLine, debugLines));
+    }
+
+    private static string? TryReadSavedHistoryId(string standardOutput)
+    {
+        try
+        {
+            return BenchmarkResultJsonDecoder.Decode(standardOutput).SavedHistoryId;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }
 
@@ -68,7 +85,8 @@ public sealed class BenchmarkRunner
     public BenchmarkRunResult Run(
         BenchmarkPlanViewModel plan,
         BenchmarkHistoryPersistence? persistence = null,
-        Action<BenchmarkProgressEvent>? progressHandler = null)
+        Action<BenchmarkProgressEvent>? progressHandler = null,
+        CancellationToken cancellationToken = default)
     {
         if (!plan.Validation.CanRun)
         {
@@ -83,28 +101,48 @@ public sealed class BenchmarkRunner
             arguments.Add("--progress-jsonl");
         }
 
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new BenchmarkRunResult(
+                ExitCode: -1,
+                StandardOutput: "",
+                StandardError: WindowsDisplayText.Text("Benchmark cancelled before launch.", "Benchmark đã hủy trước khi chạy."),
+                ExecutablePath: _executablePath,
+                CommandArguments: arguments,
+                WasCancelled: true);
+        }
+
         if (persistence is not null)
         {
             arguments.AddRange(persistence.CommandArguments);
         }
 
-        var output = _processRunner.Run(_executablePath, arguments, progressHandler);
+        var output = _processRunner.Run(_executablePath, arguments, progressHandler, cancellationToken);
         return new BenchmarkRunResult(
             output.ExitCode,
             output.StandardOutput,
             output.StandardError,
             _executablePath,
-            arguments);
+            arguments,
+            output.WasCancelled);
     }
 }
 
 public sealed class SystemCliProcessRunner : ICliProcessRunner
 {
+    private const int CancellationExitTimeoutMilliseconds = 5_000;
+
     public CliProcessOutput Run(
         string executablePath,
         IReadOnlyList<string> arguments,
-        Action<BenchmarkProgressEvent>? progressHandler)
+        Action<BenchmarkProgressEvent>? progressHandler,
+        CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return CancelledOutput();
+        }
+
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
@@ -120,13 +158,17 @@ public sealed class SystemCliProcessRunner : ICliProcessRunner
             process.StartInfo.ArgumentList.Add(argument);
         }
 
+        var outputLock = new object();
         var stdout = new List<string>();
         var stderr = new List<string>();
         process.OutputDataReceived += (_, args) =>
         {
             if (args.Data is not null)
             {
-                stdout.Add(args.Data);
+                lock (outputLock)
+                {
+                    stdout.Add(args.Data);
+                }
             }
         };
         process.ErrorDataReceived += (_, args) =>
@@ -136,7 +178,10 @@ public sealed class SystemCliProcessRunner : ICliProcessRunner
                 return;
             }
 
-            stderr.Add(args.Data);
+            lock (outputLock)
+            {
+                stderr.Add(args.Data);
+            }
             if (progressHandler is not null && BenchmarkProgressEventJsonDecoder.TryDecode(args.Data, out var progressEvent))
             {
                 progressHandler(progressEvent);
@@ -146,13 +191,91 @@ public sealed class SystemCliProcessRunner : ICliProcessRunner
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        process.WaitForExit();
-        process.WaitForExit();
+
+        var cancellationRequestedWhileRunning = 0;
+        using var cancellationRegistration = cancellationToken.Register(() =>
+        {
+            if (!process.HasExited)
+            {
+                Interlocked.Exchange(ref cancellationRequestedWhileRunning, 1);
+                StopProcessTree(process);
+            }
+        });
+        var exitedNormally = false;
+        while (!cancellationToken.IsCancellationRequested && !(exitedNormally = process.WaitForExit(100)))
+        {
+        }
+
+        var wasCancelled = Volatile.Read(ref cancellationRequestedWhileRunning) == 1;
+        var exited = exitedNormally || !wasCancelled;
+        if (wasCancelled)
+        {
+            StopProcessTree(process);
+            exited = process.WaitForExit(CancellationExitTimeoutMilliseconds);
+        }
+        else
+        {
+            process.WaitForExit();
+        }
+
+        if (exited)
+        {
+            process.WaitForExit();
+        }
+
+        string standardOutput;
+        string standardError;
+        lock (outputLock)
+        {
+            standardOutput = string.Join(Environment.NewLine, stdout);
+            standardError = string.Join(Environment.NewLine, stderr);
+        }
+
+        if (wasCancelled)
+        {
+            if (!exited)
+            {
+                standardError = string.Join(
+                    Environment.NewLine,
+                    new[] { standardError, $"Cancellation exceeded {CancellationExitTimeoutMilliseconds} ms after process-tree termination." }
+                        .Where(line => !string.IsNullOrWhiteSpace(line)));
+            }
+
+            return new CliProcessOutput(-1, standardOutput, standardError, WasCancelled: true);
+        }
 
         return new CliProcessOutput(
             process.ExitCode,
-            string.Join(Environment.NewLine, stdout),
-            string.Join(Environment.NewLine, stderr));
+            standardOutput,
+            standardError);
+    }
+
+    private static CliProcessOutput CancelledOutput()
+    {
+        return new CliProcessOutput(
+            -1,
+            "",
+            WindowsDisplayText.Text("Benchmark cancelled before launch.", "Benchmark đã hủy trước khi chạy."),
+            WasCancelled: true);
+    }
+
+    private static void StopProcessTree(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // The process exited between the state check and termination request.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Cancellation still returns a bounded cancelled result with the safe stderr detail.
+        }
     }
 }
 

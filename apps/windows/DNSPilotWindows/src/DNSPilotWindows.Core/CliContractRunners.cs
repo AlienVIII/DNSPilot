@@ -52,6 +52,19 @@ internal static class CliContractRunnerErrors
             : !string.IsNullOrWhiteSpace(output.StandardOutput)
                 ? output.StandardOutput.Trim()
                 : $"{commandName} command exited with code {output.ExitCode}.";
-        throw new InvalidOperationException(message);
+        throw new CliContractCommandException(commandName, output.ExitCode, message);
     }
+}
+
+public sealed class CliContractCommandException : InvalidOperationException
+{
+    public CliContractCommandException(string commandName, int exitCode, string message)
+        : base(message)
+    {
+        CommandName = commandName;
+        ExitCode = exitCode;
+    }
+
+    public string CommandName { get; }
+    public int ExitCode { get; }
 }
