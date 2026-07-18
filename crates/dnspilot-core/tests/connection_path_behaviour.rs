@@ -1,13 +1,15 @@
 use dnspilot_core::connect_probe::ConnectProbeError;
 use dnspilot_core::connection_path::{
     run_connection_path_with_clients, run_connection_path_with_clients_and_tls,
-    ConnectionPathConfig, DnsLookupMeasurement,
+    run_udp_connection_path_estimate, ConnectionPathConfig, DnsLookupMeasurement,
 };
 use dnspilot_core::dns_benchmark::DnsRecordFamily;
 use dnspilot_core::dns_resolver::DnsResolverError;
 use dnspilot_core::dns_wire::{DnsAnswer, DnsRecordData, DnsResponse, RecordType};
 use dnspilot_core::tls_probe::TlsProbeError;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, TcpListener, UdpSocket};
+use std::sync::mpsc;
+use std::thread;
 use std::time::Duration;
 
 #[test]
@@ -362,6 +364,55 @@ fn connection_path_can_limit_dns_records_to_ipv4() {
     assert_eq!(run.metrics.failure_rate, 0.0);
     assert_eq!(run.metrics.ipv4_health, 1.0);
     assert_eq!(run.metrics.ipv6_health, 1.0);
+}
+
+#[test]
+fn live_connection_path_uses_a_fresh_dns_transaction_id() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind TCP listener");
+    let connect_port = listener.local_addr().expect("TCP address").port();
+    thread::spawn(move || {
+        let _ = listener.accept();
+    });
+
+    let socket = UdpSocket::bind("127.0.0.1:0").expect("bind fake resolver");
+    let resolver = socket.local_addr().expect("resolver address");
+    let (sender, receiver) = mpsc::channel();
+    thread::spawn(move || {
+        let mut buffer = [0_u8; 512];
+        let (length, peer) = socket.recv_from(&mut buffer).expect("receive DNS query");
+        let request = &buffer[..length];
+        let transaction_id = u16::from_be_bytes([request[0], request[1]]);
+        let mut response = vec![
+            request[0], request[1], 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+        ];
+        response.extend(&request[12..]);
+        response.extend([
+            0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1e, 0x00, 0x04, 127, 0, 0, 1,
+        ]);
+        socket.send_to(&response, peer).expect("send DNS response");
+        sender.send(transaction_id).expect("send transaction ID");
+    });
+
+    let config = ConnectionPathConfig {
+        profile_id: "local".into(),
+        domains: vec!["example.com".into()],
+        attempts_per_record: 1,
+        dns_timeout: Duration::from_millis(500),
+        connect_timeout: Duration::from_millis(500),
+        first_transaction_id: 0x7000,
+        connect_port,
+        max_connect_targets_per_domain: 1,
+        tls_handshake_timeout: None,
+        record_family: DnsRecordFamily::Ipv4Only,
+    };
+
+    let run = run_udp_connection_path_estimate(&config, resolver);
+    let transaction_id = receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("resolver should receive the query");
+
+    assert_ne!(transaction_id, config.first_transaction_id);
+    assert_eq!(run.dns.samples[0].transaction_id, transaction_id);
 }
 
 fn dns_response(transaction_id: u16, record_type: RecordType) -> DnsResponse {

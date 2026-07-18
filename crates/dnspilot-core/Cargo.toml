@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+getrandom = "0.2"
 rusqlite = { version = "0.40", features = ["bundled"] }
 rustls = "0.23.41"
 serde = { version = "1", features = ["derive"] }

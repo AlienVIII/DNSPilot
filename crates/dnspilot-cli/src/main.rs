@@ -1134,7 +1134,7 @@ fn main() {
             );
         }
         Command::StorageSmoke { db } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
@@ -1171,15 +1171,10 @@ fn main() {
             filtering,
             tags,
         } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            if snapshot.profiles.iter().any(|profile| profile.id == id) {
-                eprintln!("DNS profile '{id}' already exists");
-                std::process::exit(2);
-            }
             let profile = make_custom_profile(
                 id.clone(),
                 name.clone(),
@@ -1195,15 +1190,18 @@ fn main() {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            snapshot.profiles.push(profile);
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+            let profile_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                if snapshot.profiles.iter().any(|profile| profile.id == id) {
+                    eprintln!("DNS profile '{id}' already exists");
+                    std::process::exit(2);
+                }
+                snapshot.profiles.push(profile);
+                snapshot.profiles.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
                 "profile_id": id,
-                "profile_count": snapshot.profiles.len(),
+                "profile_count": profile_count,
             });
             println!(
                 "{}",
@@ -1222,24 +1220,10 @@ fn main() {
             filtering,
             tags,
         } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            let index = snapshot
-                .profiles
-                .iter()
-                .position(|profile| profile.id == id)
-                .unwrap_or_else(|| {
-                    eprintln!("DNS profile '{id}' not found");
-                    std::process::exit(2);
-                });
-            if !is_custom_profile(&snapshot.profiles[index]) {
-                eprintln!("cannot update built-in profile '{id}'");
-                std::process::exit(2);
-            }
-
             let profile = make_custom_profile(
                 id.clone(),
                 name.clone(),
@@ -1255,15 +1239,26 @@ fn main() {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            snapshot.profiles[index] = profile;
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+            let profile_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                let index = snapshot
+                    .profiles
+                    .iter()
+                    .position(|profile| profile.id == id)
+                    .unwrap_or_else(|| {
+                        eprintln!("DNS profile '{id}' not found");
+                        std::process::exit(2);
+                    });
+                if !is_custom_profile(&snapshot.profiles[index]) {
+                    eprintln!("cannot update built-in profile '{id}'");
+                    std::process::exit(2);
+                }
+                snapshot.profiles[index] = profile;
+                snapshot.profiles.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
                 "profile_id": id,
-                "profile_count": snapshot.profiles.len(),
+                "profile_count": profile_count,
             });
             println!(
                 "{}",
@@ -1271,32 +1266,30 @@ fn main() {
             );
         }
         Command::ProfileDelete { db, id } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            let index = snapshot
-                .profiles
-                .iter()
-                .position(|profile| profile.id == id)
-                .unwrap_or_else(|| {
-                    eprintln!("DNS profile '{id}' not found");
+            let profile_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                let index = snapshot
+                    .profiles
+                    .iter()
+                    .position(|profile| profile.id == id)
+                    .unwrap_or_else(|| {
+                        eprintln!("DNS profile '{id}' not found");
+                        std::process::exit(2);
+                    });
+                if !is_custom_profile(&snapshot.profiles[index]) {
+                    eprintln!("cannot delete built-in profile '{id}'");
                     std::process::exit(2);
-                });
-            if !is_custom_profile(&snapshot.profiles[index]) {
-                eprintln!("cannot delete built-in profile '{id}'");
-                std::process::exit(2);
-            }
-            snapshot.profiles.remove(index);
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+                }
+                snapshot.profiles.remove(index);
+                snapshot.profiles.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
                 "profile_id": id,
-                "profile_count": snapshot.profiles.len(),
+                "profile_count": profile_count,
             });
             println!(
                 "{}",
@@ -1327,29 +1320,27 @@ fn main() {
             domains,
             tags,
         } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            if snapshot.test_suites.iter().any(|suite| suite.id == id) {
-                eprintln!("test suite '{id}' already exists");
-                std::process::exit(2);
-            }
             let suite = make_custom_suite(id.clone(), name.clone(), domains, tags);
             suite.validate().unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            snapshot.test_suites.push(suite);
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+            let test_suite_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                if snapshot.test_suites.iter().any(|suite| suite.id == id) {
+                    eprintln!("test suite '{id}' already exists");
+                    std::process::exit(2);
+                }
+                snapshot.test_suites.push(suite);
+                snapshot.test_suites.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
                 "test_suite_id": id,
-                "test_suite_count": snapshot.test_suites.len(),
+                "test_suite_count": test_suite_count,
             });
             println!(
                 "{}",
@@ -1363,38 +1354,35 @@ fn main() {
             domains,
             tags,
         } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            let index = snapshot
-                .test_suites
-                .iter()
-                .position(|suite| suite.id == id)
-                .unwrap_or_else(|| {
-                    eprintln!("test suite '{id}' not found");
-                    std::process::exit(2);
-                });
-            if !is_custom_suite(&snapshot.test_suites[index]) {
-                eprintln!("cannot update built-in test suite '{id}'");
-                std::process::exit(2);
-            }
-
             let suite = make_custom_suite(id.clone(), name.clone(), domains, tags);
             suite.validate().unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            snapshot.test_suites[index] = suite;
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+            let test_suite_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                let index = snapshot
+                    .test_suites
+                    .iter()
+                    .position(|suite| suite.id == id)
+                    .unwrap_or_else(|| {
+                        eprintln!("test suite '{id}' not found");
+                        std::process::exit(2);
+                    });
+                if !is_custom_suite(&snapshot.test_suites[index]) {
+                    eprintln!("cannot update built-in test suite '{id}'");
+                    std::process::exit(2);
+                }
+                snapshot.test_suites[index] = suite;
+                snapshot.test_suites.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
                 "test_suite_id": id,
-                "test_suite_count": snapshot.test_suites.len(),
+                "test_suite_count": test_suite_count,
             });
             println!(
                 "{}",
@@ -1402,32 +1390,30 @@ fn main() {
             );
         }
         Command::SuiteDelete { db, id } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            let index = snapshot
-                .test_suites
-                .iter()
-                .position(|suite| suite.id == id)
-                .unwrap_or_else(|| {
-                    eprintln!("test suite '{id}' not found");
+            let test_suite_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                let index = snapshot
+                    .test_suites
+                    .iter()
+                    .position(|suite| suite.id == id)
+                    .unwrap_or_else(|| {
+                        eprintln!("test suite '{id}' not found");
+                        std::process::exit(2);
+                    });
+                if !is_custom_suite(&snapshot.test_suites[index]) {
+                    eprintln!("cannot delete built-in test suite '{id}'");
                     std::process::exit(2);
-                });
-            if !is_custom_suite(&snapshot.test_suites[index]) {
-                eprintln!("cannot delete built-in test suite '{id}'");
-                std::process::exit(2);
-            }
-            snapshot.test_suites.remove(index);
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+                }
+                snapshot.test_suites.remove(index);
+                snapshot.test_suites.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
                 "test_suite_id": id,
-                "test_suite_count": snapshot.test_suites.len(),
+                "test_suite_count": test_suite_count,
             });
             println!(
                 "{}",
@@ -1469,28 +1455,26 @@ fn main() {
             );
         }
         Command::HistoryDelete { db, id } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            let index = snapshot
-                .benchmark_history
-                .iter()
-                .position(|record| record.id == id)
-                .unwrap_or_else(|| {
-                    eprintln!("benchmark history '{id}' not found");
-                    std::process::exit(2);
-                });
-            snapshot.benchmark_history.remove(index);
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+            let benchmark_history_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                let index = snapshot
+                    .benchmark_history
+                    .iter()
+                    .position(|record| record.id == id)
+                    .unwrap_or_else(|| {
+                        eprintln!("benchmark history '{id}' not found");
+                        std::process::exit(2);
+                    });
+                snapshot.benchmark_history.remove(index);
+                snapshot.benchmark_history.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
                 "history_id": id,
-                "benchmark_history_count": snapshot.benchmark_history.len(),
+                "benchmark_history_count": benchmark_history_count,
             });
             println!(
                 "{}",
@@ -1498,19 +1482,17 @@ fn main() {
             );
         }
         Command::HistoryClear { db } => {
-            let storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
+            let mut storage = SqliteStorage::open(&db).unwrap_or_else(|error| {
                 eprintln!("{error}");
                 std::process::exit(2);
             });
-            let mut snapshot = load_snapshot_or_builtin(&storage);
-            snapshot.benchmark_history.clear();
-            storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
+            let benchmark_history_count = mutate_snapshot_or_exit(&mut storage, |snapshot| {
+                snapshot.benchmark_history.clear();
+                snapshot.benchmark_history.len()
             });
             let payload = serde_json::json!({
                 "db": db.to_string_lossy(),
-                "benchmark_history_count": snapshot.benchmark_history.len(),
+                "benchmark_history_count": benchmark_history_count,
             });
             println!(
                 "{}",
@@ -1574,6 +1556,20 @@ fn load_snapshot_or_builtin(storage: &SqliteStorage) -> StorageSnapshot {
             std::process::exit(2);
         }
     }
+}
+
+fn mutate_snapshot_or_exit<T>(
+    storage: &mut SqliteStorage,
+    mutation: impl FnOnce(&mut StorageSnapshot) -> T,
+) -> T {
+    storage
+        .mutate_snapshot(builtin_storage_snapshot(), |snapshot| {
+            Ok(mutation(snapshot))
+        })
+        .unwrap_or_else(|error| {
+            eprintln!("{error}");
+            std::process::exit(2);
+        })
 }
 
 fn make_custom_profile(
@@ -1805,15 +1801,12 @@ fn resolve_plain_profile_address(
 }
 
 fn save_benchmark_history(db: &std::path::Path, record: BenchmarkHistoryRecord) {
-    let storage = SqliteStorage::open(db).unwrap_or_else(|error| {
+    let mut storage = SqliteStorage::open(db).unwrap_or_else(|error| {
         eprintln!("{error}");
         std::process::exit(2);
     });
-    let mut snapshot = load_snapshot_or_builtin(&storage);
-    snapshot.benchmark_history.push(record);
-    storage.save_snapshot(&snapshot).unwrap_or_else(|error| {
-        eprintln!("{error}");
-        std::process::exit(2);
+    mutate_snapshot_or_exit(&mut storage, |snapshot| {
+        snapshot.benchmark_history.push(record);
     });
 }
 

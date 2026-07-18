@@ -2,10 +2,11 @@ use crate::{
     BenchmarkMetrics, DnsPilotError, DnsProfile, MeasurementScope, RecommendationGate,
     RecommendationMode, TestSuite,
 };
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::time::Duration;
 
 pub const STORAGE_SCHEMA_VERSION: u32 = 1;
 
@@ -40,6 +41,10 @@ impl SqliteStorage {
         let storage = Self {
             connection: Connection::open(path).map_err(storage_error)?,
         };
+        storage
+            .connection
+            .busy_timeout(Duration::from_secs(5))
+            .map_err(storage_error)?;
         storage.initialize()?;
         Ok(storage)
     }
@@ -48,28 +53,57 @@ impl SqliteStorage {
         let storage = Self {
             connection: Connection::open_in_memory().map_err(storage_error)?,
         };
+        storage
+            .connection
+            .busy_timeout(Duration::from_secs(5))
+            .map_err(storage_error)?;
         storage.initialize()?;
         Ok(storage)
     }
 
-    pub fn save_snapshot(&self, snapshot: &StorageSnapshot) -> Result<(), DnsPilotError> {
+    pub fn save_snapshot(&mut self, snapshot: &StorageSnapshot) -> Result<(), DnsPilotError> {
         validate_storage_snapshot(snapshot)?;
-        let payload = serde_json::to_string(snapshot).map_err(storage_error)?;
-        self.connection
-            .execute(
-                "INSERT INTO storage_metadata (key, value) VALUES ('schema_version', ?1)
-                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                params![snapshot.schema_version.to_string()],
-            )
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(storage_error)?;
-        self.connection
-            .execute(
-                "INSERT INTO storage_snapshots (id, payload_json) VALUES (1, ?1)
-                 ON CONFLICT(id) DO UPDATE SET payload_json = excluded.payload_json",
-                params![payload],
-            )
-            .map_err(storage_error)?;
+        save_snapshot_in_transaction(&transaction, snapshot)?;
+        transaction.commit().map_err(storage_error)?;
         Ok(())
+    }
+
+    /// Serializes a read-modify-write update so concurrent CLI invocations cannot lose changes.
+    pub fn mutate_snapshot<T, F>(
+        &mut self,
+        initial_snapshot: StorageSnapshot,
+        mutation: F,
+    ) -> Result<T, DnsPilotError>
+    where
+        F: FnOnce(&mut StorageSnapshot) -> Result<T, DnsPilotError>,
+    {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(storage_error)?;
+        let payload: Option<String> = transaction
+            .query_row(
+                "SELECT payload_json FROM storage_snapshots WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(storage_error)?;
+        let mut snapshot = match payload {
+            Some(payload) => serde_json::from_str(&payload).map_err(storage_error)?,
+            None => initial_snapshot,
+        };
+
+        validate_storage_snapshot(&snapshot)?;
+        let result = mutation(&mut snapshot)?;
+        validate_storage_snapshot(&snapshot)?;
+        save_snapshot_in_transaction(&transaction, &snapshot)?;
+        transaction.commit().map_err(storage_error)?;
+        Ok(result)
     }
 
     pub fn load_snapshot(&self) -> Result<StorageSnapshot, DnsPilotError> {
@@ -101,6 +135,28 @@ impl SqliteStorage {
             .map_err(storage_error)?;
         Ok(())
     }
+}
+
+fn save_snapshot_in_transaction(
+    transaction: &Transaction<'_>,
+    snapshot: &StorageSnapshot,
+) -> Result<(), DnsPilotError> {
+    let payload = serde_json::to_string(snapshot).map_err(storage_error)?;
+    transaction
+        .execute(
+            "INSERT INTO storage_metadata (key, value) VALUES ('schema_version', ?1)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            params![snapshot.schema_version.to_string()],
+        )
+        .map_err(storage_error)?;
+    transaction
+        .execute(
+            "INSERT INTO storage_snapshots (id, payload_json) VALUES (1, ?1)
+             ON CONFLICT(id) DO UPDATE SET payload_json = excluded.payload_json",
+            params![payload],
+        )
+        .map_err(storage_error)?;
+    Ok(())
 }
 
 pub fn validate_storage_snapshot(snapshot: &StorageSnapshot) -> Result<(), DnsPilotError> {

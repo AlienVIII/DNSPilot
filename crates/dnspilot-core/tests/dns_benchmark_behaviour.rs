@@ -1,8 +1,12 @@
 use dnspilot_core::dns_benchmark::{
-    run_dns_benchmark_with_lookup, DnsBenchmarkConfig, DnsRecordFamily, DnsSampleOutcome,
+    run_dns_benchmark_with_lookup, run_udp_dns_benchmark, DnsBenchmarkConfig, DnsRecordFamily,
+    DnsSampleOutcome,
 };
 use dnspilot_core::dns_resolver::DnsResolverError;
 use dnspilot_core::dns_wire::RecordType;
+use std::net::UdpSocket;
+use std::sync::mpsc;
+use std::thread;
 use std::time::Duration;
 
 #[test]
@@ -107,4 +111,55 @@ fn can_limit_dns_benchmark_to_ipv4_records() {
     assert_eq!(run.metrics.ipv6_health, 1.0);
     assert_eq!(calls[0], ("example.com".into(), RecordType::A, 0x3000));
     assert_eq!(calls[1], ("example.com".into(), RecordType::A, 0x3001));
+}
+
+#[test]
+fn live_udp_benchmark_uses_fresh_transaction_ids_on_the_wire() {
+    let socket = UdpSocket::bind("127.0.0.1:0").expect("bind fake resolver");
+    let resolver = socket.local_addr().expect("resolver address");
+    let (sender, receiver) = mpsc::channel();
+
+    thread::spawn(move || {
+        let mut transaction_ids = Vec::new();
+        for _ in 0..2 {
+            let mut buffer = [0_u8; 512];
+            let (length, peer) = socket.recv_from(&mut buffer).expect("receive DNS query");
+            let request = &buffer[..length];
+            transaction_ids.push(u16::from_be_bytes([request[0], request[1]]));
+            let mut response = vec![
+                request[0], request[1], 0x81, 0x80, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            ];
+            response.extend(&request[12..]);
+            socket.send_to(&response, peer).expect("send DNS response");
+        }
+        sender.send(transaction_ids).expect("send transaction IDs");
+    });
+
+    let config = DnsBenchmarkConfig {
+        profile_id: "local".into(),
+        domains: vec!["example.com".into()],
+        attempts_per_record: 2,
+        timeout: Duration::from_millis(500),
+        first_transaction_id: 0x1234,
+        record_family: DnsRecordFamily::Ipv4Only,
+    };
+
+    let run = run_udp_dns_benchmark(&config, resolver);
+    let transaction_ids = receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("resolver should receive both queries");
+
+    assert_ne!(transaction_ids[0], config.first_transaction_id);
+    assert_ne!(
+        transaction_ids[1],
+        config.first_transaction_id.wrapping_add(1)
+    );
+    assert_ne!(transaction_ids[0], transaction_ids[1]);
+    assert_eq!(
+        run.samples
+            .iter()
+            .map(|sample| sample.transaction_id)
+            .collect::<Vec<_>>(),
+        transaction_ids
+    );
 }
