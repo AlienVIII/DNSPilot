@@ -1,4 +1,4 @@
-use crate::dns_resolver::{query_udp_once, DnsResolverError};
+use crate::dns_resolver::{fresh_transaction_id, query_udp_once, DnsResolverError};
 use crate::dns_wire::RecordType;
 use crate::BenchmarkMetrics;
 use std::net::SocketAddr;
@@ -59,33 +59,71 @@ pub enum DnsSampleOutcome {
 }
 
 pub fn run_udp_dns_benchmark(config: &DnsBenchmarkConfig, resolver: SocketAddr) -> DnsBenchmarkRun {
-    run_dns_benchmark_with_lookup(config, |domain, record_type, transaction_id| {
-        query_udp_once(
-            resolver,
-            domain,
-            record_type,
-            config.timeout,
-            transaction_id,
-        )
-        .map(|result| result.elapsed)
-    })
+    let mut previous_transaction_id = None;
+    run_dns_benchmark_with_transaction_id_source(
+        config,
+        || {
+            let transaction_id = fresh_transaction_id(previous_transaction_id)?;
+            previous_transaction_id = Some(transaction_id);
+            Ok(transaction_id)
+        },
+        |domain, record_type, transaction_id| {
+            query_udp_once(
+                resolver,
+                domain,
+                record_type,
+                config.timeout,
+                transaction_id,
+            )
+            .map(|result| result.elapsed)
+        },
+    )
 }
 
-pub fn run_dns_benchmark_with_lookup<F>(
+pub fn run_dns_benchmark_with_lookup<F>(config: &DnsBenchmarkConfig, lookup: F) -> DnsBenchmarkRun
+where
+    F: FnMut(&str, RecordType, u16) -> Result<Duration, DnsResolverError>,
+{
+    let mut query_index = 0_u16;
+    run_dns_benchmark_with_transaction_id_source(
+        config,
+        || {
+            let transaction_id = config.first_transaction_id.wrapping_add(query_index);
+            query_index = query_index.wrapping_add(1);
+            Ok(transaction_id)
+        },
+        lookup,
+    )
+}
+
+pub(crate) fn run_dns_benchmark_with_transaction_id_source<F, G>(
     config: &DnsBenchmarkConfig,
+    mut next_transaction_id: G,
     mut lookup: F,
 ) -> DnsBenchmarkRun
 where
     F: FnMut(&str, RecordType, u16) -> Result<Duration, DnsResolverError>,
+    G: FnMut() -> Result<u16, DnsResolverError>,
 {
     let mut samples = Vec::new();
-    let mut query_index = 0_u16;
 
     for domain in &config.domains {
         for &record_type in config.record_family.record_types() {
             for _ in 0..config.attempts_per_record {
-                let transaction_id = config.first_transaction_id.wrapping_add(query_index);
-                query_index = query_index.wrapping_add(1);
+                let transaction_id = match next_transaction_id() {
+                    Ok(transaction_id) => transaction_id,
+                    Err(error) => {
+                        samples.push(DnsBenchmarkSample {
+                            domain: domain.clone(),
+                            record_type,
+                            transaction_id: 0,
+                            elapsed: None,
+                            outcome: DnsSampleOutcome::Failure,
+                            failure_detail: Some(error.to_string()),
+                        });
+                        continue;
+                    }
+                };
 
                 let sample = match lookup(domain, record_type, transaction_id) {
                     Ok(elapsed) => DnsBenchmarkSample {

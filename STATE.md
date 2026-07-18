@@ -4,8 +4,8 @@ Last updated: 2026-07-19.
 
 ## Current Truth
 
-- `main` integrates macOS through `7609d57`, Linux through `034621c`, and Windows
-  through `2f3cef0`. Core CLI and docs worktrees had no independent production delta.
+- `main` integrates macOS through `7609d57`, Linux through `034621c`, Windows through
+  `2f3cef0`, and Core/CLI hardening through `8a53a31`.
 - Rust Core/CLI remains the only owner of benchmark, recommendation, policy, storage,
   and versioned JSON/JSONL contracts.
 - macOS Store-safe behavior, semantic EN/VI localization, packaging, and local release
@@ -22,10 +22,6 @@ Last updated: 2026-07-19.
 
 ## Review Findings
 
-- Core UDP DNS response identity/semantics are not strong enough for trusted
-  recommendations; D8 is P0.
-- Core snapshot mutations are not transaction-safe across concurrent processes; D9 is
-  P1 before background or multi-window expansion.
 - Mobile dev bridge binds the LAN with wildcard CORS, no authentication, and a
   caller-controlled database path. Android currently allows backup of local DNS/history
   data. Both must be hardened before mobile integration.
@@ -43,6 +39,9 @@ Last updated: 2026-07-19.
 - Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.
+- Core/CLI: `cargo fmt --check`, `cargo test --workspace`, and `git diff --check` pass
+  at `8a53a31` (121 tests). Live DNS requests pin the resolver source, use OS entropy
+  for transaction IDs, validate response semantics, and serialize snapshot mutations.
 - Mobile: 95 tests, typecheck, and route export pass, but `npm run verify` fails because
   Expo now expects `expo 57.0.7`, `expo-constants 57.0.6`, `expo-dev-client 57.0.7`, and
   `expo-router 57.0.7`; release preflight was therefore not reached in this rerun.

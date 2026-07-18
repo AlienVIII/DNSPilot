@@ -4,8 +4,8 @@ Last reviewed: 2026-07-19.
 
 ## P0: Commercial Trust
 
-- [ ] Harden Core UDP response identity and DNS response validation per D8; add spoofed
-  source, predictable-ID, wrong-question, query-packet, and malformed-response tests.
+- [x] Harden Core UDP response identity and DNS response validation per D8; added spoofed
+  source, fresh-ID, wrong-question, and invalid response packet tests in `8a53a31`.
 - [ ] Capture macOS EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver evidence.
 - [ ] Run five moderated users through Check -> Recommend -> Apply -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,
@@ -13,7 +13,8 @@ Last reviewed: 2026-07-19.
 
 ## P1: Shared Core
 
-- [ ] Make snapshot mutations transaction-safe across concurrent CLI processes per D9.
+- [x] Make snapshot mutations transaction-safe across concurrent CLI processes per D9
+  with `BEGIN IMMEDIATE` and a two-writer regression test in `8a53a31`.
 - [ ] Add locale-neutral issue/message IDs; keep raw technical text only in Details.
 - [ ] Version the progress JSONL contract with `schema_version`, `run_id`, terminal
   event, failure kind, and tested cancellation/no-partial-history semantics.

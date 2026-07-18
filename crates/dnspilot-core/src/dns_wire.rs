@@ -10,7 +10,7 @@ pub enum RecordType {
 }
 
 impl RecordType {
-    fn code(self) -> u16 {
+    pub(crate) fn code(self) -> u16 {
         match self {
             Self::A => 1,
             Self::Aaaa => 28,
@@ -51,6 +51,14 @@ pub enum DnsWireError {
     CompressionLoop,
     #[error("invalid DNS name")]
     InvalidName,
+    #[error("DNS packet is not a response")]
+    NotResponse,
+    #[error("unsupported DNS opcode {0}")]
+    UnsupportedOpcode(u8),
+    #[error("DNS response must contain exactly one question, got {0}")]
+    InvalidQuestionCount(usize),
+    #[error("DNS response question does not match the request")]
+    QuestionMismatch,
 }
 
 pub fn build_query(
@@ -87,13 +95,24 @@ pub fn parse_response(packet: &[u8]) -> Result<DnsResponse, DnsWireError> {
     let answer_count = read_u16(packet, 6)? as usize;
     let response_code = (flags & 0x000f) as u8;
 
+    if flags & 0x8000 == 0 {
+        return Err(DnsWireError::NotResponse);
+    }
+
+    let opcode = ((flags >> 11) & 0x000f) as u8;
+    if opcode != 0 {
+        return Err(DnsWireError::UnsupportedOpcode(opcode));
+    }
+
+    if question_count != 1 {
+        return Err(DnsWireError::InvalidQuestionCount(question_count));
+    }
+
     let mut offset = DNS_HEADER_LEN;
-    for _ in 0..question_count {
-        let (_, next) = decode_name(packet, offset)?;
-        offset = next + 4;
-        if offset > packet.len() {
-            return Err(DnsWireError::TruncatedPacket);
-        }
+    let (_, next) = decode_name(packet, offset)?;
+    offset = next + 4;
+    if offset > packet.len() {
+        return Err(DnsWireError::TruncatedPacket);
     }
 
     let mut answers = Vec::with_capacity(answer_count);
@@ -151,6 +170,24 @@ pub fn parse_response(packet: &[u8]) -> Result<DnsResponse, DnsWireError> {
         response_code,
         answers,
     })
+}
+
+pub fn parse_response_for_query(
+    packet: &[u8],
+    domain: &str,
+    record_type: RecordType,
+) -> Result<DnsResponse, DnsWireError> {
+    let response = parse_response(packet)?;
+    let (question_name, question_type, question_class) = parse_question(packet)?;
+
+    if !question_name.eq_ignore_ascii_case(domain.trim_end_matches('.'))
+        || question_type != record_type.code()
+        || question_class != DNS_CLASS_IN
+    {
+        return Err(DnsWireError::QuestionMismatch);
+    }
+
+    Ok(response)
 }
 
 fn encode_name(domain: &str, packet: &mut Vec<u8>) -> Result<(), DnsWireError> {
@@ -224,6 +261,16 @@ fn decode_name(packet: &[u8], offset: usize) -> Result<(String, usize), DnsWireE
         labels.push(label.to_string());
         cursor = label_end;
     }
+}
+
+fn parse_question(packet: &[u8]) -> Result<(String, u16, u16), DnsWireError> {
+    let question_count = read_u16(packet, 4)? as usize;
+    if question_count != 1 {
+        return Err(DnsWireError::InvalidQuestionCount(question_count));
+    }
+
+    let (name, next) = decode_name(packet, DNS_HEADER_LEN)?;
+    Ok((name, read_u16(packet, next)?, read_u16(packet, next + 2)?))
 }
 
 fn read_u16(packet: &[u8], offset: usize) -> Result<u16, DnsWireError> {

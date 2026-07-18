@@ -66,3 +66,26 @@ fn rejects_invalid_domain_labels_before_network_use() {
 
     assert!(error.to_string().contains("invalid DNS label"));
 }
+
+#[test]
+fn rejects_dns_query_packets_as_responses() {
+    let query = build_query(0x1234, "github.com", RecordType::A).expect("query packet");
+
+    assert!(
+        parse_response(&query).is_err(),
+        "DNS query packets must never be accepted as responses"
+    );
+}
+
+#[test]
+fn rejects_nonstandard_opcode_responses() {
+    let mut response = vec![
+        0x12, 0x34, 0x88, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+    response.extend(github_question());
+
+    assert!(
+        parse_response(&response).is_err(),
+        "benchmark responses must use the standard DNS opcode"
+    );
+}
