@@ -21,8 +21,9 @@ Last reviewed: 2026-07-19.
   `all-resolvers-failed` and `partial-failure`).
 - [ ] Add locale-neutral IDs for Core notes, caveats, safety notes, and guidance; keep
   raw technical text only in copyable Details. Do not duplicate `primary_issue`.
-- [ ] Version the progress JSONL contract with `schema_version`, `run_id`, terminal
-  event, failure kind, and tested cancellation/no-partial-history semantics.
+- [ ] Complete progress JSONL v1 migration: `schema_version: 1` is emitted on every
+  existing event (`307630f`); add `run_id`, terminal event, failure kind, and tested
+  cancellation/no-partial-history semantics through coordinated shell decoder updates.
 - [ ] Do not add platform settings URIs, distro detection, or privileged helpers to Core.
 - [ ] Add `runtime-info --json` only after a second lane proves the same contract need.
 
