@@ -522,6 +522,36 @@ pub enum ApplyPlanDisposition {
     NotRecommended,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ApplyPlanNote {
+    VpnActive,
+    MdmProfileActive,
+    CorporateDnsDetected,
+    CaptivePortalDetected,
+    GuidedSettingsOnly,
+    ExplicitUserApprovalRequired,
+    NoBenchmarkCandidates,
+    EveryCandidateFailed,
+    NoConnectionPathTarget,
+    AllCandidatesLowReliability,
+    PartialFailureOrTimeout,
+    BenchmarkGateBlockedApply,
+    RecommendationUnhealthy,
+    RecommendationMissing,
+    RecommendationLowConfidence,
+    KeepCurrentDns,
+    PlatformUnsupported,
+    RecommendedProfileMissing,
+    PlainProfileMissingServers,
+    PowerApplyAvailable,
+    StoreGuidedPlainDns,
+    AppleDnsSettingsUserEnablement,
+    EncryptedDnsUnsupported,
+    TestedResolverFirst,
+    TestedResolverMissing,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApplyPlan {
     pub platform: Platform,
@@ -532,6 +562,8 @@ pub struct ApplyPlan {
     pub tested_resolver: Option<String>,
     pub dns_servers: Vec<String>,
     pub can_apply: bool,
+    #[serde(default)]
+    pub note_ids: Vec<ApplyPlanNote>,
     pub notes: Vec<String>,
 }
 
@@ -888,6 +920,12 @@ fn apply_plan(
     can_apply: bool,
     notes: Vec<String>,
 ) -> ApplyPlan {
+    let note_ids = apply_plan_note_ids(&notes);
+    assert_eq!(
+        note_ids.len(),
+        notes.len(),
+        "every Core-generated apply-plan note needs a stable ID"
+    );
     ApplyPlan {
         platform,
         apply_capability,
@@ -897,8 +935,43 @@ fn apply_plan(
         tested_resolver,
         dns_servers,
         can_apply,
+        note_ids,
         notes,
     }
+}
+
+fn apply_plan_note_ids(notes: &[String]) -> Vec<ApplyPlanNote> {
+    notes
+        .iter()
+        .filter_map(|note| match note.as_str() {
+            "VPN is active; protect current DNS and avoid apply prompts." => Some(ApplyPlanNote::VpnActive),
+            "MDM profile is active; protect current DNS and avoid apply prompts." => Some(ApplyPlanNote::MdmProfileActive),
+            "corporate DNS was detected; protect current DNS and avoid apply prompts." => Some(ApplyPlanNote::CorporateDnsDetected),
+            "Captive portal was detected; finish portal login before DNS apply prompts." => Some(ApplyPlanNote::CaptivePortalDetected),
+            "Platform requires guided settings; do not perform hidden DNS changes." => Some(ApplyPlanNote::GuidedSettingsOnly),
+            "Platform capability allows an explicit user-approved apply prompt." => Some(ApplyPlanNote::ExplicitUserApprovalRequired),
+            "No benchmark candidates were provided." => Some(ApplyPlanNote::NoBenchmarkCandidates),
+            "Every candidate failed the measured scope." => Some(ApplyPlanNote::EveryCandidateFailed),
+            "No candidate produced a usable connection-path target." => Some(ApplyPlanNote::NoConnectionPathTarget),
+            "All candidates have reduced reliability; Keep current DNS and retest on a stable network." => Some(ApplyPlanNote::AllCandidatesLowReliability),
+            "At least one candidate had partial failure or timeout." => Some(ApplyPlanNote::PartialFailureOrTimeout),
+            "Benchmark gate did not allow DNS changes." => Some(ApplyPlanNote::BenchmarkGateBlockedApply),
+            "Recommendation is not healthy enough for apply; keep current DNS and retest." => Some(ApplyPlanNote::RecommendationUnhealthy),
+            "No benchmark recommendation was provided." => Some(ApplyPlanNote::RecommendationMissing),
+            "Recommendation confidence is too low for apply; keep current DNS and retest." => Some(ApplyPlanNote::RecommendationLowConfidence),
+            "Recommendation says to keep current DNS." => Some(ApplyPlanNote::KeepCurrentDns),
+            "Platform does not support DNS apply prompts." => Some(ApplyPlanNote::PlatformUnsupported),
+            "Recommended profile was not found in the loaded catalog." => Some(ApplyPlanNote::RecommendedProfileMissing),
+            "Plain DNS profile has no IPv4 or IPv6 server addresses." => Some(ApplyPlanNote::PlainProfileMissingServers),
+            "Power/native adapter may apply plain DNS with explicit user approval or privilege." => Some(ApplyPlanNote::PowerApplyAvailable),
+            "Store-safe build must guide plain DNS changes through OS settings." => Some(ApplyPlanNote::StoreGuidedPlainDns),
+            "Apple DNS Settings profile can be offered only through explicit user enablement." => Some(ApplyPlanNote::AppleDnsSettingsUserEnablement),
+            "Encrypted DNS apply is not available for this platform/build yet." => Some(ApplyPlanNote::EncryptedDnsUnsupported),
+            "Apply plan keeps the measured resolver first; remaining DNS servers are provider fallbacks." => Some(ApplyPlanNote::TestedResolverFirst),
+            "Measured resolver was not found in the profile DNS server list; provider fallback order is unchanged." => Some(ApplyPlanNote::TestedResolverMissing),
+            _ => None,
+        })
+        .collect()
 }
 
 fn ordered_plain_dns_servers(

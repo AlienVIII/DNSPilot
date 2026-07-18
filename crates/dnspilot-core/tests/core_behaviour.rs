@@ -3,7 +3,7 @@ use dnspilot_core::{
     benchmark_preflight_for, benchmark_preflight_payload_for, built_in_profiles,
     built_in_test_suites, capability_for, capability_matrix_payload, catalog_payload,
     classify_resolution_outcome, recommend, recommendation_gate, ApplyCapability,
-    ApplyPlanDisposition, ApplyPromptDisposition, ApplyPromptNote, BenchmarkMetrics,
+    ApplyPlanDisposition, ApplyPlanNote, ApplyPromptDisposition, ApplyPromptNote, BenchmarkMetrics,
     BenchmarkPreflightScope, CapabilityNote, Confidence, DnsProtocol, FilteringType,
     FlushCapability, FlushRequirement, MeasurementScope, NetworkEnvironment, Platform,
     PreflightNote, RecommendationDecision, RecommendationGate, RecommendationHealth,
@@ -627,6 +627,13 @@ fn apply_plan_guides_plain_dns_for_store_safe_platforms() {
         .notes
         .iter()
         .any(|note| note.contains("guide plain DNS changes")));
+    assert_eq!(
+        plan.note_ids,
+        vec![
+            ApplyPlanNote::ExplicitUserApprovalRequired,
+            ApplyPlanNote::StoreGuidedPlainDns,
+        ]
+    );
 }
 
 #[test]
@@ -659,6 +666,13 @@ fn apply_plan_allows_power_plain_dns_with_user_approval() {
     );
     assert!(plan.can_apply);
     assert_eq!(plan.profile_name.as_deref(), Some("Quad9"));
+    assert_eq!(
+        plan.note_ids,
+        vec![
+            ApplyPlanNote::ExplicitUserApprovalRequired,
+            ApplyPlanNote::PowerApplyAvailable,
+        ]
+    );
 }
 
 #[test]
@@ -688,6 +702,7 @@ fn apply_plan_protects_managed_networks_before_profile_apply() {
     assert_eq!(plan.disposition, ApplyPlanDisposition::ProtectCurrentDns);
     assert!(!plan.can_apply);
     assert!(plan.notes.iter().any(|note| note.contains("VPN")));
+    assert_eq!(plan.note_ids, vec![ApplyPlanNote::VpnActive]);
 }
 
 #[test]
@@ -722,6 +737,14 @@ fn apply_plan_blocks_unhealthy_or_low_confidence_recommendations() {
         .notes
         .iter()
         .any(|note| note.contains("not healthy enough")));
+    assert_eq!(
+        plan.note_ids,
+        vec![
+            ApplyPlanNote::ExplicitUserApprovalRequired,
+            ApplyPlanNote::PartialFailureOrTimeout,
+            ApplyPlanNote::RecommendationUnhealthy,
+        ]
+    );
 }
 
 fn healthy_gate() -> RecommendationGate {
