@@ -19,8 +19,11 @@ Last reviewed: 2026-07-19.
   with `BEGIN IMMEDIATE` and a two-writer regression test in `8a53a31`.
 - [x] Preserve locale-neutral `primary_issue` IDs in benchmark contracts (for example,
   `all-resolvers-failed` and `partial-failure`).
-- [ ] Add locale-neutral IDs for Core notes, caveats, safety notes, and guidance; keep
-  raw technical text only in copyable Details. Do not duplicate `primary_issue`.
+- [ ] Continue locale-neutral detail IDs. Recommendation Gate IDs and `gate_note_ids`
+  summaries are complete in `86f314b`, including old-history compatibility; extend this
+  additive contract to capability, preflight, apply-plan, profile-security, and
+  connection-path caveats before any shell removes raw Details fallback. Do not duplicate
+  `primary_issue`.
 - [x] Complete progress JSONL v1 lifecycle in `cb70daf`: every event carries
   `schema_version` and `run_id`; runs end with `run_finished` or `run_cancelled` plus
   stable failure kinds. `SIGINT` exits 130 after the active resolver and never writes

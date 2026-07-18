@@ -5,7 +5,7 @@ Last updated: 2026-07-19.
 ## Current Truth
 
 - `main` integrates macOS rollback hardening through `4f7f750`, Linux through
-  `034621c`, Windows through `2f3cef0`, and Core/CLI hardening through `cb70daf`.
+  `034621c`, Windows through `2f3cef0`, and Core/CLI hardening through `86f314b`.
 - Rust Core/CLI remains the only owner of benchmark, recommendation, policy, storage,
   and versioned JSON/JSONL contracts.
 - macOS Store-safe behavior, semantic EN/VI localization, packaging, and local release
@@ -38,9 +38,10 @@ Last updated: 2026-07-19.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.
 - Core/CLI: `cargo fmt --check`, `cargo test --workspace`, and `git diff --check` pass
-  at `cb70daf` (136 tests). Live DNS requests pin the resolver source, use OS entropy
+  at `86f314b` (137 tests). Live DNS requests pin the resolver source, use OS entropy
   for transaction IDs, validate response semantics, serialize snapshot mutations, and
-  emit versioned progress runs with terminal/failure/cancellation semantics.
+  emit versioned progress runs with terminal/failure/cancellation semantics. Benchmark
+  summaries expose typed recommendation `gate_note_ids` while old history remains readable.
 - Mobile: `npm run verify` passes 98 tests, typecheck, Expo config/router export,
   dependency compatibility, and high-severity audit threshold. Android `bundleRelease`
   passes in 5m19s; the 87 MB AAB passes manifest and dex release gates. iOS Simulator

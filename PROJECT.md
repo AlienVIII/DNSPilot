@@ -219,6 +219,21 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
   persisting an incomplete recommendation.
 - **Confidence:** High.
 
+### D12: Additive Structured Detail IDs
+
+- **Status:** Recommendation Gate is implemented and regression-tested on 2026-07-19 in
+  `86f314b`; other Core detail families remain queued.
+- **Problem:** raw English notes force shells to parse presentation copy and cannot be
+  localized safely, but replacing v1 arrays would break stored histories and decoders.
+- **Options:** keep raw text; use a breaking schema; add typed IDs alongside raw details.
+- **Trade-offs:** raw-only locks UX to Core copy; a breaking migration disrupts releases;
+  additive IDs temporarily duplicate fields but preserve history and independent adoption.
+- **Recommendation:** emit typed `gate_note_ids` with existing `safety_notes`, retain raw
+  notes as technical Details, and use `serde(default)` for old storage. Extend that pattern
+  family-by-family before changing any shell presentation contract.
+- **Reason:** localization must not trade away offline history or decoder compatibility.
+- **Confidence:** High.
+
 ## Quality Gates
 
 - No release-ready claim without platform build, automated tests, signed artifact
