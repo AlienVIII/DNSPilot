@@ -21,9 +21,10 @@ Last reviewed: 2026-07-19.
   `all-resolvers-failed` and `partial-failure`).
 - [ ] Add locale-neutral IDs for Core notes, caveats, safety notes, and guidance; keep
   raw technical text only in copyable Details. Do not duplicate `primary_issue`.
-- [ ] Complete progress JSONL v1 migration: `schema_version: 1` is emitted on every
-  existing event (`307630f`); add `run_id`, terminal event, failure kind, and tested
-  cancellation/no-partial-history semantics through coordinated shell decoder updates.
+- [x] Complete progress JSONL v1 lifecycle in `cb70daf`: every event carries
+  `schema_version` and `run_id`; runs end with `run_finished` or `run_cancelled` plus
+  stable failure kinds. `SIGINT` exits 130 after the active resolver and never writes
+  partial benchmark history.
 - [ ] Do not add platform settings URIs, distro detection, or privileged helpers to Core.
 - [ ] Add `runtime-info --json` only after a second lane proves the same contract need.
 
@@ -38,10 +39,11 @@ Last reviewed: 2026-07-19.
   detail progressive.
 - [x] Build Android Release AAB and pass its manifest/dex release gates; mobile source
   is merged in `234a2e0`.
-- [ ] Capture iOS Simulator Release build exit evidence; signed physical-device QA and
-  store release remain manual gates.
-- [ ] Treat Expo web as dev/router QA only. After all gates pass, merge mobile source to
-  `main`; keep the `production-ios-dns` artifact blocked by provider/device evidence.
+- [x] Capture iOS Simulator Release exit evidence: `xcodebuild ... -configuration Release
+  -sdk iphonesimulator ... CODE_SIGNING_ALLOWED=NO` reports `BUILD SUCCEEDED`.
+  Signed physical-device QA and store release remain manual gates.
+- [x] Integrate mobile source in `234a2e0`; treat Expo web as dev/router QA only and keep
+  the `production-ios-dns` artifact blocked by provider/device evidence.
 
 ## P1: Platform Evidence
 

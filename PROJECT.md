@@ -202,6 +202,23 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 - **Reason:** unsupported breadth weakens trust and distracts from macOS-first release.
 - **Confidence:** High.
 
+### D11: Progress JSONL Lifecycle
+
+- **Status:** Implemented and regression-tested on 2026-07-19 in `cb70daf`.
+- **Problem:** resolver-level progress could not be correlated to one run, had no terminal
+  state, and allowed clients to confuse incomplete output with a successful result.
+- **Options:** preserve loose resolver events; replace the stream with a breaking v2; add
+  lifecycle fields and events while preserving all v1 resolver keys.
+- **Trade-offs:** loose events are unsafe for UI state; a v2 blocks current consumers;
+  additive fields need one compatibility test per stream consumer.
+- **Recommendation:** retain `schema_version: 1` and resolver events, add one `run_id`,
+  stable `failure_kind`, and exactly one `run_finished` or `run_cancelled` event. On
+  `SIGINT`, finish the active resolver, emit cancellation, exit 130, and do not save
+  partial benchmark history.
+- **Reason:** shells can render trustworthy progress without inventing completion or
+  persisting an incomplete recommendation.
+- **Confidence:** High.
+
 ## Quality Gates
 
 - No release-ready claim without platform build, automated tests, signed artifact

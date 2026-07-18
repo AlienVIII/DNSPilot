@@ -5,7 +5,7 @@ Last updated: 2026-07-19.
 ## Current Truth
 
 - `main` integrates macOS rollback hardening through `4f7f750`, Linux through
-  `034621c`, Windows through `2f3cef0`, and Core/CLI hardening through `8a53a31`.
+  `034621c`, Windows through `2f3cef0`, and Core/CLI hardening through `cb70daf`.
 - Rust Core/CLI remains the only owner of benchmark, recommendation, policy, storage,
   and versioned JSON/JSONL contracts.
 - macOS Store-safe behavior, semantic EN/VI localization, packaging, and local release
@@ -19,7 +19,8 @@ Last updated: 2026-07-19.
 - Mobile is integrated through `234a2e0`: Expo patch versions are current, bridge access is
   loopback-by-default and LAN-token protected, local data is excluded from Android/iOS
   backup, and first-run UI hides empty technical sections. Android Release AAB (87 MB),
-  manifest, and dex gates pass; iOS Simulator Release exit evidence remains `NOT RUN`.
+  manifest, and dex gates pass; `xcodebuild` now reports `BUILD SUCCEEDED` for iOS
+  Simulator Release without code signing.
 
 ## Review Findings
 
@@ -37,12 +38,13 @@ Last updated: 2026-07-19.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.
 - Core/CLI: `cargo fmt --check`, `cargo test --workspace`, and `git diff --check` pass
-  at `8a53a31` (121 tests). Live DNS requests pin the resolver source, use OS entropy
-  for transaction IDs, validate response semantics, and serialize snapshot mutations.
+  at `cb70daf` (136 tests). Live DNS requests pin the resolver source, use OS entropy
+  for transaction IDs, validate response semantics, serialize snapshot mutations, and
+  emit versioned progress runs with terminal/failure/cancellation semantics.
 - Mobile: `npm run verify` passes 98 tests, typecheck, Expo config/router export,
   dependency compatibility, and high-severity audit threshold. Android `bundleRelease`
   passes in 5m19s; the 87 MB AAB passes manifest and dex release gates. iOS Simulator
-  Release exit evidence remains `NOT RUN`.
+  Release build completes with `BUILD SUCCEEDED` under `CODE_SIGNING_ALLOWED=NO`.
 - Dependency review: RustSec reports no known Rust advisories; NuGet reports no known
   vulnerable Windows packages; npm reports 11 moderate and no high/critical findings.
 - Mobile web visual QA at 390px confirms tutorial/Help and three primary tabs, but also
