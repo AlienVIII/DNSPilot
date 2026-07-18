@@ -52,6 +52,10 @@ fn path_compare_command_recommends_better_connection_path_over_raw_dns_speed() {
     assert_eq!(json["summary"]["mode"], "best-overall");
     assert_eq!(json["summary"]["health"], "degraded");
     assert_eq!(json["summary"]["primary_issue"], "partial-failure");
+    assert_eq!(
+        json["summary"]["gate_note_ids"],
+        serde_json::json!(["partial-failure-or-timeout"])
+    );
     assert_eq!(json["summary"]["can_recommend"], true);
     assert_eq!(json["summary"]["recommended_profile_id"], "path-good");
     assert_eq!(json["runs"].as_array().expect("runs array").len(), 2);

@@ -69,6 +69,7 @@ fn system_benchmark_command_outputs_system_dns_validation_payload() {
     assert_eq!(json["summary"]["measurement_scope"], "dns-only");
     assert_eq!(json["summary"]["mode"], "fastest-raw-dns");
     assert_eq!(json["summary"]["can_recommend"], false);
+    assert!(json["summary"]["gate_note_ids"].is_array());
     assert_eq!(json["summary"]["recommended_profile_id"], Value::Null);
     assert_eq!(json["summary"]["resolver_count"], 1);
     assert_eq!(json["summary"]["domain_count"], 1);

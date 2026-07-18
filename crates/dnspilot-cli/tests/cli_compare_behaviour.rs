@@ -144,6 +144,7 @@ fn compare_command_can_emit_progress_jsonl_to_stderr() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf8");
     let result_json: Value = serde_json::from_str(&stdout).expect("stdout should stay final json");
     assert_eq!(result_json["summary"]["measurement_scope"], "dns-only");
+    assert!(result_json["summary"]["gate_note_ids"].is_array());
 
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
     let events = stderr
@@ -527,6 +528,10 @@ fn compare_command_marks_recommendation_inconclusive_when_all_resolvers_fail() {
 
     assert_eq!(json["summary"]["health"], "failed");
     assert_eq!(json["summary"]["primary_issue"], "all-resolvers-failed");
+    assert_eq!(
+        json["summary"]["gate_note_ids"],
+        serde_json::json!(["every-candidate-failed"])
+    );
     assert_eq!(json["summary"]["can_recommend"], false);
     assert!(json["summary"]["recommended_profile_id"].is_null());
     assert!(json["recommendation"].is_null());

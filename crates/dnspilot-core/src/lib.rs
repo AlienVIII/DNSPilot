@@ -244,11 +244,23 @@ pub enum RecommendationIssue {
     PartialFailure,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RecommendationNote {
+    NoBenchmarkCandidates,
+    EveryCandidateFailed,
+    NoConnectionPathTarget,
+    AllCandidatesLowReliability,
+    PartialFailureOrTimeout,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecommendationGate {
     pub can_recommend: bool,
     pub health: RecommendationHealth,
     pub primary_issue: RecommendationIssue,
+    #[serde(default)]
+    pub note_ids: Vec<RecommendationNote>,
     pub notes: Vec<String>,
 }
 
@@ -1260,6 +1272,7 @@ pub fn recommendation_gate(
             can_recommend: false,
             health: RecommendationHealth::Inconclusive,
             primary_issue: RecommendationIssue::NoResolvers,
+            note_ids: vec![RecommendationNote::NoBenchmarkCandidates],
             notes: vec!["No benchmark candidates were provided.".into()],
         };
     }
@@ -1269,6 +1282,7 @@ pub fn recommendation_gate(
             can_recommend: false,
             health: RecommendationHealth::Failed,
             primary_issue: RecommendationIssue::AllResolversFailed,
+            note_ids: vec![RecommendationNote::EveryCandidateFailed],
             notes: vec!["Every candidate failed the measured scope.".into()],
         };
     }
@@ -1282,6 +1296,7 @@ pub fn recommendation_gate(
             can_recommend: false,
             health: RecommendationHealth::Inconclusive,
             primary_issue: RecommendationIssue::NoConnectTargets,
+            note_ids: vec![RecommendationNote::NoConnectionPathTarget],
             notes: vec!["No candidate produced a usable connection-path target.".into()],
         };
     }
@@ -1291,6 +1306,7 @@ pub fn recommendation_gate(
             can_recommend: false,
             health: RecommendationHealth::Degraded,
             primary_issue: RecommendationIssue::AllResolversLowReliability,
+            note_ids: vec![RecommendationNote::AllCandidatesLowReliability],
             notes: vec![
                 "All candidates have reduced reliability; Keep current DNS and retest on a stable network."
                     .into(),
@@ -1306,6 +1322,7 @@ pub fn recommendation_gate(
             can_recommend: true,
             health: RecommendationHealth::Degraded,
             primary_issue: RecommendationIssue::PartialFailure,
+            note_ids: vec![RecommendationNote::PartialFailureOrTimeout],
             notes: vec!["At least one candidate had partial failure or timeout.".into()],
         };
     }
@@ -1314,6 +1331,7 @@ pub fn recommendation_gate(
         can_recommend: true,
         health: RecommendationHealth::Healthy,
         primary_issue: RecommendationIssue::None,
+        note_ids: Vec::new(),
         notes: Vec::new(),
     }
 }

@@ -258,6 +258,7 @@ fn history_record(id: &str) -> BenchmarkHistoryRecord {
             can_recommend: true,
             health: RecommendationHealth::Healthy,
             primary_issue: RecommendationIssue::None,
+            note_ids: vec![],
             notes: vec![],
         },
         recommendation_profile_id: Some("cloudflare".into()),

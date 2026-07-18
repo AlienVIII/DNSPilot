@@ -6,7 +6,7 @@ use dnspilot_core::{
     ApplyPlanDisposition, ApplyPromptDisposition, BenchmarkMetrics, BenchmarkPreflightScope,
     Confidence, DnsProtocol, FilteringType, FlushCapability, FlushRequirement, MeasurementScope,
     NetworkEnvironment, Platform, RecommendationDecision, RecommendationGate, RecommendationHealth,
-    RecommendationIssue, RecommendationMode, ResolutionOutcome,
+    RecommendationIssue, RecommendationMode, RecommendationNote, ResolutionOutcome,
 };
 
 fn metrics(
@@ -309,6 +309,10 @@ fn recommendation_gate_blocks_all_failed_candidates() {
     assert!(!gate.can_recommend);
     assert_eq!(gate.health, RecommendationHealth::Failed);
     assert_eq!(gate.primary_issue, RecommendationIssue::AllResolversFailed);
+    assert_eq!(
+        gate.note_ids,
+        vec![RecommendationNote::EveryCandidateFailed]
+    );
 }
 
 #[test]
@@ -321,6 +325,10 @@ fn recommendation_gate_blocks_missing_connection_path_for_path_scope() {
     assert!(!gate.can_recommend);
     assert_eq!(gate.health, RecommendationHealth::Inconclusive);
     assert_eq!(gate.primary_issue, RecommendationIssue::NoConnectTargets);
+    assert_eq!(
+        gate.note_ids,
+        vec![RecommendationNote::NoConnectionPathTarget]
+    );
 }
 
 #[test]
@@ -333,6 +341,10 @@ fn recommendation_gate_allows_degraded_partial_failure() {
     assert!(gate.can_recommend);
     assert_eq!(gate.health, RecommendationHealth::Degraded);
     assert_eq!(gate.primary_issue, RecommendationIssue::PartialFailure);
+    assert_eq!(
+        gate.note_ids,
+        vec![RecommendationNote::PartialFailureOrTimeout]
+    );
 }
 
 #[test]
@@ -348,10 +360,28 @@ fn recommendation_gate_blocks_when_every_candidate_has_low_reliability() {
         gate.primary_issue,
         RecommendationIssue::AllResolversLowReliability
     );
+    assert_eq!(
+        gate.note_ids,
+        vec![RecommendationNote::AllCandidatesLowReliability]
+    );
     assert!(gate
         .notes
         .iter()
         .any(|note| note.contains("Keep current DNS")));
+}
+
+#[test]
+fn recommendation_gate_accepts_history_written_before_note_ids() {
+    let gate: RecommendationGate = serde_json::from_value(serde_json::json!({
+        "can_recommend": false,
+        "health": "failed",
+        "primary_issue": "all-resolvers-failed",
+        "notes": ["Every candidate failed the measured scope."]
+    }))
+    .expect("legacy gate should remain readable");
+
+    assert!(gate.note_ids.is_empty());
+    assert_eq!(gate.notes.len(), 1);
 }
 
 #[test]
@@ -631,6 +661,7 @@ fn apply_plan_blocks_unhealthy_or_low_confidence_recommendations() {
         can_recommend: true,
         health: RecommendationHealth::Degraded,
         primary_issue: RecommendationIssue::PartialFailure,
+        note_ids: vec![RecommendationNote::PartialFailureOrTimeout],
         notes: vec!["At least one candidate had partial failure or timeout.".into()],
     };
 
@@ -656,6 +687,7 @@ fn healthy_gate() -> RecommendationGate {
         can_recommend: true,
         health: RecommendationHealth::Healthy,
         primary_issue: RecommendationIssue::None,
+        note_ids: Vec::new(),
         notes: Vec::new(),
     }
 }

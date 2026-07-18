@@ -16,7 +16,8 @@ use dnspilot_core::{
     BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProfile,
     DnsProtocol, FilteringType, MeasurementScope, NetworkEnvironment, Platform, Recommendation,
     RecommendationDecision, RecommendationGate, RecommendationHealth, RecommendationIssue,
-    RecommendationMode, SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
+    RecommendationMode, RecommendationNote, SqliteStorage, StorageSnapshot, TestSuite,
+    STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
 use std::sync::{
@@ -654,6 +655,7 @@ fn main() {
                     "mode": "fastest-raw-dns",
                     "health": gate.health,
                     "primary_issue": gate.primary_issue,
+                    "gate_note_ids": gate.note_ids.clone(),
                     "can_recommend": false,
                     "safety_notes": safety_notes.clone(),
                     "resolver_count": 1,
@@ -820,6 +822,7 @@ fn main() {
                     "mode": "fastest-raw-dns",
                     "health": gate.health,
                     "primary_issue": gate.primary_issue,
+                    "gate_note_ids": gate.note_ids.clone(),
                     "can_recommend": gate.can_recommend,
                     "safety_notes": gate.notes,
                     "resolver_count": resolver_count,
@@ -1112,6 +1115,7 @@ fn main() {
                     "mode": "best-overall",
                     "health": gate.health,
                     "primary_issue": gate.primary_issue,
+                    "gate_note_ids": gate.note_ids.clone(),
                     "can_recommend": gate.can_recommend,
                     "safety_notes": gate.notes,
                     "tls_enabled": tls_enabled,
@@ -1771,6 +1775,12 @@ fn apply_plan_gate(health: GateHealthArg) -> RecommendationGate {
         can_recommend,
         health: health.into(),
         primary_issue,
+        note_ids: match health {
+            GateHealthArg::Healthy => Vec::new(),
+            GateHealthArg::Degraded => vec![RecommendationNote::PartialFailureOrTimeout],
+            GateHealthArg::Failed => vec![RecommendationNote::EveryCandidateFailed],
+            GateHealthArg::Inconclusive => vec![RecommendationNote::NoBenchmarkCandidates],
+        },
         notes,
     }
 }
