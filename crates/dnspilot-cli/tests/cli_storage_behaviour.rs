@@ -489,6 +489,10 @@ fn profile_add_command_persists_custom_filtering_type() {
         .find(|profile| profile["id"] == "family-filter")
         .expect("custom filtering profile");
     assert_eq!(profile["filtering_type"], "family");
+    assert_eq!(
+        profile["security_note_ids"],
+        serde_json::json!(["filtered-dns-may-block-domains"])
+    );
     assert!(profile["security_notes"]
         .as_array()
         .expect("security notes")

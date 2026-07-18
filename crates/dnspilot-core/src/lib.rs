@@ -40,6 +40,12 @@ pub enum FilteringType {
     Security,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProfileSecurityNote {
+    FilteredDnsMayBlockDomains,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DnsProfile {
     pub id: String,
@@ -53,6 +59,8 @@ pub struct DnsProfile {
     pub tags: Vec<String>,
     pub use_case: String,
     pub filtering_type: FilteringType,
+    #[serde(default)]
+    pub security_note_ids: Vec<ProfileSecurityNote>,
     pub security_notes: Vec<String>,
     pub provider_metadata: BTreeMap<String, String>,
     pub created_at: Option<String>,
@@ -1820,6 +1828,11 @@ fn profile(
             "filtering".into()
         },
         filtering_type,
+        security_note_ids: if filtering_type == FilteringType::None {
+            vec![]
+        } else {
+            vec![ProfileSecurityNote::FilteredDnsMayBlockDomains]
+        },
         security_notes: if filtering_type == FilteringType::None {
             vec![]
         } else {

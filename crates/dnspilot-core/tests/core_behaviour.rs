@@ -6,8 +6,9 @@ use dnspilot_core::{
     ApplyPlanDisposition, ApplyPlanNote, ApplyPromptDisposition, ApplyPromptNote, BenchmarkMetrics,
     BenchmarkPreflightScope, CapabilityNote, Confidence, DnsProtocol, FilteringType,
     FlushCapability, FlushRequirement, MeasurementScope, NetworkEnvironment, Platform,
-    PreflightNote, RecommendationDecision, RecommendationGate, RecommendationHealth,
-    RecommendationIssue, RecommendationMode, RecommendationNote, ResolutionOutcome,
+    PreflightNote, ProfileSecurityNote, RecommendationDecision, RecommendationGate,
+    RecommendationHealth, RecommendationIssue, RecommendationMode, RecommendationNote,
+    ResolutionOutcome,
 };
 
 fn metrics(
@@ -129,6 +130,15 @@ fn catalog_payload_matches_builtin_catalog_contract() {
     assert!(json.get("profiles").is_some());
     assert!(json.get("testSuites").is_some());
     assert!(json.get("test_suites").is_none());
+    let filtered = payload
+        .profiles
+        .iter()
+        .find(|profile| profile.id == "cloudflare-malware")
+        .expect("filtered profile");
+    assert_eq!(
+        filtered.security_note_ids,
+        vec![ProfileSecurityNote::FilteredDnsMayBlockDomains]
+    );
 }
 
 #[test]

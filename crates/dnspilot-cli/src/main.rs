@@ -14,10 +14,10 @@ use dnspilot_core::{
     system_dns::run_system_dns_benchmark,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProfile,
-    DnsProtocol, FilteringType, MeasurementScope, NetworkEnvironment, Platform, Recommendation,
-    RecommendationDecision, RecommendationGate, RecommendationHealth, RecommendationIssue,
-    RecommendationMode, RecommendationNote, SqliteStorage, StorageSnapshot, TestSuite,
-    STORAGE_SCHEMA_VERSION,
+    DnsProtocol, FilteringType, MeasurementScope, NetworkEnvironment, Platform,
+    ProfileSecurityNote, Recommendation, RecommendationDecision, RecommendationGate,
+    RecommendationHealth, RecommendationIssue, RecommendationMode, RecommendationNote,
+    SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
 use std::sync::{
@@ -1608,6 +1608,11 @@ fn make_custom_profile(
         tags,
         use_case: "custom".into(),
         filtering_type: filtering.into(),
+        security_note_ids: if filtering == FilteringTypeArg::None {
+            Vec::new()
+        } else {
+            vec![ProfileSecurityNote::FilteredDnsMayBlockDomains]
+        },
         security_notes: if filtering == FilteringTypeArg::None {
             Vec::new()
         } else {

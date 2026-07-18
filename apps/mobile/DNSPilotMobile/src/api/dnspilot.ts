@@ -22,6 +22,7 @@ export type DNSProfile = {
   tags?: string[];
   use_case?: string;
   filtering_type?: string;
+  security_note_ids?: string[];
   security_notes?: string[];
 };
 
