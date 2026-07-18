@@ -6,6 +6,8 @@ Last reviewed: 2026-07-19.
 
 - [x] Harden Core UDP response identity and DNS response validation per D8; added spoofed
   source, fresh-ID, wrong-question, and invalid response packet tests in `8a53a31`.
+- [x] Make macOS Power Restore compare current DNS to the recorded applied state before
+  mutation; legacy snapshots are hidden/cleared and 274 Swift tests pass in `e4d3ec6`.
 - [ ] Capture macOS EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver evidence.
 - [ ] Run five moderated users through Check -> Recommend -> Apply -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,
@@ -23,15 +25,15 @@ Last reviewed: 2026-07-19.
 
 ## P1: Mobile Integration
 
-- [ ] Update the Expo 57 patch set to current compatible versions and rerun `npm run
-  verify`, `npm run preflight:release`, Expo Doctor, iOS Simulator, and Android release.
-- [ ] Bind the dev bridge to loopback by default; require explicit LAN mode plus a
-  per-run token, origin allowlist, fixed app-owned database path, redacted health/errors,
-  bounded jobs, and cancellation.
-- [ ] Disable Android backup or explicitly exclude DNS profiles, custom domains, and
-  benchmark history; apply equivalent iOS backup policy and document retention.
-- [ ] Reduce mobile consumer UI to one title/status/action, hide empty Process/Result
-  until needed, remove Core/CLI jargon, and keep advanced profile editing progressive.
+- [x] Update the Expo 57 patch set and pass `npm run verify` (98 tests, typecheck,
+  config/export, dependency compatibility, audit threshold) in `e24e893`.
+- [x] Bind the dev bridge to loopback by default; LAN mode now needs a per-run token and
+  origin allowlist, uses an app-owned database, redacts health/errors, and bounds/cancels jobs.
+- [x] Disable Android backup and exclude iOS Application Support data from backup.
+- [x] Simplify mobile first-run UI: hide empty Process/Result sections and keep advanced
+  detail progressive.
+- [ ] Complete the already-running Android AAB and iOS Simulator Release builds, then
+  record the artifact paths and merge mobile source to `main`.
 - [ ] Treat Expo web as dev/router QA only. After all gates pass, merge mobile source to
   `main`; keep the `production-ios-dns` artifact blocked by provider/device evidence.
 
@@ -41,8 +43,8 @@ Last reviewed: 2026-07-19.
   publisher, CI, and evidence Milestones 8-9. Keep Milestone 7 Power fail-closed.
 - [ ] Windows: run Release validator, WinUI/MSIX/tray, EN/VI wrapping, keyboard,
   Narrator, high-contrast, VPN/firewall, clean install/upgrade on Windows.
-- [ ] macOS Power: add compare-before-restore state guard, then run disposable-network
-  Apply -> Validate -> Restore. Do not block Store-safe release on Power.
+- [ ] macOS Power: run disposable-network Apply -> Validate -> Restore. Do not block
+  Store-safe release on Power.
 - [ ] Retain one durable visual/accessibility evidence matrix per platform; record
   unavailable checks as `NOT RUN`.
 
