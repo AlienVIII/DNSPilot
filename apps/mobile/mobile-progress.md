@@ -1,94 +1,54 @@
 # Mobile Progress
 
+Last reviewed: 2026-07-19. Reviewed branch: `worktree/mobile` at `8dd1c26`.
+
 ## BLUF
 
-The mobile lane meets the current test-shell requirement: it validates DNSPilot
-UX, bridge contracts, mobile policy limits, guided settings, localization,
-native persistence, and device setup flows. Android debug builds compile on SDK
-57, and iOS Simulator Debug plus production Release build/install/launch smoke
-passes with Xcode 26.6 + iOS 26.5 runtime. Android production manifest
-generation strips dev-client/dev-only release surface. It is not yet the final
-public-store architecture unless the bridge/back-end runtime decision is
-approved.
+Mobile is a native Expo app backed by local Expo modules and a Rust adapter around
+`dnspilot-core`; installed builds do not require a developer Mac or Node bridge. The
+consumer shell and entitlement isolation are substantially implemented, but the lane is
+not merge-ready while verify, bridge security, backup/privacy, and concise-UI gates are
+open.
 
-## Requirement Coverage
+## Implemented
 
-- Expo/React Native shell with Overview, Benchmark, Catalog, Storage, and Policy
-  tabs.
-- Local Node bridge maps allowed mobile actions to `dnspilot-cli` commands.
-- Benchmark UI covers DNS-only, DNS+TCP, and system-DNS validation with
-  foreground progress polling, resolver rows, failure details, and copyable
-  reports.
-- Guided settings covers iOS/iPadOS profile/settings guidance and Android
-  settings/Private DNS guidance without silent DNS mutation or VpnService.
-- First-open System Access prompt covers Local Network/network permission
-  recovery, OS-gated DNS apply, iOS App Settings, Android Private DNS/network
-  Settings, in-sheet System DNS retest, and explicit DNS flush unsupported
-  status.
-- Overview now has a top-right setup Help button; System Access rows use short
-  title/status copy with per-row info expansion for detailed policy text.
-- Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
-  validation, and custom tag preservation.
-- Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,
-  Default/Vietnam quick picks, English/Vietnamese localization, and real-device
-  bridge URL checks are implemented.
-- Benchmark mode/family/platform options and Storage protocol/filtering options
-  localize in English/Vietnamese instead of staying hardcoded English.
-- Bridge URL and manual language choice persist with native AsyncStorage across
-  app restarts.
-- Primary controls expose accessibility labels and state metadata for
-  VoiceOver/TalkBack real-device checks.
-- Native build path is smoke-tested locally with Android `assembleDebug`; the
-  app is on Expo SDK 57 / React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26. iOS
-  Simulator Debug and production Release build/install/launch are smoke-tested
-  on an iOS 26.5 simulator.
-- Native system appearance metadata is backed by `expo-system-ui`, so Expo
-  prebuild no longer warns about `userInterfaceStyle`.
-- EAS development builds include `expo-dev-client`; the local real-device
-  command is `npm run start:dev-client`.
-- Production/preview EAS profiles exclude dev-client/dev-menu autolinking, and
-  Android release manifests are checked to keep dev-only overlay/storage/vibrate
-  permissions and VPN/system-DNS mutation permissions out of store builds.
+- `Check DNS`, `Profiles`, and `History` primary tabs; internal routes stay hidden.
+- Foreground DNS-only, DNS+TCP/TLS, and System DNS jobs reuse Core catalog, policy,
+  recommendation, storage, history, result, and progress contracts.
+- Optional persisted first-run tutorial waits for preferences, completes on Skip/Done,
+  requests no permission, and reopens from top-right Help on every consumer tab.
+- Guided iOS/Android Settings handoff never silently mutates plain DNS or uses Android
+  `VpnService`.
+- Default iOS Store profile omits `dns-settings`; optional `production-ios-dns` contains
+  user-enabled `NEDNSSettingsManager` DoH/DoT support behind provider/device gates.
+- EN/VI, adaptive layout, accessibility metadata, custom profiles/suites, persistence,
+  production dev-client exclusion, and Android release policy checks exist.
 
-## Validation
+## Latest Validation
 
-- `npm run verify`: pass after Expo SDK 57 package alignment; preferred full
-  local gate before real-device QA or EAS builds.
-- `npm test`: pass with 55 behavior/view-model/plugin tests.
-- `npm run typecheck`: pass after `npm ci`.
-- `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
-- `npx expo install --check`: pass with `expo-dev-client`.
-- `npx expo-doctor@latest`: pass.
-- `npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache`:
-  build pass. The app was installed/launched with `simctl`, then loaded through
-  `npm run start:dev-client` on port 8082; screenshot confirmed the first-open
-  System Access sheet.
-- `npx expo prebuild --clean --platform ios` plus direct `xcodebuild`
-  Simulator build on `iPhone 17e` with iOS 26.5: pass after production
-  autolinking guards were added.
-- `EAS_BUILD_PROFILE=production xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Release -sdk iphonesimulator -destination 'id=DD41C6AF-ED3D-4B44-AC21-1F7FC1B8204D' CODE_SIGNING_ALLOWED=NO build -quiet`:
-  pass; installed with `simctl` and screenshot confirmed the standalone app
-  opens directly into the first-open System Access sheet.
-- `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:
-  pass with SDK 36/JDK 17.
-- `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install && EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest`:
-  pass; release manifest grep has no `expo-dev`, dev menu/launcher,
-  overlay/storage/vibrate, VPN, or system-DNS mutation permission matches.
+- 95 tests, typecheck, Expo config, and Router export: pass.
+- Latest `npm run verify`: fail at Expo install compatibility. Expected patches are
+  `expo 57.0.7`, `expo-constants 57.0.6`, `expo-dev-client 57.0.7`, and
+  `expo-router 57.0.7`.
+- `npm run preflight:release`: not reached after verify failed.
+- Earlier branch evidence includes iOS Release Simulator build/install/launch and Android
+  release assembly/manifest checks; rerun after dependency/privacy changes.
+- Physical-device, signing, Store review, VoiceOver/TalkBack, backup, and optional
+  entitlement proof: `NOT RUN`.
 
 ## Remaining Gates
 
-- Real-device QA on physical iOS/iPadOS and Android devices.
-- Apple/Google signing, store setup, real-device QA, and Local Network/Private
-  DNS manual checks.
-- Native Rust adapter, approved backend, or another release runtime decision.
-- Dependency audit: Expo tooling currently pulls vulnerable `uuid <11.1.1`; npm's
-  force fix is breaking.
-- OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
+1. Restore current Expo compatibility and rerun the full release gate.
+2. Harden development bridge and local database boundary.
+3. Enforce/document mobile backup and retention policy.
+4. Remove duplicate titles, empty technical panels, raw errors, and Core/CLI jargon;
+   keep advanced profile editing behind progressive disclosure.
+5. Merge source under amended D1 only after normal gates pass. Keep the entitled artifact
+   provider/device blocked independently.
 
 ## Source Of Truth
 
-- Main checklist and manual flow: `apps/mobile/mobile-readiness.md`.
-- Publish steps: `apps/mobile/mobile-publish-checklist.md`.
-- Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
-- OS provider trust/manual gates: `docs/os-provider-trust.md`.
+- Checklist: `apps/mobile/mobile-readiness.md`
+- Risks: `apps/mobile/mobile-risks.md`
+- Publish: `apps/mobile/mobile-publish-checklist.md`
+- Provider gates: `docs/os-provider-trust.md`

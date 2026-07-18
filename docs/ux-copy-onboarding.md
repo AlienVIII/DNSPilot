@@ -1,81 +1,78 @@
 # UX Copy And Onboarding Contract
 
-Last reviewed: 2026-07-14.
+Last reviewed: 2026-07-19.
 
 ## BLUF
 
-DNSPilot UI should read like a normal user app, not an engineering report. Show
-one title, one status, one primary action. Move explanation to info affordances.
+DNSPilot is a consumer decision tool, not an engineering dashboard. Show one title, one
+status, one primary action. Reveal explanation only when it helps the current decision.
 
-## UI Rules
+## Primary-Surface Rules
 
-- Primary text: 1 short title, ideally under 6 words.
-- Supporting text: max 1 sentence, ideally under 90 characters.
-- Details: put behind `info.circle`, tooltip/help tag, modal, popover, or
-  copyable diagnostics.
-- First-run tutorial: 3-5 steps max, shown once per app install/profile when
-  persistence exists.
-- Reopen tutorial: always expose a top-right `?` or `info` icon.
-- Permission copy: say what will happen now, not platform policy history.
-- Manual gate copy: say "Requires Apple Developer account" or equivalent, then
-  link to the release/manual checklist.
-- Avoid long inline paragraphs in normal flows. Long text belongs in docs,
-  diagnostics, release notes, or expandable help.
-- Show one selected language at a time. Never put `EN:` and `VI:` in the same
-  user-facing tooltip or detail row.
-- Localize user-facing status and guidance from semantic IDs. Keep raw technical
-  messages available only in an explicitly opened/copied issue report.
-- Language selectors show the current locale and use a menu when more than two
-  choices exist; do not use an ambiguous next-language toggle.
+- One screen/card title, ideally under six words; never repeat the navigation title.
+- One supporting sentence, ideally under 90 characters.
+- Do not render Process, Result, error, or diagnostics sections before relevant state
+  exists. Use a purposeful ready state, not empty technical panels.
+- Never show Core/CLI/schema/storage/bridge terms in consumer copy.
+- Keep exactly one primary action. Secondary actions must not visually compete.
+- Localize from semantic IDs. Raw messages appear only in opened/copied diagnostics.
+- Show one language at a time; language choice must state the current locale.
+- Status is never color-only and every icon-only control has an accessible name.
 
-## Recommended Patterns By OS
+## Details And Help
 
-| OS | Inline pattern | Detail pattern | Tutorial reopen |
-| --- | --- | --- | --- |
-| macOS | SwiftUI title + `Label` status | `.help`, sheet, copy report | Toolbar `questionmark.circle` |
-| iOS/iPadOS | Card title + status pill | Info row/modal, not hover-only | Header/top-right `?` |
-| Android | Card title + status pill | Tappable info row, not hover-only | Header/top-right `?` |
-| Windows | Fluent header + command buttons | `ToolTipService.ToolTip`, `ContentDialog` | Top-right Help button |
-| Linux | egui section title + status | `on_hover_text`, Help window | Top-right `?` button |
+- Put policy, caveats, permission rationale, and diagnostics behind Info/Details/Help.
+- Hover tooltip is desktop enhancement only. The same content must be reachable by click,
+  keyboard, touch, VoiceOver, Narrator, TalkBack, or screen reader.
+- Keep a top-right `?`/Help action on `Check DNS`, `Profiles`, and `History`.
+- Avoid info icons on every row. Use them only where the decision changes or a term is
+  genuinely unfamiliar.
 
-## First Tutorial Content
+## First-Run Tutorial
 
-Use the same mental model on every OS:
+- Optional, three steps maximum, shown only after persisted preferences load.
+- Complete only through Skip or Done; never reopen automatically after completion.
+- Ask for OS permission only at the feature that needs it, not during passive onboarding.
+- Shared mental model: Check DNS -> set up in OS Settings -> Retest System DNS.
+- Restricted Power/provider capability is not first-run content; explain it where offered.
 
-1. Test DNS speed.
-2. Copy/open OS settings.
-3. Retest System DNS.
-4. Power/admin mode is separate.
-5. Provider trust/signing is handled at release time.
+Recommended titles:
 
-## Current Copy Direction
+1. `Check your DNS`
+2. `Set it up safely`
+3. `Retest the result`
 
-Replace long paragraphs like:
+## OS Patterns
 
-```text
-DNSPilot checks Local Network access for bridge testing. iOS DNS apply and DNS cache flush are OS-controlled...
-```
+| OS | Short status/detail | Tutorial reopen |
+| --- | --- | --- |
+| macOS | SwiftUI status + `.help`/sheet | Toolbar `questionmark.circle` |
+| iOS/iPadOS | Card status + tappable info sheet | Header `?` |
+| Android | Card status + tappable info sheet | Header `?` |
+| Windows | Fluent status + ToolTip/ContentDialog | Top-right Help |
+| Linux | egui status + hover/focus Help window | Top-right `?` |
 
-with:
+## Copy Examples
+
+Use:
 
 ```text
-Bridge needs Local Network. DNS changes stay in OS Settings.
+Ready to check
+Compare DNS choices on this network.
 ```
 
-Put the longer explanation behind info:
+Do not use:
 
 ```text
-DNSPilot never silently changes mobile DNS. It copies values, opens Settings,
-and retests the resolver after the user changes OS settings.
+Core-owned provider and suite contracts. Custom storage entries are merged by the CLI.
 ```
+
+Use `Open Private DNS` or `Open Network Settings`; put OS policy and provider limitations
+behind Info. Never expose a raw `Failed to fetch` as first-run guidance.
 
 ## Research Sources
 
-- Apple HIG offering help:
-  https://developer.apple.com/design/human-interface-guidelines/offering-help
-- Microsoft Fluent onboarding:
-  https://fluent2.microsoft.design/onboarding
-- Material Design 3 tooltips:
-  https://m3.material.io/components/tooltips
-- GNOME HIG:
-  https://developer.gnome.org/hig/
+- Apple onboarding: <https://developer.apple.com/design/human-interface-guidelines/onboarding>
+- Apple privacy and just-in-time permission: <https://developer.apple.com/design/human-interface-guidelines/privacy>
+- Microsoft Fluent onboarding: <https://fluent2.microsoft.design/onboarding/>
+- GNOME tooltips: <https://developer.gnome.org/hig/patterns/feedback/tooltips.html>

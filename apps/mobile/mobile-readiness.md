@@ -1,141 +1,49 @@
 # Mobile Readiness
 
-## Main Goal Checklist
-- Benchmark/recommendation UI: covered through CLI bridge jobs, foreground-only
-  progress polling, result summary, recommendation JSON, diagnostics, and copy
-  report.
-- DNS-only, DNS+TCP, and system resolver validation: covered by compare,
-  path-compare, benchmark, path-estimate, and system-benchmark modes.
-- Per-step/per-resolver process UI: covered by prepare, DNS, TCP, TLS, save,
-  resolver rows, elapsed time, failure reason, debug command, and progress
-  event count.
-- Saved profiles and custom suites: covered by SQLite-backed add/update/delete,
-  local form validation, custom tag preservation, catalog merge, and history.
-- Guided DNS settings/profile flow: covered by core apply-plan payloads,
-  iOS/iPadOS profile/settings guidance, Android settings/Private DNS guidance,
-  protected-network suppression, one-tap copy-and-open OS settings actions, and
-  native Open Settings actions.
-- Native-style access prompt: covered on app open with Local Network/network
-  access checks, OS-gated DNS apply status, iOS App Settings, Android Private
-  DNS/network Settings, in-sheet System DNS retest, and explicit DNS flush
-  unsupported status.
-- Tablet layouts: covered by shared adaptive layout helpers, two-column flows on
-  wide screens, and unlocked orientation for native portrait/landscape checks.
-- IPv4/IPv6 and A/AAAA controls: covered by benchmark IP-family controls and
-  help text.
-- Vietnam/default suites: covered when the core catalog exposes
-  `general-browsing` and `vietnam-daily`.
-- Multilingual UX: covered for primary app chrome and workflows with system
-  locale detection, manual English/Tiếng Việt override, localized validation
-  errors, localized option controls, and localized guided DNS settings steps.
-- Native build metadata: covered for iOS bundle ID/build number, Android package
-  ID/version code, EN/VI supported locales, iOS Local Network permission text,
-  Android normal network permissions, and EAS build profiles.
-- Native build smoke: covered by local Android `assembleDebug`; the app is on
-  Expo SDK 57 / React Native 0.86 with a narrow `expo-modules-jsi@57.0.1` Swift
-  compatibility patch for Xcode 26. iOS Simulator Debug and production Release
-  build/install/launch smoke pass with Xcode 26.6 and an iOS 26.5 runtime.
-- Native release surface: covered for Android production manifests by excluding
-  `expo-dev-client`, dev launcher/menu modules, dev-only overlay/storage/vibrate
-  permissions, and VPN/system-DNS mutation permissions from release generation.
-- Development client flow: covered by `expo-dev-client`, launcher-mode config,
-  and a `npm run start:dev-client` LAN script for installable real-device
-  development builds.
-- Real-device setup UX: covered by an in-app Device Setup evaluator that checks
-  localhost vs LAN/emulator bridge URLs, OS permission expectations, and
-  store-safe DNS mutation policy before benchmark testing.
-- Native persistence UX: covered by AsyncStorage-backed Bridge URL and manual
-  language preference persistence across restarts.
-- Native accessibility UX: covered for primary buttons, segmented controls,
-  switches, text inputs, and selectable chips with labels and state metadata for
-  real-device assistive technology checks.
+Last reviewed: 2026-07-19.
 
-## Critique
-- Expo plus local Node bridge is the fastest store-safe test shell, but it is
-  not the final public-store architecture if the app must work without a
-  developer Mac. Expo Go cannot spawn or link Rust CLI inside the app process.
-- The current app is honest about mobile OS limits. It does not silently mutate
-  system DNS, does not use Android VpnService, and does not offer iOS
-  DNSJumper-style plain DNS switching.
-- The bridge contract is useful for validating UX and core payloads, but native
-  release work must replace it with a direct Rust binding or approved native
-  adapter.
-- Guided settings is intentionally conservative. It may feel less powerful than
-  desktop DNS switching, but that is the correct consumer mobile policy stance.
-- "Apply" on mobile means user-approved OS settings/profile flow. The app can
-  prepare values and open the right settings surface, but it cannot silently
-  mutate iOS DNS settings, Android Private DNS, or flush system DNS cache.
-- Live progress is implemented as foreground polling. This avoids background
-  scheduler risk, but long worst-case benchmarks still need the app to stay
-  open.
-- Real-device testing is now easier because the bridge prints private LAN URLs,
-  but iOS Local Network permission, Android device networking, signing, store
-  account flows, and final OS settings validation are still inherently manual.
-- Dev-client is intentionally a development-only surface. Production/preview
-  EAS profiles remove it from Expo config/autolinking, while development builds
-  keep it for real-device QA.
+## Green Before Main Integration
 
-## Remaining Blockers
-- iOS/iPadOS: real-device validation, Local Network prompt behavior, Apple
-  signing/provisioning, and App Store Connect setup are manual.
-- Android: real-device validation, Play Console setup, first manual upload if
-  required by Play, and Private DNS settings validation are manual.
-- Both: a public store build that must work without a developer Mac requires a
-  native Rust adapter or approved backend/bridge decision.
+- [ ] `npm run verify` passes with current Expo-compatible patches.
+- [ ] `npm run preflight:release` passes after clean generated iOS/Android builds.
+- [ ] Default iOS Store generated/signed entitlements omit `dns-settings`; the opt-in
+  profile remains deterministic and separately blocked.
+- [ ] Android production manifest excludes dev-client, VPN/overlay/storage leakage and
+  applies the approved backup policy; iOS applies the equivalent local-data policy.
+- [ ] Native Rust jobs pass unit, type, Router, iOS Simulator, and Android release smoke.
+- [ ] Dev bridge is loopback-only by default; LAN mode requires per-run auth/origin
+  controls, fixed app database, redacted output, bounded jobs, and cancellation.
+- [ ] Check DNS first-run state has one title/status/action, no empty Process/Result, no
+  raw fetch error, and no implementation jargon.
+- [ ] Tutorial/Help and advanced disclosure are keyboard/touch/assistive reachable.
 
-## Manual Test Flow
-1. Run `npm run bridge` from `apps/mobile/DNSPilotMobile`.
-2. Copy the printed `Bridge URL: http://<mac-lan-ip>:8787` for physical device
-   testing.
-3. Run `npm start` for Expo Go, or `npm run start:dev-client` for an installed
-   development build.
-4. Use `http://localhost:8787` on web/iOS Simulator. Use the Mac LAN URL for a
-   physical phone. Use `http://10.0.2.2:8787` for Android emulator if needed.
-5. Overview: switch Auto/English/Tiếng Việt, choose the correct Device Setup
-   target, confirm localhost is rejected for physical phones, paste the Mac LAN
-   URL, refresh bridge, and confirm profiles/suites/capabilities/history load.
-6. On first open, confirm System Access appears. iOS: tap Open App Settings if
-   Local Network was denied, return to the app, then tap Retest System DNS.
-   Android: tap Open Private DNS, confirm Android opens Private DNS or falls
-   back to network settings, return to the app, then tap Retest System DNS.
-7. If iOS asks for Local Network, allow it for bridge testing.
-8. Benchmark: choose Default or Vietnam suite, select profiles, run DNS Compare
-   and Path Compare, confirm live progress rows, final result, copy report, and
-   guided settings plan.
-9. Guided settings: tap Apply in OS DNS settings / Prepare DNS profile/settings.
-   Expected behavior: DNS values are copied and Settings opens; no silent DNS
-   mutation occurs. Tap Retest System DNS after returning.
-10. Benchmark System DNS: choose iOS or Android, run with a suite/domain, confirm
-   system validation result and diagnostics.
-11. Storage: add/update/delete plain, DoH, DoT profiles and domain suites; confirm
-   invalid forms are disabled before bridge calls.
-12. Policy: toggle VPN/MDM/corporate DNS/captive portal and confirm guidance
-   switches to protect-current-dns when required.
-13. Tablet: rotate iPad and Android tablet portrait/landscape and validate the
-    layout stays multi-column, not a stretched phone view.
-14. Accessibility: with VoiceOver/TalkBack enabled, confirm buttons, segmented
-    choices, switches, inputs, and selected chips announce their label and state.
+## Native Manual Flow
 
-## Validation Commands
-- `npm run verify`
-- `npm run postinstall`
-- `npx expo-doctor@latest`
-- `npm run start:dev-client`
-- `npx expo run:ios --configuration Debug --device "iPhone 17e" --no-bundler --no-install --no-build-cache`
-- `npx expo prebuild --clean --platform ios && xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
-- `EAS_BUILD_PROFILE=production xcodebuild -workspace ios/DNSPilotMobile.xcworkspace -scheme DNSPilotMobile -configuration Release -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' CODE_SIGNING_ALLOWED=NO build`
-- `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`
-- `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install && EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest`
-- `rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true`
-- `npm test`
-- `npm run typecheck`
-- `npx expo export --platform web`
-- `git diff --check`
+1. Install signed iOS and Android builds; no bridge is used.
+2. Complete/skip tutorial, restart, confirm it stays complete, reopen Help on all tabs,
+   and confirm passive Help does not request system access.
+3. Run Quick Check, Advanced DNS+TCP, and System DNS; verify progress, cancellation,
+   recommendation vs fastest observed, Keep current DNS, report, and saved history.
+4. Set up only from a healthy Core recommendation; copy/open OS Settings and retest.
+5. Add/edit/delete plain/DoH/DoT profiles and suites; invalid forms and built-ins fail
+   closed.
+6. Validate phone/tablet rotation, EN/VI, font scaling, VoiceOver/TalkBack, backup/restore,
+   offline/restart, and protected VPN/managed network guidance.
+7. Android: validate Private DNS handoff; no VPN service or silent mutation.
+8. Optional iOS only: sign with Apple `dns-settings`, install/enable/status/remove DoH/DoT
+   settings on a physical device. This does not block default Store release.
 
-Current iOS local smoke status: Debug build passed on `iPhone 17e` with iOS
-26.5. Because port 8081 was already owned by another process, app UI smoke used
-`npm run start:dev-client` on port 8082 after install/launch and confirmed the
-first-open System Access sheet by screenshot. A production Release simulator
-build was then installed with `simctl` and launched without the dev-client
-launcher; screenshot confirmed the first-open System Access sheet from the
-standalone app bundle.
+## Automated Commands
+
+```bash
+npm run verify
+npm run preflight:release
+npx expo-doctor@latest
+npm run native:prepare:ios
+npm run native:prepare:android
+npm run verify:router
+git diff --check
+```
+
+Physical devices, signing, provider accounts/capability approval, and store submission
+remain manual. See `docs/os-provider-trust.md`.

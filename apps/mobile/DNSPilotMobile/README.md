@@ -1,150 +1,64 @@
 # DNSPilot Mobile
 
-Expo/React Native shell for testing DNSPilot core and CLI contracts on mobile.
+Standalone Expo/React Native app for iOS/iPadOS and Android.
 
-## Stack
+## Architecture
 
-- Expo SDK 57 with Expo Router, React Native 0.86, and React 19.2.
-- Local Node bridge at `server/dev-server.mjs`.
-- Rust remains source of truth through `cargo run -p dnspilot-cli`.
-- Dev SQLite lives at `.dnspilot/dnspilot.sqlite`.
-- English/Vietnamese UI via `expo-localization`.
-- Native build metadata starts from `app.json`; `app.config.cjs` filters
-  development-only plugins for production/preview EAS profiles. EAS profiles
-  are in `eas.json`.
-- `patch-package` applies a narrow Expo SDK 57 `expo-modules-jsi` Swift
-  compatibility fix required for Xcode 26 Simulator builds. Remove it after Expo
-  ships the upstream fix.
-- `expo-dev-client` is included for installable development builds. Production
-  and preview profile config excludes dev-client/dev-menu autolinking before
-  release manifests are generated. Expo Go is still usable for bridge-only UI
-  testing.
-- `expo-system-ui` backs native automatic light/dark appearance metadata during
-  prebuild.
-- `@react-native-async-storage/async-storage` persists the selected language and
-  Bridge URL so real-device QA does not reset to defaults after app restart.
-- First-open System Access sheet checks Local Network/network access, OS-gated
-  DNS apply, and DNS flush limitations. It opens App Settings, Android Private
-  DNS/network Settings, and System DNS retest without silently mutating DNS.
+- Expo SDK 57, Expo Router, React Native 0.86, React 19.2.
+- Local Expo modules call a Rust adapter around `dnspilot-core` inside installable builds.
+- App-private SQLite owns profiles, suites, history, recommendation, and policy state.
+- Node `server/dev-server.mjs` is Expo Go/web development fallback only. It is not a
+  release dependency; keep it loopback-only until the LAN security gate is implemented.
+- Production/preview exclude dev-client/dev-menu. `production-ios-dns` alone opts into
+  user-enabled `NEDNSSettingsManager` DoH/DoT after Apple approval.
+- EN/VI, persisted language/tutorial state, three consumer tabs, contextual setup, and
+  foreground benchmark jobs reuse shared Core contracts.
 
 ## Install
 
 ```bash
 npm install
-npx expo-doctor@latest
 npx expo install --check
+npx expo-doctor@latest
 ```
 
-`npm install` runs `patch-package` and reapplies the current
-`expo-modules-jsi@57.0.1` Xcode 26 compatibility patch.
-
-After Expo SDK changes, prefer Expo's resolver instead of hand-pinning native
-packages:
+Use Expo's resolver after SDK changes; do not hand-pin incompatible native packages:
 
 ```bash
 npx expo install --fix
 ```
 
-## Run
-
-Terminal 1:
+## Native Development
 
 ```bash
-npm run bridge
-```
-
-Terminal 2:
-
-```bash
-npm start
-```
-
-Use `http://localhost:8787` for web and iOS Simulator. For a physical phone,
-replace the Bridge URL in the Overview tab with the printed Mac LAN URL, for
-example `http://192.168.1.20:8787`. The app persists the last Bridge URL and
-manual language choice across restarts.
-
-Native local builds use:
-
-```bash
-npm run ios
-npm run android
-```
-
-For a development build installed on a real device, start Metro with:
-
-```bash
+npm run native:prepare:ios
+npm run native:prepare:android
 npm run start:dev-client
 ```
 
-## Verify
+Native builds do not need a bridge. Use `npm run bridge` only for local Expo Go/web route
+QA. Do not expose the current bridge to an untrusted LAN.
 
-Before real-device QA or EAS builds, run:
+## Verify
 
 ```bash
 npm run verify
+npm run preflight:release
 npx expo-doctor@latest
 ```
 
-This runs unit tests, TypeScript, Expo config export, web export, Expo install
-checks, and the high-severity production dependency audit. `expo-doctor` then
-validates SDK package alignment and native config health.
+`verify` covers unit tests, TypeScript, Expo config, Router web export, package alignment,
+and dependency policy. `preflight:release` prepares Rust artifacts, validates Store vs
+opt-in iOS entitlement isolation, builds Android release, and rejects dev/VPN/privileged
+surface. Current status is recorded in `../mobile-progress.md`.
 
-Local native smoke commands:
+## Platform Boundaries
 
-```bash
-npx expo run:ios --configuration Debug --device "<simulator name>" --no-bundler --no-install --no-build-cache
-npx expo prebuild --platform android --no-install
-./android/gradlew -p android assembleDebug
-```
+- iOS plain DNS is guided through Settings. Optional entitled DoH/DoT still requires user
+  enablement and physical-device provider proof.
+- Android opens Private DNS Settings; it does not use `VpnService` or silently mutate DNS.
+- Mobile DNS cache flush is unsupported; retest System DNS after user-controlled setup.
+- Expo web is a development/router target until it has a bridge-free runtime.
 
-Production Android release-surface check:
-
-```bash
-EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install
-EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest
-rg -n "expo-dev|DevLauncher|DevMenu|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|VIBRATE|VpnService|BIND_VPN" android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml || true
-```
-
-The final `rg` command should print no matches. Re-run the default development
-prebuild before local dev-client Android work if the ignored native project was
-last generated with a production profile.
-
-The iOS Simulator command requires a Simulator runtime matching the selected
-Xcode SDK. With Xcode 26.6, use an iOS 26.5 Simulator such as `iPhone 17e`.
-If another process owns Metro port 8081, build with `--no-bundler`, then run
-`npm run start:dev-client` on port 8082 for JS app smoke.
-
-## Real Device Notes
-
-- iOS/iPadOS may ask for Local Network permission when connecting to the local
-  bridge. Allow it for LAN bridge testing.
-- Android should not show dangerous runtime permission prompts for normal
-  network access.
-- The app does not silently mutate system DNS and does not use Android
-  `VpnService`.
-- Mobile OSes do not expose a store-safe third-party DNS cache flush API; use
-  System DNS retest after user-controlled settings/profile changes.
-- Publish and store-review steps are tracked in
-  `../mobile-publish-checklist.md`.
-
-## Covered CLI Surface
-
-- `catalog`
-- `capability`, `capabilities`
-- `preflight`
-- `apply-policy`, `apply-plan`
-- `benchmark`, `system-benchmark`
-- `compare`
-- `path-estimate`, `path-compare`
-- `profile-add`, `profile-update`, `profile-delete`, `profile-list`
-- `suite-add`, `suite-update`, `suite-delete`, `suite-list`
-- `history-list`, `history-delete`, `history-clear`
-- `recommend-sample`
-
-## Boundary
-
-This is a store-safe test shell. Expo Go cannot spawn or link the Rust CLI
-inside the mobile app process, so the current build uses a local bridge. A
-release app should replace the bridge with native Rust bindings or approved
-platform adapters.
+Release QA and publishing: `../mobile-readiness.md`,
+`../mobile-publish-checklist.md`, and `../../../docs/os-provider-trust.md`.

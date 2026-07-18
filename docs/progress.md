@@ -1,47 +1,39 @@
 # Global Progress
 
-Last integration pass: 2026-07-18.
+Last integration pass: 2026-07-19.
 
 ## Completed
 
-- Merged macOS reference lane into `main`, including focused consumer UX, singleton
-  window ownership, DNS-only Quick Check, game/service target presets, one primary
-  result action, native commands, Power rollback, app icon, release assets, and safe
-  support/privacy site generation.
-- Core/CLI DNS samples now expose optional failure detail with Rust/CLI tests.
-- Integrated committed Linux work through `d9ad771`, including package automation,
-  settings flows, completion plan, provider steps, and lane risk documentation.
-- Integrated committed Windows work through `ae94c97`, including the Store-safe
-  baseline and selective-parity pre-development plan.
-- Added Rust formatting to the macOS integration gate in `7209b70`.
-- Re-ran macOS CI and Store/Power preflight successfully.
-- Audited every worktree, restored the `core-cli` slot to branch `worktree/core-cli`,
-  and preserved all dirty Windows/mobile work.
-- Defined macOS-led product-contract parity in `PROJECT.md` and
-  `docs/reference-lane-contract.md`.
-- Preserved the uncommitted Windows overlay without staging or rewriting it.
+- Reviewed and merged clean macOS `7609d57`, Linux `034621c`, and Windows `2f3cef0`
+  lane heads into `main` without rewriting branch history.
+- Revalidated macOS CI/release preflight, Linux fmt/test/clippy, Windows Core/static gate,
+  and dependency audit baselines.
+- Confirmed macOS as the first commercial release lane and one shared cross-platform
+  decision contract in `docs/reference-lane-contract.md`.
+- Amended mobile entitlement isolation: provider risk is gated at the signed artifact,
+  not all later source commits.
+- Added architecture decisions for DNS response integrity, transaction-safe storage,
+  mobile web scope, and compare-before-restore Power safety.
+- Consolidated current product, UX, security, provider, and lane evidence in
+  `docs/research/2026-07-19-overall-product-review.md`.
 
-## In Progress Outside `main`
+## Active Engineering Queue
 
-- Linux: Store-safe milestones remain open; native execute is development-only until
-  a fail-closed privilege boundary and exact rollback are proven.
-- Windows: dirty Runtime Readiness remains outside `main`; later milestones remain
-  queued in `apps/windows/windows-predevelopment-review.md`.
-- Mobile: consumer work through `8dd1c26` is verified but remains isolated with the
-  restricted entitlement history. The default Store slice has a separate release gate;
-  no mobile worktree overlay is dirty.
+1. Core D8 DNS response integrity.
+2. Core D9 concurrent mutation safety.
+3. Mobile Expo compatibility, dev-bridge security, backup/privacy, and concise UI.
+4. macOS Power compare-before-restore.
+5. Linux/Windows real-host release evidence and macOS signed/provider evidence.
 
-## Deferred By Evidence
+## Isolated Work
 
-- Mobile commits based on restricted iOS entitlement are not merged into `main`.
-- Linux native Power prototype is present in `main` for development history only and
-  is explicitly not approved for release while rollback/privilege design is incomplete.
-- Windows dirty work is not staged or merged until its owner commits and validation is
-  reviewed.
-- Shared `runtime-info --json` is not implemented until a second lane confirms the
-  same contract need.
+- Mobile remains at `8dd1c26`. It has a native Rust-backed runtime and default Store
+  entitlement isolation, but current verify/security/privacy/UX gates are not green.
+- The optional `production-ios-dns` artifact remains blocked on Apple capability,
+  signing, and physical-device evidence even after source integration.
 
 ## Manual Gates
 
-See `STATE.md` and `docs/os-provider-trust.md`. No signing, provider account, Store
-submission, physical-device QA, or real privileged DNS mutation has been claimed.
+Signing identities, publisher accounts, store submissions, physical-device proof, real
+Windows/Linux host proof, and real privileged DNS mutation remain manual. They are
+batched in `docs/os-provider-trust.md`; no provider action or push was performed.

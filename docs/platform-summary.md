@@ -1,51 +1,46 @@
 # Platform Summary
 
-Last integration pass: 2026-07-18.
+Last integration pass: 2026-07-19.
 
 ## Integration State
 
-| Lane | Integrated in `main` | Isolated work | Catch-up status |
+| Lane | Reviewed head | `main` state | Next proof |
 | --- | --- | --- | --- |
-| Core CLI | Current through the macOS reference merge | No separate Core commit pending | Shared message/progress hardening remains P1 |
-| macOS | Through `7209b70` | `f11fadf`..`2649c9d` | Automated release gates pass; signed visual review remains manual |
-| Linux | Through `d9ad771` via `3daca3d` | No committed delta | Git-integrated; Store-safe completion and fail-closed Power gate remain open |
-| Windows | Through `ae94c97` via `8b441b5` | Dirty Runtime Readiness vertical slice | Git-integrated through committed head; milestones 0-4 remain open |
-| Mobile | Safe baseline only | `345c41e`..`8dd1c26` | Verified Store-safe consumer slice remains isolated by decision D1 |
-| Docs | Current integration state | Lane-local dirty docs are not copied | Sync after this docs commit |
+| Core CLI | `c6a624d` baseline | No separate lane delta | D8 DNS integrity, then D9 storage safety |
+| macOS | `7609d57` | Merged by `554a9bc` | Signed EN/VI/accessibility and provider proof |
+| Linux | `034621c` | Merged by `a5f8b57` | Milestone 6 plus source-built package/real-host proof |
+| Windows | `2f3cef0` | Merged by `7535ea3` | Windows WinUI/MSIX/tray/accessibility proof |
+| Mobile | `8dd1c26` | Isolated; not merged | Restore green verify, security/privacy/UX gates |
+| Docs | This pass | Integration source of truth | Sync every worktree after docs commit |
 
-`main` is the only cross-lane source of truth. Branch-ahead work is evidence only after
-review, lane validation, merge, and merged-result validation.
+`main` is the only cross-lane source of truth. A lane is integrated only after review,
+lane validation, merge, and merged-result validation. Mobile source may integrate under
+amended D1 after normal gates pass; its entitled iOS artifact remains separately blocked.
 
 ## Product Reference
 
-macOS defines the store-safe product journey, not the platform implementation. Every
-lane follows `docs/reference-lane-contract.md` and adapts settings, packaging,
-privileges, and provider gates honestly.
+macOS defines the first commercial decision journey, not shared OS implementation. Every
+lane adapts provider permissions, settings, packaging, and accessibility honestly while
+reusing Core recommendation, policy, storage, and JSON/JSONL contracts.
 
 ## Current Proof
 
-- macOS: 270 Swift tests plus Rust workspace tests, bundle validation, live DNS-only,
-  DNS+TCP, game-target, and System DNS history smoke, Store/Power preflight, and
-  release-site safety pass.
-- macOS localization/interaction visual matrix is `NOT RUN`; semantic EN/VI resources,
-  hit-target semantics, and automated localization guards pass, while signed visual
-  review remains a manual commercial gate.
-- Linux pre-integration baseline: fmt/test/clippy pass. Real Linux package and
-  privileged behavior remain `NOT RUN`; merged-result validation is rerun in this pass.
-- Windows committed baseline: 40 Core/static tests pass. The dirty Runtime Readiness
-  overlay passes 44 Core tests but is not integrated; WinUI/MSIX is `NOT RUN` on macOS.
-- Mobile isolated committed branch: 95 tests, typecheck, route export, Expo SDK
-  compatibility, Store config isolation, Android Store AAB policy checks, and iOS
-  Release Simulator launch pass. Signed physical-device QA is `NOT RUN`.
+- macOS: CI and Store/Power preflight pass; 270 Swift tests pass. Signed visual,
+  VoiceOver, five-user, signing, and submission proof remain open.
+- Linux: fmt, tests, clippy `-D warnings`, typed Core storage/results, streamed progress,
+  cancellation, and consumer navigation pass. Real Linux packages/desktops are `NOT RUN`.
+- Windows: 65 Core/static tests pass. WinUI/XAML/MSIX/tray/accessibility remain `NOT RUN`
+  on this macOS host.
+- Mobile: 95 tests, typecheck, Expo config, and route export pass. Full verify currently
+  fails Expo patch compatibility; release preflight therefore did not run.
 
 ## Non-Negotiable Boundaries
 
-- Default Store SKUs do not silently mutate DNS.
-- Power/native mutation is separately packaged, consented, reversible, and validated
-  on the real provider/OS before release.
-- iOS `dns-settings` stays out of `main` and the default Store profile until Apple
-  approval and signed-device evidence exist.
-- Linux shell-command mutation present in the integrated prototype is not an approved
-  production privilege mechanism and must not be released.
-- Windows Store stays `asInvoker`; no UAC, service, registry, `netsh`, or DNS write.
-- No proof/no claim: unavailable platform checks are `NOT RUN`, not inferred from mocks.
+- Default Store SKUs never silently mutate DNS.
+- Restricted/admin capability is separately packaged, consented, reversible, and gated
+  on generated/signed artifacts plus real-provider proof.
+- Power Restore never overwrites state that changed after DNSPilot Apply.
+- Android consumer uses Private DNS Settings guidance, not `VpnService` or device-owner
+  control. Windows Store remains non-elevated. Linux Power remains fail-closed.
+- Expo web is development/router QA, not a commercial surface.
+- No proof/no claim: unavailable checks are `NOT RUN`, not inferred from mocks.

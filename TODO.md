@@ -1,63 +1,61 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-07-18.
+Last reviewed: 2026-07-19.
 
-## P0: macOS Commercial Release
+## P0: Commercial Trust
 
-- [x] Centralize EN/VI presentation copy in native SwiftPM `Localizable.strings`, make
-  `System` follow macOS, and reject bilingual `EN:`/`VI:` source text in CI.
-- [x] Make the visible Benchmark Options disclosure row clickable, keyboard reachable,
-  and VoiceOver-labelled; hide Power-only settings from the Store-safe SKU.
-- [ ] Capture the EN/VI visual-state matrix and pass the narrow-window, Dark Mode,
-  keyboard, and VoiceOver review before moderated usability testing. Packaged-window
-  launch and functional smoke pass; screenshot and VoiceOver capture require a signed
-  workstation with Screen Recording and Accessibility permission.
-- [ ] Native-review Vietnamese copy and localize App Store metadata, support/privacy
-  pages, and screenshot sets before submission.
-- [x] Complete local benchmark, bundle, smoke, rollback, release-asset, and
-  release-site safety automation.
+- [ ] Harden Core UDP response identity and DNS response validation per D8; add spoofed
+  source, predictable-ID, wrong-question, query-packet, and malformed-response tests.
+- [ ] Capture macOS EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver evidence.
 - [ ] Run five moderated users through Check -> Recommend -> Apply -> Retest.
-- [ ] Acquire Apple signing/provisioning and validate a certificate-signed bundle.
-- [ ] Host support/privacy pages and capture signed-release screenshots.
-- [ ] Complete App Store Connect privacy/review metadata and submit.
+- [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,
+  App Store Connect metadata, and submission.
 
-## P1: Reference-Lane Catch-Up
+## P1: Shared Core
 
-- [ ] Linux: complete Store-safe milestones 0-6 and 8-9 in
-  `apps/linux/linux-completion-plan.md`; keep Power experimental and fail-closed.
-- [ ] Windows: complete milestones 0-4 in
-  `apps/windows/windows-predevelopment-review.md`; leave Windows-host release proof
-  as the Milestone 5 manual gate.
-- [x] Mobile isolated lane: finish Check DNS / Profiles / History navigation, remove
-  app-open permission UX, fail verification on unresolved routes, and keep native DNS
-  entitlement opt-in.
-- [ ] Mobile integration: keep the consumer work on `worktree/mobile` until it can be
-  integrated without violating approved entitlement isolation decision D1.
-- [ ] Re-run each lane gate after merging `main`, then update the parity matrix in
-  `docs/reference-lane-contract.md` with proof or `NOT RUN`.
+- [ ] Make snapshot mutations transaction-safe across concurrent CLI processes per D9.
+- [ ] Add locale-neutral issue/message IDs; keep raw technical text only in Details.
+- [ ] Version the progress JSONL contract with `schema_version`, `run_id`, terminal
+  event, failure kind, and tested cancellation/no-partial-history semantics.
+- [ ] Do not add platform settings URIs, distro detection, or privileged helpers to Core.
+- [ ] Add `runtime-info --json` only after a second lane proves the same contract need.
 
-## P1: Shared Core Contracts
+## P1: Mobile Integration
 
-- [x] Expose per-sample DNS `failure_detail` without changing recommendation rules.
-- [ ] Add locale-neutral structured issue/message IDs before another lane parses
-  English Core text.
-- [ ] Document one progress JSONL contract across compare, path-compare, and
-  system-benchmark, including cancellation/history semantics.
-- [ ] Decide `runtime-info --json` only after Linux and Windows confirm the same
-  version/readiness need; do not add a Windows-only Core contract prematurely.
+- [ ] Update the Expo 57 patch set to current compatible versions and rerun `npm run
+  verify`, `npm run preflight:release`, Expo Doctor, iOS Simulator, and Android release.
+- [ ] Bind the dev bridge to loopback by default; require explicit LAN mode plus a
+  per-run token, origin allowlist, fixed app-owned database path, redacted health/errors,
+  bounded jobs, and cancellation.
+- [ ] Disable Android backup or explicitly exclude DNS profiles, custom domains, and
+  benchmark history; apply equivalent iOS backup policy and document retention.
+- [ ] Reduce mobile consumer UI to one title/status/action, hide empty Process/Result
+  until needed, remove Core/CLI jargon, and keep advanced profile editing progressive.
+- [ ] Treat Expo web as dev/router QA only. After all gates pass, merge mobile source to
+  `main`; keep the `production-ios-dns` artifact blocked by provider/device evidence.
 
-## P1: Power Safety
+## P1: Platform Evidence
 
-- [ ] Run macOS Power Apply -> Validate -> Restore on a disposable network.
-- [ ] Keep Linux Power disabled until a caller-bound polkit/D-Bus mechanism and exact
-  rollback pass mocked plus real Linux QA.
-- [ ] Keep Windows Power a separate future SKU; no Store elevation or DNS mutation.
-- [ ] Keep mobile native DNS outside the default Store SKU until provider approval.
+- [ ] Linux: finish accessibility/desktop-fit Milestone 6 and source-built package,
+  publisher, CI, and evidence Milestones 8-9. Keep Milestone 7 Power fail-closed.
+- [ ] Windows: run Release validator, WinUI/MSIX/tray, EN/VI wrapping, keyboard,
+  Narrator, high-contrast, VPN/firewall, clean install/upgrade on Windows.
+- [ ] macOS Power: add compare-before-restore state guard, then run disposable-network
+  Apply -> Validate -> Restore. Do not block Store-safe release on Power.
+- [ ] Retain one durable visual/accessibility evidence matrix per platform; record
+  unavailable checks as `NOT RUN`.
+
+## P2: Product Learning
+
+- [ ] Measure first-run completion, successful benchmark, recommendation confidence,
+  Settings handoff, and System DNS retest locally/privately before adding accounts.
+- [ ] Decide pricing and Power SKU only after macOS usability and release evidence.
 
 ## References
 
 - `PROJECT.md`
 - `STATE.md`
+- `docs/research/2026-07-19-overall-product-review.md`
 - `docs/reference-lane-contract.md`
 - `docs/core-cli-backlog.md`
 - `docs/os-provider-trust.md`

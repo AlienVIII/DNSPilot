@@ -1,6 +1,6 @@
 # DNSPilot Product Architecture
 
-Last reviewed: 2026-07-14.
+Last reviewed: 2026-07-19.
 
 ## Product
 
@@ -31,15 +31,21 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 
 ### D1: Mobile Native DNS Settings
 
+- **Status:** Amended on 2026-07-19 after default-artifact entitlement isolation was
+  automated.
 - **Problem:** iOS native DoH/DoT installation requires the restricted
-  NetworkExtension `dns-settings` capability and changes the release architecture.
-- **Options:** ship entitlement by default; keep the feature isolated; remove it.
-- **Trade-offs:** default inclusion increases differentiation but can block signing and
-  review; isolation preserves the experiment without making release depend on approval;
-  removal loses validated work.
-- **Recommendation:** keep commit `345c41e` isolated on `worktree/mobile` until Apple
-  capability approval and signed-device validation exist. Do not merge it into `main`.
-- **Reason:** optional differentiation must not block the benchmark-first Store SKU.
+  NetworkExtension `dns-settings` capability, but isolating every later mobile commit
+  also prevents safe consumer work from reaching `main`.
+- **Options:** keep the whole branch isolated; remove native DNS source; integrate the
+  source while gating the signed release artifact and entitled build profile.
+- **Trade-offs:** branch isolation protects the Store SKU but creates permanent drift;
+  removal discards useful work; artifact gating keeps one codebase but requires a
+  deterministic preflight that proves the default Store artifact has no entitlement.
+- **Recommendation:** integrate mobile after its normal validation passes. The default
+  Store profile must omit `dns-settings`; `production-ios-dns` remains unreleasable
+  until Apple provisioning/review and signed-device evidence exist.
+- **Reason:** provider capability risk belongs at the signed artifact boundary, not in
+  Git history. Safe mobile UX should not remain permanently forked.
 - **Confidence:** High.
 
 ### D2: Platform Delivery Order
@@ -91,21 +97,18 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 
 ### D5: Power DNS Rollback
 
-- **Problem:** Power Apply changes the active macOS network service but currently
-  does not retain a service-scoped rollback record. The existing guided-apply
-  resolver snapshot is not sufficient to restore an exact network service.
-- **Options:** keep manual Network Settings recovery; capture the active service
-  and its DNS mode before Power Apply, then offer explicit in-app Restore; add a
-  persistent privileged helper/service.
-- **Trade-offs:** manual recovery is simple but makes a privileged mutation
-  operationally unsafe; service-scoped capture/restore adds bounded local state
-  and one more confirmed admin action; a helper adds signing, install, and
-  attack-surface cost without improving the v1 rollback contract.
-- **Recommendation:** capture a minimal per-service DNS rollback record before
-  Power Apply and expose Restore only in the Power edition after explicit
-  confirmation. Preserve automatic/DHCP DNS as a distinct restore mode.
-- **Reason:** reversibility is required for user trust and Power release QA; it
-  can be achieved without a new privileged service architecture.
+- **Problem:** Power now captures exact pre-apply DNS, but Restore checks only snapshot
+  age and active service. It can overwrite a DNS change made after DNSPilot Apply.
+- **Options:** accept a 24-hour snapshot; ask for another warning; require current DNS
+  to equal the DNSPilot-applied state before restoring.
+- **Trade-offs:** age-only restore is simple but unsafe; another warning shifts safety
+  to the user; a compare-before-restore guard adds state and tests but prevents stale
+  overwrite without adding a privileged helper.
+- **Recommendation:** store the applied DNS state with the rollback snapshot and fail
+  closed if current service/configuration no longer matches before Restore. Keep exact
+  automatic/DHCP restoration and explicit admin confirmation.
+- **Reason:** rollback must reverse DNSPilot's change, not overwrite a later user, VPN,
+  MDM, or network-service change.
 - **Confidence:** High.
 
 ### D6: macOS As Product Reference, Not Platform Template
@@ -152,14 +155,61 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
   truth today.
 - **Confidence:** High.
 
+### D8: DNS Benchmark Response Integrity
+
+- **Problem:** Core currently accepts UDP datagrams without binding the socket to the
+  requested resolver and uses predictable transaction IDs. The parser does not require
+  a response flag or matching question before a run is counted as successful.
+- **Options:** document DNS as untrusted; add partial checks; harden the request/response
+  boundary before recommendations consume measurements.
+- **Trade-offs:** documentation does not protect recommendation integrity; partial
+  checks leave spoofing and malformed-response ambiguity; full validation adds focused
+  Core work but benefits every platform.
+- **Recommendation:** connect the UDP socket to the selected resolver, generate a fresh
+  unpredictable transaction ID per query, and validate QR, opcode, one matching
+  question, class/type, and response source before recording success.
+- **Reason:** the commercial product promise depends on trustworthy measurements.
+- **Confidence:** High.
+
+### D9: Shared Storage Mutation Model
+
+- **Problem:** every CLI mutation loads one JSON snapshot, changes it, then replaces the
+  row. Concurrent benchmark/profile/history commands can silently lose the earlier
+  writer's update.
+- **Options:** rely on UI serialization; normalize the entire schema now; add a Core
+  transaction-scoped mutation API with revision/conflict handling.
+- **Trade-offs:** UI-only locking fails across processes; normalization is a larger
+  migration; transaction-scoped mutation is incremental and protects current data.
+- **Recommendation:** keep schema v1, but perform load/validate/mutate/save inside one
+  `BEGIN IMMEDIATE` transaction and expose conflict-safe Core mutation functions to the
+  CLI. Add concurrent writer tests before multi-window/background expansion.
+- **Reason:** local-first must still be loss-safe across OS shells and CLI processes.
+- **Confidence:** High.
+
+### D10: Mobile Web Surface
+
+- **Problem:** the Expo web export requires the local development bridge and currently
+  opens with a fetch error, while native iOS/Android use the in-app Rust runtime.
+- **Options:** market web now; build a WASM/backend runtime; keep web as development QA.
+- **Trade-offs:** shipping the current web shell is broken; WASM/backend expands scope
+  and privacy obligations; dev-only preserves route testing without product confusion.
+- **Recommendation:** iOS and Android are the mobile release surfaces. Keep Expo web as
+  a development/router QA target until it has a bridge-free runtime and its own release
+  evidence.
+- **Reason:** unsupported breadth weakens trust and distracts from macOS-first release.
+- **Confidence:** High.
+
 ## Quality Gates
 
 - No release-ready claim without platform build, automated tests, signed artifact
   validation, manual permission flow, rollback test, and user-visible smoke evidence.
 - No privileged capability enters a default Store SKU without provider approval and a
   documented fallback.
-- Power DNS Apply must retain an exact active-service rollback record before it can
-  be released outside test environments.
+- Restricted capabilities are gated on generated and signed artifacts, not merely on
+  source presence.
+- Power DNS Restore must prove current state still equals DNSPilot's applied state.
+- DNS benchmark success requires validated response identity and semantics.
+- Shared storage mutations must be transaction-safe across processes.
 - Contract changes require compatibility/version review across every consumer lane.
 - Reference parity is judged by user outcome and evidence, not identical controls,
   runtime technology, tray behavior, or privileged capability.
