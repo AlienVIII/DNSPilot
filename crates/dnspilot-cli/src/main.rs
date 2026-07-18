@@ -1826,6 +1826,7 @@ fn emit_resolver_progress(
     }
 
     let mut event = serde_json::json!({
+        "schema_version": 1,
         "type": event_type,
         "measurement_scope": measurement_scope_name(measurement_scope),
         "profile_id": profile_id,

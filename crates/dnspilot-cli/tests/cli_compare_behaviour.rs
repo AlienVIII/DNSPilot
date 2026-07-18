@@ -154,6 +154,7 @@ fn compare_command_can_emit_progress_jsonl_to_stderr() {
         .collect::<Vec<_>>();
 
     assert_eq!(events.len(), 4);
+    assert!(events.iter().all(|event| event["schema_version"] == 1));
     assert_eq!(events[0]["type"], "resolver_started");
     assert_eq!(events[0]["measurement_scope"], "dns-only");
     assert_eq!(events[0]["profile_id"], "slow");
