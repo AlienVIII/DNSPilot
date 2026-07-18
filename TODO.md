@@ -20,8 +20,8 @@ Last reviewed: 2026-07-19.
 - [x] Preserve locale-neutral `primary_issue` IDs in benchmark contracts (for example,
   `all-resolvers-failed` and `partial-failure`).
 - [ ] Continue locale-neutral detail IDs. Recommendation Gate IDs and `gate_note_ids`
-  summaries are complete in `86f314b`, including old-history compatibility; extend this
-  additive contract to capability, preflight, apply-plan, profile-security, and
+  summaries are complete in `86f314b`, and Capability Matrix IDs in `d6df518`; extend this
+  additive contract to preflight, apply-plan, profile-security, and
   connection-path caveats before any shell removes raw Details fallback. Do not duplicate
   `primary_issue`.
 - [x] Complete progress JSONL v1 lifecycle in `cb70daf`: every event carries
