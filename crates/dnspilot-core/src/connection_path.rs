@@ -3,9 +3,10 @@ use crate::connect_probe::{
     ConnectProbeError, ConnectProbeOutcome, ConnectProbeRun, TcpConnectTarget,
 };
 use crate::dns_benchmark::{
-    run_dns_benchmark_with_lookup, DnsBenchmarkConfig, DnsBenchmarkRun, DnsRecordFamily,
+    run_dns_benchmark_with_transaction_id_source, DnsBenchmarkConfig, DnsBenchmarkRun,
+    DnsRecordFamily,
 };
-use crate::dns_resolver::{query_udp_once, DnsResolverError};
+use crate::dns_resolver::{fresh_transaction_id, query_udp_once, DnsResolverError};
 use crate::dns_wire::{DnsRecordData, DnsResponse, RecordType};
 use crate::tls_probe::{
     probe_tls_handshake_once, run_tls_handshake_probes_with_handshaker, TlsHandshakeTarget,
@@ -49,8 +50,14 @@ pub fn run_udp_connection_path_estimate(
     config: &ConnectionPathConfig,
     resolver: SocketAddr,
 ) -> ConnectionPathRun {
-    run_connection_path_with_clients_and_tls(
+    let mut previous_transaction_id = None;
+    run_connection_path_with_clients_and_tls_and_transaction_id_source(
         config,
+        || {
+            let transaction_id = fresh_transaction_id(previous_transaction_id)?;
+            previous_transaction_id = Some(transaction_id);
+            Ok(transaction_id)
+        },
         |domain, record_type, transaction_id| {
             query_udp_once(
                 resolver,
@@ -92,6 +99,32 @@ where
 
 pub fn run_connection_path_with_clients_and_tls<D, C, T>(
     config: &ConnectionPathConfig,
+    dns_lookup: D,
+    connector: C,
+    tls_handshaker: T,
+) -> ConnectionPathRun
+where
+    D: FnMut(&str, RecordType, u16) -> Result<DnsLookupMeasurement, DnsResolverError>,
+    C: FnMut(&TcpConnectTarget) -> Result<Duration, ConnectProbeError>,
+    T: FnMut(&TlsHandshakeTarget) -> Result<Duration, TlsProbeError>,
+{
+    let mut query_index = 0_u16;
+    run_connection_path_with_clients_and_tls_and_transaction_id_source(
+        config,
+        || {
+            let transaction_id = config.first_transaction_id.wrapping_add(query_index);
+            query_index = query_index.wrapping_add(1);
+            Ok(transaction_id)
+        },
+        dns_lookup,
+        connector,
+        tls_handshaker,
+    )
+}
+
+fn run_connection_path_with_clients_and_tls_and_transaction_id_source<D, C, T, G>(
+    config: &ConnectionPathConfig,
+    next_transaction_id: G,
     mut dns_lookup: D,
     connector: C,
     tls_handshaker: T,
@@ -100,6 +133,7 @@ where
     D: FnMut(&str, RecordType, u16) -> Result<DnsLookupMeasurement, DnsResolverError>,
     C: FnMut(&TcpConnectTarget) -> Result<Duration, ConnectProbeError>,
     T: FnMut(&TlsHandshakeTarget) -> Result<Duration, TlsProbeError>,
+    G: FnMut() -> Result<u16, DnsResolverError>,
 {
     let mut candidate_targets = Vec::new();
     let dns_config = DnsBenchmarkConfig {
@@ -111,17 +145,21 @@ where
         record_family: config.record_family,
     };
 
-    let dns = run_dns_benchmark_with_lookup(&dns_config, |domain, record_type, transaction_id| {
-        let measurement = dns_lookup(domain, record_type, transaction_id)?;
-        collect_connect_targets(
-            &mut candidate_targets,
-            domain,
-            record_type,
-            &measurement.response,
-            config.connect_port,
-        );
-        Ok(measurement.elapsed)
-    });
+    let dns = run_dns_benchmark_with_transaction_id_source(
+        &dns_config,
+        next_transaction_id,
+        |domain, record_type, transaction_id| {
+            let measurement = dns_lookup(domain, record_type, transaction_id)?;
+            collect_connect_targets(
+                &mut candidate_targets,
+                domain,
+                record_type,
+                &measurement.response,
+                config.connect_port,
+            );
+            Ok(measurement.elapsed)
+        },
+    );
 
     let (targets, skipped_connect_targets) =
         select_connect_targets(candidate_targets, config.max_connect_targets_per_domain);
