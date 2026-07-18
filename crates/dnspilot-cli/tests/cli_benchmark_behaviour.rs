@@ -114,11 +114,16 @@ fn system_benchmark_command_can_emit_progress_jsonl() {
         .map(|line| serde_json::from_str::<Value>(line).expect("progress line should be json"))
         .collect::<Vec<_>>();
 
-    assert_eq!(events.len(), 2);
+    assert_eq!(events.len(), 3);
+    let run_id = events[0]["run_id"].as_str().expect("run id");
+    assert!(events.iter().all(|event| event["run_id"] == run_id));
     assert_eq!(events[0]["type"], "resolver_started");
     assert_eq!(events[1]["type"], "resolver_finished");
     assert_eq!(events[0]["profile_id"], "system-dns");
     assert_eq!(events[0]["resolver"], "macOS system resolver");
+    assert_eq!(events[2]["type"], "run_finished");
+    assert_eq!(events[2]["completed"], 1);
+    assert_eq!(events[2]["total"], 1);
 }
 
 #[test]

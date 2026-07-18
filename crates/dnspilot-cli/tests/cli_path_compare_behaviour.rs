@@ -173,7 +173,9 @@ fn path_compare_command_can_emit_progress_jsonl_to_stderr() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(events.len(), 4);
+    assert_eq!(events.len(), 5);
+    let run_id = events[0]["run_id"].as_str().expect("run id");
+    assert!(events.iter().all(|event| event["run_id"] == run_id));
     assert_eq!(events[0]["type"], "resolver_started");
     assert_eq!(events[0]["measurement_scope"], "dns-tcp");
     assert_eq!(events[0]["profile_id"], "first");
@@ -187,6 +189,10 @@ fn path_compare_command_can_emit_progress_jsonl_to_stderr() {
     assert_eq!(events[3]["type"], "resolver_finished");
     assert_eq!(events[3]["profile_id"], "second");
     assert!(events[3]["elapsed_ms"].as_f64().unwrap() >= 0.0);
+    assert_eq!(events[4]["type"], "run_finished");
+    assert_eq!(events[4]["status"], "success");
+    assert_eq!(events[4]["completed"], 2);
+    assert_eq!(events[4]["total"], 2);
 }
 
 #[test]

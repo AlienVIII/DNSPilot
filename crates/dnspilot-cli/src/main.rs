@@ -19,6 +19,10 @@ use dnspilot_core::{
     RecommendationMode, SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use std::net::{IpAddr, SocketAddr};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::{Duration, Instant};
 
 #[derive(Debug, Parser)]
@@ -577,8 +581,8 @@ fn main() {
                 first_transaction_id: 0x6000,
                 record_family: ip_family.into(),
             };
-            emit_resolver_progress(
-                progress_jsonl,
+            let progress = ProgressReporter::new(progress_jsonl);
+            progress.resolver(
                 "resolver_started",
                 MeasurementScope::DnsOnly,
                 "system-dns",
@@ -590,8 +594,7 @@ fn main() {
             );
             let resolver_started_at = Instant::now();
             let run = run_system_dns_benchmark(&config);
-            emit_resolver_progress(
-                progress_jsonl,
+            progress.resolver(
                 "resolver_finished",
                 MeasurementScope::DnsOnly,
                 "system-dns",
@@ -601,6 +604,7 @@ fn main() {
                 Some(&run.metrics),
                 Some(resolver_started_at.elapsed()),
             );
+            progress.exit_if_cancelled(MeasurementScope::DnsOnly, 1, 1);
             let preflight = benchmark_preflight_payload_for(
                 platform.into(),
                 BenchmarkPreflightScope::SystemDnsValidation,
@@ -609,6 +613,7 @@ fn main() {
                 std::slice::from_ref(&run.metrics),
                 MeasurementScope::DnsOnly,
             );
+            progress.finished(MeasurementScope::DnsOnly, 1, 1, &gate);
             let mut safety_notes = preflight.preflight.notes.clone();
             let system_validation_note =
                 "System DNS validation does not produce a resolver recommendation.".to_string();
@@ -719,19 +724,20 @@ fn main() {
             }
 
             let resolver_count = resolver_inputs.len();
+            let progress = ProgressReporter::new(progress_jsonl);
             let mut metrics = Vec::new();
             let mut runs = Vec::new();
             let mut seen_profile_ids = std::collections::BTreeSet::new();
             let mut resolver_profile_ids = Vec::new();
 
             for (index, (profile_id, resolver)) in resolver_inputs.into_iter().enumerate() {
+                progress.exit_if_cancelled(MeasurementScope::DnsOnly, index, resolver_count);
                 if !seen_profile_ids.insert(profile_id.clone()) {
                     eprintln!("duplicate --resolver id '{profile_id}'");
                     std::process::exit(2);
                 }
                 resolver_profile_ids.push(profile_id.clone());
-                emit_resolver_progress(
-                    progress_jsonl,
+                progress.resolver(
                     "resolver_started",
                     MeasurementScope::DnsOnly,
                     &profile_id,
@@ -752,8 +758,7 @@ fn main() {
                     record_family: ip_family.into(),
                 };
                 let run = run_udp_dns_benchmark(&config, resolver);
-                emit_resolver_progress(
-                    progress_jsonl,
+                progress.resolver(
                     "resolver_finished",
                     MeasurementScope::DnsOnly,
                     &profile_id,
@@ -763,6 +768,7 @@ fn main() {
                     Some(&run.metrics),
                     Some(resolver_started_at.elapsed()),
                 );
+                progress.exit_if_cancelled(MeasurementScope::DnsOnly, index + 1, resolver_count);
                 metrics.push(run.metrics.clone());
                 runs.push(serde_json::json!({
                     "profile_id": profile_id,
@@ -773,6 +779,12 @@ fn main() {
             }
 
             let gate = recommendation_gate(&metrics, MeasurementScope::DnsOnly);
+            progress.finished(
+                MeasurementScope::DnsOnly,
+                resolver_count,
+                resolver_count,
+                &gate,
+            );
             let recommendation = if gate.can_recommend {
                 Some(
                     recommend(&metrics, None, RecommendationMode::FastestRawDns)
@@ -976,6 +988,12 @@ fn main() {
 
             let resolver_count = resolver_inputs.len();
             let tls_enabled = tls_handshake_timeout_ms.is_some();
+            let scope = if tls_enabled {
+                MeasurementScope::DnsTcpTls
+            } else {
+                MeasurementScope::DnsTcp
+            };
+            let progress = ProgressReporter::new(progress_jsonl);
             let mut metrics = Vec::new();
             let mut runs = Vec::new();
             let mut run_json = Vec::new();
@@ -983,18 +1001,13 @@ fn main() {
             let mut resolver_profile_ids = Vec::new();
 
             for (index, (profile_id, resolver)) in resolver_inputs.into_iter().enumerate() {
+                progress.exit_if_cancelled(scope, index, resolver_count);
                 if !seen_profile_ids.insert(profile_id.clone()) {
                     eprintln!("duplicate --resolver id '{profile_id}'");
                     std::process::exit(2);
                 }
                 resolver_profile_ids.push(profile_id.clone());
-                let scope = if tls_enabled {
-                    MeasurementScope::DnsTcpTls
-                } else {
-                    MeasurementScope::DnsTcp
-                };
-                emit_resolver_progress(
-                    progress_jsonl,
+                progress.resolver(
                     "resolver_started",
                     scope,
                     &profile_id,
@@ -1020,8 +1033,7 @@ fn main() {
                     record_family: ip_family.into(),
                 };
                 let run = run_udp_connection_path_estimate(&config, resolver);
-                emit_resolver_progress(
-                    progress_jsonl,
+                progress.resolver(
                     "resolver_finished",
                     scope,
                     &profile_id,
@@ -1031,6 +1043,7 @@ fn main() {
                     Some(&run.metrics),
                     Some(resolver_started_at.elapsed()),
                 );
+                progress.exit_if_cancelled(scope, index + 1, resolver_count);
                 let tls_samples = run
                     .tls
                     .as_ref()
@@ -1057,12 +1070,8 @@ fn main() {
                 runs.push(run);
             }
 
-            let scope = if tls_enabled {
-                MeasurementScope::DnsTcpTls
-            } else {
-                MeasurementScope::DnsTcp
-            };
             let gate = recommendation_gate(&metrics, scope);
+            progress.finished(scope, resolver_count, resolver_count, &gate);
             let recommendation = if gate.can_recommend {
                 Some(
                     recommend(&metrics, None, RecommendationMode::BestOverall)
@@ -1810,43 +1819,129 @@ fn save_benchmark_history(db: &std::path::Path, record: BenchmarkHistoryRecord) 
     });
 }
 
-fn emit_resolver_progress(
+struct ProgressReporter {
     enabled: bool,
-    event_type: &str,
-    measurement_scope: MeasurementScope,
-    profile_id: &str,
-    resolver: impl std::fmt::Display,
-    index: usize,
-    total: usize,
-    metrics: Option<&BenchmarkMetrics>,
-    elapsed: Option<Duration>,
-) {
-    if !enabled {
-        return;
+    run_id: String,
+    started_at: Instant,
+    cancellation_requested: Arc<AtomicBool>,
+}
+
+impl ProgressReporter {
+    fn new(enabled: bool) -> Self {
+        let cancellation_requested = Arc::new(AtomicBool::new(false));
+        if enabled {
+            let requested = Arc::clone(&cancellation_requested);
+            ctrlc::set_handler(move || requested.store(true, Ordering::SeqCst))
+                .expect("install progress cancellation handler");
+        }
+
+        let nanoseconds = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        Self {
+            enabled,
+            run_id: format!("run-{nanoseconds}-{}", std::process::id()),
+            started_at: Instant::now(),
+            cancellation_requested,
+        }
     }
 
-    let mut event = serde_json::json!({
-        "schema_version": 1,
-        "type": event_type,
-        "measurement_scope": measurement_scope_name(measurement_scope),
-        "profile_id": profile_id,
-        "resolver": resolver.to_string(),
-        "index": index,
-        "total": total,
-    });
-    if let Some(metrics) = metrics {
-        event["status"] = serde_json::Value::String(progress_status(metrics).into());
-        event["failure_rate"] = serde_json::Value::from(metrics.failure_rate);
-        event["timeout_rate"] = serde_json::Value::from(metrics.timeout_rate);
-    }
-    if let Some(elapsed) = elapsed {
-        event["elapsed_ms"] = serde_json::Value::from(elapsed.as_secs_f64() * 1000.0);
+    fn resolver(
+        &self,
+        event_type: &str,
+        measurement_scope: MeasurementScope,
+        profile_id: &str,
+        resolver: impl std::fmt::Display,
+        index: usize,
+        total: usize,
+        metrics: Option<&BenchmarkMetrics>,
+        elapsed: Option<Duration>,
+    ) {
+        if !self.enabled {
+            return;
+        }
+
+        let mut event = serde_json::json!({
+            "schema_version": 1,
+            "run_id": self.run_id,
+            "type": event_type,
+            "measurement_scope": measurement_scope_name(measurement_scope),
+            "profile_id": profile_id,
+            "resolver": resolver.to_string(),
+            "index": index,
+            "total": total,
+        });
+        if let Some(metrics) = metrics {
+            event["status"] = serde_json::Value::String(progress_status(metrics).into());
+            event["failure_kind"] = progress_failure_kind(metrics)
+                .map(serde_json::Value::String)
+                .unwrap_or(serde_json::Value::Null);
+            event["failure_rate"] = serde_json::Value::from(metrics.failure_rate);
+            event["timeout_rate"] = serde_json::Value::from(metrics.timeout_rate);
+        }
+        if let Some(elapsed) = elapsed {
+            event["elapsed_ms"] = serde_json::Value::from(elapsed.as_secs_f64() * 1000.0);
+        }
+        self.emit(event);
     }
 
-    eprintln!(
-        "{}",
-        serde_json::to_string(&event).expect("serialize progress event")
-    );
+    fn finished(
+        &self,
+        measurement_scope: MeasurementScope,
+        completed: usize,
+        total: usize,
+        gate: &RecommendationGate,
+    ) {
+        let status = match gate.health {
+            RecommendationHealth::Healthy => "success",
+            RecommendationHealth::Degraded => "degraded",
+            RecommendationHealth::Failed | RecommendationHealth::Inconclusive => "failed",
+        };
+        self.emit(serde_json::json!({
+            "schema_version": 1,
+            "run_id": self.run_id,
+            "type": "run_finished",
+            "measurement_scope": measurement_scope_name(measurement_scope),
+            "status": status,
+            "failure_kind": progress_issue_kind(gate.primary_issue),
+            "completed": completed,
+            "total": total,
+            "elapsed_ms": self.started_at.elapsed().as_secs_f64() * 1000.0,
+        }));
+    }
+
+    fn exit_if_cancelled(
+        &self,
+        measurement_scope: MeasurementScope,
+        completed: usize,
+        total: usize,
+    ) {
+        if !self.cancellation_requested.load(Ordering::SeqCst) {
+            return;
+        }
+        self.emit(serde_json::json!({
+            "schema_version": 1,
+            "run_id": self.run_id,
+            "type": "run_cancelled",
+            "measurement_scope": measurement_scope_name(measurement_scope),
+            "status": "cancelled",
+            "failure_kind": "interrupted",
+            "completed": completed,
+            "total": total,
+            "elapsed_ms": self.started_at.elapsed().as_secs_f64() * 1000.0,
+        }));
+        std::process::exit(130);
+    }
+
+    fn emit(&self, event: serde_json::Value) {
+        if self.enabled {
+            eprintln!(
+                "{}",
+                serde_json::to_string(&event).expect("serialize progress event")
+            );
+        }
+    }
 }
 
 fn progress_status(metrics: &BenchmarkMetrics) -> &'static str {
@@ -1856,6 +1951,29 @@ fn progress_status(metrics: &BenchmarkMetrics) -> &'static str {
         "degraded"
     } else {
         "success"
+    }
+}
+
+fn progress_failure_kind(metrics: &BenchmarkMetrics) -> Option<String> {
+    if metrics.failure_rate >= 1.0 {
+        Some("all-queries-failed".into())
+    } else if metrics.timeout_rate > 0.0 {
+        Some("query-timeout".into())
+    } else if metrics.failure_rate > 0.0 {
+        Some("query-failed".into())
+    } else {
+        None
+    }
+}
+
+fn progress_issue_kind(issue: RecommendationIssue) -> Option<&'static str> {
+    match issue {
+        RecommendationIssue::None => None,
+        RecommendationIssue::NoResolvers => Some("no-resolvers"),
+        RecommendationIssue::NoConnectTargets => Some("no-connect-targets"),
+        RecommendationIssue::AllResolversFailed => Some("all-resolvers-failed"),
+        RecommendationIssue::AllResolversLowReliability => Some("all-resolvers-low-reliability"),
+        RecommendationIssue::PartialFailure => Some("partial-failure"),
     }
 }
 
