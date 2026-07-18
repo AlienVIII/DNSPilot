@@ -17,7 +17,10 @@ Last reviewed: 2026-07-19.
 
 - [x] Make snapshot mutations transaction-safe across concurrent CLI processes per D9
   with `BEGIN IMMEDIATE` and a two-writer regression test in `8a53a31`.
-- [ ] Add locale-neutral issue/message IDs; keep raw technical text only in Details.
+- [x] Preserve locale-neutral `primary_issue` IDs in benchmark contracts (for example,
+  `all-resolvers-failed` and `partial-failure`).
+- [ ] Add locale-neutral IDs for Core notes, caveats, safety notes, and guidance; keep
+  raw technical text only in copyable Details. Do not duplicate `primary_issue`.
 - [ ] Version the progress JSONL contract with `schema_version`, `run_id`, terminal
   event, failure kind, and tested cancellation/no-partial-history semantics.
 - [ ] Do not add platform settings URIs, distro detection, or privileged helpers to Core.
