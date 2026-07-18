@@ -97,19 +97,18 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 
 ### D5: Power DNS Rollback
 
-- **Problem:** Power now captures exact pre-apply DNS, but Restore checks only snapshot
-  age and active service. It can overwrite a DNS change made after DNSPilot Apply.
-- **Options:** accept a 24-hour snapshot; ask for another warning; require current DNS
-  to equal the DNSPilot-applied state before restoring.
-- **Trade-offs:** age-only restore is simple but unsafe; another warning shifts safety
-  to the user; a compare-before-restore guard adds state and tests but prevents stale
-  overwrite without adding a privileged helper.
-- **Recommendation:** store the applied DNS state with the rollback snapshot and fail
-  closed if current service/configuration no longer matches before Restore. Keep exact
-  automatic/DHCP restoration and explicit admin confirmation.
-- **Reason:** rollback must reverse DNSPilot's change, not overwrite a later user, VPN,
-  MDM, or network-service change.
-- **Confidence:** High.
+- **Problem:** Restore must not overwrite a DNS change made after DNSPilot Apply.
+- **Options:** accept a 24-hour snapshot; rely on another warning; compare current DNS
+  with the DNSPilot-applied state before restoring.
+- **Trade-offs:** age-only restore is unsafe; warnings shift safety to the user; state
+  comparison adds snapshot data but prevents stale overwrites without a helper.
+- **Recommendation:** implemented in `e4d3ec6`. Snapshots record the applied DNS mode
+  and servers; legacy snapshots are cleared/hidden; restore validates active service and
+  exact current DNS before presenting the privileged mutation.
+- **Reason:** rollback reverses only DNSPilot's change, not a later user, VPN, MDM, or
+  network-service change.
+- **Confidence:** High. `swift test --package-path apps/macos/DNSPilotMac` passes 274
+  tests, including current-state, legacy-snapshot, store, and UI visibility regressions.
 
 ### D6: macOS As Product Reference, Not Platform Template
 

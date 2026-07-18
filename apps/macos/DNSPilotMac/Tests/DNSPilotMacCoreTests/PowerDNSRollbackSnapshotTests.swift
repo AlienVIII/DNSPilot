@@ -8,6 +8,8 @@ final class PowerDNSRollbackSnapshotTests: XCTestCase {
             service: "Wi-Fi",
             mode: .automatic,
             servers: [],
+            appliedMode: .servers,
+            appliedServers: ["1.1.1.1"],
             createdAt: Date(timeIntervalSince1970: 1_000)
         )
 
@@ -20,6 +22,8 @@ final class PowerDNSRollbackSnapshotTests: XCTestCase {
             service: "Wi-Fi",
             mode: .servers,
             servers: ["1.1.1.1"],
+            appliedMode: .servers,
+            appliedServers: ["1.0.0.1"],
             createdAt: Date(timeIntervalSince1970: 1_100)
         )
 
@@ -36,6 +40,8 @@ final class PowerDNSRollbackSnapshotTests: XCTestCase {
             service: "Wi-Fi",
             mode: .servers,
             servers: ["1.1.1.1", "1.0.0.1"],
+            appliedMode: .servers,
+            appliedServers: ["9.9.9.9"],
             createdAt: Date(timeIntervalSince1970: 1_000)
         )
 
@@ -55,6 +61,8 @@ final class PowerDNSRollbackSnapshotTests: XCTestCase {
             service: "Wi-Fi",
             mode: .servers,
             servers: ["1.1.1.1"],
+            appliedMode: .servers,
+            appliedServers: ["1.0.0.1"],
             createdAt: Date(timeIntervalSince1970: 1_000)
         ))
 
@@ -62,6 +70,21 @@ final class PowerDNSRollbackSnapshotTests: XCTestCase {
         XCTAssertNil(defaults.data(forKey: PowerDNSRollbackStore.defaultKey))
 
         defaults.set(Data("not json".utf8), forKey: PowerDNSRollbackStore.defaultKey)
+
+        XCTAssertNil(store.load())
+        XCTAssertNil(defaults.data(forKey: PowerDNSRollbackStore.defaultKey))
+    }
+
+    func testStoreRejectsLegacySnapshotWithoutAppliedState() {
+        let defaults = makeDefaults()
+        let store = PowerDNSRollbackStore(userDefaults: defaults)
+
+        store.save(PowerDNSRollbackSnapshot(
+            service: "Wi-Fi",
+            mode: .servers,
+            servers: ["1.1.1.1"],
+            createdAt: Date()
+        ))
 
         XCTAssertNil(store.load())
         XCTAssertNil(defaults.data(forKey: PowerDNSRollbackStore.defaultKey))

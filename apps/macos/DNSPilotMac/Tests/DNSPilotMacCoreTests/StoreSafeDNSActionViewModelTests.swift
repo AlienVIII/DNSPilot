@@ -67,6 +67,8 @@ final class StoreSafeDNSActionViewModelTests: XCTestCase {
             service: "Wi-Fi",
             mode: .automatic,
             servers: [],
+            appliedMode: .servers,
+            appliedServers: ["1.1.1.1"],
             createdAt: Date(timeIntervalSince1970: 1_000)
         )
         let viewModel = PowerDNSRollbackViewModel(
@@ -85,6 +87,8 @@ final class StoreSafeDNSActionViewModelTests: XCTestCase {
             service: "Wi-Fi",
             mode: .servers,
             servers: ["192.168.1.1"],
+            appliedMode: .servers,
+            appliedServers: ["1.1.1.1"],
             createdAt: Date(timeIntervalSince1970: 1_000)
         )
 
@@ -97,6 +101,21 @@ final class StoreSafeDNSActionViewModelTests: XCTestCase {
             isEnabled: true,
             snapshot: snapshot,
             now: Date(timeIntervalSince1970: 100_000)
+        ).restoreButtonLabel)
+    }
+
+    func testPowerRollbackViewModelHidesLegacySnapshotWithoutAppliedState() {
+        let snapshot = PowerDNSRollbackSnapshot(
+            service: "Wi-Fi",
+            mode: .servers,
+            servers: ["192.168.1.1"],
+            createdAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        XCTAssertNil(PowerDNSRollbackViewModel(
+            isEnabled: true,
+            snapshot: snapshot,
+            now: Date(timeIntervalSince1970: 1_100)
         ).restoreButtonLabel)
     }
 }
