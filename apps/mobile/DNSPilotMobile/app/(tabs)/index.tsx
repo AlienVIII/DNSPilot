@@ -280,11 +280,10 @@ export default function CheckDnsScreen() {
         </Section>
       ) : null}
 
-      <ProcessSection diagnostics={diagnostics} copyStatus={copyStatus} onCopyReport={copyReport} t={t} />
+      {diagnostics ? <ProcessSection diagnostics={diagnostics} copyStatus={copyStatus} onCopyReport={copyReport} t={t} /> : null}
 
-      <Section title={t('benchmark.result.title')} subtitle={result ? t('benchmark.result.subtitleReady', { args: result.action }) : t('check.result.noResult')}>
-        {!result ? <EmptyState text={t('check.result.noResult')} /> : null}
-        {result ? (
+      {result ? (
+        <Section title={t('benchmark.result.title')} subtitle={t('benchmark.result.subtitleReady', { args: result.action })}>
           <View style={cardStyle}>
             <Row>
               <Metric label={t('benchmark.metric.health')} value={presentation.health} tone={presentation.health === 'healthy' ? 'green' : presentation.health === 'failed' ? 'red' : 'amber'} />
@@ -312,8 +311,8 @@ export default function CheckDnsScreen() {
             ) : null}
             {settingsStatus ? <ErrorBanner message={settingsStatus} /> : null}
           </View>
-        ) : null}
-      </Section>
+        </Section>
+      ) : null}
 
       {guidance ? (
         <Section title={guidance.title} subtitle={guidance.claims.join(' ')}>

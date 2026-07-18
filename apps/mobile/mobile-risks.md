@@ -4,15 +4,15 @@ Last reviewed: 2026-07-19.
 
 ## Major
 
-- The development Node bridge binds `0.0.0.0`, allows wildcard CORS, has no token, accepts
-  a caller-selected database path, and leaks local paths. Installed native builds do not
-  use it, but developer machines/LAN data remain exposed until it is hardened.
-- Android generated config currently permits backup of local profiles/domains/history;
-  Android and iOS need an explicit backup exclusion/retention decision.
-- Current `npm run verify` is red because the Expo 57 patch set is one patch behind the
-  versions expected by Expo. Release preflight was not reached in the latest rerun.
-- Consumer Profiles and first-run web state expose implementation jargon, repeated titles,
-  premature empty panels, and raw bridge failure. Progressive disclosure is incomplete.
+- The development Node bridge is hardened for loopback/LAN development use, but it remains
+  an unsupported release transport. Installed native builds do not use it.
+- Android backup is disabled and the iOS native database directory is marked excluded from
+  backup. Physical backup/restore verification remains required.
+- Expo 57 patch compatibility is green. npm audit still reports 11 moderate, transitive
+  Expo toolchain findings; the only offered remediation is a breaking downgrade, so it is
+  intentionally not applied.
+- Check DNS no longer renders empty Process/Result panels. Profiles and remaining web-only
+  diagnostics still need a physical-device copy/accessibility review.
 
 ## Platform And Contract
 

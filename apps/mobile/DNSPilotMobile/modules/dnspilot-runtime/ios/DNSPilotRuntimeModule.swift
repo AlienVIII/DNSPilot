@@ -35,13 +35,16 @@ public class DNSPilotRuntimeModule: Module {
 }
 
 private func mobileDatabasePath() throws -> String {
-  let directory = try FileManager.default.url(
+  var directory = try FileManager.default.url(
     for: .applicationSupportDirectory,
     in: .userDomainMask,
     appropriateFor: nil,
     create: true
   ).appendingPathComponent("DNSPilot", isDirectory: true)
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  var resourceValues = URLResourceValues()
+  resourceValues.isExcludedFromBackup = true
+  try directory.setResourceValues(resourceValues)
   return directory.appendingPathComponent("dnspilot.sqlite").path
 }
 

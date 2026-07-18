@@ -26,6 +26,8 @@
     "android": {
       "package": "com.dnspilot.mobile",
       "versionCode": 1,
+      "allowBackup": false,
+      "dataExtractionRules": false,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"

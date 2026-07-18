@@ -3,12 +3,13 @@ import { createServer } from "node:http";
 import { mkdir } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(appRoot, "../../..");
 const dataDir = path.join(appRoot, ".dnspilot");
-const defaultDbPath = process.env.DNSPILOT_MOBILE_DB ?? path.join(dataDir, "dnspilot.sqlite");
+const defaultDbPath = path.join(dataDir, "dnspilot.sqlite");
 const port = Number(process.env.DNSPILOT_MOBILE_BRIDGE_PORT ?? 8787);
 
 const platforms = new Set([
@@ -29,8 +30,24 @@ const ipFamilies = new Set(["both", "ipv4-only", "ipv6-only"]);
 const confidenceValues = new Set(["high", "medium", "low", "inconclusive"]);
 const gateHealthValues = new Set(["healthy", "degraded", "failed", "inconclusive"]);
 
-export function bridgeUrls(portValue = port, interfaces = networkInterfaces()) {
+export function createBridgeConfig(environment = process.env) {
+  const lan = environment.DNSPILOT_MOBILE_BRIDGE_LAN === "1";
+  const allowedOrigins = String(environment.DNSPILOT_MOBILE_BRIDGE_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  return {
+    lan,
+    token: lan ? environment.DNSPILOT_MOBILE_BRIDGE_TOKEN || randomBytes(32).toString("base64url") : null,
+    allowedOrigins,
+  };
+}
+
+export function bridgeUrls(portValue = port, interfaces = networkInterfaces(), { lan = false } = {}) {
   const urls = new Set([`http://localhost:${portValue}`]);
+  if (!lan) {
+    return [...urls];
+  }
   for (const entries of Object.values(interfaces)) {
     for (const entry of entries ?? []) {
       if (!entry?.internal && isPrivateIpv4(entry.address, entry.family)) {
@@ -324,7 +341,7 @@ function parseProgressLine(line) {
   }
 }
 
-export async function runCliJob(action, payload = {}, dbPath = defaultDbPath, { onProgress } = {}) {
+export async function runCliJob(action, payload = {}, dbPath = defaultDbPath, { onProgress, signal } = {}) {
   await mkdir(path.dirname(dbPath), { recursive: true });
   const cliArgs = buildCliArgs(action, payload, dbPath);
   const childArgs = ["run", "--quiet", "--package", "dnspilot-cli", "--", ...cliArgs];
@@ -352,8 +369,17 @@ export async function runCliJob(action, payload = {}, dbPath = defaultDbPath, { 
         }
       }
     });
-    child.on("error", reject);
+    const abort = () => child.kill();
+    if (signal?.aborted) {
+      abort();
+    }
+    signal?.addEventListener("abort", abort, { once: true });
+    child.on("error", (error) => {
+      signal?.removeEventListener("abort", abort);
+      reject(error);
+    });
     child.on("close", (code) => {
+      signal?.removeEventListener("abort", abort);
       const event = parseProgressLine(stderrLineBuffer.trim());
       if (event) {
         progress.push(event);
@@ -389,7 +415,7 @@ export async function runCli(action, payload = {}, dbPath = defaultDbPath) {
   return runCliJob(action, payload, dbPath);
 }
 
-export function createJobStore({ runCommand = runCliJob } = {}) {
+export function createJobStore({ runCommand = runCliJob, maxRunning = 2, maxJobs = 32 } = {}) {
   let nextId = 1;
   const jobs = new Map();
 
@@ -406,9 +432,27 @@ export function createJobStore({ runCommand = runCliJob } = {}) {
     };
   }
 
+  function trimCompletedJobs() {
+    while (jobs.size >= maxJobs) {
+      const completed = [...jobs.values()].find((job) => job.status !== "running");
+      if (!completed) {
+        break;
+      }
+      jobs.delete(completed.id);
+    }
+  }
+
   return {
     start(action, payload = {}, dbPath = defaultDbPath) {
+      const runningCount = [...jobs.values()].filter((job) => job.status === "running").length;
+      if (runningCount >= maxRunning) {
+        const error = new Error("Too many bridge jobs are already running");
+        error.statusCode = 429;
+        throw error;
+      }
+      trimCompletedJobs();
       const id = `job-${Date.now()}-${nextId++}`;
+      const controller = new AbortController();
       const job = {
         id,
         action,
@@ -418,14 +462,21 @@ export function createJobStore({ runCommand = runCliJob } = {}) {
         progress: [],
         result: null,
         error: null,
+        controller,
       };
       jobs.set(id, job);
       const done = runCommand(action, payload, dbPath, {
-        onProgress(event) {
-          job.progress.push(event);
-        },
-      })
+          signal: controller.signal,
+          onProgress(event) {
+            if (job.status === "running") {
+              job.progress.push(event);
+            }
+          },
+        })
         .then((result) => {
+          if (job.status === "cancelled") {
+            return null;
+          }
           job.status = "success";
           job.ended_at = new Date().toISOString();
           job.result = {
@@ -435,6 +486,9 @@ export function createJobStore({ runCommand = runCliJob } = {}) {
           return job.result;
         })
         .catch((error) => {
+          if (job.status === "cancelled") {
+            throw error;
+          }
           job.status = "failed";
           job.ended_at = new Date().toISOString();
           job.error = {
@@ -449,6 +503,17 @@ export function createJobStore({ runCommand = runCliJob } = {}) {
     get(id) {
       const job = jobs.get(id);
       return job ? snapshot(job) : null;
+    },
+    cancel(id) {
+      const job = jobs.get(id);
+      if (!job || job.status !== "running") {
+        return false;
+      }
+      job.status = "cancelled";
+      job.ended_at = new Date().toISOString();
+      job.error = { message: "Cancelled" };
+      job.controller.abort();
+      return true;
     },
   };
 }
@@ -467,21 +532,73 @@ async function readBody(request) {
   return text ? JSON.parse(text) : {};
 }
 
-function send(response, statusCode, body) {
-  response.writeHead(statusCode, {
-    "access-control-allow-origin": "*",
-    "access-control-allow-methods": "GET,POST,OPTIONS",
-    "access-control-allow-headers": "content-type",
+function requestOrigin(request, security) {
+  const origin = request.headers.origin;
+  if (!origin) {
+    return null;
+  }
+  if (!security.lan) {
+    try {
+      const hostname = new URL(origin).hostname;
+      return hostname === "localhost" || hostname === "127.0.0.1" ? origin : false;
+    } catch {
+      return false;
+    }
+  }
+  return security.allowedOrigins.includes(origin) ? origin : false;
+}
+
+function requestAuthorized(request, security) {
+  if (!security.lan) {
+    return true;
+  }
+  const authorization = request.headers.authorization ?? "";
+  return authorization === `Bearer ${security.token}`;
+}
+
+function send(response, statusCode, body, origin) {
+  const headers = {
+    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+    "access-control-allow-headers": "authorization,content-type",
     "content-type": "application/json; charset=utf-8",
-  });
+  };
+  if (origin) {
+    headers["access-control-allow-origin"] = origin;
+    headers.vary = "Origin";
+  }
+  response.writeHead(statusCode, headers);
   response.end(JSON.stringify(body, null, 2));
 }
 
-export function createBridgeServer(jobStore = createJobStore()) {
+function publicResult(result, dbPath) {
+  return {
+    ...result,
+    args: (result.args ?? []).map((arg) => (arg === dbPath ? "<app-data>" : arg)),
+  };
+}
+
+function publicJob(job, dbPath) {
+  return {
+    ...job,
+    result: job.result ? publicResult(job.result, dbPath) : job.result,
+    error: job.error ? { message: job.error.message ?? "Bridge job failed" } : job.error,
+  };
+}
+
+export function createBridgeServer(jobStore = createJobStore(), { dbPath = defaultDbPath, security = createBridgeConfig() } = {}) {
   return createServer(async (request, response) => {
+    const origin = requestOrigin(request, security);
     try {
+      if (origin === false) {
+        send(response, 403, { ok: false, error: "Origin is not allowed" }, null);
+        return;
+      }
       if (request.method === "OPTIONS") {
-        send(response, 204, {});
+        send(response, 204, {}, origin);
+        return;
+      }
+      if (!requestAuthorized(request, security)) {
+        send(response, 401, { ok: false, error: "Bridge authorization required" }, origin);
         return;
       }
 
@@ -490,23 +607,22 @@ export function createBridgeServer(jobStore = createJobStore()) {
         send(response, 200, {
           ok: true,
           service: "dnspilot-mobile-bridge",
-          repoRoot,
-          dbPath: defaultDbPath,
-        });
+          mode: security.lan ? "lan" : "loopback",
+        }, origin);
         return;
       }
 
       if (request.method === "POST" && url.pathname === "/api/cli") {
         const body = await readBody(request);
-        const result = await runCli(body.action, body.payload ?? {}, body.dbPath ?? defaultDbPath);
-        send(response, 200, result);
+        const result = await runCli(body.action, body.payload ?? {}, dbPath);
+        send(response, 200, publicResult(result, dbPath), origin);
         return;
       }
 
       if (request.method === "POST" && url.pathname === "/api/jobs") {
         const body = await readBody(request);
-        const started = jobStore.start(body.action, body.payload ?? {}, body.dbPath ?? defaultDbPath);
-        send(response, 202, { ok: true, job: jobStore.get(started.id) });
+        const started = jobStore.start(body.action, body.payload ?? {}, dbPath);
+        send(response, 202, { ok: true, job: publicJob(jobStore.get(started.id), dbPath) }, origin);
         return;
       }
 
@@ -514,31 +630,43 @@ export function createBridgeServer(jobStore = createJobStore()) {
       if (request.method === "GET" && jobMatch) {
         const job = jobStore.get(jobMatch[1]);
         if (!job) {
-          send(response, 404, { ok: false, error: "Job not found" });
+          send(response, 404, { ok: false, error: "Job not found" }, origin);
           return;
         }
-        send(response, 200, { ok: true, job });
+        send(response, 200, { ok: true, job: publicJob(job, dbPath) }, origin);
         return;
       }
 
-      send(response, 404, { ok: false, error: "Not found" });
+      if (request.method === "DELETE" && jobMatch) {
+        if (!jobStore.cancel(jobMatch[1])) {
+          send(response, 404, { ok: false, error: "Job not found or already finished" }, origin);
+          return;
+        }
+        send(response, 202, { ok: true, job: publicJob(jobStore.get(jobMatch[1]), dbPath) }, origin);
+        return;
+      }
+
+      send(response, 404, { ok: false, error: "Not found" }, origin);
     } catch (error) {
       send(response, error.statusCode ?? 400, {
         ok: false,
-        error: error.message,
-        details: error.details,
-      });
+        error: "Bridge request failed",
+      }, origin === false ? null : origin);
     }
   });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const security = createBridgeConfig();
+  const host = security.lan ? "0.0.0.0" : "127.0.0.1";
   await mkdir(dataDir, { recursive: true });
-  createBridgeServer().listen(port, "0.0.0.0", () => {
-    console.log(`DNSPilot mobile bridge listening on 0.0.0.0:${port}`);
-    for (const url of bridgeUrls(port)) {
+  createBridgeServer(undefined, { security }).listen(port, host, () => {
+    console.log(`DNSPilot mobile bridge listening on ${host}:${port}`);
+    for (const url of bridgeUrls(port, networkInterfaces(), security)) {
       console.log(`Bridge URL: ${url}`);
     }
-    console.log(`SQLite DB: ${defaultDbPath}`);
+    if (security.lan) {
+      console.log(`Bridge bearer token: ${security.token}`);
+    }
   });
 }
