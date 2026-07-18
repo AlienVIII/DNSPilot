@@ -57,6 +57,26 @@ final class BenchmarkResultViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.savedHistoryLabel, "Saved run: compare-run-1")
         XCTAssertEqual(viewModel.fullSavedHistoryID, "compare-run-1")
         XCTAssertEqual(viewModel.recommendedDNSSettings?.serverListText, "1.1.1.1\n1.0.0.1\n2606:4700:4700::1111")
+        let vietnamese = DNSPilotLocalizer(language: .vietnamese)
+        XCTAssertEqual(viewModel.localizedScopeLabel(localizer: vietnamese), "Chỉ DNS")
+        XCTAssertEqual(viewModel.localizedHealthLabel(localizer: vietnamese), "Ổn định")
+        XCTAssertEqual(viewModel.localizedConfidenceLabel(localizer: vietnamese), "Độ tin cậy Cao")
+        XCTAssertEqual(viewModel.localizedRecommendationLabel(localizer: vietnamese), "Khuyến nghị: Cloudflare")
+        XCTAssertEqual(
+            viewModel.localizedFastestObservedLabel(localizer: vietnamese),
+            "DNS nhanh nhất đo được: Cloudflare (trung vị 4 ms, lỗi 0%)"
+        )
+        XCTAssertEqual(viewModel.localizedBalancedRecommendationLabel(localizer: vietnamese), "Khuyến nghị cân bằng: Cloudflare")
+        XCTAssertEqual(viewModel.localizedSavedHistoryLabel(localizer: vietnamese), "Lần kiểm tra đã lưu: compare-run-1")
+        XCTAssertEqual(viewModel.rows.first?.localizedFailureRateLabel(localizer: vietnamese), "Lỗi 0%")
+        XCTAssertEqual(viewModel.rows.first?.localizedDiagnosisLabel(localizer: vietnamese), "Không có lỗi")
+        let localizedNextStep = BenchmarkResultNextStepViewModel(result: viewModel)
+        XCTAssertEqual(localizedNextStep.localizedTitle(localizer: vietnamese), "Tiếp theo: Áp dụng DNS khuyến nghị")
+        XCTAssertEqual(localizedNextStep.localizedActionLabel(localizer: vietnamese), "Sao chép DNS + Mở Cài đặt")
+        XCTAssertEqual(
+            localizedNextStep.localizedLines(localizer: vietnamese).first,
+            "DNS Pilot chưa thay đổi DNS hệ thống."
+        )
         XCTAssertEqual(
             viewModel.resultReport,
             """

@@ -22,23 +22,36 @@ public static class BenchmarkControlPlanFactory
             _ => BenchmarkMode.DnsAndTcp,
         };
 
-        return Build(catalog, selection, mode);
+        return Build(catalog, selection, mode, forceGamingMode: true);
     }
 
     public static BenchmarkPlanViewModel BuildQuickBenchmark(CatalogSnapshot catalog, BenchmarkControlSelection selection)
     {
-        return Build(catalog, selection, BenchmarkMode.DnsAndTcp);
+        var quickSelection = selection with
+        {
+            Attempts = 1,
+            SelectedProfileIds = catalog.Profiles
+                .Where(profile => profile.Protocol == DnsProtocol.Plain)
+                .Take(2)
+                .Select(profile => profile.Id)
+                .ToArray(),
+            SelectedSuiteId = catalog.TestSuites
+                .FirstOrDefault(suite => !suite.Tags.Contains("gaming", StringComparer.OrdinalIgnoreCase))?.Id
+                ?? catalog.TestSuites.FirstOrDefault()?.Id,
+        };
+        return Build(catalog, quickSelection, BenchmarkMode.DnsOnly, forceGamingMode: false);
     }
 
     public static BenchmarkPlanViewModel BuildSystemDnsValidation(CatalogSnapshot catalog, BenchmarkControlSelection selection)
     {
-        return Build(catalog, selection, BenchmarkMode.SystemDnsValidation);
+        return Build(catalog, selection, BenchmarkMode.SystemDnsValidation, forceGamingMode: false);
     }
 
     private static BenchmarkPlanViewModel Build(
         CatalogSnapshot catalog,
         BenchmarkControlSelection selection,
-        BenchmarkMode mode)
+        BenchmarkMode mode,
+        bool forceGamingMode)
     {
         var recordFamily = selection.RecordFamilyIndex switch
         {
@@ -52,14 +65,21 @@ public static class BenchmarkControlPlanFactory
             2 => ResolverAddressFamily.Ipv6Only,
             _ => ResolverAddressFamily.Automatic,
         };
-        var selectedProfiles = mode == BenchmarkMode.SystemDnsValidation
+        var selectedSuiteId = SelectedSuiteId(catalog, selection.SelectedSuiteId);
+        var selectedSuite = selectedSuiteId is null
+            ? null
+            : catalog.TestSuites.FirstOrDefault(suite => suite.Id == selectedSuiteId);
+        var modeWasForcedBySuite = forceGamingMode
+            && selectedSuite?.Tags.Contains("gaming", StringComparer.OrdinalIgnoreCase) == true;
+        var effectiveMode = modeWasForcedBySuite ? BenchmarkMode.DnsAndTcp : mode;
+        var selectedProfiles = effectiveMode == BenchmarkMode.SystemDnsValidation
             ? Array.Empty<string>()
             : SelectedPlainProfileIds(catalog, selection.SelectedProfileIds);
 
         return new BenchmarkPlanViewModel(
             catalog,
             selectedProfiles,
-            selectedSuiteId: SelectedSuiteId(catalog, selection.SelectedSuiteId),
+            selectedSuiteId: selectedSuiteId,
             customDomains: Array.Empty<string>(),
             attempts: Math.Max(1, selection.Attempts),
             dnsTimeoutMs: Math.Max(1, selection.DnsTimeoutMs),
@@ -67,7 +87,9 @@ public static class BenchmarkControlPlanFactory
             maxConnectTargetsPerDomain: Math.Max(1, selection.TcpTargetsPerDomain),
             recordFamily: recordFamily,
             resolverAddressFamily: resolverFamily,
-            mode: mode);
+            mode: effectiveMode,
+            modeWasForcedBySuite: modeWasForcedBySuite,
+            suiteLimitationNotice: modeWasForcedBySuite ? selectedSuite?.Description : null);
     }
 
     private static IReadOnlyList<string> SelectedPlainProfileIds(

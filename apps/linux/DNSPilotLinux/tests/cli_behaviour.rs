@@ -22,7 +22,7 @@ fn cli_renders_copyable_debug_report_for_flatpak_without_dns_mutation() {
 }
 
 #[test]
-fn cli_exposes_native_power_capability_for_deb_with_networkmanager_and_polkit() {
+fn cli_reports_native_power_as_unavailable_for_deb_with_networkmanager_and_polkit() {
     let output = binary()
         .args([
             "--package",
@@ -40,8 +40,9 @@ fn cli_exposes_native_power_capability_for_deb_with_networkmanager_and_polkit() 
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("Package: deb"));
     assert!(stdout.contains("Benchmark mode: Current/system resolver validation"));
-    assert!(stdout.contains("Apply path: Native power package"));
-    assert!(stdout.contains("Real DNS apply: available"));
+    assert!(stdout.contains("Apply path: Unsupported"));
+    assert!(stdout.contains("Real DNS apply: not available"));
+    assert!(stdout.contains("Native Power is unavailable in this build"));
     assert!(stdout.contains("Validate current resolver: success"));
 }
 

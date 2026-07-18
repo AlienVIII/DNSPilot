@@ -1,17 +1,17 @@
 # DNS Pilot Linux
 
 Linux is capability-based in DNS Pilot. Flatpak and Snap are store-safe
-benchmark/guidance builds. deb/rpm are native packages with a future, separately
-gated Power capability for NetworkManager/systemd-resolved plus polkit.
+benchmark/guidance builds. deb/rpm are also benchmark/guidance builds today; a future,
+separately gated Power service may use NetworkManager/systemd-resolved plus polkit.
 
 Current completion design and task order:
 
 - `apps/linux/linux-completion-plan.md`
 - `apps/linux/linux-implementation-plan.md`
 
-The current command-backed native execute prototype is not release-safe. Default
-package guidance must remain benchmark/preview only until the planned system D-Bus,
-caller-bound polkit, and exact rollback mechanism is implemented and proved on Linux.
+Default packages contain no privileged helper or polkit action and never mutate DNS.
+The development-only helper rejects every execute request. A future Power release needs
+a system D-Bus service, caller-bound polkit, exact rollback, and Linux-host proof.
 
 ## Binaries
 
@@ -19,8 +19,8 @@ caller-bound polkit, and exact rollback mechanism is implemented and proved on L
 - `dnspilot-linux-shell`: CLI inspection, QA, profile, readiness, and publish
   helper.
 - `dnspilot-cli`: packaged core benchmark engine used by the GUI.
-- `dnspilot-native-helper`: experimental native deb/rpm contract/dry-run helper; do
-  not use execute mode.
+- `dnspilot-native-helper`: development-only contract/dry-run helper, excluded from
+  release payloads; execute mode is always rejected.
 
 ## Install Dependencies
 
@@ -68,8 +68,8 @@ Benchmark commands run on a background worker, so the main window stays
 responsive and prevents duplicate runs until the active job reaches a terminal
 state.
 The Settings tab selects one profile and address family. Flatpak/Snap copy the
-filtered DNS values and render an in-app manual guide without mutation;
-capable deb/rpm builds render the exact native apply plan for review.
+filtered DNS values and render an in-app manual guide without mutation. deb/rpm show
+diagnostics until the separately verified Power service exists.
 Installed packages place `dnspilot-cli` beside the GUI, so normal users do not
 configure an engine path. `DNSPILOT_CLI_PATH` is only a development/QA override.
 
@@ -80,7 +80,6 @@ cargo build --release -p dnspilot-cli
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
 ls apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui \
    apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell \
-   apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper \
    target/release/dnspilot-cli
 ```
 
@@ -124,7 +123,8 @@ apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell profile-list --stor
 
 ## Native Power Helper
 
-Dry-run and contract commands never mutate DNS:
+This development-only helper is excluded from every package payload. Contract and
+dry-run commands never mutate DNS; execute requests are always rejected:
 
 ```sh
 apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper --contract
@@ -132,9 +132,8 @@ apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper \
   --dry-run --stack networkmanager --server 1.1.1.1
 ```
 
-Do not run execute mode. The current prototype checks authorization but does not provide
-a complete privileged mechanism or exact DNS rollback snapshot. Milestone 0 disables
-it by default; Milestone 7 replaces it before native Power release QA.
+Do not depend on this helper for installation or Power behavior. Milestone 7 may add a
+separate privileged service only after the approved gate and Linux-host evidence.
 
 ## Package QA
 

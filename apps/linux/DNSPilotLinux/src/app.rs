@@ -39,7 +39,7 @@ impl LinuxAppSession {
             capability,
             suites,
             profiles,
-            selected_mode: BenchmarkMode::DnsAndTcp,
+            selected_mode: BenchmarkMode::DnsOnly,
             selected_profile_ids,
             selected_suite_id,
             custom_domains: Vec::new(),
@@ -94,6 +94,7 @@ impl LinuxAppSession {
             suite_id: self.selected_suite_id.clone(),
             suite_db: None,
             profile_db: None,
+            history_db: None,
             attempts: self.attempts,
             record_family: self.record_family,
         })
@@ -128,7 +129,7 @@ impl LinuxAppSession {
         }
 
         if let Some(suite_id) = &self.selected_suite_id {
-            if !self.suites.iter().any(|suite| suite.id == suite_id) {
+            if !self.suites.iter().any(|suite| suite.id == *suite_id) {
                 issues.push(format!("Selected suite '{suite_id}' is missing"));
             }
         }

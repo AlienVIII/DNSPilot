@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DNS Pilot support for Windows DNS benchmarking and guided setup.">
+  <link rel="canonical" href="{{SITE_URL}}/">
+  <link rel="stylesheet" href="styles.css">
+  <title>DNS Pilot Windows Support</title>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">DNS Pilot for Windows</p>
+      <h1>Support</h1>
+      <p>DNS benchmarking, saved profiles, and guided Windows DNS setup.</p>
+    </header>
+    <section><h2>Common Help</h2><ul>
+      <li>Results estimate the current network path. They do not promise full browser, game, or internet speed improvement.</li>
+      <li>The Store build never silently changes Windows DNS. Guided Apply copies DNS servers and opens Windows Settings.</li>
+      <li>Quick Check is DNS-only. DNS + TCP adds connection-path estimates.</li>
+      <li>Gaming presets are DNS + TCP estimates, not ICMP ping or in-match UDP latency.</li>
+    </ul></section>
+    <section><h2>Troubleshooting</h2><ul>
+      <li>If candidates fail, check VPN, firewall, captive portal, MDM, corporate DNS policy, and IPv4/IPv6 reachability.</li>
+      <li>After changing DNS manually, return to DNS Pilot and run Validate DNS.</li>
+      <li>Custom domain targets accept hostnames only: omit protocol prefixes, paths, ports, and spaces.</li>
+    </ul></section>
+    <section><h2>Data</h2><p>DNS Pilot stores custom DNS profiles, domain suites, benchmark history, language, and preferences locally. The Store-safe build has no accounts, analytics, tracking, or cloud sync.</p></section>
+    <section><h2>Contact</h2><p><a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a></p></section>
+  </main>
+  <footer><a href="privacy.html">Privacy Policy</a></footer>
+</body>
+</html>

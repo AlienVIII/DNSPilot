@@ -57,7 +57,8 @@ Expected:
 - WinUI solution builds on Windows.
 
 ## Manual Real-Device QA
-Run `apps/windows/windows-qa.md` end to end. Minimum release gate:
+Run `apps/windows/windows-qa.md` end to end and record the result in
+`apps/windows/windows-release-evidence-template.md`. Minimum release gate:
 - Launch app without UAC.
 - Confirm English and Vietnamese resource smoke by switching Windows display/app language or by forcing app language during QA if available.
 - Run Quick benchmark.
@@ -128,8 +129,27 @@ Review `docs/os-provider-trust.md` before starting so Partner Center package
 identity, signing, restricted capability review, support/privacy URLs, and MSIX
 QA evidence can be batched once.
 
+## Public Support And Privacy Site
+
+Use the Windows-specific reviewer, support, privacy, and screenshot sources in
+`apps/windows/PartnerCenter/`. Render deployable static pages only after the
+real public contact and HTTPS base URL are known:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps\windows\Build-PartnerCenterSite.ps1 `
+  -SupportEmail "support@example.com" `
+  -SiteUrl "https://example.com/dns-pilot"
+```
+
+Expected: `dist\partner-center-site\index.html` and `privacy.html` contain no
+template placeholders. Deploy that directory to the chosen HTTPS host, verify
+both public URLs, then use them for Partner Center support, privacy, and website
+fields. The renderer never uploads or modifies a public host.
+
 - Host `apps/windows/windows-privacy.md` as the public Privacy policy URL before submission.
 - Use `apps/windows/windows-store-listing.md` for listing text, support copy, search terms, and certification notes.
+- Use `apps/windows/PartnerCenter/README.md` for reviewer walkthrough and
+  `apps/windows/PartnerCenter/ScreenshotPlan.md` for signed Store-safe captures.
 - In Partner Center, disclose `runFullTrust` and explain the Store-safe boundary.
 - Do not describe the Store build as one-click DNS apply. Correct wording: benchmark, copy guidance, open Windows settings, validate current DNS.
 - Keep Power edition/admin-service wording out of Store screenshots and descriptions unless published as a separate SKU/distribution.
@@ -145,6 +165,9 @@ QA evidence can be batched once.
 Only publish after all are true:
 - `Validate-WindowsLane.ps1 -Configuration Release` passes on Windows.
 - Manual QA checklist passes on a real Windows device.
+- A completed `windows-release-evidence-template.md` has evidence for the
+  package/helper smoke, Store-safe workflow, accessibility/localization, tray,
+  and network-condition checks.
 - MSIX package installs, launches, and finds bundled `dnspilot-cli.exe`.
 - Store capability declarations are accepted or explicitly approved.
 - Signing and Partner Center identity match the package manifest.

@@ -12,7 +12,7 @@ fn temp_path(name: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!(
-        "dnspilot-linux-cli-{name}-{}-{nanos}.json",
+        "dnspilot-linux-cli-{name}-{}-{nanos}.sqlite",
         std::process::id()
     ))
 }
@@ -70,9 +70,9 @@ fn cli_can_add_list_and_delete_custom_profiles_in_store() {
         .output()
         .unwrap();
     assert!(list.status.success());
-    assert!(String::from_utf8(list.stdout)
+    assert!(!String::from_utf8(list.stdout)
         .unwrap()
-        .contains("No custom profiles"));
+        .contains("local\tLocal DNS"));
 }
 
 #[test]
@@ -122,8 +122,11 @@ fn cli_can_edit_custom_profiles_in_store() {
         .unwrap();
     assert!(list.status.success());
     let stdout = String::from_utf8(list.stdout).unwrap();
-    assert!(stdout.contains("local\tEdited DNS\t9.9.9.9\t2620:fe::fe"));
-    assert!(!stdout.contains("1.1.1.1"));
+    let local_profile = stdout
+        .lines()
+        .find(|line| line.starts_with("local\t"))
+        .expect("custom profile should be listed");
+    assert_eq!(local_profile, "local\tEdited DNS\t9.9.9.9\t2620:fe::fe");
 }
 
 #[test]
@@ -204,7 +207,6 @@ fn cli_plan_uses_stored_profiles_and_session_controls() {
             store.to_str().unwrap(),
             "--package",
             "snap",
-            "--catalog-vietnam",
             "--profile-id",
             "local",
             "--resolver-family",
@@ -367,7 +369,7 @@ fn cli_guide_can_render_vietnamese_guided_settings() {
 }
 
 #[test]
-fn cli_guide_for_native_power_outputs_native_plan_without_fake_guidance() {
+fn cli_guide_for_native_power_reports_the_fail_closed_state() {
     let store = temp_path("guide-native");
 
     let output = binary()
@@ -385,10 +387,11 @@ fn cli_guide_for_native_power_outputs_native_plan_without_fake_guidance() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("Native Linux DNS apply path"));
-    assert!(stdout.contains("NetworkManager D-Bus"));
+    assert!(stdout.contains("Native Power unavailable"));
+    assert!(stdout.contains("unavailable in this build"));
+    assert!(stdout.contains("NetworkManager"));
     assert!(stdout.contains("systemd-resolved"));
-    assert!(stdout.contains("polkit"));
+    assert!(stdout.contains("polkit D-Bus service"));
     assert!(!stdout.contains("Copy DNS servers:"));
 }
 
@@ -451,10 +454,10 @@ fn cli_app_model_renders_main_window_sections_without_tray_requirement() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("DNS Pilot"));
     assert!(stdout.contains("Tray: optional"));
-    assert!(stdout.contains("Benchmark"));
+    assert!(stdout.contains("Check DNS"));
     assert!(stdout.contains("Profiles"));
-    assert!(stdout.contains("Diagnostics"));
-    assert!(stdout.contains("Apply with native helper [enabled]"));
+    assert!(stdout.contains("History"));
+    assert!(!stdout.contains("Apply with native helper [enabled]"));
 }
 
 #[test]
@@ -492,7 +495,7 @@ fn cli_publish_check_localizes_vietnamese_release_steps() {
 }
 
 #[test]
-fn cli_apply_plan_renders_native_helper_contract_for_deb_profile() {
+fn cli_apply_plan_rejects_native_power_until_the_service_is_verified() {
     let store = temp_path("apply-plan");
     let add = binary()
         .args([
@@ -530,15 +533,9 @@ fn cli_apply_plan_renders_native_helper_contract_for_deb_profile() {
         .output()
         .unwrap();
 
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("Native DNS apply plan"));
-    assert!(stdout.contains("Resolver stack: NetworkManager D-Bus"));
-    assert!(stdout.contains("Polkit action: io.dnspilot.DNSPilot.apply-dns"));
-    assert!(stdout.contains("Servers: 1.1.1.1"));
-    assert!(!stdout.contains("2606:4700:4700::1111"));
-    assert!(stdout.contains("Rollback snapshot: yes"));
-    assert!(stdout.contains("Post-apply validation: yes"));
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("Native DNS apply is unavailable in this build"));
 }
 
 #[test]
@@ -548,7 +545,7 @@ fn cli_readiness_outputs_code_ready_and_manual_publish_requirements() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("DNS Pilot Linux Readiness"));
-    assert!(stdout.contains("Code readiness: ready for manual Linux package QA"));
+    assert!(stdout.contains("Code readiness: store-safe consumer work in progress"));
     assert!(stdout.contains("Packaging and publish checklist: ready"));
     assert!(stdout.contains("Manual/external requirements:"));
     assert!(stdout.contains("store credentials"));
@@ -586,8 +583,7 @@ fn cli_publish_check_outputs_package_specific_manual_steps() {
     let stdout = String::from_utf8(deb.stdout).unwrap();
     assert!(stdout.contains("Package: deb"));
     assert!(stdout.contains("apps/linux/scripts/build-packages.sh deb"));
-    assert!(stdout.contains("polkit policy"));
-    assert!(stdout.contains("execute mutation gate"));
+    assert!(stdout.contains("no native helper, polkit policy, or automatic DNS mutation"));
     assert!(stdout.contains("real Linux package QA"));
 }
 
@@ -608,8 +604,8 @@ fn cli_publish_check_all_outputs_every_package_lane() {
     assert!(stdout.contains("Package: rpm"));
     assert!(stdout.contains("Flatpak is benchmark/guidance only"));
     assert!(stdout.contains("Snap is benchmark/guidance only"));
-    assert!(stdout.contains("deb is the native power path"));
-    assert!(stdout.contains("rpm is the native power path"));
+    assert!(stdout.contains("deb is benchmark/guidance first"));
+    assert!(stdout.contains("rpm is benchmark/guidance first"));
 }
 
 #[cfg(unix)]

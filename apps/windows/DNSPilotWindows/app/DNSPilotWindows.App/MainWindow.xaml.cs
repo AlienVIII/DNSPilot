@@ -1,9 +1,11 @@
 using DNSPilotWindows.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.System;
+using System.Reflection;
 
 namespace DNSPilotWindows.App;
 
@@ -12,17 +14,27 @@ public sealed partial class MainWindow : Window
     private const string TutorialSeenKey = "dnspilot.setupTutorialSeen";
     private readonly List<BenchmarkProgressEvent> _progressEvents = [];
     private bool _benchmarkRunning;
+    private CancellationTokenSource? _benchmarkCancellation;
+    private BenchmarkResultPayload? _lastBenchmarkResult;
     private bool _hasShownFirstRunTutorial;
     private bool _tutorialOpen;
+    private bool _runtimeContractsLoaded;
+    private bool _preferencesRestored;
+    private bool _restoringPreferences;
+    private WindowsPreferenceState? _storedPreferences;
     private string _lastDiagnostics = "";
 
     public MainWindow()
     {
         ViewModel = WindowsShellViewModel.CreateDefault(DefaultDatabasePath());
         InitializeComponent();
+        _storedPreferences = AppPreferenceStore.Load();
         RenderStaticState();
+        RenderRuntimeReadiness();
         RenderProgress(BenchmarkRunState.Idle, ViewModel.BenchmarkPlan.Mode, ViewModel.BenchmarkPlan.ProgressSummary);
         CommandPreviewBox.Text = FormatCommand(ViewModel.BenchmarkPlan.CommandArguments);
+        RootGrid.SizeChanged += RootGrid_SizeChanged;
+        ShowConsumerDestination("CheckDns");
         _ = LoadRuntimeContractsAsync();
         Activated += MainWindow_Activated;
     }
@@ -53,9 +65,38 @@ public sealed partial class MainWindow : Window
         await StartBenchmarkAsync(ViewModel.BuildQuickBenchmarkPlan(CurrentBenchmarkSelection()));
     }
 
+    private async void QuickBenchmarkAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await StartBenchmarkAsync(ViewModel.BuildQuickBenchmarkPlan(CurrentBenchmarkSelection()));
+    }
+
+    private void CancelBenchmarkAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        CancelBenchmark();
+    }
+
+    private async void SettingsAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await OpenSettingsAsync();
+    }
+
+    private async void HelpAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await ShowTutorialAsync();
+    }
+
     private async void RunBenchmark_Click(object sender, RoutedEventArgs e)
     {
         await StartBenchmarkAsync(BuildSelectedBenchmarkPlan());
+    }
+
+    private void CancelBenchmark_Click(object sender, RoutedEventArgs e)
+    {
+        CancelBenchmark();
     }
 
     private async void ValidateSystemDns_Click(object sender, RoutedEventArgs e)
@@ -88,6 +129,34 @@ public sealed partial class MainWindow : Window
         await OpenSettingsAsync();
     }
 
+    private async void ApplyInWindowsSettings_Click(object sender, RoutedEventArgs e)
+    {
+        await RunWithButtonDisabledAsync(sender, async () =>
+        {
+            if (!ViewModel.ApplyGuidance.CanStartGuidedApply || !await ConfirmGuidedApplyAsync())
+            {
+                return;
+            }
+
+            await CopyTextAsync(ViewModel.ApplyGuidance.CopyableDnsServers);
+            await OpenSettingsAsync();
+            RetestSystemDnsButton.Visibility = Visibility.Visible;
+        });
+    }
+
+    private async void RetestSystemDns_Click(object sender, RoutedEventArgs e)
+    {
+        await StartBenchmarkAsync(ViewModel.BuildSystemDnsValidationPlan(CurrentBenchmarkSelection()));
+    }
+
+    private async void NetworkSignal_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_lastBenchmarkResult is not null)
+        {
+            await TryRefreshApplyGuidanceFromBenchmarkAsync(_lastBenchmarkResult);
+        }
+    }
+
     private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
         if (_hasShownFirstRunTutorial
@@ -107,6 +176,11 @@ public sealed partial class MainWindow : Window
     private async void ShowTutorial_Click(object sender, RoutedEventArgs e)
     {
         await ShowTutorialAsync();
+    }
+
+    private async void RetryRuntime_Click(object sender, RoutedEventArgs e)
+    {
+        await LoadRuntimeContractsAsync();
     }
 
     private async Task<bool> ShowTutorialAsync()
@@ -180,16 +254,34 @@ public sealed partial class MainWindow : Window
     private void BenchmarkSelection_Changed(object sender, SelectionChangedEventArgs e)
     {
         RefreshBenchmarkDraft();
+        PersistPreferences();
     }
 
     private void BenchmarkNumber_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         RefreshBenchmarkDraft();
+        PersistPreferences();
     }
 
     private void BenchmarkProfiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         RefreshBenchmarkDraft();
+        PersistPreferences();
+    }
+
+    private void Language_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        PersistPreferences();
+    }
+
+    private void DefaultSuiteQuickPick_Click(object sender, RoutedEventArgs e)
+    {
+        SelectSuiteQuickPick(DefaultSuiteQuickPickButton.Tag as string);
+    }
+
+    private void VietnamSuiteQuickPick_Click(object sender, RoutedEventArgs e)
+    {
+        SelectSuiteQuickPick(VietnamSuiteQuickPickButton.Tag as string);
     }
 
     private void PreviewProfileSave_Click(object sender, RoutedEventArgs e)
@@ -437,27 +529,66 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var target = tag switch
-        {
-            "Benchmark" => BenchmarkSection,
-            "Apply" => ApplySection,
-            "Profiles" => ProfilesSection,
-            "Suites" => SuitesSection,
-            "History" => DiagnosticsSection,
-            "Diagnostics" => DiagnosticsSection,
-            _ => BenchmarkSection,
-        };
+        ShowConsumerDestination(tag);
+    }
+
+    private void ShowConsumerDestination(string tag)
+    {
+        var showCheckDns = tag == "CheckDns";
+        var showProfiles = tag == "Profiles";
+        var showHistory = tag == "History";
+
+        BenchmarkSection.Visibility = showCheckDns ? Visibility.Visible : Visibility.Collapsed;
+        ProcessSection.Visibility = showCheckDns ? Visibility.Visible : Visibility.Collapsed;
+        ApplySection.Visibility = showCheckDns ? Visibility.Visible : Visibility.Collapsed;
+        ProfilesSection.Visibility = showProfiles ? Visibility.Visible : Visibility.Collapsed;
+        HistorySection.Visibility = showHistory ? Visibility.Visible : Visibility.Collapsed;
+
+        var target = showProfiles
+            ? ProfilesSection
+            : showHistory
+                ? HistorySection
+                : BenchmarkSection;
         target.StartBringIntoView();
+    }
+
+    private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ApplyResponsiveLayout(e.NewSize.Width);
+    }
+
+    private void ApplyResponsiveLayout(double width)
+    {
+        var compact = width < 960;
+        ContentPrimaryColumn.Width = compact ? new GridLength(1, GridUnitType.Star) : new GridLength(1.1, GridUnitType.Star);
+        ContentSecondaryColumn.Width = compact ? new GridLength(0) : new GridLength(0.9, GridUnitType.Star);
+        ProcessSection.SetValue(Grid.ColumnProperty, compact ? 0 : 1);
+        ProcessSection.SetValue(Grid.RowProperty, compact ? 1 : 0);
+        ApplySection.SetValue(Grid.ColumnProperty, 0);
+        ApplySection.SetValue(Grid.RowProperty, compact ? 2 : 1);
+        ProfilesSection.SetValue(Grid.ColumnProperty, compact ? 0 : 1);
+        ProfilesSection.SetValue(Grid.RowProperty, compact ? 3 : 1);
+        HistorySection.SetValue(Grid.ColumnProperty, compact ? 0 : 1);
+        HistorySection.SetValue(Grid.RowProperty, compact ? 3 : 1);
+        VisualStateManager.GoToElementState(RootGrid, compact ? "CompactLayout" : "WideLayout", useTransitions: false);
     }
 
     private async Task StartBenchmarkAsync(BenchmarkPlanViewModel plan)
     {
+        if (!ViewModel.RuntimeReadiness.CanBenchmark)
+        {
+            _lastDiagnostics = ViewModel.RuntimeReadiness.CopyableReport(AppVersion());
+            DiagnosticsBox.Text = _lastDiagnostics;
+            return;
+        }
+
         if (_benchmarkRunning)
         {
             return;
         }
 
         _progressEvents.Clear();
+        ClearApplyGuidanceForNewBenchmark();
         CommandPreviewBox.Text = FormatCommand(plan.CommandArguments);
         if (!plan.Validation.CanRun)
         {
@@ -473,6 +604,8 @@ public sealed partial class MainWindow : Window
         }
 
         _benchmarkRunning = true;
+        var cancellation = new CancellationTokenSource();
+        _benchmarkCancellation = cancellation;
         SetBenchmarkActionsEnabled(false);
         RenderProgress(BenchmarkRunState.Running, plan.Mode, plan.ProgressSummary);
 
@@ -493,13 +626,33 @@ public sealed partial class MainWindow : Window
                         _progressEvents.Add(progressEvent);
                         RenderProgress(BenchmarkRunState.Running, plan.Mode, plan.ProgressSummary);
                     });
-                }));
+                }, cancellationToken: cancellation.Token));
+
+            if (result.WasCancelled)
+            {
+                var failure = new BenchmarkExecutionFailure(
+                    FailureStepFor(plan.Mode),
+                    WindowsDisplayText.Text("Benchmark cancelled.", "Benchmark đã hủy."),
+                    DateTimeOffset.UtcNow - startedAt,
+                    result.StandardError);
+                RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, failure: failure);
+                _lastDiagnostics = failure.CopyableReport(WindowsDisplayText.ModeLabel(plan.Mode));
+                DiagnosticsBox.Text = _lastDiagnostics;
+                return;
+            }
 
             if (result.Succeeded)
             {
-                var benchmarkReport = TryBuildBenchmarkReport(result.StandardOutput);
-                var applyPlanMessage = await TryRefreshApplyGuidanceFromBenchmarkAsync(result.StandardOutput);
-                RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: history is not null);
+                _lastBenchmarkResult = TryDecodeBenchmarkResult(result.StandardOutput);
+                var benchmarkReport = _lastBenchmarkResult is null
+                    ? null
+                    : BenchmarkResultReportViewModel.FromResult(_lastBenchmarkResult);
+                var applyPlanMessage = _lastBenchmarkResult is null
+                    ? WindowsDisplayText.Text(
+                        "Apply-plan refresh skipped: benchmark output did not match the supported result schema.",
+                        "Bỏ qua cập nhật apply-plan: kết quả benchmark không khớp schema được hỗ trợ.")
+                    : await TryRefreshApplyGuidanceFromBenchmarkAsync(_lastBenchmarkResult);
+                RenderProgress(BenchmarkRunState.Completed, plan.Mode, plan.ProgressSummary, historySaved: result.HistoryWasSaved);
                 RenderRecommendationReport(benchmarkReport);
                 _lastDiagnostics = FormatBenchmarkSuccessDiagnostics(result, applyPlanMessage, benchmarkReport);
                 DiagnosticsBox.Text = _lastDiagnostics;
@@ -525,6 +678,11 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
+            if (ReferenceEquals(_benchmarkCancellation, cancellation))
+            {
+                _benchmarkCancellation = null;
+            }
+            cancellation.Dispose();
             _benchmarkRunning = false;
             SetBenchmarkActionsEnabled(true);
         }
@@ -532,9 +690,12 @@ public sealed partial class MainWindow : Window
 
     private void SetBenchmarkActionsEnabled(bool isEnabled)
     {
-        QuickBenchmarkButton.IsEnabled = isEnabled;
-        ValidateSystemDnsButton.IsEnabled = isEnabled;
-        RunBenchmarkButton.IsEnabled = isEnabled;
+        var canBenchmark = isEnabled && ViewModel.RuntimeReadiness.CanBenchmark;
+        QuickBenchmarkButton.IsEnabled = canBenchmark;
+        ValidateSystemDnsButton.IsEnabled = canBenchmark;
+        RunBenchmarkButton.IsEnabled = canBenchmark;
+        CancelBenchmarkButton.Visibility = _benchmarkRunning ? Visibility.Visible : Visibility.Collapsed;
+        CancelBenchmarkButton.IsEnabled = _benchmarkRunning && _benchmarkCancellation is { IsCancellationRequested: false };
     }
 
     private void RenderStaticState(bool resetDiagnostics = true)
@@ -546,20 +707,34 @@ public sealed partial class MainWindow : Window
         CopyDnsButton.Visibility = ViewModel.ApplyGuidance.Actions.Any(action => action.Kind == ApplyActionKind.CopyDnsServers)
             ? Visibility.Visible
             : Visibility.Collapsed;
-        OpenApplySettingsButton.Visibility = ViewModel.ApplyGuidance.Actions.Any(action => action.Kind == ApplyActionKind.OpenWindowsSettings)
+        ApplyInSettingsButton.Visibility = ViewModel.ApplyGuidance.CanStartGuidedApply
             ? Visibility.Visible
             : Visibility.Collapsed;
+        var canApplyGuidance = ViewModel.RuntimeReadiness.CanApplyGuidance && !_benchmarkRunning;
+        CopyDnsButton.IsEnabled = canApplyGuidance;
+        ApplyInSettingsButton.IsEnabled = canApplyGuidance && ViewModel.ApplyGuidance.CanStartGuidedApply;
+        CopyChecklistButton.IsEnabled = canApplyGuidance;
         var benchmarkProfileOptions = ViewModel.BenchmarkProfileOptions;
         BenchmarkProfilesList.ItemsSource = benchmarkProfileOptions;
-        SelectBenchmarkProfiles(benchmarkProfileOptions, selectedProfileIds);
+        SelectBenchmarkProfiles(
+            benchmarkProfileOptions,
+            selectedProfileIds,
+            selectDefaultsWhenEmpty: !_runtimeContractsLoaded || !_preferencesRestored);
         var benchmarkSuiteOptions = ViewModel.BenchmarkSuiteOptions;
         SuiteCombo.ItemsSource = benchmarkSuiteOptions;
         SelectBenchmarkSuite(benchmarkSuiteOptions, selectedSuiteId);
+        RenderCatalogQuickPicks();
+        RestorePreferencesIfReady();
         ProfilesList.ItemsSource = ViewModel.ProfileRows;
         SuitesList.ItemsSource = ViewModel.SuiteRows;
         HistoryList.ItemsSource = ViewModel.HistoryRows.Count == 0
             ? Array.Empty<BenchmarkHistoryRow>()
             : ViewModel.HistoryRows;
+        CapabilityRowsList.ItemsSource = WindowsCapabilityStatusRows.From(
+            ViewModel.StorePlatformCapability,
+            ViewModel.PowerPlatformCapability,
+            ViewModel.RuntimeReadiness);
+        SetRuntimeSurfaceAvailability();
 
         if (!resetDiagnostics)
         {
@@ -586,40 +761,60 @@ public sealed partial class MainWindow : Window
         RenderRecommendationReport(null);
     }
 
+    private void RenderRuntimeReadiness(bool replaceDiagnostics = false)
+    {
+        var readiness = ViewModel.RuntimeReadiness;
+        RuntimeStatusBar.Title = readiness.Title;
+        RuntimeStatusBar.Message = readiness.Summary;
+        RuntimeStatusBar.Severity = readiness.State switch
+        {
+            RuntimeReadinessState.Ready => InfoBarSeverity.Success,
+            RuntimeReadinessState.Incompatible => InfoBarSeverity.Error,
+            RuntimeReadinessState.Degraded => InfoBarSeverity.Warning,
+            _ => InfoBarSeverity.Informational,
+        };
+        RetryRuntimeButton.Visibility = readiness.State == RuntimeReadinessState.Checking
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        SetRuntimeSurfaceAvailability();
+
+        if (replaceDiagnostics || readiness.State is RuntimeReadinessState.Degraded or RuntimeReadinessState.Incompatible)
+        {
+            _lastDiagnostics = readiness.CopyableReport(AppVersion());
+            DiagnosticsBox.Text = _lastDiagnostics;
+        }
+    }
+
+    private void SetRuntimeSurfaceAvailability()
+    {
+        var readiness = ViewModel.RuntimeReadiness;
+        SetBenchmarkActionsEnabled(!_benchmarkRunning);
+        ProfilesSection.IsEnabled = readiness.CanManageProfiles;
+        SuitesSection.IsEnabled = readiness.CanManageSuites;
+        HistoryList.IsEnabled = readiness.CanReadHistory;
+        RefreshStorageButton.IsEnabled = readiness.CanReadHistory;
+        ClearHistoryButton.IsEnabled = readiness.CanReadHistory;
+        DeleteHistoryButton.IsEnabled = readiness.CanReadHistory;
+        var canApplyGuidance = readiness.CanApplyGuidance && !_benchmarkRunning;
+        CopyDnsButton.IsEnabled = canApplyGuidance;
+        ApplyInSettingsButton.IsEnabled = canApplyGuidance && ViewModel.ApplyGuidance.CanStartGuidedApply;
+        CopyChecklistButton.IsEnabled = canApplyGuidance;
+    }
+
     private async Task LoadRuntimeContractsAsync(bool resetDiagnostics = true)
     {
+        ViewModel = ViewModel.WithRuntimeReadiness(RuntimeReadinessViewModel.Checking(DefaultCliPath()));
+        RenderRuntimeReadiness();
+
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ViewModel.DatabasePath) ?? ".");
-            var loaded = await Task.Run(() =>
-            {
-                var executablePath = DefaultCliPath();
-                var catalog = new CatalogRunner(executablePath).Load();
-                var capabilities = new CapabilityMatrixRunner(executablePath).Load();
-                var profiles = new ProfileListRunner(executablePath).Load(ViewModel.DatabasePath);
-                var suites = new SuiteListRunner(executablePath).Load(ViewModel.DatabasePath);
-                var history = new BenchmarkHistoryRunner(executablePath).Load(ViewModel.DatabasePath);
-                var firstProfile = catalog.Profiles.FirstOrDefault(profile => profile.Protocol == DnsProtocol.Plain);
-                var testedResolver = firstProfile?.Ipv4Servers.FirstOrDefault() is { } ipv4 ? $"{ipv4}:53" : null;
-                var applyPlan = new ApplyPlanRunner(executablePath).Load(
-                    new ApplyPlanRequest(
-                        firstProfile?.Id,
-                        testedResolver,
-                        ApplyPlanConfidence.High,
-                        ApplyPlanGateHealth.Healthy));
+            var databasePath = ViewModel.DatabasePath;
+            var loaded = await Task.Run(() => new RuntimeContractLoader().Load(DefaultCliPath(), databasePath));
 
-                return WindowsShellViewModel.CreateLoaded(
-                    ViewModel.DatabasePath,
-                    catalog,
-                    capabilities,
-                    applyPlan,
-                    profiles,
-                    suites,
-                    history);
-            });
-
-            ViewModel = loaded;
+            ViewModel = WindowsShellViewModel.CreateFromRuntimeLoad(databasePath, loaded);
+            _runtimeContractsLoaded = true;
             RenderStaticState(resetDiagnostics);
+            RenderRuntimeReadiness(replaceDiagnostics: !ViewModel.RuntimeReadiness.CanBenchmark || !ViewModel.RuntimeReadiness.CanApplyGuidance);
             RefreshBenchmarkDraft();
         }
         catch (Exception ex)
@@ -628,12 +823,16 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async Task<string> TryRefreshApplyGuidanceFromBenchmarkAsync(string standardOutput)
+    private async Task<string> TryRefreshApplyGuidanceFromBenchmarkAsync(BenchmarkResultPayload result)
     {
         try
         {
-            var result = BenchmarkResultJsonDecoder.Decode(standardOutput);
-            var request = BenchmarkApplyPlanRequestFactory.MakeRequest(result);
+            var request = BenchmarkApplyPlanRequestFactory.MakeRequest(
+                result,
+                vpnActive: VpnActiveCheckBox.IsChecked == true,
+                mdmProfileActive: ManagedDnsCheckBox.IsChecked == true,
+                corporateDnsDetected: CorporateDnsCheckBox.IsChecked == true,
+                captivePortalDetected: CaptivePortalCheckBox.IsChecked == true);
             var applyPlan = await Task.Run(() => new ApplyPlanRunner(DefaultCliPath()).Load(request));
             ViewModel = ViewModel.WithApplyPlan(applyPlan);
             RenderStaticState(resetDiagnostics: false);
@@ -651,6 +850,24 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void ClearApplyGuidanceForNewBenchmark()
+    {
+        _lastBenchmarkResult = null;
+        ViewModel = ViewModel.WithApplyPlan(
+            new ApplyPlan(
+                ApplyDecision.Block,
+                WindowsDisplayText.Text("Benchmark in progress", "Benchmark đang chạy"),
+                Array.Empty<string>(),
+                TestedResolver: null,
+                WindowsDisplayText.Text(
+                    "Apply guidance stays blocked until this benchmark completes and Core returns a new plan.",
+                    "Hướng dẫn apply bị chặn cho đến khi benchmark hoàn tất và Core trả về kế hoạch mới."))
+            {
+                Disposition = "benchmark-in-progress",
+            });
+        RenderStaticState(resetDiagnostics: false);
+    }
+
     private void RenderRecommendationReport(BenchmarkResultReportViewModel? report)
     {
         if (report is null)
@@ -664,7 +881,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        RecommendationSummaryText.Text = report.SummaryLine;
+        RecommendationSummaryText.Text = string.Join(Environment.NewLine, report.SummaryLine, report.Safety.FastestObservedLine);
         RecommendationLineText.Text = report.RecommendationLine;
         RecommendationResolversList.ItemsSource = report.ResolverLines;
         RecommendationNotesList.ItemsSource = report.NoteLines;
@@ -675,27 +892,48 @@ public sealed partial class MainWindow : Window
         string applyPlanMessage,
         BenchmarkResultReportViewModel? benchmarkReport)
     {
-        return string.Join(
+        return WindowsDiagnosticRedactor.Redact(string.Join(
             Environment.NewLine,
             WindowsDisplayText.Text("Benchmark succeeded", "Benchmark thành công"),
             $"{WindowsDisplayText.Text("Command", "Lệnh")}: {FormatCommand(result.CommandArguments)}",
             applyPlanMessage,
             benchmarkReport?.CopyableReport
                 ?? (string.IsNullOrWhiteSpace(result.StandardOutput) ? "stdout: <empty>" : result.StandardOutput.Trim()),
-            string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim());
+            string.IsNullOrWhiteSpace(result.StandardError) ? "stderr: <empty>" : result.StandardError.Trim()));
     }
 
-    private static BenchmarkResultReportViewModel? TryBuildBenchmarkReport(string standardOutput)
+    private static BenchmarkResultPayload? TryDecodeBenchmarkResult(string standardOutput)
     {
         try
         {
-            return BenchmarkResultReportViewModel
-                .FromResult(BenchmarkResultJsonDecoder.Decode(standardOutput));
+            return BenchmarkResultJsonDecoder.Decode(standardOutput);
         }
         catch
         {
             return null;
         }
+    }
+
+    private async Task<bool> ConfirmGuidedApplyAsync()
+    {
+        if (RootGrid.XamlRoot is null)
+        {
+            return false;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = WindowsDisplayText.Text("Apply in Windows Settings", "Áp dụng trong Windows Settings"),
+            Content = WindowsDisplayText.Text(
+                "DNS Pilot will copy the recommended DNS servers and open Windows Settings. You make and save the DNS change yourself.",
+                "DNS Pilot sẽ sao chép DNS server được khuyến nghị và mở Windows Settings. Bạn tự thực hiện và lưu thay đổi DNS."),
+            PrimaryButtonText = WindowsDisplayText.Text("Copy and open Settings", "Sao chép và mở Settings"),
+            CloseButtonText = WindowsDisplayText.Text("Cancel", "Hủy"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
     private async Task<bool> ConfirmDestructiveActionAsync(
@@ -876,16 +1114,18 @@ public sealed partial class MainWindow : Window
 
     private void SelectBenchmarkProfiles(
         IReadOnlyList<BenchmarkProfileOptionRow> options,
-        IReadOnlyList<string> preferredProfileIds)
+        IReadOnlyList<string> preferredProfileIds,
+        bool selectDefaultsWhenEmpty = true)
     {
         if (BenchmarkProfilesList is null)
         {
             return;
         }
 
-        var selection = preferredProfileIds.Count == 0
-            ? options.Where(option => option.CanBenchmark).Take(3).Select(option => option.Id).ToArray()
-            : preferredProfileIds;
+        var selection = BenchmarkProfilePreferenceSelection.Resolve(
+            options,
+            preferredProfileIds,
+            selectDefaultsWhenEmpty);
         var selectedIds = selection.ToHashSet(StringComparer.Ordinal);
 
         BenchmarkProfilesList.SelectedItems.Clear();
@@ -910,6 +1150,100 @@ public sealed partial class MainWindow : Window
         SuiteCombo.SelectedItem = selection;
     }
 
+    private void RenderCatalogQuickPicks()
+    {
+        var quickPicks = CatalogQuickPicks.FromCatalog(ViewModel.Catalog);
+        ConfigureSuiteQuickPick(DefaultSuiteQuickPickButton, quickPicks.DefaultSuiteId);
+        ConfigureSuiteQuickPick(VietnamSuiteQuickPickButton, quickPicks.VietnamSuiteId);
+    }
+
+    private static void ConfigureSuiteQuickPick(Button button, string? suiteId)
+    {
+        button.Tag = suiteId;
+        button.Visibility = string.IsNullOrWhiteSpace(suiteId)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+    }
+
+    private void SelectSuiteQuickPick(string? suiteId)
+    {
+        if (string.IsNullOrWhiteSpace(suiteId))
+        {
+            return;
+        }
+
+        SelectBenchmarkSuite(ViewModel.BenchmarkSuiteOptions, suiteId);
+        RefreshBenchmarkDraft();
+        PersistPreferences();
+    }
+
+    private void RestorePreferencesIfReady()
+    {
+        if (!_runtimeContractsLoaded || _preferencesRestored)
+        {
+            return;
+        }
+
+        var preference = WindowsPreferenceState.Normalize(_storedPreferences, ViewModel.Catalog);
+        _restoringPreferences = true;
+        try
+        {
+            ModeCombo.SelectedIndex = preference.ModeIndex;
+            RecordFamilyCombo.SelectedIndex = preference.RecordFamilyIndex;
+            ResolverFamilyCombo.SelectedIndex = preference.ResolverFamilyIndex;
+            AttemptsBox.Value = preference.Attempts;
+            DnsTimeoutBox.Value = preference.DnsTimeoutMs;
+            TcpTimeoutBox.Value = preference.TcpTimeoutMs;
+            TcpTargetsBox.Value = preference.TcpTargetsPerDomain;
+            SelectBenchmarkProfiles(
+                ViewModel.BenchmarkProfileOptions,
+                preference.SelectedProfileIds,
+                selectDefaultsWhenEmpty: false);
+            SelectBenchmarkSuite(ViewModel.BenchmarkSuiteOptions, preference.SelectedSuiteId);
+            LanguageCombo.SelectedIndex = preference.LanguageTag == "vi-VN" ? 1 : 0;
+        }
+        finally
+        {
+            _restoringPreferences = false;
+            _preferencesRestored = true;
+        }
+
+        PersistPreferences();
+    }
+
+    private void PersistPreferences()
+    {
+        if (!_runtimeContractsLoaded || _restoringPreferences)
+        {
+            return;
+        }
+
+        var selection = CurrentBenchmarkSelection();
+        var preference = WindowsPreferenceState.Normalize(
+            new WindowsPreferenceState(
+                WindowsPreferenceState.CurrentSchemaVersion,
+                selection.ModeIndex,
+                selection.RecordFamilyIndex,
+                selection.ResolverFamilyIndex,
+                selection.Attempts,
+                selection.DnsTimeoutMs,
+                selection.TcpTimeoutMs,
+                selection.TcpTargetsPerDomain,
+                selection.SelectedProfileIds ?? Array.Empty<string>(),
+                selection.SelectedSuiteId,
+                SelectedLanguageTag()),
+            ViewModel.Catalog);
+        _storedPreferences = preference;
+        AppPreferenceStore.Save(preference);
+    }
+
+    private string SelectedLanguageTag()
+    {
+        return (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag as string is "vi-VN"
+            ? "vi-VN"
+            : "en-US";
+    }
+
     private void RefreshBenchmarkDraft()
     {
         if (CommandPreviewBox is null || StepsList is null || ResolversList is null)
@@ -918,10 +1252,31 @@ public sealed partial class MainWindow : Window
         }
 
         var plan = BuildSelectedBenchmarkPlan();
+        SuiteLimitationNoticeText.Text = plan.SuiteLimitationNotice ?? "";
+        SuiteLimitationNoticeText.Visibility = plan.ModeWasForcedBySuite
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        if (plan.ModeWasForcedBySuite && ModeCombo.SelectedIndex != 1)
+        {
+            ModeCombo.SelectedIndex = 1;
+        }
         CommandPreviewBox.Text = plan.Validation.CanRun
             ? FormatCommand(plan.CommandArguments)
             : string.Join(Environment.NewLine, plan.Validation.Issues);
         RenderProgress(BenchmarkRunState.Idle, plan.Mode, plan.ProgressSummary);
+    }
+
+    private void CancelBenchmark()
+    {
+        if (!_benchmarkRunning || _benchmarkCancellation is not { IsCancellationRequested: false } cancellation)
+        {
+            return;
+        }
+
+        cancellation.Cancel();
+        CancelBenchmarkButton.IsEnabled = false;
+        var plan = BuildSelectedBenchmarkPlan();
+        RenderProgress(BenchmarkRunState.Cancelling, plan.Mode, plan.ProgressSummary);
     }
 
     private static int SafeNumberValue(NumberBox? box, int fallback)
@@ -950,6 +1305,11 @@ public sealed partial class MainWindow : Window
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return Path.Combine(localAppData, "DNSPilot", "dnspilot.sqlite");
+    }
+
+    private static string AppVersion()
+    {
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unavailable";
     }
 
     private static async Task CopyTextAsync(string text)

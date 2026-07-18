@@ -1,3 +1,5 @@
+import Foundation
+
 public enum DNSPilotLanguage: String, CaseIterable, Identifiable, Sendable {
     case system
     case english = "en"
@@ -8,7 +10,34 @@ public enum DNSPilotLanguage: String, CaseIterable, Identifiable, Sendable {
     }
 
     public init(code: String) {
-        self = DNSPilotLanguage(rawValue: code) ?? .system
+        let normalizedCode = code
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if normalizedCode == "system" {
+            self = .system
+        } else if normalizedCode == "en" || normalizedCode.hasPrefix("en-") {
+            self = .english
+        } else if normalizedCode == "vi" || normalizedCode.hasPrefix("vi-") {
+            self = .vietnamese
+        } else {
+            self = .system
+        }
+    }
+
+    public func resolved(preferredLanguageCodes: [String]) -> DNSPilotLanguage {
+        guard self == .system else {
+            return self
+        }
+
+        for code in preferredLanguageCodes {
+            let candidate = DNSPilotLanguage(code: code)
+            if candidate != .system {
+                return candidate
+            }
+        }
+
+        return .english
     }
 
     public var displayName: String {
@@ -128,231 +157,288 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case copyApplyChecklist
     case entryPoint
     case validationEvidence
+    case setup
+    case setupSubtitle
+    case benchmarkReady
+    case guidedApply
+    case useGuidedMode
+    case done
+    case chooseLanguage
+    case showSetup
+    case cancelBenchmark
+    case runBenchmark
+    case resolveReadinessIssues
+    case modeDNSOnly
+    case modeDNSTCP
+    case modeSystemDNS
+    case modeDNSOnlyHelp
+    case modeDNSTCPHelp
+    case modeSystemDNSHelp
+    case recordAuto
+    case recordIPv4
+    case recordIPv6
+    case recordAAndAAAA
+    case recordAOnly
+    case recordAAAAOnly
+    case recordAAndAAAAHelp
+    case recordAOnlyHelp
+    case recordAAAAOnlyHelp
+    case resolverAutoHelp
+    case resolverIPv4Help
+    case resolverIPv6Help
+    case vpnActive
+    case mdmManaged
+    case corporateDNSRequired
+    case captivePortal
+    case safeguardExplanation
+    case systemDNSProfilesIgnored
+    case systemDNSValidationHelp
+    case selectAllRunnable
+    case selectAllRunnableHelp
+    case showOptions
+    case hideOptions
+    case noRunnableProfiles
+    case runnableProfilesSelected
+    case customDomainsHelp
+    case suiteNameHelp
+    case saveSuiteHelp
+    case newSuiteHelp
+    case azureExampleHelp
+    case attemptsHelp
+    case dnsTimeoutHelp
+    case tcpTimeoutHelp
+    case tcpTargetsHelp
+    case systemDNSResolverHelp
+    case plainDNSProfileHelp
+    case missingDNSResolver
+    case missingDNSResolverHelp
+    case missingDNSServer
+    case missingDNSServerHelp
+    case ok
+    case runQuickTest
+    case openBenchmark
+    case openProfiles
+    case openHistory
+    case showResult
+    case settings
+    case directAdminOptInPower
+    case networkChecksHelp
+    case guidedApplyHelp
+    case directAdminOptInHelp
+    case enabledByLaunchFlag
+    case disableDirectAdminActions
+    case enableDirectAdminActions
+    case powerBuildRequired
+    case clearDirectAdminPreference
+    case directAdminConfirmationTitle
+    case directAdminConfirmationMessage
+    case directAdminEnabled
+    case directAdminAvailable
+    case guidedModeActive
+    case directAdminEnabledDetail
+    case directAdminAvailableDetail
+    case guidedModeDetail
+    case openSetup
+    case deleteProfileHelp
+    case deleteSuiteHelp
+    case deleteProfileMessage
+    case deleteHistoryHelp
+    case deleteHistoryMessage
+    case clearHistoryMessage
+    case deleteSuiteMessage
+    case profileStorageUnavailable
+    case benchmarkHistoryStorageUnavailable
+    case refreshCurrentDNSHelp
+    case copyCurrentDNSHelp
+    case elapsedRunning
+    case completedIn
+    case copyFailureReportHelp
+    case moreResultActions
+    case resultActionsHelp
+    case validateSystemDNSHelp
+    case whyThisResult
+    case preparingApplyAction
+    case applyPolicyUnavailable
+    case resultOnlyRetest
+    case copyApplyError
+    case copyApplyErrorHelp
+    case guidedNetworkSettingsHelp
+    case copyRestoreDNS
+    case copyApplyPlan
+    case moreApplyActions
+    case applyActionsHelp
+    case details
+    case testedResolver
+    case moreNextStepActions
+    case nextStepActionsHelp
+    case dnsServersForProfile
+    case copySavedRunIDHelp
+    case deleteSavedRunHelp
+    case flushManualChecklistHelp
+    case dnsTimeoutLabel
+    case tcpTimeoutLabel
+    case tcpTargetsPerDomainLabel
+    case catalogGuidedApplyHelp
+    case restoreDNSHelp
+    case confirmPowerDNSApply
+    case restorePreviousDNS
+    case askAdminApplyDNSHelp
+    case manualChecklistStillAvailable
+    case dnsFlushComplete
+    case dnsFlushFailed
+    case dnsCacheFlushed
+    case dnsApplyComplete
+    case dnsApplyFailed
+    case dnsAppliedCacheFlushed
+    case previousDNSReadyToRestore
+    case dnsRestoreComplete
+    case dnsRestoreFailed
+    case previousDNSRestoredCacheFlushed
+    case progressIdle
+    case progressRunning
+    case progressSuccess
+    case progressDegraded
+    case progressFailed
+    case stepPreparingBenchmark
+    case stepResolvingDNS
+    case stepMeasuringTCP
+    case stepParsingResult
+    case stepSavingHistory
+    case scopeDNSOnly
+    case scopeDNSTCP
+    case scopeDNSTCPTLS
+    case healthHealthy
+    case healthDegraded
+    case healthFailed
+    case healthInconclusive
+    case confidenceHigh
+    case confidenceMedium
+    case confidenceLow
+    case confidenceInconclusive
+    case confidenceWithLevel
+    case keepCurrentDNS
+    case recommendedProfile
+    case bestMeasuredCandidate
+    case noRecommendation
+    case fastestObservedDNS
+    case fastestObservedUnavailable
+    case balancedRecommendation
+    case savedRun
+    case failedRate
+    case failedRateWeakFamily
+    case diagnosisNoIssues
+    case diagnosisDNSLookupFailures
+    case diagnosisTCPPathFailures
+    case diagnosisNoUsableAddresses
+    case diagnosisIPv4Weak
+    case diagnosisIPv6Weak
+    case diagnosisTimeouts
+    case diagnosisAllProbesFailed
+    case nextStepApplyRecommended
+    case nextStepManualUnavailable
+    case nextStepKeepCurrentDNS
+    case nextStepRetest
+    case copyDNSOpenSettings
+    case nextStepNoSystemDNSChange
+    case nextStepRecommendedProfile
+    case nextStepApplyInstructions
+    case nextStepManagedNetworkWarning
+    case nextStepRetestAfterApply
+    case nextStepManualUnavailableDetail
+    case nextStepManualUnavailableAction
+    case nextStepKeepCurrentDetail
+    case nextStepKeepCurrentAction
+    case nextStepRetestDetail
+    case nextStepRetestAction
+    case technicalDetails
+    case historyNoDomains
+    case historyDomainSummary
+    case historyResolverCount
+    case historyDoNotApply
+    case historyRetestBeforeApply
+    case historyRunFreshBenchmark
+    case applyPlanReady
+    case applyPlanGuided
+    case applyPlanProtected
+    case applyPlanUnsupported
+    case applyPlanRetest
+    case applyWithApproval
+    case applyPlanHeadline
+    case customProfileServerCounts
+    case editProfileHelp
+    case copyToNewProfileHelp
+    case editSuiteHelp
+    case copyToNewSuiteHelp
+    case builtInIDConflict
+    case countResolvers
+    case countDomains
+    case countAttempts
+    case tcpTargetsSummary
+    case directResolverTestSummary
+    case systemDNSFlushSummary
+    case estimatedDurationWarning
+    case targetGeneralBrowsing
+    case targetDeveloper
+    case targetVietnamDaily
+    case targetGamingSteam
+    case targetGamingDota2SEA
+    case targetGamingCS2
+    case targetGamingRiotLoL
+    case requiresDNSProfileFlow
+    case requiresDNSProfileFlowHelp
+    case suiteDomainCount
+    case suiteDomainsHelp
+    case vpnActiveHelp
+    case mdmManagedHelp
+    case corporateDNSRequiredHelp
+    case captivePortalHelp
 }
 
 public struct DNSPilotLocalizer: Equatable, Sendable {
     public let language: DNSPilotLanguage
+    private let preferredLanguageCodes: [String]
 
-    public init(language: DNSPilotLanguage) {
-        self.language = language
+    public var resolvedLanguage: DNSPilotLanguage {
+        language.resolved(preferredLanguageCodes: preferredLanguageCodes)
     }
 
-    public init(languageCode: String) {
-        self.language = DNSPilotLanguage(code: languageCode)
-    }
-
-    public func text(_ key: DNSPilotTextKey) -> String {
-        switch language {
+    public var languageMenuLabel: String {
+        switch resolvedLanguage {
         case .vietnamese:
-            Self.vietnamese[key] ?? Self.english[key] ?? key.rawValue
+            "VI"
         case .system, .english:
-            Self.english[key] ?? key.rawValue
+            "EN"
         }
     }
 
-    private static let english: [DNSPilotTextKey: String] = [
-        .overview: "Overview",
-        .platforms: "Platforms",
-        .capabilities: "Capabilities",
-        .permissions: "Permissions",
-        .publish: "Publish",
-        .benchmark: "Benchmark",
-        .checkDNS: "Check DNS",
-        .customDNS: "Custom DNS",
-        .history: "History",
-        .catalog: "Catalog",
-        .settingsTitle: "Settings",
-        .language: "Language",
-        .languageSubtitle: "Choose the app language for supported DNS Pilot surfaces.",
-        .permissionsSubtitle: "DNS Pilot asks for access only when a flow needs it.",
-        .publishSubtitle: "Store-safe and Power distribution stay separate.",
-        .copyChecklist: "Copy Checklist",
-        .openNetworkSettings: "Open Network Settings",
-        .powerActions: "Power Actions",
-        .powerActionsEnabled: "Enabled for this launch",
-        .powerActionsDisabled: "Disabled by default",
-        .run: "Run",
-        .running: "Running",
-        .cancel: "Cancel",
-        .refresh: "Refresh",
-        .clearAll: "Clear All",
-        .delete: "Delete",
-        .edit: "Edit",
-        .result: "Result",
-        .process: "Process",
-        .status: "Status",
-        .profile: "Profile",
-        .resolver: "Resolver",
-        .medianDNS: "Median DNS",
-        .p95DNS: "P95 DNS",
-        .medianTCP: "Median TCP",
-        .failure: "Failure",
-        .diagnosis: "Diagnosis",
-        .providers: "Providers",
-        .suites: "Suites",
-        .filtered: "Filtered",
-        .testSuites: "Test Suites",
-        .savedRuns: "Saved Runs",
-        .noSavedRuns: "No saved runs yet.",
-        .capabilityMatrix: "Capability Matrix",
-        .productGoals: "Product Goals",
-        .apply: "Apply",
-        .flush: "Flush",
-        .platform: "Platform",
-        .mode: "Mode",
-        .options: "Options",
-        .benchmarkTargetHelp: "Choose a built-in, saved, or game target. Game targets use DNS + TCP connection timing.",
-        .networkSafeguards: "Network Safeguards",
-        .profiles: "Profiles",
-        .targets: "Targets",
-        .attempts: "Attempts",
-        .preset: "Preset",
-        .dnsCandidates: "DNS Candidates",
-        .probe: "Probe",
-        .all: "All",
-        .vietnam: "Vietnam",
-        .global: "Global",
-        .game: "Game",
-        .gameCheckDisclaimer: "Game check estimates DNS and TCP connection timing. It is not ICMP ping or in-match UDP latency.",
-        .dnsRecords: "DNS records",
-        .savedProfiles: "Saved Profiles",
-        .noCustomPlainDNSProfiles: "No custom plain DNS profiles.",
-        .servers: "Servers",
-        .name: "Name",
-        .newProfile: "New Profile",
-        .saveProfile: "Save Profile",
-        .updateProfile: "Update Profile",
-        .deleteCustomDNSProfile: "Delete Custom DNS Profile?",
-        .historyNotLoaded: "History has not been loaded.",
-        .deleteSavedRun: "Delete Saved Run?",
-        .clearHistory: "Clear History?",
-        .customOnly: "Custom only",
-        .suiteName: "Suite name",
-        .savedSuites: "Saved suites",
-        .newSuite: "New Suite",
-        .saveSuite: "Save Suite",
-        .updateSuite: "Update Suite",
-        .azureExample: "Azure Example",
-        .deleteCustomSuite: "Delete Custom Suite?",
-        .copyResultReport: "Copy Result Report",
-        .copyRunID: "Copy Run ID",
-        .validateSystemDNS: "Validate System DNS",
-        .refreshCurrentDNS: "Refresh Current DNS",
-        .copyCurrentDNS: "Copy Current DNS",
-        .benchmarkFailed: "Benchmark failed",
-        .failedAt: "Failed at",
-        .reason: "Reason",
-        .suggestion: "Suggestion",
-        .elapsed: "Elapsed",
-        .debugLog: "Debug log",
-        .copyIssueReport: "Copy Issue Report",
-        .copyNextStep: "Copy Next Step",
-        .copyDNSServers: "Copy DNS Servers",
-        .copyApplyChecklist: "Copy Apply Checklist",
-        .entryPoint: "Entry point",
-        .validationEvidence: "Validation",
-    ]
+    public init(
+        language: DNSPilotLanguage,
+        preferredLanguageCodes: [String] = Locale.preferredLanguages
+    ) {
+        self.language = language
+        self.preferredLanguageCodes = preferredLanguageCodes
+    }
 
-    private static let vietnamese: [DNSPilotTextKey: String] = [
-        .overview: "Tổng quan",
-        .platforms: "Nền tảng",
-        .capabilities: "Khả năng",
-        .permissions: "Quyền",
-        .publish: "Phát hành",
-        .benchmark: "Benchmark",
-        .checkDNS: "Kiểm tra DNS",
-        .customDNS: "DNS tùy chỉnh",
-        .history: "Lịch sử",
-        .catalog: "Danh mục",
-        .settingsTitle: "Cài đặt",
-        .language: "Ngôn ngữ",
-        .languageSubtitle: "Chọn ngôn ngữ ứng dụng cho các bề mặt đã hỗ trợ của DNS Pilot.",
-        .permissionsSubtitle: "DNS Pilot chỉ hỏi quyền khi luồng thao tác cần quyền đó.",
-        .publishSubtitle: "Bản Store-safe và bản Power được tách riêng.",
-        .copyChecklist: "Copy checklist",
-        .openNetworkSettings: "Mở Network Settings",
-        .powerActions: "Power Actions",
-        .powerActionsEnabled: "Đã bật cho lần chạy này",
-        .powerActionsDisabled: "Mặc định tắt",
-        .run: "Chạy",
-        .running: "Đang chạy",
-        .cancel: "Hủy",
-        .refresh: "Làm mới",
-        .clearAll: "Xóa tất cả",
-        .delete: "Xóa",
-        .edit: "Sửa",
-        .result: "Kết quả",
-        .process: "Tiến trình",
-        .status: "Trạng thái",
-        .profile: "Profile",
-        .resolver: "Resolver",
-        .medianDNS: "DNS trung vị",
-        .p95DNS: "DNS P95",
-        .medianTCP: "TCP trung vị",
-        .failure: "Lỗi",
-        .diagnosis: "Chẩn đoán",
-        .providers: "Nhà cung cấp",
-        .suites: "Bộ test",
-        .filtered: "Có lọc",
-        .testSuites: "Bộ test domain",
-        .savedRuns: "Run đã lưu",
-        .noSavedRuns: "Chưa có run đã lưu.",
-        .capabilityMatrix: "Ma trận khả năng",
-        .productGoals: "Mục tiêu sản phẩm",
-        .apply: "Áp dụng",
-        .flush: "Flush",
-        .platform: "Nền tảng",
-        .mode: "Mode",
-        .options: "Tùy chọn",
-        .benchmarkTargetHelp: "Chọn mục tiêu có sẵn, đã lưu hoặc game. Mục tiêu game dùng thời gian DNS + kết nối TCP.",
-        .networkSafeguards: "Bảo vệ mạng",
-        .profiles: "Profiles",
-        .targets: "Targets",
-        .attempts: "Số lần thử",
-        .preset: "Preset",
-        .dnsCandidates: "DNS ứng viên",
-        .probe: "Probe",
-        .all: "Tất cả",
-        .vietnam: "Việt Nam",
-        .global: "Global",
-        .game: "Game",
-        .gameCheckDisclaimer: "Kiểm tra game ước tính thời gian DNS và kết nối TCP. Đây không phải ICMP ping hoặc độ trễ UDP trong trận.",
-        .dnsRecords: "DNS records",
-        .savedProfiles: "Profile đã lưu",
-        .noCustomPlainDNSProfiles: "Chưa có profile DNS thường tùy chỉnh.",
-        .servers: "Servers",
-        .name: "Tên",
-        .newProfile: "Profile mới",
-        .saveProfile: "Lưu profile",
-        .updateProfile: "Cập nhật profile",
-        .deleteCustomDNSProfile: "Xóa profile DNS tùy chỉnh?",
-        .historyNotLoaded: "Lịch sử chưa được tải.",
-        .deleteSavedRun: "Xóa run đã lưu?",
-        .clearHistory: "Xóa lịch sử?",
-        .customOnly: "Chỉ tùy chỉnh",
-        .suiteName: "Tên bộ test",
-        .savedSuites: "Bộ test đã lưu",
-        .newSuite: "Bộ test mới",
-        .saveSuite: "Lưu bộ test",
-        .updateSuite: "Cập nhật bộ test",
-        .azureExample: "Ví dụ Azure",
-        .deleteCustomSuite: "Xóa bộ test tùy chỉnh?",
-        .copyResultReport: "Copy báo cáo kết quả",
-        .copyRunID: "Copy Run ID",
-        .validateSystemDNS: "Kiểm tra System DNS",
-        .refreshCurrentDNS: "Làm mới DNS hiện tại",
-        .copyCurrentDNS: "Copy DNS hiện tại",
-        .benchmarkFailed: "Benchmark thất bại",
-        .failedAt: "Lỗi tại",
-        .reason: "Lý do",
-        .suggestion: "Gợi ý",
-        .elapsed: "Thời gian",
-        .debugLog: "Debug log",
-        .copyIssueReport: "Copy issue report",
-        .copyNextStep: "Copy bước tiếp theo",
-        .copyDNSServers: "Copy DNS servers",
-        .copyApplyChecklist: "Copy checklist áp dụng",
-        .entryPoint: "Điểm thao tác",
-        .validationEvidence: "Bằng chứng kiểm tra",
-    ]
+    public init(
+        languageCode: String,
+        preferredLanguageCodes: [String] = Locale.preferredLanguages
+    ) {
+        self.init(
+            language: DNSPilotLanguage(code: languageCode),
+            preferredLanguageCodes: preferredLanguageCodes
+        )
+    }
+
+    public func text(_ key: DNSPilotTextKey) -> String {
+        DNSPilotLocalizationCatalog.text(key, language: resolvedLanguage)
+    }
+
+    public func formatted(_ key: DNSPilotTextKey, _ arguments: CVarArg...) -> String {
+        String(
+            format: text(key),
+            locale: Locale(identifier: resolvedLanguage.rawValue),
+            arguments: arguments
+        )
+    }
+
 }

@@ -4,23 +4,17 @@
 - Users may expect one-click DNS swap in Store build.
 - Current UI must keep copy/open-settings language clear during Windows visual QA.
 - Vietnamese labels are wired through `.resw`, but longer localized strings still need real Windows layout review.
-- Six peer navigation destinations expose internal workflow structure instead of
-  the consumer Check DNS, Profiles, and History tasks.
 - A fixed two-column surface and wide toolbar are not proven at narrow window
   widths, 200% text scaling, or high contrast.
-- Benchmark progress has a cancelling display state but no operational Cancel
-  path from the UI to the child process.
 
 ## Technical Risks
 - Adapter enumeration and DNS settings require careful permissions.
 - WinUI app build and NotifyIcon host are not validated on Windows in this macOS lane.
 - CLI lookup now supports env override, bundled helper, and repo target fallback; packaging still must ensure the helper is bundled for Store builds.
 - Static localization covers native shell labels/tooltips; dynamic Windows shell text now follows `CurrentUICulture` for English/Vietnamese.
-- Runtime loading is fail-closed but does not yet expose per-surface readiness,
-  incompatibility, or recovery states for missing helper, malformed output,
-  unsupported schema, and database failure.
-- Cancellation needs bounded Windows process-tree shutdown and atomic no-history
-  behavior to avoid zombie helpers or partial persisted runs.
+- Runtime readiness, cancellation, result safety, preferences, and report
+  redaction have automated core/static coverage; their real WinUI rendering and
+  packaged behavior still need Windows-host proof.
 
 ## Platform Risks
 - Store packaging and admin-service split.
@@ -45,7 +39,8 @@
 
 ## Dependency Audit
 
-- On 2026-07-13, direct NuGet packages reported no available updates and the
-  WinUI solution reported no known vulnerable direct or transitive packages.
+- On 2026-07-16, direct NuGet packages reported no available updates. The WinUI
+  solution cannot run its Windows-only compiler on this macOS host, so runtime
+  compatibility/vulnerability evidence must be refreshed on Windows.
 - Newer transitive packages exist, but force-pinning them would bypass parent
   package compatibility. Upgrade through tested direct packages only.

@@ -1,61 +1,70 @@
 # DNSPilot State
 
-Last updated: 2026-07-14.
+Last updated: 2026-07-19.
 
 ## Current Truth
 
-- `main` is the integration source of truth. It includes macOS through `7209b70`,
-  Linux through `d9ad771`, and the committed Windows lane through `ae94c97`.
-- Rust Core/CLI owns catalog, benchmark, recommendation, policy, storage, history,
-  apply-plan, and JSON/JSONL contracts. DNS sample payloads now include optional
-  `failure_detail` with regression coverage.
-- macOS Store-safe automated scope is complete: focused consumer IA, DNS-only Quick
-  Check, game/service presets, single-window ownership, guided Apply/Retest, Power
-  rollback isolation, release assets, and safe site generation all pass local gates.
-- Linux committed packaging, settings, planning, and lane docs are integrated. The
-  app remains an engineering shell; its native execute prototype is present for
-  development only and is not releasable until fail-closed privilege and exact
-  rollback architecture are proven.
-- Windows committed Store-safe baseline and selective-parity plan are integrated.
-  Runtime Readiness implementation remains an uncommitted worktree overlay;
-  WinUI/MSIX evidence still requires Windows.
-- Mobile has a standalone Expo native runtime and a verified consumer shell through
-  `3d1a34f` on `worktree/mobile`. The branch remains outside `main` because it contains
-  native iOS DNS Settings commit `345c41e`, pending Apple capability approval and
-  signed physical-device evidence. A newer tutorial change is still uncommitted.
+- `main` integrates macOS through `7609d57`, Linux through `034621c`, and Windows
+  through `2f3cef0`. Core CLI and docs worktrees had no independent production delta.
+- Rust Core/CLI remains the only owner of benchmark, recommendation, policy, storage,
+  and versioned JSON/JSONL contracts.
+- macOS Store-safe behavior, semantic EN/VI localization, packaging, and local release
+  preflight pass. Signed visual/accessibility evidence and provider steps remain open.
+- Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
+  contracts/storage are typed/shared, progress is streamed/cancellable, and the
+  consumer decision/history loop exists. Accessibility, source-built packages, and
+  real Linux evidence remain open.
+- Windows milestones 0-4 and release preparation are committed. Core/static tests pass;
+  WinUI/XAML/MSIX/tray/accessibility evidence still requires Windows.
+- Mobile remains isolated at `8dd1c26`. Its native consumer/runtime work may merge under
+  amended D1 only after current dependency, bridge security, privacy, and UX gates pass.
+  The optional entitled iOS artifact remains provider/device blocked.
 
-## Reference Contract
+## Review Findings
 
-All lanes catch up to `docs/reference-lane-contract.md`. Parity means the same safe
-decision journey and evidence, not identical platform features.
+- Core UDP DNS response identity/semantics are not strong enough for trusted
+  recommendations; D8 is P0.
+- Core snapshot mutations are not transaction-safe across concurrent processes; D9 is
+  P1 before background or multi-window expansion.
+- Mobile dev bridge binds the LAN with wildcard CORS, no authentication, and a
+  caller-controlled database path. Android currently allows backup of local DNS/history
+  data. Both must be hardened before mobile integration.
+- macOS Power Restore does not yet compare current DNS with the state DNSPilot applied.
+  Store-safe macOS is unaffected; Power remains unreleasable.
+- UI parity is functional, not visually proven. No durable signed cross-platform
+  screenshot/accessibility matrix exists; real Windows/Linux UI remains `NOT RUN`.
+- Lane risk/progress docs contained stale resolved claims. Root state and the 2026-07-19
+  overall review now supersede those claims.
 
 ## Latest Validation
 
-- macOS: `./script/ci_macos.sh` passed; 265 Swift tests, Rust workspace tests,
-  Store-safe bundle validation, DNS-only smoke, and DNS+TCP smoke.
-- macOS: `./script/preflight_macos_release.sh --include-power` passed, including
-  Store-safe/Power bundle separation and App Store site safety tests.
-- Linux pre-integration baseline: fmt, tests, clippy, and
-  `cargo test -p dnspilot-cli` passed. Merged-result rerun is pending this pass.
-- Windows committed baseline: 40 Core/static tests passed. The uncommitted Runtime
-  Readiness overlay passes 44 Core tests; Windows-only XAML/MSIX remains `NOT RUN`.
-- Mobile committed branch: `npm run verify` passed 86 tests, typecheck, route export,
-  dependency compatibility, and production config checks. Physical-device proof is
-  still `NOT RUN`.
+- macOS: `./script/ci_macos.sh` and
+  `./script/preflight_macos_release.sh --include-power` pass; 270 Swift tests pass.
+- Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
+- Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
+  expected Windows-only XAML compiler remains `NOT RUN` on macOS.
+- Mobile: 95 tests, typecheck, and route export pass, but `npm run verify` fails because
+  Expo now expects `expo 57.0.7`, `expo-constants 57.0.6`, `expo-dev-client 57.0.7`, and
+  `expo-router 57.0.7`; release preflight was therefore not reached in this rerun.
+- Dependency review: RustSec reports no known Rust advisories; NuGet reports no known
+  vulnerable Windows packages; npm reports 11 moderate and no high/critical findings.
+- Mobile web visual QA at 390px confirms tutorial/Help and three primary tabs, but also
+  confirms repeated titles, implementation jargon, premature empty sections, and a
+  first-run bridge fetch error.
 
 ## Manual Release Gates
 
-- macOS: Apple signing/provisioning, hosted support/privacy URLs, signed screenshots,
-  App Store Connect submission, five-user usability, and real Power Apply/Restore QA.
+- macOS: Apple signing/provisioning, hosted support/privacy URLs, signed EN/VI visual
+  and VoiceOver evidence, five-user usability, App Store submission, and real Power QA.
 - Windows: Windows-host WinUI/MSIX/tray/accessibility QA, signing, Partner Center.
-- Linux: real distro/package builds, GNOME/KDE and resolver-stack QA, signing/publish.
-- Mobile: signed physical-device QA, Apple/Google accounts, Apple `dns-settings`
-  approval for the optional entitled build, and store submission.
+- Linux: source-built package CI, GNOME/KDE/resolver QA, signing, publisher accounts.
+- Mobile: signed physical-device QA, Apple/Google accounts, store submission, and Apple
+  entitlement/provisioning evidence only for the optional entitled profile.
 
 ## Sources
 
 - Architecture: `PROJECT.md`
 - Roadmap: `TODO.md`
+- Overall review: `docs/research/2026-07-19-overall-product-review.md`
 - Cross-platform contract: `docs/reference-lane-contract.md`
-- Platform state: `docs/platform-summary.md`
-- Manual provider steps: `docs/os-provider-trust.md`
+- Provider steps: `docs/os-provider-trust.md`

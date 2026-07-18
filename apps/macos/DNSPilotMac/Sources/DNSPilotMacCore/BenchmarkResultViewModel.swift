@@ -3,6 +3,11 @@ import Foundation
 public struct BenchmarkResultViewModel: Equatable, Sendable {
     private let sourcePayload: BenchmarkResultPayload
 
+    public let measurementScope: BenchmarkMeasurementScope
+    public let health: BenchmarkHealth
+    public let recommendationConfidence: BenchmarkConfidence?
+    public let canRecommend: Bool
+    public let recordFamily: BenchmarkRecordFamily?
     public let scopeLabel: String
     public let healthLabel: String
     public let recommendationLabel: String
@@ -14,6 +19,7 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
     public let notes: [String]
     public let warning: String
     public let savedHistoryLabel: String?
+    public let shortSavedHistoryID: String?
     public let fullSavedHistoryID: String?
     public let recordFamilyLabel: String?
     public let recommendedProfileName: String?
@@ -24,6 +30,11 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
 
     public init(result: BenchmarkResultPayload, catalog: CatalogSnapshot?) {
         sourcePayload = result
+        measurementScope = result.summary.measurementScope
+        health = result.summary.health
+        recommendationConfidence = result.recommendation?.confidence
+        canRecommend = result.summary.canRecommend
+        recordFamily = result.summary.recordFamily
         let catalogProfiles = catalog?.profiles ?? []
         let profileNames = Dictionary(catalogProfiles.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
         let profilesByID = Dictionary(catalogProfiles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -37,6 +48,7 @@ public struct BenchmarkResultViewModel: Equatable, Sendable {
         fastestObservedLabel = Self.fastestObservedLabel(for: result.runs, profileNames: profileNames)
         warning = result.warning
         savedHistoryLabel = result.savedHistoryID.map(Self.savedHistoryLabel)
+        shortSavedHistoryID = result.savedHistoryID.map(Self.shortHistoryID)
         fullSavedHistoryID = result.savedHistoryID
         recordFamilyLabel = result.summary.recordFamily?.displayLabel
 
@@ -486,6 +498,16 @@ public struct BenchmarkRecommendedDNSSettings: Equatable, Sendable {
     }
 }
 
+public enum BenchmarkResultIssue: Equatable, Hashable, Sendable {
+    case dnsLookupFailures
+    case tcpPathFailures
+    case noUsableAddressAnswers
+    case ipv4Weak
+    case ipv6Weak
+    case timeouts
+    case allProbesFailed
+}
+
 public struct BenchmarkResultRow: Equatable, Identifiable, Sendable {
     public let id: String
     public let profileID: String
@@ -498,6 +520,12 @@ public struct BenchmarkResultRow: Equatable, Identifiable, Sendable {
     public let medianConnectLatencyLabel: String
     public let failureRateLabel: String
     public let diagnosisLabel: String
+    public let medianDNSLatencyMS: Double?
+    public let failureRate: Double
+    public let ipv4Health: Double
+    public let ipv6Health: Double
+    public let timeoutRate: Double
+    public let issues: [BenchmarkResultIssue]
 
     public init(run: BenchmarkResultRun, displayName: String?) {
         id = run.profileID
@@ -512,6 +540,11 @@ public struct BenchmarkResultRow: Equatable, Identifiable, Sendable {
             status = .success
         }
         statusDetail = "\(Self.percent(run.metrics.failureRate))% failed"
+        medianDNSLatencyMS = run.metrics.medianDNSLatencyMS
+        failureRate = run.metrics.failureRate
+        ipv4Health = run.metrics.ipv4Health
+        ipv6Health = run.metrics.ipv6Health
+        timeoutRate = run.metrics.timeoutRate
         medianDNSLatencyLabel = Self.latencyLabel(
             run.metrics.medianDNSLatencyMS,
             failureRate: run.metrics.failureRate
@@ -525,7 +558,8 @@ public struct BenchmarkResultRow: Equatable, Identifiable, Sendable {
             failureRate: run.metrics.failureRate
         )
         failureRateLabel = Self.failureRateLabel(for: run.metrics)
-        diagnosisLabel = Self.diagnosisLabel(for: run)
+        issues = Self.issues(for: run)
+        diagnosisLabel = Self.diagnosisLabel(for: issues)
     }
 
     private static func latencyLabel(_ value: Double?, failureRate: Double) -> String {
@@ -561,37 +595,68 @@ public struct BenchmarkResultRow: Equatable, Identifiable, Sendable {
         return "\(base) (\(weakFamilies.joined(separator: "/")) weak)"
     }
 
-    private static func diagnosisLabel(for run: BenchmarkResultRun) -> String {
-        var issues = [String]()
+    private static func issues(for run: BenchmarkResultRun) -> [BenchmarkResultIssue] {
+        var issues = [BenchmarkResultIssue]()
         let caveatText = run.caveats.joined(separator: " ").lowercased()
 
         if caveatText.contains("dns lookups failed") {
-            issues.append("DNS lookup failures")
+            issues.append(.dnsLookupFailures)
         }
         if caveatText.contains("failed tcp connect") {
-            issues.append("TCP path failures")
+            issues.append(.tcpPathFailures)
         }
         if caveatText.contains("no usable a/aaaa") {
-            issues.append("No usable A/AAAA answers")
+            issues.append(.noUsableAddressAnswers)
         }
         if run.metrics.ipv4Health < 0.75 {
-            issues.append("IPv4 weak")
+            issues.append(.ipv4Weak)
         }
         if run.metrics.ipv6Health < 0.75 {
-            issues.append("IPv6 weak")
+            issues.append(.ipv6Weak)
         }
         if run.metrics.timeoutRate > 0 {
-            issues.append("timeouts")
+            issues.append(.timeouts)
         }
         if run.metrics.failureRate >= 1, issues.isEmpty {
-            issues.append("All probes failed")
+            issues.append(.allProbesFailed)
         }
 
-        return issues.isEmpty ? "No issues" : issues.joined(separator: ", ")
+        return issues
+    }
+
+    private static func diagnosisLabel(for issues: [BenchmarkResultIssue]) -> String {
+        let labels = issues.map { issue in
+            switch issue {
+            case .dnsLookupFailures:
+                "DNS lookup failures"
+            case .tcpPathFailures:
+                "TCP path failures"
+            case .noUsableAddressAnswers:
+                "No usable A/AAAA answers"
+            case .ipv4Weak:
+                "IPv4 weak"
+            case .ipv6Weak:
+                "IPv6 weak"
+            case .timeouts:
+                "timeouts"
+            case .allProbesFailed:
+                "All probes failed"
+            }
+        }
+        return labels.isEmpty ? "No issues" : labels.joined(separator: ", ")
     }
 }
 
+public enum BenchmarkResultNextStepKind: Equatable, Sendable {
+    case applyRecommended
+    case manualApplyUnavailable
+    case keepCurrentDNS
+    case retest
+}
+
 public struct BenchmarkResultNextStepViewModel: Equatable {
+    public let kind: BenchmarkResultNextStepKind
+    public let recommendedProfileName: String?
     public let title: String
     public let actionLabel: String
     public let canOpenNetworkSettings: Bool
@@ -601,6 +666,8 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
 
     public init(result: BenchmarkResultViewModel) {
         if result.hasActionableRecommendation, let recommendedProfileName = result.recommendedProfileName {
+            kind = .applyRecommended
+            self.recommendedProfileName = recommendedProfileName
             title = "Next step: Apply recommended DNS manually"
             actionLabel = "Copy DNS + Open Settings"
             canOpenNetworkSettings = true
@@ -614,6 +681,8 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
                 "After changing DNS manually, flush cache and run the benchmark again.",
             ]
         } else if let manualApplyUnavailableReason = result.manualApplyUnavailableReason {
+            kind = .manualApplyUnavailable
+            recommendedProfileName = nil
             title = "Next step: Manual apply not available"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
@@ -626,6 +695,8 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
                 "Retest before changing DNS from this result.",
             ]
         } else if result.recommendsKeepingCurrentDNS {
+            kind = .keepCurrentDNS
+            recommendedProfileName = nil
             title = "Next step: Keep current DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false
@@ -637,6 +708,8 @@ public struct BenchmarkResultNextStepViewModel: Equatable {
                 "Retest with DNS + TCP, A only, or a cleaner network before applying a resolver.",
             ]
         } else {
+            kind = .retest
+            recommendedProfileName = nil
             title = "Next step: Retest before changing DNS"
             actionLabel = "Copy Next Step"
             canOpenNetworkSettings = false

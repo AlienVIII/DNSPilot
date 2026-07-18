@@ -7,10 +7,12 @@ approach is selective parity plus release proof: keep the existing CLI boundary,
 port proven consumer UX and resilience patterns, and make the toolbar flow fully
 Store-viable even when tray integration is unavailable.
 
-The current baseline is Windows commit `bad68e1f`. It already covers the scoped
-benchmark modes, progress and diagnostics, profiles, suites, history, guided
-Settings handoff, localization, tray models, and MSIX scaffolding. The remaining
-engineering work is product hardening, not a second shell implementation.
+The implementation baseline is Windows commit `c3aa69c`; release-evidence docs
+are in `a8216c0`. They cover the scoped benchmark modes, progress and
+diagnostics, profiles, suites, history, guided Settings handoff, localization,
+tray models, runtime readiness, cancellation, result safety, preferences, and
+MSIX scaffolding. The remaining work is Windows-host release proof, not a second
+shell implementation.
 
 This review is the source of truth for the next Windows development milestones.
 It does not authorize Power-edition or privileged DNS mutation work.
@@ -38,12 +40,20 @@ Evidence sources:
 - Mobile commits `7cfb9b4`, `79df2e2`, `1ca726f`, `ab2d735`, and
   `2d46749`, plus `apps/mobile/mobile-progress.md` and
   `apps/mobile/mobile-readiness.md`.
-- Windows commit `bad68e1f`, the 40 core/view-model tests, and
+- Windows commits `c3aa69c`, `a8216c0`, and `5528226`, the 65 core/static tests, and
   `apps/windows/validate-windows-lane.sh`.
 
 Evidence is intentionally asymmetric. Mobile does not prove streaming native
 progress better than Windows, and Windows already has persisted first-run Help.
 Those implementations should not be replaced.
+
+## Status Update: 2026-07-16
+
+Milestones 0-4 are automated-complete. The table and findings above preserve
+the pre-implementation evidence that selected their scope; they are not a claim
+that those behavior gaps remain. Milestone 5 has all safe automation and release
+artifacts prepared. Windows-host WinUI/MSIX/tray/accessibility proof, signing,
+Partner Center, and public hosting remain external manual gates.
 
 ## Principal Findings
 
@@ -134,6 +144,9 @@ real package reaches Partner Center.
 
 ### Milestone 0: Runtime Readiness
 
+**Status: automated implementation complete on 2026-07-14; Windows-host WinUI/MSIX
+proof remains a Milestone 5 manual gate.**
+
 - **Goal:** make helper and contract availability explicit, recoverable, and
   fail-closed.
 - **Acceptance criteria:** Checking, Ready, Degraded, and Incompatible states are
@@ -147,10 +160,16 @@ real package reaches Partner Center.
 - **Dependencies:** existing locator, catalog/capabilities decoders, and the Core
   requests in `windows-core-cli-request.md`. Initial work may probe existing
   commands while the requested runtime metadata contract is pending.
-- **Validation:** TDD for readiness/capability models; missing/malformed/schema
-  fixtures; core tests; lane validation; packaged-helper smoke on Windows later.
+- **Validation:** TDD covers missing helper, malformed JSON, unsupported schema,
+  isolated storage failure, first-run local storage directory creation, partial
+  shell hydration, and static startup/retry/gating wiring. `validate-windows-lane.sh`
+  passed 54 tests on macOS at Milestone 2; packaged-helper smoke remains Windows-host work.
 
 ### Milestone 1: Consumer Shell And Accessibility
+
+**Status: automated implementation complete on 2026-07-14; Windows-host layout,
+keyboard, Narrator, high-contrast, and 200% scaling proof remain a Milestone 5
+manual gate.**
 
 - **Goal:** turn the current feature console into a native consumer task flow.
 - **Acceptance criteria:** primary navigation is Check DNS, Profiles, and History;
@@ -163,10 +182,15 @@ real package reaches Partner Center.
   localization resource bindings.
 - **Dependencies:** Milestone 0 readiness surfaces and the current localized
   resource keys.
-- **Validation:** navigation/view-model tests first; XAML resource/static tests;
-  Windows narrow/wide, 200%, high-contrast, keyboard, and Narrator QA later.
+- **Validation:** navigation/resource/static tests cover the three destinations,
+  contextual diagnostics, EN/VI resources, keyboard accelerator wiring, live
+  readiness announcements, and compact/wide layout contract. Windows narrow/wide,
+  200%, high-contrast, keyboard, and Narrator QA remain host work.
 
 ### Milestone 2: Benchmark Control And Cancellation
+
+**Status: automated implementation complete on 2026-07-14; Windows-host process,
+WinUI, tray, and MSIX proof remain a Milestone 5 manual gate.**
 
 - **Goal:** make the default check fast, predictable, and interruptible.
 - **Acceptance criteria:** Quick Check uses a small DNS-only plan; explicit DNS +
@@ -181,9 +205,15 @@ real package reaches Partner Center.
   and a documented atomic-history expectation from Core.
 - **Validation:** RED tests for cancel-before-start, cancel-during-progress,
   bounded termination, no history save, repeat run, gaming mode, and disclaimer;
-  then core tests and mocked process tests.
+  then core tests and mocked process tests. The Windows lane now has those RED/GREEN
+  tests plus a real local child-process cancellation regression. The app marks
+  history saved only when Core returns `saved_history_id`; its no-partial-row
+  guarantee remains the documented Core CLI atomic-history contract.
 
 ### Milestone 3: Result Safety And Guided Apply
+
+**Status: automated implementation complete on 2026-07-14; Windows-host Settings,
+WinUI, Narrator, and MSIX proof remain a Milestone 5 manual gate.**
 
 - **Goal:** make the recommendation trustworthy and the Store-safe next action
   obvious.
@@ -200,7 +230,10 @@ real package reaches Partner Center.
   `apply-plan windows-store` payloads. Read-only adapter discovery is not required.
 - **Validation:** decision-state and CTA tests first; protected-plan fixtures;
   localization tests; mocked clipboard/Settings launch tests; real Settings and
-  System DNS retest QA later.
+  System DNS retest QA later. The lane now covers Core-derived recommendation,
+  fastest-observed, keep-current, protected-network request flags, guide/protect
+  CTA gating, and static confirmed-copy/open/retest wiring. Clipboard, Settings,
+  and Narrator behavior remain Windows-host QA.
 
 ### Milestone 4: Preferences And Diagnostics
 
@@ -217,6 +250,12 @@ real package reaches Partner Center.
 - **Dependencies:** Milestones 0-3 stable state models.
 - **Validation:** preference migration/corruption tests; catalog-removal tests;
   EN/VI copy tests; report redaction tests.
+
+**Status: automated-complete.** `WindowsPreferenceState` is schema-versioned
+and normalized against the loaded catalog before it reaches LocalSettings.
+Default and Vietnam selectors derive from suite tags, while diagnostics render
+catalog/runtime capability rows. Windows-host rendering, language-restart
+behavior, and packaged persistence remain Milestone 5 QA evidence.
 
 ### Milestone 5: Windows Release Evidence
 
@@ -235,6 +274,12 @@ real package reaches Partner Center.
   identity, signing identity, and hosted privacy/support URLs for final release.
 - **Validation:** `Validate-WindowsLane.ps1 -Configuration Release`, installed
   package smoke, `windows-qa.md`, and `windows-publish.md`.
+
+**Status: automation-ready.** The package scaffolding, validation entrypoints,
+publish runbook, and versioned release-evidence template are committed. A
+Windows host is still required for WinUI/MSIX/tray proof; Partner Center identity,
+signing, hosted URLs, restricted-capability review, and submission require their
+respective external access.
 
 Recommended order is Milestone 0 through Milestone 5. Automated and mocked work
 continues when a Windows device or Store account is unavailable; manual gates do
@@ -262,7 +307,8 @@ not pause implementation.
 
 ## Definition Of Ready
 
-- Baseline is `bad68e1f`; no milestone reimplements its completed flows.
+- Baseline is `c3aa69c`; no future milestone reimplements completed Store-safe
+  consumer flows.
 - Each behavior milestone starts with RED view-model/process-boundary tests.
 - Core dependencies are recorded in `windows-core-cli-request.md`; Windows does
   not edit Core to bypass lane ownership.
@@ -271,11 +317,10 @@ not pause implementation.
   accessibility expectations, and failure states have acceptance criteria above.
 - Manual Windows/signing/Store gates are isolated in Milestone 5 and do not block
   implementation.
-- Direct NuGet dependencies are current and no vulnerable direct/transitive
-  packages were reported on 2026-07-13. Transitive updates are not force-pinned;
-  they should arrive through tested parent package upgrades.
-- Root `STATE.md` and `TODO.md` still describe the pre-`bad68e1f` Windows lane;
+- Direct NuGet dependencies reported no available updates on 2026-07-16.
+  Transitive updates are not force-pinned; they should arrive through tested
+  parent package upgrades and Windows-host build evidence.
+- Root `STATE.md` and `TODO.md` still describe the pre-`a8216c0` Windows lane;
   their integration owner should refresh them after this Windows-only milestone.
 
-The next engineering session starts with Milestone 0 only, then completes and
-commits each verified milestone before moving forward.
+The next engineering session starts with Windows-host Milestone 5 evidence only.

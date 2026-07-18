@@ -53,14 +53,12 @@ stage_payload() {
 
   install -m755 "$LINUX_ROOT/DNSPilotLinux/target/release/dnspilot-linux-gui" "$PAYLOAD_DIR/"
   install -m755 "$LINUX_ROOT/DNSPilotLinux/target/release/dnspilot-linux-shell" "$PAYLOAD_DIR/"
-  install -m755 "$LINUX_ROOT/DNSPilotLinux/target/release/dnspilot-native-helper" "$PAYLOAD_DIR/"
   install -m755 "$REPO_ROOT/target/release/dnspilot-cli" "$PAYLOAD_DIR/"
   install -m644 "$LINUX_ROOT/packaging/shared/io.dnspilot.DNSPilot.desktop" "$PAYLOAD_DIR/"
   install -m644 "$LINUX_ROOT/packaging/shared/io.dnspilot.DNSPilot.metainfo.xml" "$PAYLOAD_DIR/"
   install -m644 "$LINUX_ROOT/packaging/shared/io.dnspilot.DNSPilot.svg" "$PAYLOAD_DIR/"
-  install -m644 "$LINUX_ROOT/packaging/polkit/io.dnspilot.DNSPilot.apply.policy" "$PAYLOAD_DIR/"
 
-  for binary in dnspilot-linux-gui dnspilot-linux-shell dnspilot-native-helper dnspilot-cli; do
+  for binary in dnspilot-linux-gui dnspilot-linux-shell dnspilot-cli; do
     file -b "$PAYLOAD_DIR/$binary" | grep -q 'ELF' \
       || die "$binary is not a Linux ELF executable"
   done
@@ -126,16 +124,12 @@ build_deb() {
   install -Dm755 "$PAYLOAD_DIR/dnspilot-linux-gui" "$root/usr/bin/dnspilot-linux-gui"
   install -Dm755 "$PAYLOAD_DIR/dnspilot-linux-shell" "$root/usr/bin/dnspilot-linux-shell"
   install -Dm755 "$PAYLOAD_DIR/dnspilot-cli" "$root/usr/bin/dnspilot-cli"
-  install -Dm755 "$PAYLOAD_DIR/dnspilot-native-helper" \
-    "$root/usr/libexec/dnspilot/dnspilot-native-helper"
   install -Dm644 "$PAYLOAD_DIR/io.dnspilot.DNSPilot.desktop" \
     "$root/usr/share/applications/io.dnspilot.DNSPilot.desktop"
   install -Dm644 "$PAYLOAD_DIR/io.dnspilot.DNSPilot.metainfo.xml" \
     "$root/usr/share/metainfo/io.dnspilot.DNSPilot.metainfo.xml"
   install -Dm644 "$PAYLOAD_DIR/io.dnspilot.DNSPilot.svg" \
     "$root/usr/share/icons/hicolor/scalable/apps/io.dnspilot.DNSPilot.svg"
-  install -Dm644 "$PAYLOAD_DIR/io.dnspilot.DNSPilot.apply.policy" \
-    "$root/usr/share/polkit-1/actions/io.dnspilot.DNSPilot.apply.policy"
   dpkg-deb --build --root-owner-group "$root" "$output"
 }
 

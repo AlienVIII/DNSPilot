@@ -57,6 +57,9 @@
   confirmation wiring, single-flight benchmark launch wiring, and strict
   macOS XAML-compiler failure classification.
 - Automated tests also check `x:Uid` localization hooks, `en-US`/`vi-VN` resource keys, dynamic Vietnamese shell text, package capability template, top-level `Package.appxmanifest`, MSIX launch/publish profile wiring, Store manifest preparation script, PNG asset dimensions, bundled CLI copy rule, privacy draft, Store listing copy, and certification notes.
+- `windows-release-evidence-template.md` makes the remaining Windows-host package,
+  accessibility, localization, tray, and Store-submission proof auditable rather
+  than an untracked manual checklist.
 - Store-safe static scan currently finds no DNS mutation or admin-elevation implementation in `apps/windows/DNSPilotWindows`.
 - XML well-formed checks pass for `MainWindow.xaml`, both `.resw` files, and the Store package manifest template.
 

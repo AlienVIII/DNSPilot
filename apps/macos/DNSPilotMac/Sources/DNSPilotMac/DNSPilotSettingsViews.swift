@@ -9,6 +9,12 @@ struct DNSPilotSettingsView: View {
         DNSPilotLocalizer(languageCode: languageCode)
     }
 
+    private var presentation: MacOSSettingsPresentation {
+        MacOSSettingsPresentation(
+            isPowerBuild: MacOSPowerDNSActionConfiguration.isBuildCapable()
+        )
+    }
+
     var body: some View {
         Form {
             Section {
@@ -26,10 +32,12 @@ struct DNSPilotSettingsView: View {
                 Text(localizer.text(.settingsTitle))
             }
 
-            Section {
-                DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: true)
-            } header: {
-                Text(localizer.text(.powerActions))
+            if presentation.showsPowerActions {
+                Section {
+                    DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: true)
+                } header: {
+                    Text(localizer.text(.powerActions))
+                }
             }
         }
         .formStyle(.grouped)
@@ -43,6 +51,12 @@ struct PermissionSetupSheet: View {
     @Binding var userEnabledPowerActions: Bool
     @Binding var isPresented: Bool
 
+    private var presentation: MacOSSettingsPresentation {
+        MacOSSettingsPresentation(
+            isPowerBuild: MacOSPowerDNSActionConfiguration.isBuildCapable()
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
             HStack(alignment: .top, spacing: DNSPilotDesign.Spacing.row) {
@@ -52,37 +66,41 @@ struct PermissionSetupSheet: View {
                     .frame(width: 42)
 
                 VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                    Text("DNS Pilot Setup")
+                    Text(localizer.text(.setup))
                         .font(.title2.weight(.semibold))
-                    Text("Test DNS, open Settings, retest. Direct Admin is optional.")
+                    Text(localizer.text(.setupSubtitle))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.controlGap) {
-                Label("Benchmark: ready", systemImage: "checkmark.circle")
+                Label(localizer.text(.benchmarkReady), systemImage: "checkmark.circle")
                     .foregroundStyle(DNSPilotDesign.Palette.success)
-                    .help("DNS and TCP checks use normal outbound networking.")
-                Label("Apply DNS: guided by default", systemImage: "info.circle")
+                    .help(localizer.text(.networkChecksHelp))
+                Label(localizer.text(.guidedApply), systemImage: "info.circle")
                     .foregroundStyle(.secondary)
-                    .help("macOS has no pre-grant toggle for plain DNS editing. DNSPilot copies values and opens Network Settings in Store-safe mode.")
-                Label("Direct Admin: opt-in Power build", systemImage: "person.badge.key")
-                    .foregroundStyle(.secondary)
-                    .help("Power/direct-install builds can show admin Apply/Flush after explicit opt-in. macOS still asks for administrator approval at action time.")
+                    .help(localizer.text(.guidedApplyHelp))
+                if presentation.showsPowerActions {
+                    Label(localizer.text(.directAdminOptInPower), systemImage: "person.badge.key")
+                        .foregroundStyle(.secondary)
+                        .help(localizer.text(.directAdminOptInHelp))
+                }
             }
 
-            DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: false)
+            if presentation.showsPowerActions {
+                DirectAdminActionsPanel(userEnabledPowerActions: $userEnabledPowerActions, compact: false)
+            }
 
             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                 Spacer()
 
-                Button("Use Guided Mode") {
+                Button(localizer.text(.useGuidedMode)) {
                     userEnabledPowerActions = false
                     isPresented = false
                 }
 
-                Button("Done") {
+                Button(localizer.text(.done)) {
                     isPresented = false
                 }
                 .keyboardShortcut(.defaultAction)
@@ -96,7 +114,12 @@ struct PermissionSetupSheet: View {
 struct DirectAdminActionsPanel: View {
     @Binding var userEnabledPowerActions: Bool
     let compact: Bool
+    @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
     @State private var isConfirmingEnable = false
+
+    private var localizer: DNSPilotLocalizer {
+        DNSPilotLocalizer(languageCode: languageCode)
+    }
 
     private var isDirectAdminAvailable: Bool {
         MacOSPowerDNSActionConfiguration.isBuildCapable()
@@ -127,24 +150,24 @@ struct DirectAdminActionsPanel: View {
             HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
                 if isEffectiveEnabled {
                     if isForcedByLaunch {
-                        Label("Enabled by launch flag", systemImage: "info.circle")
+                        Label(localizer.text(.enabledByLaunchFlag), systemImage: "info.circle")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
                         Button(role: .destructive) {
                             userEnabledPowerActions = false
                         } label: {
-                            Label("Disable Direct Admin Actions", systemImage: "lock")
+                            Label(localizer.text(.disableDirectAdminActions), systemImage: "lock")
                         }
                     }
                 } else if isDirectAdminAvailable {
                     Button {
                         isConfirmingEnable = true
                     } label: {
-                        Label("Enable Direct Admin Actions...", systemImage: "bolt.shield")
+                        Label(localizer.text(.enableDirectAdminActions), systemImage: "bolt.shield")
                     }
                 } else {
-                    Label("Power/direct-install build required", systemImage: "shippingbox")
+                    Label(localizer.text(.powerBuildRequired), systemImage: "shippingbox")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -152,7 +175,7 @@ struct DirectAdminActionsPanel: View {
                         Button(role: .destructive) {
                             userEnabledPowerActions = false
                         } label: {
-                            Label("Clear Direct Admin Preference", systemImage: "xmark.circle")
+                            Label(localizer.text(.clearDirectAdminPreference), systemImage: "xmark.circle")
                         }
                     }
                 }
@@ -160,41 +183,41 @@ struct DirectAdminActionsPanel: View {
                 Button {
                     openNetworkSettings()
                 } label: {
-                    Label("Open Network Settings", systemImage: "gearshape")
+                    Label(localizer.text(.openNetworkSettings), systemImage: "gearshape")
                 }
             }
         }
         .confirmationDialog(
-            "Enable Direct Admin Actions?",
+            localizer.text(.directAdminConfirmationTitle),
             isPresented: $isConfirmingEnable,
             titleVisibility: .visible
         ) {
-            Button("Enable Direct Admin Actions") {
+            Button(localizer.text(.enableDirectAdminActions)) {
                 userEnabledPowerActions = true
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.text(.cancel), role: .cancel) {}
         } message: {
-            Text("DNS Pilot will show Apply Now (Admin) and Flush Now (Admin). macOS will ask for administrator approval at action time, and the app may change the active network service DNS. Keep this off on managed, corporate, VPN, or App Store-safe builds.")
+            Text(localizer.text(.directAdminConfirmationMessage))
         }
     }
 
     private var stateLabel: String {
         if isEffectiveEnabled {
-            return "Direct Admin Actions enabled"
+            return localizer.text(.directAdminEnabled)
         }
         if isDirectAdminAvailable {
-            return "Direct Admin Actions available"
+            return localizer.text(.directAdminAvailable)
         }
-        return "Guided mode active"
+        return localizer.text(.guidedModeActive)
     }
 
     private var detailText: String {
         if isEffectiveEnabled {
-            return "Apply Now (Admin) and Flush Now (Admin) are visible where a safe DNS plan is available. macOS still asks for administrator approval before changing DNS or flushing cache."
+            return localizer.text(.directAdminEnabledDetail)
         }
         if isDirectAdminAvailable {
-            return "This Power/direct-install build can run Apply/Flush inside the app after explicit opt-in. macOS asks for administrator approval at action time."
+            return localizer.text(.directAdminAvailableDetail)
         }
-        return "This Store-safe build only copies DNS/apply steps and opens Network Settings. Use a Power/direct-install build when this Mac should allow direct in-app Apply/Flush."
+        return localizer.text(.guidedModeDetail)
     }
 }

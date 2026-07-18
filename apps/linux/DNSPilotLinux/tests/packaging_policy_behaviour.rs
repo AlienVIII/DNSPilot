@@ -46,27 +46,22 @@ fn snap_manifest_stays_strict_and_avoids_privileged_network_manager_plug() {
 }
 
 #[test]
-fn native_package_templates_install_polkit_policy_for_dns_apply() {
+fn default_native_package_templates_exclude_unavailable_power_files() {
     let deb = read_packaging_file("packaging/deb/control");
     let deb_install = read_packaging_file("packaging/deb/dnspilot.install");
     let rpm = read_packaging_file("packaging/rpm/dnspilot-linux.spec");
-    let policy = read_packaging_file("packaging/polkit/io.dnspilot.DNSPilot.apply.policy");
-
-    assert!(deb.contains("policykit-1") || deb.contains("polkitd"));
-    assert!(deb.contains("network-manager") || deb.contains("systemd-resolved"));
     assert!(deb_install.contains("dnspilot-linux-gui usr/bin/"));
     assert!(deb_install.contains("dnspilot-linux-shell usr/bin/"));
-    assert!(deb_install.contains("dnspilot-native-helper usr/libexec/dnspilot/"));
-    assert!(deb_install.contains("io.dnspilot.DNSPilot.apply.policy usr/share/polkit-1/actions/"));
-    assert!(rpm.contains("Recommends: polkit"));
-    assert!(!rpm.contains("Requires: polkit"));
-    assert!(rpm.contains("Recommends: NetworkManager"));
+    assert!(!deb_install.contains("dnspilot-native-helper"));
+    assert!(!deb_install.contains("polkit-1/actions"));
+    assert!(!deb.contains("Recommends: polkit"));
+    assert!(!deb.contains("Recommends: network-manager"));
+    assert!(!rpm.contains("Recommends: polkit"));
+    assert!(!rpm.contains("Recommends: NetworkManager"));
     assert!(rpm.contains("install -Dm755 %{SOURCE0}"));
     assert!(rpm.contains("%{_bindir}/dnspilot-linux-gui"));
-    assert!(rpm.contains("%{_libexecdir}/dnspilot/dnspilot-native-helper"));
-    assert!(rpm.contains("polkit-1/actions/io.dnspilot.DNSPilot.apply.policy"));
-    assert!(policy.contains("io.dnspilot.DNSPilot.apply-dns"));
-    assert!(policy.contains("<allow_active>auth_admin_keep</allow_active>"));
+    assert!(!rpm.contains("dnspilot-native-helper"));
+    assert!(!rpm.contains("polkit-1/actions"));
 }
 
 #[test]
@@ -157,14 +152,14 @@ fn native_package_recipes_are_buildable_from_the_staged_payload() {
     let rpm = read_packaging_file("packaging/rpm/dnspilot-linux.spec");
 
     assert!(deb.contains("Package: dnspilot"));
-    assert!(deb.contains("Recommends: polkit"));
-    assert!(deb.contains("network-manager | systemd-resolved"));
-    assert!(!deb.contains("Depends: polkit"));
+    assert!(deb.contains("Native DNS"));
+    assert!(!deb.contains("polkit"));
+    assert!(!deb.contains("network-manager"));
     for source in [
         "Source0: dnspilot-linux-gui",
         "Source1: dnspilot-linux-shell",
         "Source2: dnspilot-cli",
-        "Source3: dnspilot-native-helper",
+        "Source3: io.dnspilot.DNSPilot.desktop",
     ] {
         assert!(rpm.contains(source), "rpm recipe should include {source}");
     }

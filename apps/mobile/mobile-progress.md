@@ -1,98 +1,54 @@
 # Mobile Progress
 
+Last reviewed: 2026-07-19. Reviewed branch: `worktree/mobile` at `8dd1c26`.
+
 ## BLUF
 
-The mobile lane is a standalone Expo native app. Local Expo modules call a Rust
-adapter around `dnspilot-core` for catalog, policy, profile/suite/history,
-recommendation, DNS-only, DNS+TCP/TLS, and system-resolver actions. The Node
-bridge remains an Expo Go/web development fallback only. Android debug builds
-compile on SDK 57. Production iOS entitlement generation, Android release
-assembly, and the current iOS Simulator consumer UI are validated locally. The
-durable lane handoff is now `STATE.md`; this file remains a feature summary.
+Mobile is a native Expo app backed by local Expo modules and a Rust adapter around
+`dnspilot-core`; installed builds do not require a developer Mac or Node bridge. The
+consumer shell and entitlement isolation are substantially implemented, but the lane is
+not merge-ready while verify, bridge security, backup/privacy, and concise-UI gates are
+open.
 
-## Requirement Coverage
+## Implemented
 
-- Consumer shell with Check DNS, Profiles, and History tabs. Internal routes
-  are hidden from tab navigation.
-- Native Rust runtime preserves the JSON shell contract of the shared core;
-  installable native builds do not call the Node bridge.
-- Benchmark UI covers DNS-only, DNS+TCP/TLS, and system-DNS validation with
-  foreground native jobs, resolver rows, failure details, and copyable reports.
-- Guided settings covers iOS/iPadOS profile/settings guidance and Android
-  settings/Private DNS guidance without silent DNS mutation or VpnService.
-- No app-open permission sheet. A versioned, optional first-run tutorial waits
-  for persisted preferences and completes only on Skip or Done. Its top-right
-  Help icon reopens the shared tutorial from every consumer tab; settings
-  guidance begins only from a healthy, confident recommendation.
-- Storage forms cover custom plain DNS, DoH, DoT profiles, custom suites, local
-  validation, and custom tag preservation.
-- iOS/iPadOS has a native `NEDNSSettingsManager` module for installing/removing
-  user-approved DoH/DoT DNS Settings configurations with bootstrap IPs. The
-  default Store profile omits its entitlement; `production-ios-dns` gates the
-  capability pending Apple approval and signed-device validation.
-- Adaptive phone/tablet layouts, A/AAAA controls, IPv4/IPv6 controls,
-  Default/Vietnam quick picks, and English/Vietnamese localization are
-  implemented.
-- Benchmark mode/family/platform options and Storage protocol/filtering options
-  localize in English/Vietnamese instead of staying hardcoded English.
-- Manual language choice persists with native AsyncStorage across app restarts.
-- Primary controls expose accessibility labels and state metadata for
-  VoiceOver/TalkBack real-device checks.
-- Native build path is smoke-tested locally with Android `assembleDebug`; the
-  app is on Expo SDK 57 / React Native 0.86 and carries a narrow
-  `expo-modules-jsi@57.0.1` Swift compatibility patch for Xcode 26. The Store
-  iOS prebuild has no DNS Settings entitlement; the opt-in profile adds it.
-- Native system appearance metadata is backed by `expo-system-ui`, so Expo
-  prebuild no longer warns about `userInterfaceStyle`.
-- EAS development builds include `expo-dev-client`; the local real-device
-  command is `npm run start:dev-client`.
-- Production/preview EAS profiles exclude dev-client/dev-menu autolinking, and
-  Android release manifests are checked to keep dev-only overlay/storage/vibrate
-  permissions and VPN/system-DNS mutation permissions out of store builds.
+- `Check DNS`, `Profiles`, and `History` primary tabs; internal routes stay hidden.
+- Foreground DNS-only, DNS+TCP/TLS, and System DNS jobs reuse Core catalog, policy,
+  recommendation, storage, history, result, and progress contracts.
+- Optional persisted first-run tutorial waits for preferences, completes on Skip/Done,
+  requests no permission, and reopens from top-right Help on every consumer tab.
+- Guided iOS/Android Settings handoff never silently mutates plain DNS or uses Android
+  `VpnService`.
+- Default iOS Store profile omits `dns-settings`; optional `production-ios-dns` contains
+  user-enabled `NEDNSSettingsManager` DoH/DoT support behind provider/device gates.
+- EN/VI, adaptive layout, accessibility metadata, custom profiles/suites, persistence,
+  production dev-client exclusion, and Android release policy checks exist.
 
-## Validation
+## Latest Validation
 
-- `npm run native:prepare:ios` and `npm run native:prepare:android`: build the
-  Rust artifacts consumed by native modules; EAS invokes the matching hook.
-- `npm run verify`: preferred full local gate before real-device QA or EAS
-  builds.
-- `npm test`: 89 behavior/view-model/plugin tests pass at `5a49a2b`; do not
-  treat the count as a release invariant.
-- `npm run typecheck`: pass after `npm ci`.
-- `npm run postinstall`: pass; applies the `expo-modules-jsi` Xcode 26 patch.
-- `npx expo install --check`: pass with `expo-dev-client`.
-- `npx expo-doctor@latest`: pass.
-- `npm run verify:router`: runs Expo web export and fails on unresolved Expo
-  Router routes; added after a false-green `profiles` warning.
-- `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform ios
-  --no-install`: pass; generated entitlement plist is empty as required for the
-  default Store build. The opt-in config has the DNS Settings plugin and flag.
-- `EAS_BUILD_PROFILE=production xcodebuild ... -configuration Release ...`:
-  current bundle built, installed, launched, and was visually checked on an
-  iPhone 17e simulator. First launch showed the title-first tutorial and header
-  Help icon; it made no permission request.
-- `npx expo prebuild --platform android --no-install && ./android/gradlew -p android assembleDebug`:
-  pass with SDK 36/JDK 17.
-- `EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:assembleRelease`:
-  pass; packages the native Rust runtime and release JS bundle.
-- `EAS_BUILD_PROFILE=production npx expo prebuild --clean --platform android --no-install && EAS_BUILD_PROFILE=production ./android/gradlew -p android :app:processReleaseManifest`:
-  pass; release manifest grep has no `expo-dev`, dev menu/launcher,
-  overlay/storage/vibrate, VPN, or system-DNS mutation permission matches.
+- 95 tests, typecheck, Expo config, and Router export: pass.
+- Latest `npm run verify`: fail at Expo install compatibility. Expected patches are
+  `expo 57.0.7`, `expo-constants 57.0.6`, `expo-dev-client 57.0.7`, and
+  `expo-router 57.0.7`.
+- `npm run preflight:release`: not reached after verify failed.
+- Earlier branch evidence includes iOS Release Simulator build/install/launch and Android
+  release assembly/manifest checks; rerun after dependency/privacy changes.
+- Physical-device, signing, Store review, VoiceOver/TalkBack, backup, and optional
+  entitlement proof: `NOT RUN`.
 
 ## Remaining Gates
 
-- Real-device QA on physical iOS/iPadOS and Android devices.
-- Apple/Google signing, store setup, real-device QA, Android Private DNS manual
-  checks, and Apple Network Extensions `dns-settings` capability setup.
-- Dependency audit: Expo tooling currently pulls vulnerable `uuid <11.1.1`; npm's
-  force fix is breaking.
-- OS provider trust/manual release steps remain in `docs/os-provider-trust.md`.
+1. Restore current Expo compatibility and rerun the full release gate.
+2. Harden development bridge and local database boundary.
+3. Enforce/document mobile backup and retention policy.
+4. Remove duplicate titles, empty technical panels, raw errors, and Core/CLI jargon;
+   keep advanced profile editing behind progressive disclosure.
+5. Merge source under amended D1 only after normal gates pass. Keep the entitled artifact
+   provider/device blocked independently.
 
 ## Source Of Truth
 
-- Main checklist and manual flow: `apps/mobile/mobile-readiness.md`.
-- Publish steps: `apps/mobile/mobile-publish-checklist.md`.
-- Durable current truth and manual-gate report: `apps/mobile/STATE.md` and
-  `apps/mobile/TODO.md`.
-- Shared UX copy/onboarding contract: `docs/ux-copy-onboarding.md`.
-- OS provider trust/manual gates: `docs/os-provider-trust.md`.
+- Checklist: `apps/mobile/mobile-readiness.md`
+- Risks: `apps/mobile/mobile-risks.md`
+- Publish: `apps/mobile/mobile-publish-checklist.md`
+- Provider gates: `docs/os-provider-trust.md`

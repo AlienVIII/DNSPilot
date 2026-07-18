@@ -19,11 +19,19 @@ impl Language {
             Self::Vietnamese => "vi",
         }
     }
+
+    pub fn parse_system_locale(value: &str) -> Option<Self> {
+        let locale = value.split('.').next().unwrap_or(value).replace('_', "-");
+        let language = locale.split('-').next().unwrap_or_default();
+        Self::parse(language)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextKey {
     AppTitle,
+    CheckDns,
+    History,
     Benchmark,
     Profiles,
     Settings,
@@ -45,6 +53,10 @@ pub enum TextKey {
 pub fn localized_text(key: TextKey, language: Language) -> &'static str {
     match (key, language) {
         (TextKey::AppTitle, _) => "DNS Pilot",
+        (TextKey::CheckDns, Language::English) => "Check DNS",
+        (TextKey::CheckDns, Language::Vietnamese) => "Kiểm tra DNS",
+        (TextKey::History, Language::English) => "History",
+        (TextKey::History, Language::Vietnamese) => "Lịch sử",
         (TextKey::Benchmark, Language::English) => "Benchmark",
         (TextKey::Benchmark, Language::Vietnamese) => "Đo kiểm",
         (TextKey::Profiles, Language::English) => "Profiles",

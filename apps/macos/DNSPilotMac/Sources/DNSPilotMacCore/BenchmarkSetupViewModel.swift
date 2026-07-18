@@ -1,5 +1,11 @@
 import Foundation
 
+public enum BenchmarkProfileSelectionState: Equatable, Sendable {
+    case systemDNS
+    case noRunnableProfiles
+    case selectedRunnableProfiles(selected: Int, runnable: Int)
+}
+
 public struct BenchmarkSetupViewModel: Equatable {
     public let catalog: CatalogSnapshot
     public let executableAvailability: BenchmarkExecutableAvailability
@@ -27,16 +33,30 @@ public struct BenchmarkSetupViewModel: Equatable {
     }
 
     public var profileSelectionSummary: String {
-        if mode == .systemDNSValidation {
+        switch profileSelectionState {
+        case .systemDNS:
             return "System DNS uses the current macOS resolver; profile selection is ignored."
+        case .noRunnableProfiles:
+            return "No runnable profiles available"
+        case .selectedRunnableProfiles(let selected, let runnable):
+            return "\(selected) of \(runnable) runnable selected"
+        }
+    }
+
+    public var profileSelectionState: BenchmarkProfileSelectionState {
+        if mode == .systemDNSValidation {
+            return .systemDNS
         }
         let runnableIDs = runnableProfileIDs
         guard !runnableIDs.isEmpty else {
-            return "No runnable profiles available"
+            return .noRunnableProfiles
         }
 
         let selectedRunnableCount = runnableIDs.filter { selectedProfileIDs.contains($0) }.count
-        return "\(selectedRunnableCount) of \(runnableIDs.count) runnable selected"
+        return .selectedRunnableProfiles(
+            selected: selectedRunnableCount,
+            runnable: runnableIDs.count
+        )
     }
 
     public var profileSelectionCaveat: String? {
@@ -73,11 +93,35 @@ public struct BenchmarkSetupViewModel: Equatable {
         return parts.joined(separator: ", ")
     }
 
+    public func localizedRunPlanSummary(localizer: DNSPilotLocalizer) -> String {
+        let plan = plan
+        var parts = [mode.localizedLabel(localizer: localizer)]
+        if mode != .systemDNSValidation, let resolverTransportLabel = resolverTransport.localizedSummaryLabel(localizer: localizer) {
+            parts.append(resolverTransportLabel)
+        }
+        parts += [
+            recordFamily.localizedLabel(localizer: localizer),
+            localizer.formatted(.countResolvers, plan.resolverCount),
+            localizer.formatted(.countDomains, plan.domains.count),
+            localizer.formatted(.countAttempts, attempts),
+        ]
+        if mode == .connectionPathCompare {
+            parts.append(localizer.formatted(.tcpTargetsSummary, maxConnectTargetsPerDomain))
+        }
+        return parts.joined(separator: ", ")
+    }
+
     public var flushPolicySummary: String {
         if mode == .systemDNSValidation {
             return "System DNS validation should flush macOS DNS cache before testing."
         }
         return "Direct resolver test; system DNS flush is not required."
+    }
+
+    public func localizedFlushPolicySummary(localizer: DNSPilotLocalizer) -> String {
+        mode == .systemDNSValidation
+            ? localizer.text(.systemDNSFlushSummary)
+            : localizer.text(.directResolverTestSummary)
     }
 
     public var systemDNSFlushChecklistText: String? {
@@ -106,6 +150,30 @@ public struct BenchmarkSetupViewModel: Equatable {
             return nil
         }
         return "Estimated worst-case wait: about \(BenchmarkElapsedTimeFormatter.label(milliseconds: worstCaseMilliseconds)). Reduce profiles, domains, or attempts if this looks too long."
+    }
+
+    public func localizedEstimatedDurationWarning(localizer: DNSPilotLocalizer) -> String? {
+        let plan = plan
+        guard plan.validation.canRun else {
+            return nil
+        }
+        let worstCaseMilliseconds = Self.worstCaseMilliseconds(
+            resolverCount: plan.resolverCount,
+            domainCount: plan.domains.count,
+            attempts: attempts,
+            dnsTimeoutMS: dnsTimeoutMS,
+            connectTimeoutMS: connectTimeoutMS,
+            maxConnectTargetsPerDomain: maxConnectTargetsPerDomain,
+            recordFamilyCount: recordFamily.recordTypeCount,
+            mode: mode
+        )
+        guard worstCaseMilliseconds >= Self.longBenchmarkWarningThresholdMS else {
+            return nil
+        }
+        return localizer.formatted(
+            .estimatedDurationWarning,
+            BenchmarkElapsedTimeFormatter.label(milliseconds: worstCaseMilliseconds)
+        )
     }
 
     public var suiteOptions: [BenchmarkSuiteOption] {
@@ -291,36 +359,78 @@ public struct BenchmarkSetupViewModel: Equatable {
 }
 
 public struct BenchmarkProfileOption: Equatable, Identifiable {
+    private enum Availability: Equatable {
+        case runnable
+        case missingResolver(BenchmarkResolverTransport)
+        case missingServer
+        case requiresOSDNSProfile
+    }
+
     public let id: String
     public let name: String
-    public let detailLabel: String
-    public let helpText: String
     public let isRunnable: Bool
+    private let ipv4ServerCount: Int
+    private let ipv6ServerCount: Int
+    private let availability: Availability
 
     public init(profile: CatalogProfile, resolverTransport: BenchmarkResolverTransport = .automatic) {
         id = profile.id
         name = profile.name
+        ipv4ServerCount = profile.ipv4Servers.count
+        ipv6ServerCount = profile.ipv6Servers.count
         let socketAddress = resolverTransport.socketAddress(for: profile)
         isRunnable = profile.protocol == .plain
             && socketAddress != nil
         if isRunnable {
-            detailLabel = "\(profile.ipv4Servers.count) IPv4 / \(profile.ipv6Servers.count) IPv6"
-            helpText = """
-            EN: Plain DNS profile. The tested server address follows the Resolver option.
-            VI: Profile DNS thường. Địa chỉ server được test phụ thuộc vào option Resolver.
-            """
-        } else if profile.protocol == .plain, let summaryLabel = resolverTransport.summaryLabel {
-            detailLabel = "No \(summaryLabel)"
-            helpText = """
-            EN: This profile cannot run with the current Resolver option because it has no \(summaryLabel).
-            VI: Profile này không chạy được với Resolver hiện tại vì thiếu \(summaryLabel).
-            """
+            availability = .runnable
+        } else if profile.protocol == .plain {
+            if resolverTransport.summaryLabel == nil {
+                availability = .missingServer
+            } else {
+                availability = .missingResolver(resolverTransport)
+            }
         } else {
-            detailLabel = "Requires OS DNS profile flow"
-            helpText = """
-            EN: Encrypted DNS profiles need the OS DNS profile flow and are not included in direct plain-DNS benchmarks yet.
-            VI: DNS mã hóa cần luồng cấu hình DNS của hệ điều hành, chưa chạy trong benchmark DNS thường trực tiếp.
-            """
+            availability = .requiresOSDNSProfile
+        }
+    }
+
+    public func detailLabel(localizer: DNSPilotLocalizer) -> String {
+        switch availability {
+        case .runnable:
+            "\(ipv4ServerCount) IPv4 / \(ipv6ServerCount) IPv6"
+        case .missingResolver(let transport):
+            localizer.formatted(.missingDNSResolver, resolverLabel(transport, localizer: localizer))
+        case .missingServer:
+            localizer.text(.missingDNSServer)
+        case .requiresOSDNSProfile:
+            localizer.text(.requiresDNSProfileFlow)
+        }
+    }
+
+    public func helpText(localizer: DNSPilotLocalizer) -> String {
+        switch availability {
+        case .runnable:
+            localizer.text(.plainDNSProfileHelp)
+        case .missingResolver(let transport):
+            localizer.formatted(.missingDNSResolverHelp, resolverLabel(transport, localizer: localizer))
+        case .missingServer:
+            localizer.text(.missingDNSServerHelp)
+        case .requiresOSDNSProfile:
+            localizer.text(.requiresDNSProfileFlowHelp)
+        }
+    }
+
+    private func resolverLabel(
+        _ transport: BenchmarkResolverTransport,
+        localizer: DNSPilotLocalizer
+    ) -> String {
+        switch transport {
+        case .automatic:
+            localizer.text(.recordAuto)
+        case .ipv4Only:
+            localizer.text(.recordIPv4)
+        case .ipv6Only:
+            localizer.text(.recordIPv6)
         }
     }
 }
@@ -328,18 +438,40 @@ public struct BenchmarkProfileOption: Equatable, Identifiable {
 public struct BenchmarkSuiteOption: Equatable, Identifiable {
     public let id: String
     public let name: String
-    public let domainCountLabel: String
-    public let helpText: String
+    public let domainCount: Int
 
     public init(testSuite: CatalogTestSuite) {
         id = testSuite.id
         name = testSuite.name
-        domainCountLabel = testSuite.domains.count == 1
-            ? "1 domain"
-            : "\(testSuite.domains.count) domains"
-        helpText = """
-        EN: Benchmark against the saved domains in this suite.
-        VI: Benchmark các domain đã lưu trong bộ test này.
-        """
+        domainCount = testSuite.domains.count
+    }
+
+    public func domainCountLabel(localizer: DNSPilotLocalizer) -> String {
+        localizer.formatted(.suiteDomainCount, domainCount)
+    }
+
+    public func localizedName(localizer: DNSPilotLocalizer) -> String {
+        switch id {
+        case "general":
+            localizer.text(.targetGeneralBrowsing)
+        case "developer":
+            localizer.text(.targetDeveloper)
+        case "vietnam-daily":
+            localizer.text(.targetVietnamDaily)
+        case "gaming-steam-valve":
+            localizer.text(.targetGamingSteam)
+        case "gaming-dota2-sea":
+            localizer.text(.targetGamingDota2SEA)
+        case "gaming-cs2":
+            localizer.text(.targetGamingCS2)
+        case "gaming-riot-lol":
+            localizer.text(.targetGamingRiotLoL)
+        default:
+            name
+        }
+    }
+
+    public func helpText(localizer: DNSPilotLocalizer) -> String {
+        localizer.text(.suiteDomainsHelp)
     }
 }

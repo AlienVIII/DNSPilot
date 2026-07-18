@@ -22,6 +22,39 @@
   is optional and cannot be a release dependency.
 - In-process Rust is deferred unless packaged-helper or Store evidence rejects
   the current architecture.
+- Runtime Readiness is now a single startup/retry path: it probes the helper
+  contracts independently, maps missing helper/malformed payload/unsupported
+  schema/process/storage failures to recoverable EN/VI status, creates the
+  local storage parent on first run, and gates only affected surfaces.
+- The consumer shell now implements the shared reference navigation: Check DNS,
+  Profiles, and History. Apply/recommendation remain in Check DNS, suites stay in
+  Profiles, and technical reports move behind Advanced diagnostics. Root-grid
+  size changes drive compact/wide stacking; static contracts cover keyboard and
+  Narrator metadata pending Windows-host proof.
+- Quick Check now uses the macOS-equivalent bounded DNS-only preset: first two
+  plain profiles, the default three-domain suite, and one attempt. It deliberately
+  ignores the current advanced selection so toolbar/tray behavior is predictable.
+- A selected catalog suite tagged `gaming` forces DNS+TCP in the current preview
+  and renders the catalog description as the limitation notice. The shell does
+  not introduce Windows-specific game targets or ranking rules.
+- Benchmark cancellation now flows from visible Cancel/Escape through a
+  `CancellationToken` to the process boundary. The runner kills the full child
+  tree, waits at most five seconds, and returns a typed cancelled result. A late
+  cancel cannot overwrite a process that already exited successfully.
+- The app reports saved history only when the Core result includes
+  `saved_history_id`; Core remains responsible for atomic no-partial-history
+  semantics, already requested in `windows-core-cli-request.md`.
+- Result safety now keeps three distinct statements: `Recommended` is the Core
+  high-confidence healthy recommendation; `Fastest observed` is a non-actionable
+  median-DNS observation; `Keep current DNS` follows a failed/inconclusive or
+  explicitly blocked Core gate. The Windows shell does not re-rank resolvers.
+- Store apply now has one confirmed `Apply in Windows Settings` path. Confirmation
+  copies the Core-selected servers then launches Settings; Windows remains the
+  only writer. `Retest System DNS` appears after that handoff. Copy DNS/checklist
+  and technical report remain secondary.
+- VPN, managed DNS, corporate DNS, and captive portal are explicit user signals
+  forwarded to `apply-plan`; no read-only adapter discovery or hidden detection
+  was added. A protected Core disposition suppresses the primary CTA.
 
 ## Context
 - Automated tests validate command construction, view models, capability logic, profile/history commands, and diagnostics on macOS.
@@ -33,7 +66,9 @@
 - Benchmark success diagnostics now render a localized structured copyable recommendation report from result JSON, including health, reasons, resolver metrics, warning, and saved history ID, with raw stdout fallback for unknown CLI output.
 - Diagnostics UI also renders the same parsed recommendation as summary text, resolver metric rows, and notes without waiting for raw report copy.
 - Benchmark controls now share a core plan factory so command preview and idle process rows update as mode/A-AAAA/resolver-family/timeouts change.
-- Toolbar Quick forces DNS+TCP quick plan, in-panel Run uses the current preview, and toolbar Validate DNS forces system-DNS validation while preserving selected A/AAAA/attempts/timeout.
+- Toolbar/tray Quick Check runs a bounded DNS-only preset; in-panel Run uses the
+  current preview, while gaming-tagged suites force DNS+TCP. Toolbar Validate DNS
+  forces system-DNS validation while preserving selected A/AAAA/attempts/timeout.
 - Completed benchmark progress now preserves final per-resolver success/degraded/failed details.
 - Persisted plain DNS profiles from `profile-list` are merged into the benchmark catalog, exposed in the Benchmark resolver profile picker, and preserved across apply-guidance refreshes when still valid.
 - Profile rows now expose edit/delete safety state; only `use_case=custom` profiles are treated as editable/deletable by the Windows shell, and built-in update/delete is blocked by profile ID before any CLI mutation call.
@@ -65,7 +100,20 @@
 - Current validation was automated only; no real Windows UI/device/store testing was performed on macOS.
 - `history-delete` uses core CLI `--id`; Windows command builder was corrected from the earlier `--history-id` mismatch.
 - Publish path, MSIX build command, and Store capability justification are in `apps/windows/windows-publish.md`; listing/privacy copy is in `windows-store-listing.md` and `windows-privacy.md`.
-- Start the next engineering session at Milestone 0 in
-  `windows-predevelopment-review.md`; use TDD and commit each verified milestone.
-- Root `STATE.md` and `TODO.md` are stale relative to Windows commit `bad68e1f`.
+- Windows now has macOS-equivalent `PartnerCenter/` reviewer notes, screenshot
+  plan, support/privacy sources, and `Build-PartnerCenterSite.ps1` for generated
+  public pages. The script is local-only and requires an explicit support email
+  plus HTTPS URL; hosting remains a manual release gate.
+- Milestones 0 through 4 are automated-complete. Milestone 5 is Windows-host
+  release evidence only; continue automated checks while collecting its manual
+  QA, signing, Partner Center, and hosted-URL gates in one final report.
+- Milestone 4 adds versioned benchmark/language preferences normalized against
+  the runtime catalog, catalog-tag Default/Vietnam quick picks, diagnostics
+  capability rows, and privacy-safe report redaction. Windows-host QA must prove
+  packaged persistence, restart language behavior, and visual rendering.
+- Persisted empty resolver selections are intentional state, not a signal to
+  reselect first-run defaults. The shell preserves them across a runtime reload
+  and shows the existing no-resolver validation until the user chooses profiles.
+- Root `STATE.md` and `TODO.md` are stale relative to Windows commits `c3aa69c`
+  and `a8216c0`.
   Refresh them from an integration/docs lane; do not widen Windows ownership.

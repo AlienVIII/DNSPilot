@@ -81,6 +81,9 @@ Manual smoke flow:
 7. Test tray actions: Quick benchmark, Validate current DNS, Open settings.
 8. Confirm profile/suite/history deletes require confirmation and Cancel is the
    default action.
+9. Select Vietnamese in the top-right language control, relaunch, then restore
+   English. Confirm benchmark selections persist only when their catalog IDs are
+   still valid and Advanced diagnostics contains privacy-safe capability status.
 
 ## Build Store Package
 
@@ -102,6 +105,16 @@ dotnet build apps\windows\DNSPilotWindows\DNSPilotWindows.WinUI.slnx -c Release 
 
 Follow `windows-qa.md` for real-device QA and `windows-publish.md` for Partner
 Center, signing, privacy, Store listing, and restricted capability notes.
+
+Partner Center reviewer notes, screenshot requirements, and deployable support/
+privacy templates live in `PartnerCenter/`. Render the public pages only after a
+support email and HTTPS URL exist:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps\windows\Build-PartnerCenterSite.ps1 `
+  -SupportEmail "support@example.com" `
+  -SiteUrl "https://example.com/dns-pilot"
+```
 
 ## Package Updates
 

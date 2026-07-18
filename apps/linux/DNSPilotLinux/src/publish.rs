@@ -66,13 +66,13 @@ pub fn publish_check(
             local_qa_steps: vec![
                 "Run apps/linux/scripts/build-packages.sh deb on a Debian-family build host.",
                 "Install the .deb on a Linux VM or hardware target.",
-                "Verify NetworkManager/systemd-resolved detection, helper install path, and polkit policy.",
-                "Exercise native helper dry-run, execute guard, polkit prompt, rollback, and validation before release.",
+                "Confirm the tray-independent main window launches and benchmark guidance works.",
+                "Confirm no native helper, polkit policy, or automatic DNS mutation is installed.",
             ],
             manual_gates: vec![
                 "real Linux package QA.",
                 "Repository signing or distribution channel credentials.",
-                "Final rollback and permission prompt review.",
+                "Separate Power-service design and disposable-host verification before any mutation release.",
             ],
             safety_notes: native_safety_notes(language, "deb"),
         },
@@ -83,13 +83,13 @@ pub fn publish_check(
             local_qa_steps: vec![
                 "Run apps/linux/scripts/build-packages.sh rpm on an RPM-family build host.",
                 "Install the RPM on a Linux VM or hardware target.",
-                "Verify NetworkManager/systemd-resolved detection, helper install path, and polkit policy.",
-                "Exercise native helper dry-run, execute guard, polkit prompt, rollback, and validation before release.",
+                "Confirm the tray-independent main window launches and benchmark guidance works.",
+                "Confirm no native helper, polkit policy, or automatic DNS mutation is installed.",
             ],
             manual_gates: vec![
                 "real Linux package QA.",
                 "Repository signing or distribution channel credentials.",
-                "Final rollback and permission prompt review.",
+                "Separate Power-service design and disposable-host verification before any mutation release.",
             ],
             safety_notes: native_safety_notes(language, "rpm"),
         },
@@ -184,22 +184,22 @@ fn native_safety_notes(language: Language, package_label: &'static str) -> Vec<&
     match language {
         Language::English => match package_label {
             "deb" => vec![
-                "deb is the native power path; real DNS mutation requires resolver stack plus polkit.",
-                "The execute mutation gate must stay closed by default until Linux package QA passes.",
+                "deb is benchmark/guidance first; native DNS mutation is unavailable in this build.",
+                "A separate caller-bound polkit D-Bus service, exact rollback, and Linux-host evidence are required before Power can ship.",
             ],
             _ => vec![
-                "rpm is the native power path; real DNS mutation requires resolver stack plus polkit.",
-                "The execute mutation gate must stay closed by default until Linux package QA passes.",
+                "rpm is benchmark/guidance first; native DNS mutation is unavailable in this build.",
+                "A separate caller-bound polkit D-Bus service, exact rollback, and Linux-host evidence are required before Power can ship.",
             ],
         },
         Language::Vietnamese => match package_label {
             "deb" => vec![
-                "deb là native power path; đổi DNS thật cần resolver stack và polkit.",
-                "execute mutation gate mặc định phải đóng cho tới khi gói Linux pass QA.",
+                "deb ưu tiên đo kiểm/hướng dẫn; đổi DNS hệ thống chưa khả dụng trong bản này.",
+                "Cần D-Bus service với polkit caller-bound, rollback chính xác và bằng chứng Linux host trước khi phát hành Power.",
             ],
             _ => vec![
-                "rpm là native power path; đổi DNS thật cần resolver stack và polkit.",
-                "execute mutation gate mặc định phải đóng cho tới khi gói Linux pass QA.",
+                "rpm ưu tiên đo kiểm/hướng dẫn; đổi DNS hệ thống chưa khả dụng trong bản này.",
+                "Cần D-Bus service với polkit caller-bound, rollback chính xác và bằng chứng Linux host trước khi phát hành Power.",
             ],
         },
     }

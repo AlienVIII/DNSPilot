@@ -1,8 +1,8 @@
 # macOS Engineering Handoff
 
 Architecture decisions are fixed in `PROJECT.md`. Milestones 0-3 are implemented and
-locally validated. Milestone 4 is complete only for automated artifacts; external
-release evidence remains manual.
+locally validated for behavior. Milestone 3A is reopened by reproduced localization
+and interaction defects. Milestone 4 cannot complete until 3A passes.
 
 ## Milestone 0: Window Correctness
 
@@ -51,6 +51,29 @@ release evidence remains manual.
 - **Validation:** compile after each extraction, full Swift tests, shortcut audit, and
   no visual/behavior change outside approved UX scope.
 
+## Milestone 3A: Localization And Interaction Consistency
+
+- **Goal:** one selected language, one text source of truth, and predictable native
+  click/keyboard behavior across every consumer surface.
+- **Acceptance criteria:** adopt one `Localizable.xcstrings` catalog; `System` follows
+  macOS; EN or VI updates every open app surface without mixed-language tooltips;
+  Core diagnostic prose is represented by stable IDs for localized UI while raw logs
+  remain copyable; toolbar language selection shows the current locale through a
+  `globe + EN/VI/System` menu; Store-safe Settings hides Power controls; disclosure
+  labels and option rows use their full visible bounds as the action target; all
+  controls have keyboard focus and VoiceOver names.
+- **Risks:** hiding useful diagnostics, changing test fixtures that assert English
+  copy, bundle-resource lookup mistakes in SwiftPM, and accidental Store/Power UI
+  crossover.
+- **Dependencies:** D7 in `PROJECT.md`; locale-neutral Core issue/message IDs for
+  Core-originated user messages; deterministic UI fixtures for visual capture.
+- **Validation:** localization lint, catalog completeness/placeholder tests, EN/VI
+  unit tests, keyboard and VoiceOver pass, and screenshot matrix for default, running,
+  degraded result, failure, Profiles, History, and Settings at minimum window size in
+  Light and Dark Mode.
+- **Implementation brief:**
+  `docs/research/2026-07-14-macos-localization-interaction-review.md`.
+
 ## Milestone 4: Release Evidence
 
 - **Goal:** prove the Store SKU is commercially releasable.
@@ -67,15 +90,19 @@ release evidence remains manual.
 
 ## Recommended Order
 
-Milestone 0 -> Milestone 1 -> Milestone 2 -> Milestone 3 -> Milestone 4. Do not start
-Power release work before the Store SKU passes Milestone 4.
+Milestone 0 -> Milestone 1 -> Milestone 2 -> Milestone 3 -> Milestone 3A ->
+Milestone 4. Do not start Power release work before the Store SKU passes Milestone 4.
 
 ## Current Handoff
 
 - Automated evidence: `./script/ci_macos.sh` and
   `./script/preflight_macos_release.sh --include-power` pass.
-- Store-safe code work is frozen pending usability and signed-release evidence.
+- Store-safe feature scope stays frozen, but Milestone 3A is authorized release-quality
+  work based on reproduced localization and hit-target defects.
 - Do not start a broad SwiftUI extraction during release stabilization.
-- Remaining work is the manual list in `STATE.md` and `apps/macos/PUBLISHING.md`.
+- Implement the review brief in order; do not patch isolated strings while keeping
+  the split localization architecture.
+- Remaining work is Milestone 3A plus the manual list in `STATE.md` and
+  `apps/macos/PUBLISHING.md`.
 - Any new production change needs a reproduced defect or failed release gate, focused
   tests, and a new engineer assignment.

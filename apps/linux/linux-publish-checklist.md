@@ -78,7 +78,6 @@ Expected release binaries:
 - `apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui` for the desktop launcher,
 - `apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell` for CLI inspection/QA,
 - repo-root `target/release/dnspilot-cli` for the benchmark engine,
-- `apps/linux/DNSPilotLinux/target/release/dnspilot-native-helper` for native deb/rpm helper contract.
 
 Smoke the native-facing surfaces:
 
@@ -184,7 +183,7 @@ snapcraft upload --release=edge apps/linux/dist/dnspilot_0.1.0.snap
 
 3. In store notes, state that native DNS apply is not part of the strict Snap.
 
-## deb Native Power QA
+## deb/rpm Benchmark-First QA
 
 1. Build and install locally on a Debian-family Linux host:
 
@@ -193,29 +192,22 @@ apps/linux/scripts/build-packages.sh deb
 sudo apt install ./apps/linux/dist/deb/dnspilot_0.1.0_*.deb
 ```
 
-2. Verify host capabilities:
+2. Verify the installed package is non-privileged:
 
 ```sh
-nmcli --version || true
-resolvectl --version || true
-pkcheck --version
 dnspilot-linux-shell detect
 dnspilot-linux-shell permissions --package deb --network-manager --polkit --system-resolver-probe
-dnspilot-linux-shell apply-plan --store /tmp/dnspilot-linux-profiles.json --package deb --network-manager --polkit --system-resolver-probe --profile-id local --resolver-family auto
-dnspilot-native-helper --contract
-dnspilot-native-helper --dry-run --stack networkmanager --server 1.1.1.1
-dnspilot-native-helper --request-json '{"schema_version":1,"polkit_action_id":"io.dnspilot.DNSPilot.apply-dns","resolver_stack":"networkmanager","servers":["1.1.1.1"],"rollback_snapshot":true,"validate_after_apply":true,"mutation_mode":"dry-run"}'
+test ! -e /usr/libexec/dnspilot/dnspilot-native-helper
+test ! -e /usr/share/polkit-1/actions/io.dnspilot.DNSPilot.apply.policy
 ```
 
 Expected:
 
-- native apply plan is offered only when NetworkManager or systemd-resolved plus
-  polkit are detected,
-- native helper contract/dry-run/request protocol works without writing DNS,
-- execute-mode requests fail closed; do not run the current command-backed prototype,
+- no native helper or polkit action is installed,
+- automatic DNS mutation is unavailable even when resolver-stack tools are detected,
 - current/system resolver validation can run after apply if supported.
 
-## rpm Native Power QA
+## rpm Benchmark-First QA
 
 1. Build and install locally on an RPM-family Linux host:
 
@@ -224,7 +216,7 @@ apps/linux/scripts/build-packages.sh rpm
 sudo dnf install ./apps/linux/dist/rpmbuild/RPMS/*/dnspilot-0.1.0-1*.rpm
 ```
 
-2. Repeat the deb native power QA capability and polkit checks.
+2. Repeat the deb/rpm non-privileged package checks.
 
 ## Manual Real-Device Acceptance
 
@@ -253,5 +245,5 @@ sudo dnf install ./apps/linux/dist/rpmbuild/RPMS/*/dnspilot-0.1.0-1*.rpm
   metadata submission.
 - The native GUI launcher compiles in this lane; real GNOME/Wayland rendering
   still needs package-tool validation on Linux.
-- The native power helper contract includes non-mutating dry-run inspection. Its current
-  execute prototype is not release-safe and must be disabled/replaced before package QA.
+- The development-only helper rejects execute requests and is excluded from every
+  release payload. A Power service must be separately designed and verified.
