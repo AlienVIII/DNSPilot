@@ -3,11 +3,11 @@ use dnspilot_core::{
     benchmark_preflight_for, benchmark_preflight_payload_for, built_in_profiles,
     built_in_test_suites, capability_for, capability_matrix_payload, catalog_payload,
     classify_resolution_outcome, recommend, recommendation_gate, ApplyCapability,
-    ApplyPlanDisposition, ApplyPromptDisposition, BenchmarkMetrics, BenchmarkPreflightScope,
-    CapabilityNote, Confidence, DnsProtocol, FilteringType, FlushCapability, FlushRequirement,
-    MeasurementScope, NetworkEnvironment, Platform, RecommendationDecision, RecommendationGate,
-    RecommendationHealth, RecommendationIssue, RecommendationMode, RecommendationNote,
-    ResolutionOutcome,
+    ApplyPlanDisposition, ApplyPromptDisposition, ApplyPromptNote, BenchmarkMetrics,
+    BenchmarkPreflightScope, CapabilityNote, Confidence, DnsProtocol, FilteringType,
+    FlushCapability, FlushRequirement, MeasurementScope, NetworkEnvironment, Platform,
+    PreflightNote, RecommendationDecision, RecommendationGate, RecommendationHealth,
+    RecommendationIssue, RecommendationMode, RecommendationNote, ResolutionOutcome,
 };
 
 fn metrics(
@@ -472,6 +472,13 @@ fn benchmark_preflight_distinguishes_direct_resolver_from_system_validation() {
     );
     assert_eq!(direct.flush_requirement, FlushRequirement::NotNeeded);
     assert_eq!(direct.flush_capability, FlushCapability::GuidedUserAction);
+    assert_eq!(
+        direct.note_ids,
+        vec![
+            PreflightNote::DirectResolverBypassesSystemCache,
+            PreflightNote::DirectResolverNoCacheFlush,
+        ]
+    );
     assert!(direct
         .notes
         .iter()
@@ -519,6 +526,13 @@ fn benchmark_preflight_payload_versions_shell_contract() {
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["platform"], "macos-store");
     assert_eq!(json["scope"], "system-dns-validation");
+    assert_eq!(
+        json["note_ids"],
+        serde_json::json!([
+            "system-validation-stale-cache",
+            "system-validation-can-be-bypassed"
+        ])
+    );
 }
 
 #[test]
@@ -533,6 +547,14 @@ fn apply_prompt_policy_protects_managed_or_intercepted_networks() {
     let policy = apply_prompt_policy_for(Platform::MacOSStore, &protected);
 
     assert!(!policy.can_prompt_apply);
+    assert_eq!(
+        policy.note_ids,
+        vec![
+            ApplyPromptNote::VpnActive,
+            ApplyPromptNote::MdmProfileActive,
+            ApplyPromptNote::CorporateDnsDetected,
+        ]
+    );
     assert_eq!(
         policy.disposition,
         ApplyPromptDisposition::ProtectCurrentDns

@@ -438,12 +438,23 @@ pub enum FlushRequirement {
     RecommendedButUnsupported,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PreflightNote {
+    DirectResolverBypassesSystemCache,
+    DirectResolverNoCacheFlush,
+    SystemValidationStaleCache,
+    SystemValidationCanBeBypassed,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BenchmarkPreflight {
     pub platform: Platform,
     pub scope: BenchmarkPreflightScope,
     pub flush_capability: FlushCapability,
     pub flush_requirement: FlushRequirement,
+    #[serde(default)]
+    pub note_ids: Vec<PreflightNote>,
     pub notes: Vec<String>,
 }
 
@@ -471,12 +482,26 @@ pub enum ApplyPromptDisposition {
     Unsupported,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ApplyPromptNote {
+    VpnActive,
+    MdmProfileActive,
+    CorporateDnsDetected,
+    CaptivePortalDetected,
+    GuidedSettingsOnly,
+    PlatformUnsupported,
+    ExplicitUserApprovalRequired,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApplyPromptPolicy {
     pub platform: Platform,
     pub apply_capability: ApplyCapability,
     pub disposition: ApplyPromptDisposition,
     pub can_prompt_apply: bool,
+    #[serde(default)]
+    pub note_ids: Vec<ApplyPromptNote>,
     pub notes: Vec<String>,
 }
 
@@ -1531,9 +1556,13 @@ pub fn benchmark_preflight_for(
     scope: BenchmarkPreflightScope,
 ) -> BenchmarkPreflight {
     let capability = capability_for(platform);
-    let (flush_requirement, notes) = match scope {
+    let (flush_requirement, note_ids, notes) = match scope {
         BenchmarkPreflightScope::DirectResolverBenchmark => (
             FlushRequirement::NotNeeded,
+            vec![
+                PreflightNote::DirectResolverBypassesSystemCache,
+                PreflightNote::DirectResolverNoCacheFlush,
+            ],
             vec![
                 "A direct resolver benchmark sends DNS queries to the selected resolver and bypasses the OS DNS cache.".into(),
                 "Do not flush system DNS cache as a prerequisite for direct resolver scoring.".into(),
@@ -1548,6 +1577,10 @@ pub fn benchmark_preflight_for(
             (
                 requirement,
                 vec![
+                    PreflightNote::SystemValidationStaleCache,
+                    PreflightNote::SystemValidationCanBeBypassed,
+                ],
+                vec![
                     "System DNS validation after apply can be polluted by stale OS resolver cache.".into(),
                     "Browser Secure DNS, VPN, MDM, captive portals, and app caches may still bypass or distort system DNS validation.".into(),
                 ],
@@ -1560,6 +1593,7 @@ pub fn benchmark_preflight_for(
         scope,
         flush_capability: capability.flush,
         flush_requirement,
+        note_ids,
         notes,
     }
 }
@@ -1570,19 +1604,24 @@ pub fn apply_prompt_policy_for(
 ) -> ApplyPromptPolicy {
     let capability = capability_for(platform);
     let mut notes = Vec::new();
+    let mut note_ids = Vec::new();
 
     if environment.vpn_active {
+        note_ids.push(ApplyPromptNote::VpnActive);
         notes.push("VPN is active; protect current DNS and avoid apply prompts.".into());
     }
     if environment.mdm_profile_active {
+        note_ids.push(ApplyPromptNote::MdmProfileActive);
         notes.push("MDM profile is active; protect current DNS and avoid apply prompts.".into());
     }
     if environment.corporate_dns_detected {
+        note_ids.push(ApplyPromptNote::CorporateDnsDetected);
         notes.push(
             "corporate DNS was detected; protect current DNS and avoid apply prompts.".into(),
         );
     }
     if environment.captive_portal_detected {
+        note_ids.push(ApplyPromptNote::CaptivePortalDetected);
         notes.push(
             "Captive portal was detected; finish portal login before DNS apply prompts.".into(),
         );
@@ -1594,24 +1633,28 @@ pub fn apply_prompt_policy_for(
             apply_capability: capability.apply,
             disposition: ApplyPromptDisposition::ProtectCurrentDns,
             can_prompt_apply: false,
+            note_ids,
             notes,
         };
     }
 
-    let (disposition, can_prompt_apply, note) = match capability.apply {
+    let (disposition, can_prompt_apply, note_id, note) = match capability.apply {
         ApplyCapability::GuidedSettings => (
             ApplyPromptDisposition::GuideOnly,
             true,
+            ApplyPromptNote::GuidedSettingsOnly,
             "Platform requires guided settings; do not perform hidden DNS changes.",
         ),
         ApplyCapability::Unsupported => (
             ApplyPromptDisposition::Unsupported,
             false,
+            ApplyPromptNote::PlatformUnsupported,
             "Platform does not support DNS apply prompts.",
         ),
         _ => (
             ApplyPromptDisposition::Allow,
             true,
+            ApplyPromptNote::ExplicitUserApprovalRequired,
             "Platform capability allows an explicit user-approved apply prompt.",
         ),
     };
@@ -1621,6 +1664,7 @@ pub fn apply_prompt_policy_for(
         apply_capability: capability.apply,
         disposition,
         can_prompt_apply,
+        note_ids: vec![note_id],
         notes: vec![note.into()],
     }
 }
