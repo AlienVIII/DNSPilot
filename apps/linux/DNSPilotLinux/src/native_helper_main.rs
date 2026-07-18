@@ -1,7 +1,6 @@
 use dnspilot_linux_shell::native_power::{
-    execute_native_apply_request, parse_native_apply_request_json, CommandNativeHelperExecutor,
-    NativeHelperApplyRequest, NativeMutationMode, NativeResolverStack, SystemNativeCommandRunner,
-    DNS_APPLY_POLKIT_ACTION_ID,
+    parse_native_apply_request_json, NativeHelperApplyRequest, NativeMutationMode,
+    NativeResolverStack, DNS_APPLY_POLKIT_ACTION_ID,
 };
 use std::env;
 use std::process;
@@ -21,14 +20,13 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, String> {
     let mut stack = None;
     let mut servers = Vec::new();
     let mut request_json = None;
-    let mut allow_system_dns_mutation = false;
     let mut args = args.into_iter();
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--contract" => mode = HelperMode::Contract,
             "--dry-run" => mode = HelperMode::DryRun,
-            "--allow-system-dns-mutation" => allow_system_dns_mutation = true,
+            "--allow-system-dns-mutation" => {}
             "--request-json" => {
                 mode = HelperMode::RequestJson;
                 request_json = Some(next_arg(&mut args, "--request-json")?);
@@ -53,16 +51,10 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<String, String> {
             let request = parse_native_apply_request_json(&json)
                 .map_err(|error| format!("invalid request: {error:?}"))?;
             if request.mutation_mode == NativeMutationMode::Execute {
-                if !allow_system_dns_mutation {
-                    return Err(
-                        "--allow-system-dns-mutation is required for execute requests".to_string(),
-                    );
-                }
-                let mut runner = SystemNativeCommandRunner;
-                let mut executor = CommandNativeHelperExecutor::new(&mut runner);
-                execute_native_apply_request(&request, &mut executor)
-                    .map_err(|error| format!("native execution failed: {error:?}"))?;
-                return Ok(render_real_execution(&request));
+                return Err(
+                    "native DNS execution is unavailable in this build; use dry run or guided settings"
+                        .to_string(),
+                );
             }
             Ok(render_mock_execution(&request))
         }
@@ -79,16 +71,16 @@ enum HelperMode {
 fn render_contract() -> String {
     [
         "DNS Pilot Native Helper Contract".to_string(),
+        "Status: execution unavailable in this build".to_string(),
         format!("Polkit action: {DNS_APPLY_POLKIT_ACTION_ID}"),
-        "Supported stacks:".to_string(),
+        "Future supported stacks:".to_string(),
         format!("- {}", NativeResolverStack::NetworkManager.label()),
         format!("- {}", NativeResolverStack::SystemdResolved.label()),
         "Safety:".to_string(),
-        "- runs only for native deb/rpm power packages".to_string(),
-        "- does not mutate DNS without an explicit apply request".to_string(),
-        "- execute requests require --allow-system-dns-mutation".to_string(),
-        "- requires rollback snapshot before writes".to_string(),
-        "- validates current/system resolver after apply when supported".to_string(),
+        "- does not mutate DNS in any mode".to_string(),
+        "- execute requests are rejected, including with --allow-system-dns-mutation".to_string(),
+        "- future Power requires caller-bound polkit, exact rollback, and Linux-host evidence"
+            .to_string(),
     ]
     .join("\n")
 }
@@ -124,17 +116,6 @@ fn render_mock_execution(request: &NativeHelperApplyRequest) -> String {
     }
     lines.push("DNS writes executed: no".to_string());
     lines.join("\n")
-}
-
-fn render_real_execution(request: &NativeHelperApplyRequest) -> String {
-    [
-        "Native helper execution".to_string(),
-        "Dry run: no".to_string(),
-        format!("Resolver stack: {}", request.resolver_stack.label()),
-        format!("Servers: {}", request.servers.join(", ")),
-        "DNS writes executed: yes".to_string(),
-    ]
-    .join("\n")
 }
 
 fn parse_stack(value: &str) -> Result<NativeResolverStack, String> {

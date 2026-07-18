@@ -1,8 +1,6 @@
 dnspilot-linux-gui usr/bin/
 dnspilot-linux-shell usr/bin/
 dnspilot-cli usr/bin/
-dnspilot-native-helper usr/libexec/dnspilot/
 io.dnspilot.DNSPilot.desktop usr/share/applications/
 io.dnspilot.DNSPilot.metainfo.xml usr/share/metainfo/
 io.dnspilot.DNSPilot.svg usr/share/icons/hicolor/scalable/apps/
-io.dnspilot.DNSPilot.apply.policy usr/share/polkit-1/actions/

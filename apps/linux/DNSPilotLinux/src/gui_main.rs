@@ -1,10 +1,13 @@
 use dnspilot_linux_shell::app::LinuxAppSession;
 use dnspilot_linux_shell::benchmark::{
     benchmark_process_for_plan, benchmark_running_process_for_plan, build_core_cli_command,
-    LinuxBenchmarkRunResult, ProcessCoreCliRunner,
+    LinuxBenchmarkPlan, LinuxBenchmarkRunResult,
 };
 use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxCapabilityViewModel,
+};
+use dnspilot_linux_shell::core_adapter::{
+    CoreCliAdapter, LinuxDataPaths, ProcessCoreCliCommandRunner,
 };
 use dnspilot_linux_shell::detect::detect_linux_environment;
 use dnspilot_linux_shell::executable::{
@@ -14,17 +17,22 @@ use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, NativeAppSectionKind};
 use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_apply_plan};
 use dnspilot_linux_shell::permissions::{permission_plan, render_permission_plan};
+use dnspilot_linux_shell::preferences::{
+    load_language_preference, save_language_preference, LanguagePreference,
+};
 use dnspilot_linux_shell::process::{
     process_rows, status_label, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus,
 };
-use dnspilot_linux_shell::profiles::{CustomProfileStore, PlainDnsProfile, PlainDnsProfileDraft};
+use dnspilot_linux_shell::profiles::PlainDnsProfile;
+use dnspilot_linux_shell::result::{
+    decode_benchmark_decision, BenchmarkDecision, PrimaryResultAction,
+};
 use dnspilot_linux_shell::settings::{
     build_guided_settings_plan, dns_record_family_controls, render_guided_settings_plan,
     resolver_address_family_controls, settings_actions, DnsRecordFamily, ResolverAddressFamily,
     SettingsActionKind,
 };
-use dnspilot_linux_shell::storage::FileProfileRepository;
-use dnspilot_linux_shell::suites::default_suite_catalog;
+use dnspilot_linux_shell::suites::{suite_catalog_from_core, SuiteViewModel};
 use dnspilot_linux_shell::worker::{spawn_benchmark_worker, BenchmarkWorker, BenchmarkWorkerPoll};
 use eframe::egui;
 use std::env;
@@ -49,9 +57,11 @@ fn main() -> eframe::Result<()> {
 
 struct DnsPilotGui {
     language: Language,
+    language_preference: LanguagePreference,
     capability: LinuxCapabilityViewModel,
     active_section: NativeAppSectionKind,
     profiles: Vec<PlainDnsProfile>,
+    suites: Vec<SuiteViewModel>,
     selected_profile_ids: Vec<String>,
     selected_mode: BenchmarkMode,
     selected_suite_id: Option<String>,
@@ -61,49 +71,54 @@ struct DnsPilotGui {
     core_cli: Result<CoreCliResolution, CoreCliResolutionError>,
     status: String,
     diagnostics: String,
+    result: Option<BenchmarkDecision>,
     process: Option<LinuxBenchmarkProcessViewModel>,
     benchmark_worker: Option<BenchmarkWorker>,
     show_tutorial: bool,
+    show_settings: bool,
     profile_id: String,
     profile_name: String,
     profile_ipv4: String,
     profile_ipv6: String,
-    store_path: String,
+    database_path: PathBuf,
+    language_preference_path: PathBuf,
     settings_profile_id: String,
     settings_output: String,
+    pending_history_delete: Option<String>,
+    confirm_history_clear: bool,
 }
 
 impl DnsPilotGui {
     fn new() -> Self {
         let capability = capability_view_model(detect_linux_environment());
-        let store_path = profile_store_path().to_string_lossy().to_string();
+        let data_paths = LinuxDataPaths::from_environment();
+        let database_path = data_paths.core_database_path();
+        let language_preference_path = data_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("language-preference");
+        let language_preference = load_language_preference(&language_preference_path);
+        let language = language_preference.resolve(env::var("LANG").ok().as_deref());
         let setup_seen_path = setup_tutorial_seen_path();
         let show_tutorial = !has_seen_setup_tutorial(&setup_seen_path);
-        if show_tutorial {
-            mark_setup_tutorial_seen(&setup_seen_path);
-        }
-        let profiles = load_or_seed_profiles(&store_path);
+        let core_cli = resolve_core_cli();
+        let (profiles, suites, status) =
+            load_core_state(&core_cli, &database_path, &data_paths.legacy_profile_path());
         let settings_profile_id = profiles
             .first()
             .map(|profile| profile.id.clone())
             .unwrap_or_default();
         let selected_profile_ids = profiles.iter().map(|profile| profile.id.clone()).collect();
-        let selected_suite_id = default_suite_catalog(true)
-            .first()
-            .map(|suite| suite.id.to_string());
-        let core_cli = resolve_core_cli();
-        let status = core_cli
-            .as_ref()
-            .map(|_| "Ready".to_string())
-            .unwrap_or_else(|error| error.to_string());
+        let selected_suite_id = suites.first().map(|suite| suite.id.clone());
 
         Self {
-            language: Language::English,
+            language,
+            language_preference,
             capability,
-            active_section: NativeAppSectionKind::Benchmark,
+            active_section: NativeAppSectionKind::CheckDns,
             profiles,
+            suites,
             selected_profile_ids,
-            selected_mode: BenchmarkMode::DnsAndTcp,
+            selected_mode: BenchmarkMode::DnsOnly,
             selected_suite_id,
             resolver_family: ResolverAddressFamily::Auto,
             record_family: DnsRecordFamily::AAndAaaa,
@@ -111,23 +126,28 @@ impl DnsPilotGui {
             core_cli,
             status,
             diagnostics: String::new(),
+            result: None,
             process: None,
             benchmark_worker: None,
             show_tutorial,
+            show_settings: false,
             profile_id: String::new(),
             profile_name: String::new(),
             profile_ipv4: String::new(),
             profile_ipv6: String::new(),
-            store_path,
+            database_path,
+            language_preference_path,
             settings_profile_id,
             settings_output: String::new(),
+            pending_history_delete: None,
+            confirm_history_clear: false,
         }
     }
 
     fn build_session(&self) -> LinuxAppSession {
         let mut session = LinuxAppSession::new(
             self.capability.clone(),
-            default_suite_catalog(true),
+            self.suites.clone(),
             self.profiles.clone(),
         );
         let _ = session.select_mode(self.selected_mode);
@@ -139,23 +159,42 @@ impl DnsPilotGui {
         session
     }
 
+    fn set_language_preference(&mut self, preference: LanguagePreference) {
+        self.language_preference = preference;
+        self.language = preference.resolve(env::var("LANG").ok().as_deref());
+        if let Err(error) = save_language_preference(&self.language_preference_path, preference) {
+            self.status = format!("Could not save language preference: {error}");
+        }
+    }
+
+    fn build_plan(&self) -> Result<LinuxBenchmarkPlan, Vec<String>> {
+        let mut plan = self.build_session().build_plan()?;
+        let database_path = self.database_path.to_string_lossy().into_owned();
+        plan.profile_db = Some(database_path.clone());
+        plan.suite_db = Some(database_path.clone());
+        plan.history_db = Some(database_path);
+        Ok(plan)
+    }
+
     fn save_profile_from_form(&mut self) {
-        let draft = PlainDnsProfileDraft {
+        let profile = PlainDnsProfile {
             id: self.profile_id.trim().to_string(),
             name: self.profile_name.trim().to_string(),
             ipv4_servers: split_words(&self.profile_ipv4),
             ipv6_servers: split_words(&self.profile_ipv6),
         };
-        let mut store = store_from_profiles(&self.profiles);
-        let result = if self.profiles.iter().any(|profile| profile.id == draft.id) {
-            store.edit(draft)
-        } else {
-            store.add(draft)
-        };
-
-        match result {
-            Ok(()) => {
-                self.profiles = store.list().to_vec();
+        let update = self.profiles.iter().any(|item| item.id == profile.id);
+        match self.core_adapter().and_then(|mut adapter| {
+            adapter
+                .save_plain_profile(&profile, update)
+                .map_err(|error| format!("{error:?}"))?;
+            adapter
+                .load_profiles()
+                .map(|profiles| profiles.into_iter().map(Into::into).collect())
+                .map_err(|error| format!("{error:?}"))
+        }) {
+            Ok(profiles) => {
+                self.profiles = profiles;
                 if self.settings_profile_id.is_empty() {
                     self.settings_profile_id = self
                         .profiles
@@ -163,40 +202,47 @@ impl DnsPilotGui {
                         .map(|profile| profile.id.clone())
                         .unwrap_or_default();
                 }
-                if let Err(error) = FileProfileRepository::new(self.store_path.clone())
-                    .save_profiles(&self.profiles)
-                {
-                    self.status = format!("Profile save failed: {error:?}");
-                } else {
-                    self.status = "Profile saved".to_string();
-                }
+                self.status = "Profile saved by core storage".to_string();
             }
             Err(error) => {
-                self.status = format!("Profile validation failed: {error:?}");
+                self.status = format!("Profile save failed: {error:?}");
             }
         }
     }
 
     fn delete_profile(&mut self, profile_id: &str) {
-        let mut store = store_from_profiles(&self.profiles);
-        if store.delete(profile_id) {
-            self.profiles = store.list().to_vec();
-            self.selected_profile_ids.retain(|id| id != profile_id);
-            if self.settings_profile_id == profile_id {
-                self.settings_profile_id = self
-                    .profiles
-                    .first()
-                    .map(|profile| profile.id.clone())
-                    .unwrap_or_default();
+        match self.core_adapter().and_then(|mut adapter| {
+            adapter
+                .delete_profile(profile_id)
+                .map_err(|error| format!("{error:?}"))?;
+            adapter
+                .load_profiles()
+                .map(|profiles| profiles.into_iter().map(Into::into).collect())
+                .map_err(|error| format!("{error:?}"))
+        }) {
+            Ok(profiles) => {
+                self.profiles = profiles;
+                self.selected_profile_ids.retain(|id| id != profile_id);
+                if self.settings_profile_id == profile_id {
+                    self.settings_profile_id = self
+                        .profiles
+                        .first()
+                        .map(|profile| profile.id.clone())
+                        .unwrap_or_default();
+                }
+                self.status = "Profile deleted by core storage".to_string();
             }
-            if let Err(error) =
-                FileProfileRepository::new(self.store_path.clone()).save_profiles(&self.profiles)
-            {
-                self.status = format!("Profile delete failed: {error:?}");
-            } else {
-                self.status = "Profile deleted".to_string();
-            }
+            Err(error) => self.status = format!("Profile delete failed: {error:?}"),
         }
+    }
+
+    fn core_adapter(&self) -> Result<CoreCliAdapter<ProcessCoreCliCommandRunner>, String> {
+        let resolution = self.core_cli.as_ref().map_err(ToString::to_string)?;
+        Ok(CoreCliAdapter::new(
+            resolution.path.to_string_lossy(),
+            self.database_path.clone(),
+            ProcessCoreCliCommandRunner,
+        ))
     }
 
     fn fill_profile_form(&mut self, profile: &PlainDnsProfile) {
@@ -214,8 +260,7 @@ impl DnsPilotGui {
         let Some(core_cli_path) = self.resolved_core_cli_path() else {
             return;
         };
-        let session = self.build_session();
-        match session.build_plan() {
+        match self.build_plan() {
             Ok(plan) => {
                 let command = build_core_cli_command(core_cli_path, &plan);
                 self.process = Some(benchmark_process_for_plan(&plan));
@@ -241,8 +286,7 @@ impl DnsPilotGui {
         let Some(core_cli_path) = self.resolved_core_cli_path() else {
             return;
         };
-        let session = self.build_session();
-        match session.build_plan() {
+        match self.build_plan() {
             Ok(plan) => {
                 let running_process = benchmark_running_process_for_plan(&plan);
                 match spawn_benchmark_worker(
@@ -250,7 +294,6 @@ impl DnsPilotGui {
                     "linux-gui".to_string(),
                     self.capability.clone(),
                     plan,
-                    ProcessCoreCliRunner,
                 ) {
                     Ok(worker) => {
                         self.process = Some(running_process);
@@ -282,6 +325,10 @@ impl DnsPilotGui {
 
         match worker.poll() {
             BenchmarkWorkerPoll::Running => true,
+            BenchmarkWorkerPoll::Progress(process) => {
+                self.process = Some(process);
+                true
+            }
             BenchmarkWorkerPoll::Finished(result) => {
                 self.benchmark_worker = None;
                 self.finish_benchmark(result);
@@ -304,8 +351,11 @@ impl DnsPilotGui {
         self.process = Some(result.process);
         self.diagnostics = result.debug_report;
         if let Some(payload) = result.final_payload {
+            self.result = decode_benchmark_decision(&payload, &self.capability).ok();
             self.diagnostics.push_str("\n\nFinal payload:\n");
             self.diagnostics.push_str(&payload);
+        } else {
+            self.result = None;
         }
         self.status = match result.error {
             Some(error) => format!("Benchmark failed: {error}"),
@@ -339,9 +389,25 @@ impl eframe::App for DnsPilotGui {
             ui.separator();
             ui.label(format!("Package: {}", self.capability.package_kind.label()));
             ui.separator();
-            ui.selectable_value(&mut self.language, Language::English, "EN");
-            ui.selectable_value(&mut self.language, Language::Vietnamese, "VI");
+            let mut language_preference = self.language_preference;
+            ui.selectable_value(
+                &mut language_preference,
+                LanguagePreference::System,
+                "System",
+            );
+            ui.selectable_value(&mut language_preference, LanguagePreference::English, "EN");
+            ui.selectable_value(
+                &mut language_preference,
+                LanguagePreference::Vietnamese,
+                "VI",
+            );
+            if language_preference != self.language_preference {
+                self.set_language_preference(language_preference);
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Settings").clicked() {
+                    self.show_settings = true;
+                }
                 if ui
                     .button("?")
                     .on_hover_text("Show setup tutorial")
@@ -354,6 +420,7 @@ impl eframe::App for DnsPilotGui {
         ui.separator();
 
         if self.show_tutorial {
+            let mut tutorial_completed = false;
             egui::Window::new("DNSPilot Setup")
                 .collapsible(false)
                 .resizable(false)
@@ -366,7 +433,33 @@ impl eframe::App for DnsPilotGui {
                     ui.separator();
                     ui.label("Sandbox packages are guidance-first.");
                     ui.label("Power DNS apply stays explicit and package-gated.");
+                    ui.horizontal(|ui| {
+                        if ui.button("Skip").clicked() {
+                            tutorial_completed = true;
+                        }
+                        if ui.button("Done").clicked() {
+                            tutorial_completed = true;
+                        }
+                    });
                 });
+            if tutorial_completed {
+                mark_setup_tutorial_seen(&setup_tutorial_seen_path());
+                self.show_tutorial = false;
+            }
+        }
+
+        if self.show_settings {
+            let mut show_settings = self.show_settings;
+            egui::Window::new(localized_text(TextKey::Settings, self.language))
+                .open(&mut show_settings)
+                .show(&ctx, |ui| {
+                    self.settings_ui(ui);
+                    ui.separator();
+                    self.diagnostics_ui(ui);
+                    ui.separator();
+                    self.permissions_ui(ui);
+                });
+            self.show_settings = show_settings;
         }
 
         ui.horizontal(|ui| {
@@ -385,11 +478,9 @@ impl eframe::App for DnsPilotGui {
 
             ui.separator();
             ui.vertical(|ui| match self.active_section {
-                NativeAppSectionKind::Benchmark => self.benchmark_ui(ui),
+                NativeAppSectionKind::CheckDns => self.benchmark_ui(ui),
                 NativeAppSectionKind::Profiles => self.profiles_ui(ui),
-                NativeAppSectionKind::Settings => self.settings_ui(ui),
-                NativeAppSectionKind::Diagnostics => self.diagnostics_ui(ui),
-                NativeAppSectionKind::Permissions => self.permissions_ui(ui),
+                NativeAppSectionKind::History => self.history_ui(ui),
             });
         });
     }
@@ -426,11 +517,11 @@ impl DnsPilotGui {
             )
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut self.selected_suite_id, None, "Custom domains only");
-                for suite in default_suite_catalog(true) {
+                for suite in &self.suites {
                     ui.selectable_value(
                         &mut self.selected_suite_id,
-                        Some(suite.id.to_string()),
-                        suite.name,
+                        Some(suite.id.clone()),
+                        &suite.name,
                     )
                     .on_hover_text(suite.domains.join(", "));
                 }
@@ -486,9 +577,22 @@ impl DnsPilotGui {
             {
                 self.run_benchmark();
             }
+            if ui
+                .add_enabled(!benchmark_idle, egui::Button::new("Cancel"))
+                .clicked()
+            {
+                if let Some(worker) = &self.benchmark_worker {
+                    worker.cancel();
+                    self.status = "Cancelling benchmark".to_string();
+                }
+            }
         });
 
         ui.separator();
+        if let Some(result) = self.result.clone() {
+            self.result_ui(ui, &result);
+            ui.separator();
+        }
         if let Some(process) = self
             .process
             .clone()
@@ -622,7 +726,8 @@ impl DnsPilotGui {
                 }
                 SettingsActionKind::DiagnosticsOnly => {
                     if ui.button(action.label).clicked() {
-                        self.active_section = NativeAppSectionKind::Diagnostics;
+                        self.settings_output = self.diagnostics.clone();
+                        self.status = "Diagnostics copied into Settings".to_string();
                     }
                 }
             }
@@ -644,6 +749,128 @@ impl DnsPilotGui {
             .iter()
             .find(|profile| profile.id == self.settings_profile_id)
             .cloned()
+    }
+
+    fn history_ui(&mut self, ui: &mut egui::Ui) {
+        ui.heading(localized_text(TextKey::History, self.language));
+        if ui.button("Clear history").clicked() {
+            self.confirm_history_clear = true;
+        }
+        if self.confirm_history_clear {
+            ui.horizontal(|ui| {
+                ui.label("Clear all saved history?");
+                if ui.button("Confirm clear").clicked() {
+                    match self.core_adapter().and_then(|mut adapter| {
+                        adapter
+                            .clear_history()
+                            .map_err(|error| format!("{error:?}"))
+                    }) {
+                        Ok(()) => self.status = "History cleared".to_string(),
+                        Err(error) => self.status = format!("Could not clear history: {error}"),
+                    }
+                    self.confirm_history_clear = false;
+                }
+                if ui.button("Cancel").clicked() {
+                    self.confirm_history_clear = false;
+                }
+            });
+        }
+        match self
+            .core_adapter()
+            .and_then(|mut adapter| adapter.load_history().map_err(|error| format!("{error:?}")))
+        {
+            Ok(history) if history.is_empty() => {
+                ui.label("No saved benchmark history yet.");
+            }
+            Ok(history) => {
+                egui::Grid::new("history_grid")
+                    .striped(true)
+                    .show(ui, |ui| {
+                        ui.strong("Started");
+                        ui.strong("Resolvers");
+                        ui.strong("Recommendation");
+                        ui.strong("Action");
+                        ui.end_row();
+                        for record in history.into_iter().rev() {
+                            ui.label(record.started_at);
+                            ui.label(record.resolver_profile_ids.join(", "));
+                            ui.label(
+                                record
+                                    .recommendation_profile_id
+                                    .unwrap_or_else(|| "Keep current".to_string()),
+                            );
+                            if ui.button("Delete").clicked() {
+                                self.pending_history_delete = Some(record.id);
+                            }
+                            ui.end_row();
+                        }
+                    });
+            }
+            Err(error) => {
+                ui.label(format!("Could not load history: {error}"));
+            }
+        }
+        if let Some(history_id) = self.pending_history_delete.clone() {
+            ui.horizontal(|ui| {
+                ui.label(format!("Delete history {history_id}?"));
+                if ui.button("Confirm delete").clicked() {
+                    match self.core_adapter().and_then(|mut adapter| {
+                        adapter
+                            .delete_history(&history_id)
+                            .map_err(|error| format!("{error:?}"))
+                    }) {
+                        Ok(()) => self.status = "History entry deleted".to_string(),
+                        Err(error) => self.status = format!("Could not delete history: {error}"),
+                    }
+                    self.pending_history_delete = None;
+                }
+                if ui.button("Cancel").clicked() {
+                    self.pending_history_delete = None;
+                }
+            });
+        }
+    }
+
+    fn result_ui(&mut self, ui: &mut egui::Ui, result: &BenchmarkDecision) {
+        ui.heading("Result");
+        ui.label(format!("Health: {}", result.health));
+        ui.label(format!(
+            "Recommended: {}",
+            result
+                .recommended_profile_id
+                .as_deref()
+                .unwrap_or("Keep current")
+        ));
+        ui.label(format!(
+            "Fastest observed: {}",
+            result
+                .fastest_observed_profile_id
+                .as_deref()
+                .unwrap_or("No completed resolver")
+        ));
+        for reason in &result.gate_reasons {
+            ui.label(reason);
+        }
+        if !result.warning.is_empty() {
+            ui.label(&result.warning);
+        }
+        match result.primary_action {
+            PrimaryResultAction::ApplyGuidance => {
+                if ui.button("Apply guidance").clicked() {
+                    if let Some(profile_id) = &result.recommended_profile_id {
+                        self.settings_profile_id = profile_id.clone();
+                    }
+                    self.show_settings = true;
+                }
+            }
+            PrimaryResultAction::RetestSystemDns => {
+                if ui.button("Retest system DNS").clicked() {
+                    self.selected_mode = BenchmarkMode::CurrentSystemResolver;
+                    self.status = "System DNS retest ready".to_string();
+                }
+            }
+            PrimaryResultAction::None => {}
+        }
     }
 
     fn diagnostics_ui(&mut self, ui: &mut egui::Ui) {
@@ -673,8 +900,7 @@ impl DnsPilotGui {
     }
 
     fn current_process_preview(&self) -> Option<LinuxBenchmarkProcessViewModel> {
-        self.build_session()
-            .build_plan()
+        self.build_plan()
             .ok()
             .map(|plan| benchmark_process_for_plan(&plan))
     }
@@ -713,13 +939,6 @@ impl DnsPilotGui {
     }
 }
 
-fn profile_store_path() -> PathBuf {
-    if let Some(data_dir) = data_dir() {
-        return data_dir.join("profiles.json");
-    }
-    PathBuf::from("dnspilot-profiles.json")
-}
-
 fn setup_tutorial_seen_path() -> PathBuf {
     if let Some(data_dir) = data_dir() {
         return data_dir.join("setup-tutorial-seen");
@@ -750,48 +969,57 @@ fn mark_setup_tutorial_seen(path: &PathBuf) {
     let _ = fs::write(path, "true\n");
 }
 
-fn load_or_seed_profiles(path: &str) -> Vec<PlainDnsProfile> {
-    let loaded = FileProfileRepository::new(path.to_string())
-        .load_profiles()
-        .unwrap_or_default();
-    if loaded.is_empty() {
-        seeded_profiles()
-    } else {
-        loaded
-    }
-}
-
-fn seeded_profiles() -> Vec<PlainDnsProfile> {
-    vec![
-        PlainDnsProfile {
-            id: "cloudflare".to_string(),
-            name: "Cloudflare".to_string(),
-            ipv4_servers: vec!["1.1.1.1".to_string(), "1.0.0.1".to_string()],
-            ipv6_servers: vec![
-                "2606:4700:4700::1111".to_string(),
-                "2606:4700:4700::1001".to_string(),
-            ],
-        },
-        PlainDnsProfile {
-            id: "quad9".to_string(),
-            name: "Quad9".to_string(),
-            ipv4_servers: vec!["9.9.9.9".to_string(), "149.112.112.112".to_string()],
-            ipv6_servers: vec!["2620:fe::fe".to_string(), "2620:fe::9".to_string()],
-        },
-    ]
-}
-
-fn store_from_profiles(profiles: &[PlainDnsProfile]) -> CustomProfileStore {
-    let mut store = CustomProfileStore::new();
-    for profile in profiles {
-        let _ = store.add(PlainDnsProfileDraft {
-            id: profile.id.clone(),
-            name: profile.name.clone(),
-            ipv4_servers: profile.ipv4_servers.clone(),
-            ipv6_servers: profile.ipv6_servers.clone(),
-        });
-    }
-    store
+fn load_core_state(
+    core_cli: &Result<CoreCliResolution, CoreCliResolutionError>,
+    database_path: &std::path::Path,
+    legacy_profile_path: &std::path::Path,
+) -> (Vec<PlainDnsProfile>, Vec<SuiteViewModel>, String) {
+    let resolution = match core_cli {
+        Ok(resolution) => resolution,
+        Err(error) => return (Vec::new(), Vec::new(), error.to_string()),
+    };
+    let mut adapter = CoreCliAdapter::new(
+        resolution.path.to_string_lossy(),
+        database_path,
+        ProcessCoreCliCommandRunner,
+    );
+    let migration_status = match adapter.migrate_legacy_profiles_once(legacy_profile_path) {
+        Ok(outcome) if outcome.migrated_profile_count > 0 => {
+            format!(
+                "Migrated {} legacy profiles. ",
+                outcome.migrated_profile_count
+            )
+        }
+        Ok(_) => String::new(),
+        Err(error) => {
+            return (
+                Vec::new(),
+                Vec::new(),
+                format!("Profile migration failed: {error:?}"),
+            )
+        }
+    };
+    let profiles = match adapter.load_profiles() {
+        Ok(profiles) => profiles.into_iter().map(Into::into).collect(),
+        Err(error) => {
+            return (
+                Vec::new(),
+                Vec::new(),
+                format!("Core profile load failed: {error:?}"),
+            )
+        }
+    };
+    let suites = match adapter.load_suites() {
+        Ok(suites) => suite_catalog_from_core(suites),
+        Err(error) => {
+            return (
+                profiles,
+                Vec::new(),
+                format!("Core suite load failed: {error:?}"),
+            )
+        }
+    };
+    (profiles, suites, format!("{migration_status}Ready"))
 }
 
 fn split_words(value: &str) -> Vec<String> {

@@ -29,7 +29,7 @@ pub struct LinuxReleaseReadiness {
 
 pub fn linux_release_readiness() -> LinuxReleaseReadiness {
     LinuxReleaseReadiness {
-        code_ready: true,
+        code_ready: false,
         items: vec![
             item(
                 "Capability matrix",
@@ -51,9 +51,9 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
                 "Guided settings",
                 "Flatpak/Snap stay benchmark/guidance only and never mutate DNS.",
             ),
-            item(
+            item_external(
                 "Native power path",
-                "deb/rpm apply-plan, native-helper request protocol, command backend, execute mutation gate, and --allow-system-dns-mutation guard require resolver stack plus polkit and include rollback/validation.",
+                "Native DNS execution is unavailable. Default packages exclude helper and polkit policy until a caller-bound D-Bus service, exact rollback, and Linux-host evidence exist.",
             ),
             item(
                 "Native app surface",
@@ -77,13 +77,14 @@ pub fn linux_release_readiness() -> LinuxReleaseReadiness {
             ),
             item(
                 "Packaging and publish checklist",
-                "Flatpak/Snap store-safe templates, deb/rpm native-power templates, packaged core CLI/helper paths, AppStream, desktop file, icon, polkit policy, publish-check CLI, and publish checklist are present.",
+                "Flatpak/Snap/deb/rpm benchmark-first templates, packaged core CLI, AppStream, desktop file, icon, publish-check CLI, and publish checklist are present.",
             ),
         ],
         external_requirements: vec![
             "Flatpak/Snap/deb/rpm real package QA on Linux hardware or VM.",
             "store credentials, signing, screenshots, release notes, and final metadata review.",
             "Linux package QA before publishing or enabling real DNS mutation by default in deb/rpm.",
+            "A separate native Power service implementation and disposable-host verification before any DNS mutation release.",
         ],
     }
 }
@@ -96,7 +97,7 @@ pub fn render_readiness_report(readiness: &LinuxReleaseReadiness) -> String {
             if readiness.code_ready {
                 "ready for manual Linux package QA"
             } else {
-                "not ready"
+                "store-safe consumer work in progress"
             }
         ),
         "Main goals:".to_string(),
@@ -123,6 +124,14 @@ fn item(name: &'static str, evidence: &'static str) -> ReadinessItem {
     ReadinessItem {
         name,
         status: ReadinessStatus::Ready,
+        evidence,
+    }
+}
+
+fn item_external(name: &'static str, evidence: &'static str) -> ReadinessItem {
+    ReadinessItem {
+        name,
+        status: ReadinessStatus::ExternalQaRequired,
         evidence,
     }
 }

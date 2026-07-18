@@ -1,36 +1,23 @@
+use crate::core_adapter::CoreSuite;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SuiteViewModel {
-    pub id: &'static str,
-    pub name: &'static str,
-    pub domains: Vec<&'static str>,
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub domains: Vec<String>,
+    pub tags: Vec<String>,
 }
 
-pub fn default_suite_catalog(catalog_supports_vietnam: bool) -> Vec<SuiteViewModel> {
-    let mut suites = vec![
-        SuiteViewModel {
-            id: "general",
-            name: "General",
-            domains: vec!["example.com", "cloudflare.com", "wikipedia.org"],
-        },
-        SuiteViewModel {
-            id: "developer",
-            name: "Developer",
-            domains: vec!["github.com", "npmjs.com", "crates.io"],
-        },
-        SuiteViewModel {
-            id: "microsoft-login",
-            name: "Microsoft login",
-            domains: vec!["login.microsoftonline.com", "graph.microsoft.com"],
-        },
-    ];
-
-    if catalog_supports_vietnam {
-        suites.push(SuiteViewModel {
-            id: "vietnam-daily",
-            name: "Vietnam daily",
-            domains: vec!["zing.vn", "vnexpress.net", "momo.vn"],
-        });
-    }
-
+pub fn suite_catalog_from_core(suites: Vec<CoreSuite>) -> Vec<SuiteViewModel> {
     suites
+        .into_iter()
+        .map(|suite| SuiteViewModel {
+            id: suite.id,
+            name: suite.name,
+            description: suite.description,
+            domains: suite.domains,
+            tags: suite.tags,
+        })
+        .collect()
 }

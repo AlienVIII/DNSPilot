@@ -69,14 +69,14 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 `tests/native_helper_protocol_behaviour.rs`, `tests/packaging_policy_behaviour.rs`,
 `scripts/build-packages.sh`, deb/rpm recipes.
 
-- [ ] Add a failing test proving a default build rejects every execute request before
+- [x] Add a failing test proving a default build rejects every execute request before
   `snapshot_existing_dns`, `authorize`, or command execution.
-- [ ] Add a failing package test proving default deb/rpm payloads do not install the
+- [x] Add a failing package test proving default deb/rpm payloads do not install the
   helper or polkit action as a production capability.
-- [ ] Add an explicit `ExecuteUnavailable` error and keep contract/dry-run inspection.
-- [ ] Remove production D-Bus wording from command-backed code and output.
-- [ ] Run targeted native/package tests, then full Linux fmt/test/clippy.
-- [ ] Update progress/readiness/publish output and commit:
+- [x] Add an explicit `ExecuteUnavailable` error and keep contract/dry-run inspection.
+- [x] Remove production D-Bus wording from command-backed code and output.
+- [x] Run targeted native/package tests, then full Linux fmt/test/clippy.
+- [x] Update progress/readiness/publish output and commit:
   `Harden Linux native power boundary`.
 
 ## Task 1: Introduce Typed CLI Contracts And XDG Paths
@@ -85,14 +85,14 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 `Cargo.toml`; create `tests/core_contract_behaviour.rs` and
 `tests/core_client_behaviour.rs`.
 
-- [ ] Add RED fixtures for schema 1 catalog, profile list, suite list, history list,
+- [x] Add RED fixtures for schema 1 catalog, profile list, suite list, history list,
   compare/path-compare/system result, policy, and apply-plan payloads.
 - [ ] Add RED tests for unsupported schema, malformed JSON, nonzero CLI exit, missing
   executable, and invalid UTF-8 lossy diagnostic handling.
 - [ ] Add `serde = { version = "1", features = ["derive"] }`; keep versions locked.
-- [ ] Implement one `CoreClient` that accepts executable + DB path and returns typed
+- [x] Implement one `CoreClient` that accepts executable + DB path and returns typed
   results. Do not expose raw `Command` construction to GUI modules.
-- [ ] Implement XDG data/state paths with deterministic test overrides.
+- [x] Implement XDG data paths with deterministic test overrides.
 - [ ] Run core adapter tests plus `cargo test -p dnspilot-cli`; commit:
   `Use typed Linux core contracts`.
 
@@ -101,13 +101,14 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 **Files:** create `migration.rs`, `tests/profile_migration_behaviour.rs`; modify
 `app.rs`, `profiles.rs`, `suites.rs`, `gui_main.rs`; retire `storage.rs` only after GREEN.
 
-- [ ] RED: first launch imports valid legacy custom profiles through CLI `profile-add`,
-  writes a `.migrated` marker, and retains a read-only `.bak`.
-- [ ] RED: second launch is idempotent; built-in ID conflicts do not overwrite core
+- [x] RED: first launch imports valid legacy custom profiles through CLI `profile-add`
+  and renames the source JSON to a `.migrated` backup only after import succeeds.
+- [x] RED: second launch is idempotent; built-in ID conflicts do not overwrite core
   data; malformed legacy data is preserved and reported, not deleted.
-- [ ] Load catalog, custom profiles, suites, and history from `CoreClient`.
-- [ ] Remove seeded Cloudflare/Quad9 and hardcoded suite domains.
-- [ ] Pass the same DB path as profile/suite input and benchmark history output.
+- [x] Load catalog/profile/suite/history contracts from `CoreClient`; History UI remains
+  in the later consumer workflow task.
+- [x] Remove seeded Cloudflare/Quad9 and hardcoded suite domains.
+- [x] Pass the same DB path as profile/suite input; benchmark history output is Task 3.
 - [ ] Run migration/storage/CLI tests; commit: `Unify Linux local data with core`.
 
 ## Task 3: Stream Progress And Cancel Correctly
@@ -115,16 +116,16 @@ Create only when Native Power is authorized by `PROJECT.md` D2:
 **Files:** replace internals of `worker.rs` and `benchmark.rs`; modify `process.rs`;
 expand `tests/benchmark_worker_behaviour.rs` and `benchmark_runner_behaviour.rs`.
 
-- [ ] RED: progress is observable before process completion.
-- [ ] RED: cancel kills and waits for the child, returns a localized cancellation detail,
+- [x] RED: progress is observable before process completion.
+- [x] RED: cancel kills and waits for the child, returns a cancellation detail,
   and leaves no running/idle active rows.
-- [ ] RED: large stdout/stderr cannot deadlock; invalid JSONL is retained in diagnostics;
+- [x] RED: piped stdout/stderr readers cannot deadlock; invalid JSONL is retained in diagnostics;
   disconnect and spawn failure end every row.
-- [ ] Replace `Command::output()` with piped `spawn`, dedicated stdout/stderr readers,
+- [x] Replace GUI runtime `Command::output()` with piped `spawn`, dedicated stdout/stderr readers,
   event/control channels, `try_wait`, `kill`, and mandatory `wait`.
-- [ ] Keep statuses idle/running/success/failed; cancellation is failed with a specific
+- [x] Keep statuses idle/running/success/failed; cancellation is failed with a specific
   reason so the original process-state contract remains stable.
-- [ ] Include `--save-db` and unique `--history-id` in every successful run plan.
+- [x] Include `--save-db` and unique `--history-id` in every successful run plan.
 - [ ] Run worker/process tests and full gate; commit:
   `Stream and cancel Linux benchmarks`.
 
@@ -149,12 +150,12 @@ expand `tests/benchmark_worker_behaviour.rs` and `benchmark_runner_behaviour.rs`
 `native_app.rs`, `i18n.rs`; create `tests/gui_navigation_behaviour.rs` and
 `tests/preferences_behaviour.rs`.
 
-- [ ] RED: navigation contains exactly Check DNS, Profiles, History.
-- [ ] RED: first launch setup is not marked complete merely by appearing; Skip/Done
+- [x] RED: navigation contains exactly Check DNS, Profiles, History.
+- [x] RED: first launch setup is not marked complete merely by appearing; Skip/Done
   persist; Help reopens setup.
-- [ ] RED: Quick Check selects DNS-only; advanced options preserve DNS+TCP/System DNS,
+- [x] RED: Quick Check selects DNS-only; advanced options preserve DNS+TCP/System DNS,
   family, records, attempts, profiles, suites, and custom domains.
-- [ ] RED: System locale resolves vi/en, unsupported locale falls back to English, and
+- [x] RED: System locale resolves vi/en, unsupported locale falls back to English, and
   manual selection persists.
 - [ ] Extract focused GUI modules without changing benchmark contracts.
 - [ ] Keep capability/permissions/diagnostics in Settings, Help, result Details, or

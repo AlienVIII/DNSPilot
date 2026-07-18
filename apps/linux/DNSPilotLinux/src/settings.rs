@@ -121,7 +121,7 @@ pub fn settings_actions(capability: &LinuxCapabilityViewModel) -> Vec<SettingsAc
             kind: SettingsActionKind::DiagnosticsOnly,
             label: "Show diagnostics",
             help_text:
-                "Real DNS apply is unavailable until a supported resolver stack is detected.",
+                "Native DNS apply is unavailable in this build; use diagnostics to verify resolver support.",
         }]
     }
 }

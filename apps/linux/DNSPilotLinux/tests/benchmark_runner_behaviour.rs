@@ -41,6 +41,7 @@ fn plan(mode: BenchmarkMode) -> LinuxBenchmarkPlan {
         suite_id: Some("developer".to_string()),
         suite_db: Some("/tmp/suites.sqlite".to_string()),
         profile_db: Some("/tmp/profiles.sqlite".to_string()),
+        history_db: Some("/tmp/history.sqlite".to_string()),
         attempts: 2,
         record_family: DnsRecordFamily::AOnly,
     }
@@ -80,6 +81,11 @@ fn dns_only_plan_builds_compare_command_with_progress_and_family_controls() {
         .args
         .windows(2)
         .any(|args| args == ["--profile-db", "/tmp/profiles.sqlite"]));
+    assert!(command
+        .args
+        .windows(2)
+        .any(|args| args == ["--save-db", "/tmp/history.sqlite"]));
+    assert!(command.args.contains(&"--history-id".to_string()));
     assert!(command
         .args
         .windows(2)

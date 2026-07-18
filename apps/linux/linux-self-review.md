@@ -7,27 +7,28 @@ and current official Linux platform documentation.
 
 ### Critical: Power Execute Is Not Release-Safe
 
-- `native_power.rs` presents NetworkManager/systemd-resolved D-Bus but executes
-  `nmcli`/`resolvectl` subprocesses.
-- `pkcheck` verifies an authorization decision; it does not elevate the helper into a
-  privileged mechanism.
-- The snapshot stores only device/link identity and cannot restore exact prior DNS
-  fields. NetworkManager rollback calls reapply without writing captured values.
-- Resolution: default builds must fail closed; replace this path with the D-Bus/polkit
-  mechanism in `linux-completion-plan.md` before any native Power release claim.
+- The prior command executor used `nmcli`/`resolvectl` after `pkcheck`, which was not a
+  privilege boundary and could not prove exact rollback.
+- Resolution completed for the default build: command execution and the shipped polkit
+  policy were removed; every execute request now returns `ExecuteUnavailable` before
+  any executor action; deb/rpm payloads do not ship a helper or policy. The future
+  D-Bus/polkit mechanism remains separately gated in `linux-completion-plan.md`.
 
 ### Major: Shared Product Contracts Are Forked
 
-- Linux hardcodes resolver/suite data and persists a Linux-only JSON profile schema.
-- The shared CLI already owns catalog, profile, suite, history, policy, and apply-plan
-  contracts through SQLite and versioned JSON.
-- Resolution: Milestone 1 migrates Linux to a typed CLI adapter and one XDG SQLite DB.
+- Resolved in Milestone 1. Linux now schema-checks typed Core CLI catalog, profile,
+  suite, history, policy, apply-plan, and benchmark-result contracts. GUI and shell
+  share one Core SQLite database. The former Linux JSON profile store is used only for
+  a one-time `.migrated` backup import; hardcoded runtime suites and seeded profiles
+  are removed.
 
 ### Major: Benchmark Progress Is Post-Processed
 
-- `Command::output()` buffers until exit and the worker emits only one final result.
-- There is no child cancellation/reaping contract.
-- Resolution: Milestone 2 streams JSONL events and owns cancellation/terminal cleanup.
+- Resolved in Milestone 2 for the GUI runtime. A supervised Core CLI child pipes stdout
+  and stderr to separate readers, forwards JSONL resolver events before completion,
+  preserves malformed output in diagnostics, and cancels the Linux process group with
+  TERM/KILL plus mandatory reap. The existing synchronous runner remains only as a
+  deterministic CLI/test harness contract.
 
 ### Major: Results Do Not Complete The User Decision Loop
 
@@ -72,9 +73,9 @@ and current official Linux platform documentation.
 | Guided settings only for store/sandbox builds | Covered | profile/family selection, copy action, localized in-app guide, settings/CLI tests |
 | Native power path plan | Design covered; execute prototype not release-safe | `linux-completion-plan.md`, `native_power.rs`, helper tests |
 | Tray optional | Covered as invariant | capability/report output and native app model say tray optional |
-| Custom DNS profile add/edit/delete | Covered | in-memory store plus file-backed CLI commands |
+| Custom DNS profile add/edit/delete | Covered | Core CLI SQLite profile commands and GUI bridge |
 | IPv4/IPv6 and A/AAAA controls | Covered | settings/app/session tests |
-| Vietnam/default suites | Covered | suite catalog tests |
+| Vietnam/default suites | Covered | Core suite adapter tests; no Linux fallback catalog |
 | Capability detection without real DNS mutation | Covered | detector snapshot/runtime path, CLI `detect` |
 | Native app permission model | Covered as GUI/view-model/CLI | `gui_main.rs`, `permissions.rs`, `native_app.rs`, CLI `permissions`, CLI `app-model` |
 | English/Vietnamese localization | Covered for Linux shell/native app/publish surfaces | `i18n.rs`, `native_app.rs`, `publish.rs`, i18n behavior tests |
@@ -92,9 +93,8 @@ and current official Linux platform documentation.
    Intentional. Guided settings are reserved for store/sandbox builds. Native packages without NetworkManager/systemd-resolved plus polkit should not pretend to have an apply path.
 
 4. **Counterargument: Real DNS apply is too risky without Linux QA.**
-   Valid and not resolved. The prototype sequences operations but does not implement the
-   claimed D-Bus privilege boundary or exact rollback. It must remain fail-closed and
-   experimental until Milestone 7 and real host QA pass.
+   Valid. Default builds are now fail-closed and ship no privileged DNS path. Milestone
+   7 remains gated on the D-Bus privilege boundary, exact rollback, and real host QA.
 
 5. **Counterargument: Current/system resolver validation is not universally available.**
    Valid. It remains capability-gated. Unsupported mode requests fail before core CLI execution.

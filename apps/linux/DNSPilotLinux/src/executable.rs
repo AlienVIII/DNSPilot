@@ -12,6 +12,7 @@ pub enum CoreCliSource {
     EnvironmentOverride,
     PackagedSibling,
     Path,
+    DevelopmentBuild,
 }
 
 impl CoreCliSource {
@@ -20,6 +21,7 @@ impl CoreCliSource {
             Self::EnvironmentOverride => "environment override",
             Self::PackagedSibling => "packaged engine",
             Self::Path => "PATH",
+            Self::DevelopmentBuild => "development build",
         }
     }
 }
@@ -60,12 +62,22 @@ pub fn resolve_core_cli() -> Result<CoreCliResolution, CoreCliResolutionError> {
     let current_executable = env::current_exe().ok();
     let path_value = env::var_os("PATH").map(|value| value.to_string_lossy().into_owned());
 
-    resolve_core_cli_with(
+    match resolve_core_cli_with(
         environment_override.as_deref(),
         current_executable.as_deref(),
         path_value.as_deref(),
         is_executable_file,
-    )
+    ) {
+        Ok(resolution) => Ok(resolution),
+        Err(CoreCliResolutionError::NotFound) => development_core_cli_path()
+            .filter(|path| is_executable_file(path))
+            .map(|path| CoreCliResolution {
+                path,
+                source: CoreCliSource::DevelopmentBuild,
+            })
+            .ok_or(CoreCliResolutionError::NotFound),
+        Err(error) => Err(error),
+    }
 }
 
 pub fn resolve_core_cli_with(
@@ -117,4 +129,11 @@ fn is_executable_file(path: &Path) -> bool {
     fs::metadata(path)
         .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
         .unwrap_or(false)
+}
+
+fn development_core_cli_path() -> Option<PathBuf> {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .map(|root| root.join("target/debug").join(CORE_CLI_BINARY_NAME))
 }
