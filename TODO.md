@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-07-14.
+Last reviewed: 2026-07-18.
 
 ## P0: macOS Commercial Release
 
@@ -9,8 +9,9 @@ Last reviewed: 2026-07-14.
 - [x] Make the visible Benchmark Options disclosure row clickable, keyboard reachable,
   and VoiceOver-labelled; hide Power-only settings from the Store-safe SKU.
 - [ ] Capture the EN/VI visual-state matrix and pass the narrow-window, Dark Mode,
-  keyboard, and VoiceOver review before moderated usability testing. Local VI launch
-  and in-app benchmark smoke pass; the remaining matrix requires release review.
+  keyboard, and VoiceOver review before moderated usability testing. Packaged-window
+  launch and functional smoke pass; screenshot and VoiceOver capture require a signed
+  workstation with Screen Recording and Accessibility permission.
 - [ ] Native-review Vietnamese copy and localize App Store metadata, support/privacy
   pages, and screenshot sets before submission.
 - [x] Complete local benchmark, bundle, smoke, rollback, release-asset, and

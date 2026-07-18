@@ -27,6 +27,13 @@ resource bundle is deterministic in both tests and the packaged app. Move to an 
 String Catalog only when Xcode owns the build/resource pipeline. The remaining work is
 the manual visual/accessibility matrix and native Vietnamese review.
 
+Latest automated evidence (2026-07-18): CI, Store-safe/Power preflight, goal smoke,
+localized resource validation, and packaged one-window launch pass. Per-window image
+capture on the current host fails before an image is created, and the Accessibility API
+does not expose the app window. This is a workstation privacy permission limitation, not
+passing visual proof; run the matrix on a signed build with Screen Recording and
+Accessibility available.
+
 ## BLUF
 
 The screenshot is a release-quality defect, not a translation polish issue. DNS Pilot

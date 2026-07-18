@@ -9,11 +9,11 @@ in Power/direct-install capable builds after explicit Direct Admin opt-in, or a
 local force flag, and still requires macOS administrator approval.
 
 Consumer UX gates now have a singleton main window, task-first navigation, optional
-setup, one primary result action, and compact technical details. Store release still
-needs localization/interaction consistency, automated visual QA, external usability,
-and publishing evidence. Further presentation-file extraction is post-stabilization
-maintenance except where it is required to establish one text source of truth. See
-`apps/macos/macos-engineering-handoff.md`.
+setup, one primary result action, compact technical details, and semantic EN/VI native
+resources. Automated localization and interaction checks pass. Store release still
+needs signed visual review, external usability, and publishing evidence. Further
+presentation-file extraction is post-stabilization maintenance except where it is
+required to establish one text source of truth. See `apps/macos/macos-engineering-handoff.md`.
 
 ## Requirement Coverage
 
@@ -39,9 +39,10 @@ maintenance except where it is required to establish one text source of truth. S
   validation evidence, and EN/VI localized user-facing copy.
 - Dota 2 SEA, CS2, and Riot/League checks are Check DNS target presets. They force
   DNS + TCP mode and state that the output is not ICMP or in-match UDP latency.
-- English/Vietnamese localization is partial. A custom dictionary covers primary
-  labels, but hard-coded English strings, bilingual tooltips, English diagnostics, and
-  an incorrect English-only `System` fallback remain release blockers.
+- English/Vietnamese presentation copy uses one semantic `Localizable.strings` family.
+  `System` resolves macOS preferences, tooltips use one active language, and structured
+  diagnostics/results/history are localized while raw CLI evidence stays in Technical
+  details. Signed visual review remains required for native-language quality.
 - Power actions are disabled by default. Store-safe builds cannot enable them
   from a stale preference alone; Power/direct-install builds require
   `DNSPilotPowerActionsEnabled` plus Direct Admin opt-in, while
@@ -67,17 +68,17 @@ maintenance except where it is required to establish one text source of truth. S
   bundle verification, DNS-only live smoke, and DNS+TCP live smoke.
 - `swift test --package-path apps/macos/DNSPilotMac`: pass.
 - `cargo test --workspace --tests`: pass for shared CLI/core consumed by macOS.
-- `./script/smoke_macos_goal_flows.sh --include-network`: pass on current
-  network.
-- `./script/smoke_macos_goal_flows.sh --include-bundles`: pass; restores
-  Store-safe bundle afterward.
+- `./script/smoke_macos_goal_flows.sh --include-network --include-bundles`: pass on
+  the current network; restores the Store-safe bundle afterward.
 - `./script/preflight_macos_release.sh --include-power`: pass; validates Rust,
   Swift, Store-safe bundle, Power bundle, and restores Store-safe bundle.
 
 ## Remaining Gates
 
-- Complete the localization/interaction milestone and visual-state matrix in
-  `docs/research/2026-07-14-macos-localization-interaction-review.md`.
+- Capture the signed EN/VI visual-state matrix in
+  `docs/research/2026-07-14-macos-localization-interaction-review.md`. The current
+  host passes packaged-window launch validation but lacks the Screen Recording and
+  Accessibility evidence path required for pixel/VoiceOver capture.
 - Product UX evidence in `TODO.md`: a five-user moderated usability pass after the
   consistency milestone passes.
 - Release signing identity, provisioning, and App Store entitlement approval.
