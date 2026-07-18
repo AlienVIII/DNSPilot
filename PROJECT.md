@@ -222,8 +222,8 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 ### D12: Additive Structured Detail IDs
 
 - **Status:** Recommendation Gate (`86f314b`), Capability Matrix (`d6df518`), and Preflight/
-  Apply Prompt Policy (`015a2aa`) are implemented and regression-tested on 2026-07-19; other
-  Core detail families remain queued.
+  Apply Prompt Policy (`015a2aa`), and Apply Plan (`bb51067`) are implemented and
+  regression-tested on 2026-07-19; other Core detail families remain queued.
 - **Problem:** raw English notes force shells to parse presentation copy and cannot be
   localized safely, but replacing v1 arrays would break stored histories and decoders.
 - **Options:** keep raw text; use a breaking schema; add typed IDs alongside raw details.

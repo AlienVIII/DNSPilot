@@ -21,8 +21,8 @@ Last reviewed: 2026-07-19.
   `all-resolvers-failed` and `partial-failure`).
 - [ ] Continue locale-neutral detail IDs. Recommendation Gate IDs and `gate_note_ids`
   summaries are complete in `86f314b`, Capability Matrix IDs in `d6df518`, and Preflight/
-  Apply Prompt Policy IDs in `015a2aa`; extend this additive contract to apply-plan,
-  profile-security, and
+  Apply Prompt Policy IDs in `015a2aa`, and exhaustive Apply Plan IDs in `bb51067`; extend
+  this additive contract to profile-security and
   connection-path caveats before any shell removes raw Details fallback. Do not duplicate
   `primary_issue`.
 - [x] Complete progress JSONL v1 lifecycle in `cb70daf`: every event carries
