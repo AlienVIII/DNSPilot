@@ -930,8 +930,9 @@ fn main() {
                 "dns_samples": run.dns.samples.iter().map(sample_to_json).collect::<Vec<_>>(),
                 "connect_samples": run.connect.samples.iter().map(connect_sample_to_json).collect::<Vec<_>>(),
                 "tls_samples": tls_samples,
-                "connect_targets": run.connect_targets.iter().map(connect_target_to_json).collect::<Vec<_>>(),
-                "caveats": run.caveats,
+                    "connect_targets": run.connect_targets.iter().map(connect_target_to_json).collect::<Vec<_>>(),
+                    "caveat_ids": run.caveat_ids,
+                    "caveats": run.caveats,
                 "warning": warning,
             });
             println!(
@@ -1068,6 +1069,7 @@ fn main() {
                     "connect_samples": run.connect.samples.iter().map(connect_sample_to_json).collect::<Vec<_>>(),
                     "tls_samples": tls_samples,
                     "connect_targets": run.connect_targets.iter().map(connect_target_to_json).collect::<Vec<_>>(),
+                    "caveat_ids": run.caveat_ids.clone(),
                     "caveats": run.caveats.clone(),
                 }));
                 runs.push(run);

@@ -1,7 +1,8 @@
 use dnspilot_core::connect_probe::ConnectProbeError;
 use dnspilot_core::connection_path::{
     run_connection_path_with_clients, run_connection_path_with_clients_and_tls,
-    run_udp_connection_path_estimate, ConnectionPathConfig, DnsLookupMeasurement,
+    run_udp_connection_path_estimate, ConnectionPathCaveat, ConnectionPathConfig,
+    DnsLookupMeasurement,
 };
 use dnspilot_core::dns_benchmark::DnsRecordFamily;
 use dnspilot_core::dns_resolver::DnsResolverError;
@@ -135,6 +136,9 @@ fn tls_certificate_failures_reduce_combined_reliability_when_enabled() {
         .caveats
         .iter()
         .any(|caveat| caveat.contains("TLS certificate")));
+    assert!(run
+        .caveat_ids
+        .contains(&ConnectionPathCaveat::TlsCertificateFailure));
 }
 
 #[test]
@@ -173,6 +177,9 @@ fn reports_caveat_when_dns_response_has_no_usable_ip_answers() {
         .caveats
         .iter()
         .any(|caveat| caveat.contains("No usable A/AAAA")));
+    assert!(run
+        .caveat_ids
+        .contains(&ConnectionPathCaveat::NoUsableDnsAnswers));
 }
 
 #[test]
@@ -247,6 +254,9 @@ fn limits_connect_targets_per_domain_and_records_caveat() {
         .caveats
         .iter()
         .any(|caveat| caveat.contains("Limited TCP connect probes")));
+    assert!(run
+        .caveat_ids
+        .contains(&ConnectionPathCaveat::ConnectTargetLimit));
 }
 
 #[test]

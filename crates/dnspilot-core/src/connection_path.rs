@@ -16,6 +16,19 @@ use crate::BenchmarkMetrics;
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ConnectionPathCaveat {
+    DnsTcpScopeOnly,
+    DnsTcpTlsScopeOnly,
+    NoUsableDnsAnswers,
+    DnsLookupFailure,
+    TcpConnectFailure,
+    TlsCertificateFailure,
+    TlsHandshakeFailure,
+    ConnectTargetLimit,
+}
+
 #[derive(Debug, Clone)]
 pub struct ConnectionPathConfig {
     pub profile_id: String,
@@ -37,6 +50,7 @@ pub struct ConnectionPathRun {
     pub connect: ConnectProbeRun,
     pub tls: Option<TlsProbeRun>,
     pub connect_targets: Vec<TcpConnectTarget>,
+    pub caveat_ids: Vec<ConnectionPathCaveat>,
     pub caveats: Vec<String>,
 }
 
@@ -178,7 +192,7 @@ where
         run_tls_handshake_probes_with_handshaker(&tls_config, tls_handshaker)
     });
     let metrics = combine_metrics(&dns.metrics, &connect, tls.as_ref());
-    let caveats = caveats_for(
+    let (caveat_ids, caveats) = caveats_for(
         &targets,
         &dns,
         &connect,
@@ -193,6 +207,7 @@ where
         connect,
         tls,
         connect_targets: targets,
+        caveat_ids,
         caveats,
     }
 }
@@ -384,32 +399,43 @@ fn caveats_for(
     tls: Option<&TlsProbeRun>,
     max_connect_targets_per_domain: usize,
     skipped_connect_targets: usize,
-) -> Vec<String> {
-    let mut caveats = if tls.is_some() {
-        vec![
+) -> (Vec<ConnectionPathCaveat>, Vec<String>) {
+    let (mut caveat_ids, mut caveats) = if tls.is_some() {
+        (
+            vec![ConnectionPathCaveat::DnsTcpTlsScopeOnly],
+            vec![
             "Connection-path estimate uses DNS, TCP connect, and TLS/SNI handshake timing only; HTTP, QUIC, browser cache, and server latency are not measured yet.".into(),
-        ]
+            ],
+        )
     } else {
-        vec![
+        (
+            vec![ConnectionPathCaveat::DnsTcpScopeOnly],
+            vec![
             "Connection-path estimate uses DNS and TCP connect timing only; TLS, HTTP, QUIC, browser cache, and server latency are not measured yet.".into(),
-        ]
+            ],
+        )
     };
 
     if targets.is_empty() {
+        caveat_ids.push(ConnectionPathCaveat::NoUsableDnsAnswers);
         caveats.push(
             "No usable A/AAAA answers were returned, so TCP connect probes were skipped.".into(),
         );
     }
     if dns.metrics.failure_rate > 0.0 {
+        caveat_ids.push(ConnectionPathCaveat::DnsLookupFailure);
         caveats.push("Some DNS lookups failed or timed out.".into());
     }
     if connect.failure_rate > 0.0 {
+        caveat_ids.push(ConnectionPathCaveat::TcpConnectFailure);
         caveats.push("Some resolved endpoints failed TCP connect; DNS may be mapping to a poor, blocked, or unreachable path.".into());
     }
     if let Some(tls) = tls {
         if tls.certificate_failure_rate > 0.0 {
+            caveat_ids.push(ConnectionPathCaveat::TlsCertificateFailure);
             caveats.push("TLS certificate failures were observed; this can indicate captive portal, corporate interception, wrong endpoint mapping, or SNI mismatch.".into());
         } else if tls.failure_rate > 0.0 {
+            caveat_ids.push(ConnectionPathCaveat::TlsHandshakeFailure);
             caveats.push(
                 "Some resolved endpoints failed TLS/SNI handshake after TCP connect succeeded."
                     .into(),
@@ -417,10 +443,16 @@ fn caveats_for(
         }
     }
     if max_connect_targets_per_domain > 0 && skipped_connect_targets > 0 {
+        caveat_ids.push(ConnectionPathCaveat::ConnectTargetLimit);
         caveats.push(format!(
             "Limited TCP connect probes to {max_connect_targets_per_domain} endpoint(s) per domain, balanced across IPv4/IPv6 when available, to avoid excessive network traffic; skipped {skipped_connect_targets} endpoint(s)."
         ));
     }
 
-    caveats
+    assert_eq!(
+        caveat_ids.len(),
+        caveats.len(),
+        "every Core-generated connection-path caveat needs a stable ID"
+    );
+    (caveat_ids, caveats)
 }

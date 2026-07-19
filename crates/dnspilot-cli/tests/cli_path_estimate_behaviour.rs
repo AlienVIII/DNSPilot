@@ -52,6 +52,10 @@ fn path_estimate_command_outputs_dns_and_connect_metrics() {
     assert_eq!(json["summary"]["connect_sample_count"], 1);
     assert_eq!(json["summary"]["tls_sample_count"], 0);
     assert_eq!(json["summary"]["trust_store"], Value::Null);
+    assert_eq!(
+        json["caveat_ids"],
+        serde_json::json!(["dns-tcp-scope-only"])
+    );
     assert_eq!(json["metrics"]["failure_rate"], 0.0);
     assert_eq!(json["metrics"]["timeout_rate"], 0.0);
     assert!(
