@@ -22,6 +22,9 @@ Last reviewed: 2026-08-04.
 
 ## P0: Commercial Trust
 
+- [x] Provide a one-command macOS source-build path that produces and opens a
+  user-facing `dist/DNSPilot.app` without Apple signing credentials; shell contract,
+  local bundle validation, and on-screen runtime smoke pass.
 - [x] Harden Core UDP response identity and DNS response validation per D8; added spoofed
   source, fresh-ID, wrong-question, and invalid response packet tests in `8a53a31`.
 - [x] Make macOS Power Restore compare current DNS to the recorded applied state before

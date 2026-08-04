@@ -134,7 +134,7 @@ DNSPILOT_INSTALLER_IDENTITY="<installer signing identity>" \
 5. Validate the signed export.
 
 ```bash
-./script/validate_macos_bundle.sh /path/to/DNSPilotMac.app --distribution
+./script/validate_macos_bundle.sh /path/to/DNSPilot.app --distribution
 ```
 
 Expected:
@@ -189,7 +189,7 @@ Or include Power bundle validation in the local release gate:
 ```
 
 The preflight restores a Store-safe bundle after optional Power validation so
-`dist/DNSPilotMac.app` is not left Power-enabled by accident.
+`dist/DNSPilot.app` is not left Power-enabled by accident.
 
 2. Confirm UI behavior.
    - Store-safe builds show guided mode only and cannot enable admin actions

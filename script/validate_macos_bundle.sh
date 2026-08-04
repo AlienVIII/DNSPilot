@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_BUNDLE="$ROOT_DIR/dist/DNSPilotMac.app"
+APP_BUNDLE="$ROOT_DIR/dist/DNSPilot.app"
 APP_NAME="DNSPilotMac"
 PRODUCT_NAME="DNS Pilot"
 EXPECTED_APP_CATEGORY="public.app-category.utilities"

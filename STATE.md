@@ -16,6 +16,10 @@ Last updated: 2026-08-04.
   measurements, and a 500 ms maximum per DNS attempt.
 - macOS Store-safe behavior, semantic EN/VI localization, packaging, and local release
   preflight pass. Signed visual/accessibility evidence and provider steps remain open.
+- macOS has a verified end-user source-build entry point: `./script/build_from_source.sh`
+  checks macOS 14+, Swift 6, and Cargo; builds, locally signs, validates, and opens
+  `dist/DNSPilot.app`. This is usable for local personal builds, not certificate-backed
+  distribution.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
   contracts/storage are typed/shared, progress is streamed/cancellable, and the
   consumer decision/history loop exists. Accessibility, source-built packages, and

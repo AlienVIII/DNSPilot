@@ -10,6 +10,9 @@ run_step() {
 run_step "Rust formatting"
 cargo fmt --all -- --check
 
+run_step "Build-from-source shell contract"
+"$ROOT_DIR/script/test_build_from_source.sh"
+
 run_step "Rust workspace tests"
 cargo test --workspace --tests
 

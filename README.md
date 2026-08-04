@@ -14,38 +14,51 @@ macOS publishing steps live in `apps/macos/PUBLISHING.md`.
 - Ordered release queue: `TODO.md`
 - Detailed macOS publish steps: `apps/macos/PUBLISHING.md`
 
-## Development Setup
+## Build From Source (macOS 14+)
 
-### Requirements
+DNS Pilot is buildable as a normal local macOS app. It requires Xcode Command
+Line Tools with Swift 6 and the stable Rust toolchain. No Apple Developer
+account or certificate is needed to build and use the Store-safe edition from
+source.
 
-- macOS 14+ to run the native macOS app.
-- Xcode Command Line Tools with Swift 6 support.
-- Rust stable toolchain with Cargo.
-- Network access for live DNS/TCP and game-target probes.
+1. Install Xcode Command Line Tools once:
 
-### Install Dependencies
+   ```sh
+   xcode-select --install
+   ```
+
+2. Install the stable Rust toolchain with Cargo from
+   [rustup.rs](https://rustup.rs), then reopen Terminal.
+
+3. Clone and build:
+
+   ```sh
+   git clone https://github.com/AlienVIII/DNSPilot.git
+   cd DNSPilot
+   ./script/build_from_source.sh
+   ```
+
+The command checks prerequisites, builds the Rust helper and SwiftUI app,
+locally signs it, validates the bundle, opens it, and leaves the usable app at
+`dist/DNSPilot.app`. Drag that app to `Applications` for personal use, or open
+it again with:
 
 ```sh
-rustup update
-cargo fetch
-swift package resolve --package-path apps/macos/DNSPilotMac
+open dist/DNSPilot.app
 ```
 
-SwiftPM currently has no external package dependencies; the command is still
-safe to run and verifies package resolution.
+For CI or a build without opening a window:
 
-### Run The macOS App
+```sh
+./script/build_from_source.sh --no-open
+```
 
-Store-safe development run:
+### Development Commands
+
+The canonical builder remains available for debugging and release checks:
 
 ```sh
 ./script/build_and_run.sh run
-```
-
-Store-safe verified run with local ad-hoc sandbox signing (`--sandbox-verify` is
-kept as an alias):
-
-```sh
 ./script/build_and_run.sh --verify
 ```
 
