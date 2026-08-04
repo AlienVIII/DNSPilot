@@ -13,9 +13,10 @@ use dnspilot_core::{
     system_dns::run_system_dns_benchmark,
     tls_probe::{TlsProbeOutcome, TlsProbeSample},
     BenchmarkHistoryRecord, BenchmarkMetrics, BenchmarkPreflightScope, Confidence, DnsProfile,
-    DnsProtocol, FilteringType, MeasurementScope, NetworkEnvironment, Platform, Recommendation,
-    RecommendationDecision, RecommendationGate, RecommendationHealth, RecommendationIssue,
-    RecommendationMode, SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
+    DnsProtocol, FilteringType, MeasurementScope, NetworkEnvironment, Platform,
+    ProfileSecurityNote, Recommendation, RecommendationDecision, RecommendationGate,
+    RecommendationHealth, RecommendationIssue, RecommendationMode, RecommendationNote,
+    SqliteStorage, StorageSnapshot, TestSuite, STORAGE_SCHEMA_VERSION,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -185,6 +186,16 @@ fn apply_plan_gate(health: RecommendationHealth) -> RecommendationGate {
         can_recommend,
         health,
         primary_issue,
+        note_ids: match health {
+            RecommendationHealth::Healthy => Vec::new(),
+            RecommendationHealth::Degraded => {
+                vec![RecommendationNote::PartialFailureOrTimeout]
+            }
+            RecommendationHealth::Failed => vec![RecommendationNote::EveryCandidateFailed],
+            RecommendationHealth::Inconclusive => {
+                vec![RecommendationNote::NoBenchmarkCandidates]
+            }
+        },
         notes,
     }
 }
@@ -904,7 +915,7 @@ fn save_history(
     {
         return Ok(None);
     }
-    let storage = storage(payload, db_path)?;
+    let mut storage = storage(payload, db_path)?;
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let id = optional_string(payload, "historyId").unwrap_or_else(|| record.id.clone());
     if snapshot.benchmark_history.iter().any(|item| item.id == id) {
@@ -915,7 +926,7 @@ fn save_history(
     let mut record = record;
     record.id = id.clone();
     snapshot.benchmark_history.push(record);
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(Some(id))
 }
 
@@ -1019,15 +1030,18 @@ fn load_snapshot_or_builtin(storage: &SqliteStorage) -> Result<StorageSnapshot, 
     }
 }
 
-fn save_snapshot(storage: &SqliteStorage, snapshot: &StorageSnapshot) -> Result<(), RuntimeError> {
+fn save_snapshot(
+    storage: &mut SqliteStorage,
+    snapshot: &StorageSnapshot,
+) -> Result<(), RuntimeError> {
     storage
         .save_snapshot(snapshot)
         .map_err(|error| RuntimeError::Storage(error.to_string()))
 }
 
-fn storage_smoke(storage: SqliteStorage) -> Result<Value, RuntimeError> {
+fn storage_smoke(mut storage: SqliteStorage) -> Result<Value, RuntimeError> {
     let snapshot = builtin_snapshot();
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     let loaded = load_snapshot_or_builtin(&storage)?;
     Ok(json!({
         "schema_version": loaded.schema_version,
@@ -1046,7 +1060,7 @@ fn profile_list(storage: SqliteStorage) -> Result<Value, RuntimeError> {
     }))
 }
 
-fn profile_add(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
+fn profile_add(mut storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let profile = custom_profile(payload)?;
     if snapshot.profiles.iter().any(|item| item.id == profile.id) {
@@ -1057,11 +1071,11 @@ fn profile_add(storage: SqliteStorage, payload: &Value) -> Result<Value, Runtime
     }
     let id = profile.id.clone();
     snapshot.profiles.push(profile);
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "profile_id": id, "profile_count": snapshot.profiles.len() }))
 }
 
-fn profile_update(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
+fn profile_update(mut storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let profile = custom_profile(payload)?;
     let index = snapshot
@@ -1077,11 +1091,11 @@ fn profile_update(storage: SqliteStorage, payload: &Value) -> Result<Value, Runt
     }
     let id = profile.id.clone();
     snapshot.profiles[index] = profile;
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "profile_id": id, "profile_count": snapshot.profiles.len() }))
 }
 
-fn profile_delete(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
+fn profile_delete(mut storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let id = required_string(payload, "id")?;
     let index = snapshot
@@ -1095,7 +1109,7 @@ fn profile_delete(storage: SqliteStorage, payload: &Value) -> Result<Value, Runt
         )));
     }
     snapshot.profiles.remove(index);
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "profile_id": id, "profile_count": snapshot.profiles.len() }))
 }
 
@@ -1108,7 +1122,7 @@ fn suite_list(storage: SqliteStorage) -> Result<Value, RuntimeError> {
     }))
 }
 
-fn suite_add(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
+fn suite_add(mut storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let suite = custom_suite(payload)?;
     if snapshot.test_suites.iter().any(|item| item.id == suite.id) {
@@ -1119,11 +1133,11 @@ fn suite_add(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeEr
     }
     let id = suite.id.clone();
     snapshot.test_suites.push(suite);
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "test_suite_id": id, "test_suite_count": snapshot.test_suites.len() }))
 }
 
-fn suite_update(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
+fn suite_update(mut storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let suite = custom_suite(payload)?;
     let index = snapshot
@@ -1139,11 +1153,11 @@ fn suite_update(storage: SqliteStorage, payload: &Value) -> Result<Value, Runtim
     }
     let id = suite.id.clone();
     snapshot.test_suites[index] = suite;
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "test_suite_id": id, "test_suite_count": snapshot.test_suites.len() }))
 }
 
-fn suite_delete(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
+fn suite_delete(mut storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let id = required_string(payload, "id")?;
     let index = snapshot
@@ -1155,7 +1169,7 @@ fn suite_delete(storage: SqliteStorage, payload: &Value) -> Result<Value, Runtim
         return Err(RuntimeError::ProtectedBuiltIn(format!("test suite '{id}'")));
     }
     snapshot.test_suites.remove(index);
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "test_suite_id": id, "test_suite_count": snapshot.test_suites.len() }))
 }
 
@@ -1168,7 +1182,7 @@ fn history_list(storage: SqliteStorage) -> Result<Value, RuntimeError> {
     }))
 }
 
-fn history_delete(storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
+fn history_delete(mut storage: SqliteStorage, payload: &Value) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     let id = required_string(payload, "id")?;
     let index = snapshot
@@ -1177,14 +1191,14 @@ fn history_delete(storage: SqliteStorage, payload: &Value) -> Result<Value, Runt
         .position(|item| item.id == id)
         .ok_or_else(|| RuntimeError::NotFound(format!("benchmark history '{id}' not found")))?;
     snapshot.benchmark_history.remove(index);
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "history_id": id, "benchmark_history_count": snapshot.benchmark_history.len() }))
 }
 
-fn history_clear(storage: SqliteStorage) -> Result<Value, RuntimeError> {
+fn history_clear(mut storage: SqliteStorage) -> Result<Value, RuntimeError> {
     let mut snapshot = load_snapshot_or_builtin(&storage)?;
     snapshot.benchmark_history.clear();
-    save_snapshot(&storage, &snapshot)?;
+    save_snapshot(&mut storage, &snapshot)?;
     Ok(json!({ "benchmark_history_count": snapshot.benchmark_history.len() }))
 }
 
@@ -1203,6 +1217,11 @@ fn custom_profile(payload: &Value) -> Result<DnsProfile, RuntimeError> {
         tags: input.tags,
         use_case: "custom".into(),
         filtering_type: input.filtering,
+        security_note_ids: if input.filtering == FilteringType::None {
+            Vec::new()
+        } else {
+            vec![ProfileSecurityNote::FilteredDnsMayBlockDomains]
+        },
         security_notes: security_notes(input.filtering),
         provider_metadata: BTreeMap::new(),
         created_at: None,

@@ -68,6 +68,26 @@ fn apply_plan_uses_native_storage_and_preserves_ios_user_approval() {
 }
 
 #[test]
+fn apply_plan_preserves_core_recommendation_note_ids() {
+    let result = run(
+        "applyPlan",
+        json!({
+            "platform": "android-play",
+            "profileId": "cloudflare",
+            "confidence": "high",
+            "gateHealth": "degraded"
+        }),
+    );
+
+    assert_eq!(result["ok"], true);
+    assert!(result["data"]["note_ids"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|note| note == "partial-failure-or-timeout"));
+}
+
+#[test]
 fn recommend_sample_is_computed_by_the_shared_core() {
     let result = run("recommendSample", json!({}));
 
@@ -204,6 +224,40 @@ fn profile_storage_round_trips_custom_encrypted_dns_with_bootstrap_ips() {
         .unwrap();
     assert_eq!(profile["doh_url"], "https://cloudflare-dns.com/dns-query");
     assert_eq!(profile["ipv4_servers"], json!(["1.1.1.1", "1.0.0.1"]));
+}
+
+#[test]
+fn filtered_custom_profiles_preserve_core_security_note_ids() {
+    let directory = tempfile::tempdir().unwrap();
+    let database = directory.path().join("dnspilot.sqlite");
+    let database = database.to_string_lossy();
+    let _ = run_action_json(
+        "profileAdd",
+        &json!({
+            "id": "filtered",
+            "name": "Filtered",
+            "protocol": "plain",
+            "ipv4Servers": ["1.1.1.1"],
+            "filtering": "malware",
+            "tags": ["custom"]
+        })
+        .to_string(),
+        Some(&database),
+    );
+    let listed =
+        serde_json::from_str::<Value>(&run_action_json("profileList", "{}", Some(&database)))
+            .unwrap();
+    let profile = listed["data"]["profiles"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|profile| profile["id"] == "filtered")
+        .unwrap();
+
+    assert_eq!(
+        profile["security_note_ids"],
+        json!(["filtered-dns-may-block-domains"])
+    );
 }
 
 #[test]

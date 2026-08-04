@@ -1,29 +1,32 @@
 # Mobile Readiness
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-04.
 
 ## Green Before Main Integration
 
-- [x] `npm run verify` passes with Expo 57.0.7-compatible patches (98 tests,
+- [x] `npm run verify` passes with Expo 57.0.10-compatible patches (98 tests,
   typecheck, router export, Expo compatibility check).
-- [ ] `npm run preflight:release` passes after clean generated iOS/Android builds.
-  Release-config passes; Android release build evidence is still running.
-- [ ] Default iOS Store generated/signed entitlements omit `dns-settings`; the opt-in
-  profile remains deterministic and separately blocked.
+- [x] `npm run preflight:release` passes after clean generated Android build;
+  production AAB, Store manifest, and dex capability checks pass.
+- [x] Default iOS Store public config omits `dns-settings`; the opt-in profile
+  remains deterministic and separately blocked.
 - [x] Android production manifest excludes dev-client, VPN/overlay/storage leakage and
   disables backup. The iOS native runtime excludes its `Application Support/DNSPilot`
   directory from backup; simulator/device verification remains open.
-- [ ] Native Rust jobs pass unit, type, Router, iOS Simulator, and Android release smoke.
+- [x] Native Rust contract tests, typecheck, Router, iOS Simulator Release build,
+  Android release AAB, and APK signature verification pass.
 - [x] Dev bridge is loopback-only by default. Explicit LAN mode has a per-run bearer
   token and origin allowlist; the server owns the database path, redacts HTTP output,
   bounds jobs, and supports cancellation.
 - [x] Check DNS first-run state hides empty Process/Result and keeps the primary quick
   check action above advanced controls. Broader physical-device copy review remains open.
-- [ ] Tutorial/Help and advanced disclosure are keyboard/touch/assistive reachable.
+- [ ] Tutorial/Help and advanced disclosure are keyboard/touch/assistive reachable
+  on physical devices.
 
 ## Native Manual Flow
 
-1. Install signed iOS and Android builds; no bridge is used.
+1. Install signed iOS and Android builds; no bridge is used. For the connected
+   S25 Ultra local QA artifact, first accept the USB-debugging RSA prompt.
 2. Complete/skip tutorial, restart, confirm it stays complete, reopen Help on all tabs,
    and confirm passive Help does not request system access.
 3. Run Quick Check, Advanced DNS+TCP, and System DNS; verify progress, cancellation,

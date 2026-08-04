@@ -1,6 +1,6 @@
 # DNSPilot Mobile Roadmap
 
-Last reviewed: 2026-07-14.
+Last reviewed: 2026-08-04.
 
 ## Completed Automated Scope
 
@@ -11,9 +11,13 @@ Last reviewed: 2026-07-14.
   permission request.
 - [x] Expo Router unresolved-route gate, Store profile entitlement isolation,
   Android release-manifest checks, and iOS Simulator consumer smoke.
+- [x] Expo SDK 57.0.10 patch alignment, Rust runtime/Core contract checks, and
+  a fresh Android production AAB plus locally installable release-variant APK.
 
 ## Manual Release Gates
 
+- [ ] Authorize the connected Samsung S25 Ultra for ADB, install the local
+  release-variant APK, and record on-device smoke evidence.
 - [ ] Run signed physical iOS/iPadOS and Android device QA using
   `mobile-readiness.md`; record pass/fail evidence and screenshots.
 - [ ] Apple: create/confirm App Store Connect record, signing/provisioning,

@@ -55,6 +55,13 @@ test("Android config blocks dev-only permissions from store builds", () => {
   ]);
 });
 
+test("Android config uses Expo-supported backup controls", () => {
+  const config = appConfig();
+
+  assert.equal(config.android.allowBackup, false);
+  assert.equal(Object.hasOwn(config.android, "dataExtractionRules"), false);
+});
+
 test("dynamic app config preserves Expo-provided app.json values", () => {
   const config = appConfig({
     config: {

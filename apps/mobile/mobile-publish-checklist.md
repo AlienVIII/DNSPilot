@@ -1,6 +1,6 @@
 # Mobile Publish Checklist
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-04.
 
 ## Release Posture
 
@@ -9,8 +9,9 @@ Last reviewed: 2026-07-19.
 - Default iOS Store profile omits `dns-settings`. Optional `production-ios-dns` remains
   Apple capability/signing/physical-device gated and does not block default release.
 - Android uses Private DNS Settings guidance and no `VpnService` or silent mutation.
-- Current full gate is red on Expo patch compatibility. Do not submit until
-  `apps/mobile/mobile-readiness.md` is fully green.
+- The automated release gate is green on the current lane. Do not submit until
+  the physical-device and provider-owned gates in `apps/mobile/mobile-readiness.md`
+  are complete.
 
 ## Automated Release Gate
 
@@ -24,6 +25,10 @@ The gate must prove current package alignment, Router export, native Rust artifa
 default/opt-in iOS entitlement isolation, Android release AAB, no dev/VPN/privileged
 surface, and approved backup behavior. Rerun iOS Simulator and Android release smoke
 after dependency or generated-config changes.
+
+The local `android/app/build/outputs/apk/release/app-release.apk` is a
+debug-key-signed release variant for local device QA only. Build the final Play AAB
+through EAS/Play App Signing; do not upload this APK or its local signing key.
 
 ## Physical Device Gate
 

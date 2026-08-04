@@ -1,14 +1,13 @@
 # Mobile Progress
 
-Last reviewed: 2026-07-19. Reviewed branch: `worktree/mobile` at `8dd1c26`.
+Last reviewed: 2026-08-04. Reviewed branch: `worktree/mobile`.
 
 ## BLUF
 
 Mobile is a native Expo app backed by local Expo modules and a Rust adapter around
 `dnspilot-core`; installed builds do not require a developer Mac or Node bridge. The
-consumer shell and entitlement isolation are substantially implemented, but the lane is
-not merge-ready while verify, bridge security, backup/privacy, and concise-UI gates are
-open.
+automated release lane is green. The remaining gates are physical-device evidence,
+provider-owned signing/accounts, and the separately restricted iOS entitlement.
 
 ## Implemented
 
@@ -26,24 +25,24 @@ open.
 
 ## Latest Validation
 
-- 95 tests, typecheck, Expo config, and Router export: pass.
-- Latest `npm run verify`: fail at Expo install compatibility. Expected patches are
-  `expo 57.0.7`, `expo-constants 57.0.6`, `expo-dev-client 57.0.7`, and
-  `expo-router 57.0.7`.
-- `npm run preflight:release`: not reached after verify failed.
-- Earlier branch evidence includes iOS Release Simulator build/install/launch and Android
-  release assembly/manifest checks; rerun after dependency/privacy changes.
-- Physical-device, signing, Store review, VoiceOver/TalkBack, backup, and optional
-  entitlement proof: `NOT RUN`.
+- `npm run verify`: pass, 98 tests, typecheck, public config, Router export,
+  Expo compatibility, and high-severity audit threshold.
+- `npx expo-doctor@latest`: 20/20 checks pass.
+- Rust runtime contract tests: 13 pass. iOS Release Simulator build passes on
+  iPhone 17e / iOS 26.5.
+- `npm run native:prepare:android` rebuilt all ABIs; `npm run preflight:release`
+  passed Android AAB, Store manifest, and dex gates. The companion local QA APK
+  passes `apksigner verify` with v2 signing.
+- Physical-device launch, signing, Store review, VoiceOver/TalkBack, backup, and
+  optional entitlement proof: `NOT RUN`; the connected S25 Ultra awaits ADB authorization.
 
 ## Remaining Gates
 
-1. Restore current Expo compatibility and rerun the full release gate.
-2. Harden development bridge and local database boundary.
-3. Enforce/document mobile backup and retention policy.
-4. Remove duplicate titles, empty technical panels, raw errors, and Core/CLI jargon;
-   keep advanced profile editing behind progressive disclosure.
-5. Merge source under amended D1 only after normal gates pass. Keep the entitled artifact
+1. Authorize S25 Ultra USB debugging, install the local QA APK, and run the Android
+   smoke flow.
+2. Run the full signed device matrix, including accessibility, tablet, offline, and
+   Settings handoff evidence.
+3. Complete Apple/Google signing and Store submission. Keep the entitled iOS artifact
    provider/device blocked independently.
 
 ## Source Of Truth
