@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-07-19.
+Last updated: 2026-08-04.
 
 ## Current Truth
 
@@ -8,6 +8,12 @@ Last updated: 2026-07-19.
   `034621c`, Windows through `2f3cef0`, and Core/CLI hardening through `8360ba7`.
 - Rust Core/CLI remains the only owner of benchmark, recommendation, policy, storage,
   and versioned JSON/JSONL contracts.
+- Product direction now separates read-only Network Health Check from DNS Benchmark.
+  The guided journey recommends Health Check first and DNS selection last; this is an
+  approved design direction, not an implemented or validated feature.
+- Health Check will not use router credentials or mutate router/OS network state. DNS
+  Benchmark keeps a user-selected resolver pool, separate A/IPv4 and AAAA/IPv6
+  measurements, and a 500 ms maximum per DNS attempt.
 - macOS Store-safe behavior, semantic EN/VI localization, packaging, and local release
   preflight pass. Signed visual/accessibility evidence and provider steps remain open.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core

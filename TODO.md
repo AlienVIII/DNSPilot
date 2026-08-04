@@ -1,6 +1,24 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-04.
+
+## P0: Separate Network Health Check
+
+- [ ] Complete and approve the design spec for a read-only Health Check that remains
+  separate from DNS Benchmark while appearing first in the guided journey.
+- [ ] Define a versioned Core contract for observations, health status, confidence,
+  capability gaps, reason IDs, privacy boundaries, and manual recheck suggestions.
+- [ ] Define the cross-platform capability matrix. Do not use router credentials,
+  router-specific scraping, port scanning, privileged mutation, or claims that an
+  unmanaged switch count can be observed remotely.
+- [ ] Preserve DNS Benchmark as an independent feature with a user-selected resolver
+  pool, separate A/IPv4 and AAAA/IPv6 results, and a 500 ms timeout ceiling per DNS
+  attempt.
+- [ ] Add synthetic design fixtures for local gateway failure, upstream degradation,
+  DNS-only failure, IPv4/IPv6 mismatch, transient loss, and unsupported observations
+  before approving implementation.
+- [ ] Place donate/fund prompts only after useful product value or in Support/About;
+  never gate safety guidance, recheck steps, or warning explanations behind payment.
 
 ## P0: Commercial Trust
 

@@ -1,6 +1,6 @@
 # DNSPilot Product Architecture
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-04.
 
 ## Product
 
@@ -9,14 +9,25 @@ their current network, apply it through an OS-honest flow, and verify the result
 Commercial trust depends on measurable recommendations, reversible actions, concise
 UX, local-first data, and signed OS-native distribution.
 
+Network Health Check and DNS Benchmark are separate product capabilities. The guided
+journey asks the user to check infrastructure health first, then treats DNS selection
+as the final optimization step once local and upstream conditions are understandable.
+
 ## Architecture
 
 - Rust core and `dnspilot-cli` own benchmark, recommendation, policy, storage, and
   versioned JSON/JSONL contracts.
+- Core owns separate Health Check and DNS Benchmark contracts. A Health Check result
+  may contextualize a later DNS result, but the two runs never share a hidden score or
+  become one benchmark.
 - OS apps are thin native presentation and capability adapters. They must not fork
   benchmark or recommendation rules.
-- Store editions are benchmark-first and guided by default. Direct DNS mutation is a
-  separate Power capability requiring explicit consent, rollback, and OS authorization.
+- Health Check is read-only: no router credentials, router-specific scraping, port
+  scanning, DNS/QoS/DHCP mutation, or reboot. Unsupported observations are reported as
+  unavailable rather than inferred as healthy.
+- Store editions guide users through Health Check before DNS Benchmark by default,
+  while keeping both features independently runnable. Direct DNS mutation is a separate
+  Power capability requiring explicit consent, rollback, and OS authorization.
 - User profiles, suites, settings, and history remain local unless a future product
   decision introduces an account or sync service.
 - `main` is the integrated source of truth; OS worktrees are isolated delivery lanes.
@@ -63,6 +74,7 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 
 ### D3: macOS Consumer Information Architecture
 
+- **Status:** Amended on 2026-08-04 by D13.
 - **Problem:** the current sidebar mixes the core user journey with capabilities,
   permissions, publishing checks, catalog internals, and other-platform status.
 - **Options:** keep the QA console; hide internal surfaces behind Advanced; remove them
@@ -70,11 +82,12 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 - **Trade-offs:** keeping everything aids development but harms comprehension; an
   Advanced area still adds product weight; removing release-only surfaces gives the
   clearest product while preserving evidence outside the consumer UI.
-- **Recommendation:** the release UI has three primary areas: `Check DNS`, `Profiles`,
-  and `History`; results remain within the Check DNS decision flow. Game targets become
-  benchmark presets. Publishing, capability matrix, validation evidence, catalog
-  internals, and platform parity stay in CLI/docs or a development-only diagnostics
-  surface.
+- **Recommendation:** the release UI has four primary areas: `Health Check`, `DNS
+  Benchmark`, `Profiles`, and `History`. The guided journey starts with Health Check,
+  while each feature keeps its own run and result. Game targets remain DNS/TCP/TLS
+  benchmark presets, not infrastructure-health claims. Publishing, capability matrix,
+  validation evidence, catalog internals, and platform parity stay in CLI/docs or a
+  development-only diagnostics surface.
 - **Reason:** commercial users buy a trustworthy decision loop, not an implementation
   dashboard.
 - **Confidence:** High.
@@ -112,6 +125,7 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 
 ### D6: macOS As Product Reference, Not Platform Template
 
+- **Status:** Amended on 2026-08-04 by D13.
 - **Problem:** independent OS lanes drift into engineering consoles, while exact
   macOS feature parity would copy invalid provider assumptions and privileged APIs.
 - **Options:** independent products; exact feature parity; one shared consumer
@@ -120,10 +134,12 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
   parity is simple to track but unsafe across providers; contract parity needs an
   explicit matrix but preserves one product and honest OS behavior.
 - **Recommendation:** macOS is the reference for the store-safe user journey and
-  quality bar. Every lane implements `Check DNS`, `Profiles`, and `History`, a
-  DNS-only Quick Check, honest DNS+TCP presets, recommendation safety, one primary
-  Apply/Retest action, optional tutorial/Help, concise copy, local persistence,
-  accessibility, and release evidence. OS-specific mutation remains separate.
+  quality bar. Every lane targets separate `Health Check`, `DNS Benchmark`, `Profiles`,
+  and `History` capabilities, a DNS-only Quick Check, honest DNS+TCP/TLS presets,
+  recommendation safety, one primary Apply/Retest action, optional tutorial/Help,
+  concise copy, local persistence, accessibility, and release evidence. Health Check
+  capability gaps and OS-specific mutation remain explicit rather than forced into
+  false parity.
 - **Reason:** users should recognize one DNSPilot product without hiding real OS,
   store, privilege, or packaging differences.
 - **Confidence:** High.
@@ -236,6 +252,32 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 - **Reason:** localization must not trade away offline history or decoder compatibility.
 - **Confidence:** High.
 
+### D13: Separate Network Health Check From DNS Benchmark
+
+- **Status:** Product direction approved on 2026-08-04; implementation remains gated
+  on an approved design spec and lane plan.
+- **Problem:** a DNS benchmark can select the best resolver in a pool while Wi-Fi,
+  gateway, upstream, IPv4/IPv6, or general path instability is the user's real problem.
+  Embedding infrastructure observations inside the DNS score would make both results
+  harder to understand and could imply that DNS fixes packet loss or routing.
+- **Options:** embed a mandatory health preflight inside every DNS benchmark; keep a
+  separate optional troubleshooting tool; provide two independent features with a
+  guided order that recommends Health Check before DNS Benchmark.
+- **Trade-offs:** an embedded preflight produces one simple button but conflates
+  measurement domains; an optional tool is easy to skip; separate features add one
+  product concept but preserve honest results, independent reruns, and clear history.
+- **Recommendation:** ship Health Check and DNS Benchmark as separate read-only
+  measurement flows. The primary journey recommends Health Check first and DNS
+  Benchmark second. Health Check reports observable infrastructure state, capability
+  gaps, and manual recheck suggestions. DNS Benchmark uses a resolver pool selected by
+  the user, measures A/IPv4 and AAAA/IPv6 independently, and caps each DNS attempt at
+  500 ms. It may display current Health Check context without merging scores or making
+  the DNS run depend on router access.
+- **Reason:** DNS should be the final optimization decision, not a substitute for
+  diagnosing an unstable network. Separate contracts keep the promise understandable,
+  testable, Store-safe, and portable across OS lanes.
+- **Confidence:** High.
+
 ## Quality Gates
 
 - No release-ready claim without platform build, automated tests, signed artifact
@@ -250,3 +292,7 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
 - Contract changes require compatibility/version review across every consumer lane.
 - Reference parity is judged by user outcome and evidence, not identical controls,
   runtime technology, tray behavior, or privileged capability.
+- Health Check never authenticates to or mutates a router. It must distinguish
+  measured, inferred, unsupported, and user-reported evidence in its contract and UI.
+- DNS Benchmark remains independently runnable and must not claim to repair Wi-Fi,
+  packet loss, NAT, routing, or upstream instability.
