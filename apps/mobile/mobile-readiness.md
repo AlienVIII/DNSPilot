@@ -17,8 +17,8 @@ Last reviewed: 2026-08-07.
   directory from backup; simulator/device verification remains open.
 - [x] Native Rust jobs pass unit, type, Router, iOS Simulator Release, and Android
   release smoke on the same green candidate. The final debug-key QA APK installed and
-  launched on Pixel; final interactive capture is pending only because the device
-  auto-locked, while unit and prior physical smoke cover its presentation behavior.
+  launched on Pixel; after a Wi-Fi change, DNS-only Quick Check and System DNS validation
+  passed with final Vietnamese diagnostics and no crash. No system DNS setting was changed.
 - [x] Dev bridge is loopback-only by default. Explicit LAN mode has a per-run bearer
   token and origin allowlist; the server owns the database path, redacts HTTP output,
   bounds jobs, and supports cancellation.

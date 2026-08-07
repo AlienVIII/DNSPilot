@@ -45,8 +45,9 @@ Last updated: 2026-08-07.
   9 Pro XL. It launched the in-process Rust runtime without crash; tutorial persistence,
   Help on all consumer tabs, DNS-only Quick Check, DNS + TCP, and history save passed.
   The final APK rebuild completed and installed (`08fd871028d95156a2d0dd4b652ead30d4d81186348d9e0a54347b474577923b`).
-  The device auto-locked into Assistant Hub before a second interactive screenshot;
-  behavior is covered by the presentation unit test and earlier Pixel smoke.
+  After a Wi-Fi change, physical Pixel smoke again passed DNS-only Quick Check and
+  System DNS validation (`526 ms`), including final Vietnamese diagnostics/copy labels
+  and no crash. No system DNS setting was changed.
 
 ## Manual Release Gates
 
