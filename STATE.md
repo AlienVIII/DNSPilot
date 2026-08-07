@@ -8,6 +8,8 @@ Last updated: 2026-08-04.
   `034621c`, Windows through `2f3cef0`, and Core/CLI hardening through `8360ba7`.
 - Rust Core/CLI remains the only owner of benchmark, recommendation, policy, storage,
   and versioned JSON/JSONL contracts.
+- Independent validation checks may run in background from isolated clean worktrees, but only
+  reaped tasks with an exit code and complete log count as evidence.
 - Product direction now separates read-only Network Health Check from DNS Benchmark.
   The guided journey recommends Health Check first and DNS selection last; this is an
   approved design direction, not an implemented or validated feature.
