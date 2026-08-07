@@ -1,18 +1,19 @@
 # Mobile Progress
 
-Last reviewed: 2026-07-19. Reviewed branch: `worktree/mobile` at `8dd1c26`.
+Last reviewed: 2026-08-07. Reviewed branch: `worktree/mobile` at `61ac253`.
 
 ## BLUF
 
 Mobile is a native Expo app backed by local Expo modules and a Rust adapter around
 `dnspilot-core`; installed builds do not require a developer Mac or Node bridge. The
 consumer shell and entitlement isolation are substantially implemented, but the lane is
-not merge-ready while verify, bridge security, backup/privacy, and concise-UI gates are
-open.
+not merge-ready because Expo's current patch compatibility check is red. D13 Health Check
+separation and D14 background continuation are approved future work, not current behavior.
 
 ## Implemented
 
-- `Check DNS`, `Profiles`, and `History` primary tabs; internal routes stay hidden.
+- `Check DNS`, `Profiles`, and `History` are the currently implemented tabs; D13's
+  `Health Check`, `DNS Benchmark`, `Profiles`, `History` contract remains queued.
 - Foreground DNS-only, DNS+TCP/TLS, and System DNS jobs reuse Core catalog, policy,
   recommendation, storage, history, result, and progress contracts.
 - Optional persisted first-run tutorial waits for preferences, completes on Skip/Done,
@@ -23,13 +24,13 @@ open.
   user-enabled `NEDNSSettingsManager` DoH/DoT support behind provider/device gates.
 - EN/VI, adaptive layout, accessibility metadata, custom profiles/suites, persistence,
   production dev-client exclusion, and Android release policy checks exist.
+- D14 currently has no mobile background execution or local notification implementation.
 
 ## Latest Validation
 
-- 95 tests, typecheck, Expo config, and Router export: pass.
+- 99 tests, typecheck, Expo public config, and Router export: pass on 2026-08-07.
 - Latest `npm run verify`: fail at Expo install compatibility. Expected patches are
-  `expo 57.0.7`, `expo-constants 57.0.6`, `expo-dev-client 57.0.7`, and
-  `expo-router 57.0.7`.
+  `expo`/`expo-router` 57.0.11 and `expo-symbols` 57.0.2.
 - `npm run preflight:release`: not reached after verify failed.
 - Earlier branch evidence includes iOS Release Simulator build/install/launch and Android
   release assembly/manifest checks; rerun after dependency/privacy changes.
@@ -39,11 +40,9 @@ open.
 ## Remaining Gates
 
 1. Restore current Expo compatibility and rerun the full release gate.
-2. Harden development bridge and local database boundary.
-3. Enforce/document mobile backup and retention policy.
-4. Remove duplicate titles, empty technical panels, raw errors, and Core/CLI jargon;
-   keep advanced profile editing behind progressive disclosure.
-5. Merge source under amended D1 only after normal gates pass. Keep the entitled artifact
+2. Consume the D13 Health Check contract after Core lands; do not fork it in JavaScript.
+3. Run D14 iOS/Android feasibility spikes. Keep unsupported platforms foreground-only.
+4. Merge source under amended D1 only after normal gates pass. Keep the entitled artifact
    provider/device blocked independently.
 
 ## Source Of Truth

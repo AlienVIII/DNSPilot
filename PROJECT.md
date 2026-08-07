@@ -1,6 +1,6 @@
 # DNSPilot Product Architecture
 
-Last reviewed: 2026-08-04.
+Last reviewed: 2026-08-07.
 
 ## Product
 
@@ -277,6 +277,32 @@ not copy macOS-specific APIs or expand privileged adapters without separate evid
   diagnosing an unstable network. Separate contracts keep the promise understandable,
   testable, Store-safe, and portable across OS lanes.
 - **Confidence:** High.
+
+### D14: User-Initiated Background Measurements And Local Completion Notifications
+
+- **Status:** Approved architecture on 2026-08-07; implementation is queued by lane.
+- **Problem:** Health Check and DNS Benchmark can outlast the user's attention, but
+  forcing the app to stay foreground is poor UX. A daemon, silent scheduler, or remote
+  push service would add privilege, battery, privacy, and Store risk and could rerun a
+  time-sensitive measurement after the device has moved to another network.
+- **Options:** keep every run foreground-only; continue user-initiated runs under each
+  OS's granted background lifetime and send a local completion notification; add a
+  persistent daemon/scheduler or cloud job with remote push.
+- **Trade-offs:** foreground-only is simplest but interrupts the user; OS-bounded work
+  cannot guarantee completion after force-quit; persistent or cloud work improves
+  survivability but changes product semantics and materially expands trust boundaries.
+- **Recommendation:** allow one user-initiated measurement at a time to continue when
+  its UI loses focus, within the lifetime granted by the OS. Persist a local run receipt,
+  preserve cancellation, and classify a missing terminal event after process death as
+  `interrupted`; never auto-retry. Offer completion notifications contextually, not at
+  first launch, and use local OS notifications only. Notify only when DNSPilot is not
+  active, keep lock-screen copy generic, and deep-link to the local result. Health Check
+  and DNS Benchmark remain read-only; background DNS mutation is prohibited.
+- **Reason:** this removes waiting without adding accounts, cloud infrastructure,
+  privileged services, misleading delivery guarantees, or measurements taken in an
+  unintended network context.
+- **Confidence:** High for desktop. Medium for mobile until target-version runtime and
+  physical-device evidence proves bounded continuation behavior.
 
 ## Quality Gates
 

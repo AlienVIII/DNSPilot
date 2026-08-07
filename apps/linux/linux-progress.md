@@ -1,6 +1,6 @@
 # Linux Progress
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-07.
 
 ## BLUF
 
@@ -8,6 +8,8 @@ Store-safe Linux milestones 0-5 are substantially implemented. The lane has type
 Core storage/results, streamed/cancellable jobs, `Check DNS` / `Profiles` / `History`,
 EN/VI, safe settings guidance, and fail-closed Power. It is not release-ready until
 accessibility/desktop-fit and source-built package/real-Linux evidence pass.
+The three-area navigation is the implemented baseline. D13's four-area Health Check/DNS
+Benchmark contract and D14 background/notification adapter remain queued.
 
 ## Implemented
 

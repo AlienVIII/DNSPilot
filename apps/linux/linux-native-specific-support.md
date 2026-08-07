@@ -23,3 +23,5 @@
 - Capability detection can be a differentiator.
 - Copyable debug reports can make later distro QA repeatable.
 - CLI runner and plan surfaces can be reused by a future GTK/libadwaita or Qt shell.
+- D14 adaptation can use XDG Background/Notification portals for sandboxed packages,
+  with best-effort delivery and no daemon, login autostart, or background DNS mutation.

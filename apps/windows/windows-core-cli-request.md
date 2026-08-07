@@ -48,3 +48,5 @@
   unavailable.
 - Cancellation is owned by the Windows process boundary; Core only needs the
   atomic-history guarantee. No Windows-specific cancellation command is needed.
+- D14 process lifetime, local run receipt, `AppNotificationManager`, and activation are
+  Windows-shell concerns. Do not add WNS, a scheduler, or notification payloads to Core.

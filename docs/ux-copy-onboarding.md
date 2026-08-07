@@ -1,6 +1,6 @@
 # UX Copy And Onboarding Contract
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-07.
 
 ## BLUF
 
@@ -24,7 +24,8 @@ status, one primary action. Reveal explanation only when it helps the current de
 - Put policy, caveats, permission rationale, and diagnostics behind Info/Details/Help.
 - Hover tooltip is desktop enhancement only. The same content must be reachable by click,
   keyboard, touch, VoiceOver, Narrator, TalkBack, or screen reader.
-- Keep a top-right `?`/Help action on `Check DNS`, `Profiles`, and `History`.
+- Keep a top-right `?`/Help action on `Health Check`, `DNS Benchmark`, `Profiles`, and
+  `History` so the tutorial can always be reopened.
 - Avoid info icons on every row. Use them only where the decision changes or a term is
   genuinely unfamiliar.
 
@@ -33,14 +34,24 @@ status, one primary action. Reveal explanation only when it helps the current de
 - Optional, three steps maximum, shown only after persisted preferences load.
 - Complete only through Skip or Done; never reopen automatically after completion.
 - Ask for OS permission only at the feature that needs it, not during passive onboarding.
-- Shared mental model: Check DNS -> set up in OS Settings -> Retest System DNS.
+- Shared mental model: Health Check -> DNS Benchmark -> set up in OS Settings -> Retest.
 - Restricted Power/provider capability is not first-run content; explain it where offered.
 
 Recommended titles:
 
-1. `Check your DNS`
-2. `Set it up safely`
+1. `Check your network`
+2. `Choose your DNS`
 3. `Retest the result`
+
+## Completion Notifications
+
+- Call the feature `Notify me when done`, not push notifications.
+- Offer it only after a user starts an eligible run. The OS prompt follows an explicit
+  enable action; it never appears in first-run tutorial.
+- If denied, keep the run working and expose one Settings handoff. Do not nag.
+- Suppress the OS alert while DNSPilot is active. Use an in-app result update instead.
+- Lock-screen copy stays generic: `Health Check complete` or `DNS Benchmark complete`,
+  then `Results are ready.` Put network and resolver details only inside the app.
 
 ## OS Patterns
 

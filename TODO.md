@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-08-04.
+Last reviewed: 2026-08-07.
 
 ## P0: Separate Network Health Check
 
@@ -20,6 +20,23 @@ Last reviewed: 2026-08-04.
 - [ ] Place donate/fund prompts only after useful product value or in Support/About;
   never gate safety guidance, recheck steps, or warning explanations behind payment.
 
+## P0: Background Measurement Completion
+
+- [ ] Implement D14 from
+  `docs/superpowers/specs/2026-08-07-background-measurement-notifications-design.md`:
+  one user-initiated read-only measurement, cancel support, persisted local receipt,
+  terminal/interrupted handling, and no automatic retry.
+- [ ] Add a contextual `Notify me when done` opt-in after a run starts. Never request
+  notification permission in first-run tutorial or make it a run prerequisite.
+- [ ] Use local notifications only. Show generic lock-screen copy, suppress completion
+  alerts while the app is active, deep-link to the exact local result, and clear the
+  notification after that result is viewed.
+- [ ] Prove foreground -> background -> complete, denied permission, cancellation,
+  process termination, stale receipt, deep-link, EN/VI, accessibility, and lock-screen
+  privacy fixtures in each lane. Record unsupported/simulator-only cases as `NOT RUN`.
+- [ ] Do not add a Core daemon, periodic scheduler, remote push provider, account,
+  analytics event, background DNS mutation, or auto-retry to satisfy this milestone.
+
 ## P0: Commercial Trust
 
 - [x] Provide a one-command macOS source-build path that produces and opens a
@@ -30,7 +47,7 @@ Last reviewed: 2026-08-04.
 - [x] Make macOS Power Restore compare current DNS to the recorded applied state before
   mutation; legacy snapshots are hidden/cleared and 274 Swift tests pass in `e4d3ec6`.
 - [ ] Capture macOS EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver evidence.
-- [ ] Run five moderated users through Check -> Recommend -> Apply -> Retest.
+- [ ] Run five moderated users through Health Check -> DNS Benchmark -> Set up -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,
   App Store Connect metadata, and submission.
 
@@ -50,7 +67,8 @@ Last reviewed: 2026-08-04.
   `schema_version` and `run_id`; runs end with `run_finished` or `run_cancelled` plus
   stable failure kinds. `SIGINT` exits 130 after the active resolver and never writes
   partial benchmark history.
-- [ ] Do not add platform settings URIs, distro detection, or privileged helpers to Core.
+- [ ] Do not add platform settings URIs, task schedulers, notification APIs, distro
+  detection, or privileged helpers to Core.
 - [ ] Add `runtime-info --json` only after a second lane proves the same contract need.
 
 ## P1: Mobile Integration
@@ -69,6 +87,9 @@ Last reviewed: 2026-08-04.
   Signed physical-device QA and store release remain manual gates.
 - [x] Integrate mobile source in `234a2e0`; treat Expo web as dev/router QA only and keep
   the `production-ios-dns` artifact blocked by provider/device evidence.
+- [ ] Refresh the mobile release candidate to Expo's current SDK 57 expected patches:
+  the 2026-08-07 gate expects `expo`/`expo-router` `57.0.11` and `expo-symbols`
+  `57.0.2`. Rerun the complete `npm run verify`; do not merge the red candidate.
 
 ## P1: Platform Evidence
 

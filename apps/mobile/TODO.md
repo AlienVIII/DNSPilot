@@ -1,6 +1,6 @@
 # DNSPilot Mobile Roadmap
 
-Last reviewed: 2026-07-14.
+Last reviewed: 2026-08-07.
 
 ## Completed Automated Scope
 
@@ -11,6 +11,14 @@ Last reviewed: 2026-07-14.
   permission request.
 - [x] Expo Router unresolved-route gate, Store profile entitlement isolation,
   Android release-manifest checks, and iOS Simulator consumer smoke.
+
+## Active Automated Scope
+
+- [ ] Update `expo`/`expo-router` to 57.0.11 and `expo-symbols` to 57.0.2, then rerun
+  `npm run verify` and `npm run preflight:release` from a clean production config.
+- [ ] After shared Core lands, implement D13's separate Health Check and DNS Benchmark.
+- [ ] Prove D14 background continuation per OS before implementation; local completion
+  notifications remain contextual opt-in and no run auto-retries.
 
 ## Manual Release Gates
 
@@ -30,7 +38,8 @@ Last reviewed: 2026-07-14.
 
 - No iOS plain system-DNS switch.
 - No Android silent Private DNS mutation or `VpnService`.
-- No background benchmark scheduler.
+- No periodic/silent background benchmark scheduler. D14 permits only one explicitly
+  user-started run to continue under proven OS limits; it never auto-retries.
 - No ad hoc destructive-action confirmation; use a shared pattern only after a
   product-wide decision and test contract.
 

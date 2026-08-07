@@ -13,7 +13,9 @@
 - Failed benchmark payloads include failed step, elapsed time, stderr summary, and debug-safe raw logs.
 
 ## Open Requests
-- None for v0.1 macOS core flows.
+- D14 needs no daemon or notification API in Core. Reuse the existing benchmark run ID,
+  terminal event, cancellation, and no-partial-history contract. Health Check will need
+  its own equivalent lifecycle under D13.
 
 ## macOS Compatibility Adapter
 - `system-benchmark` now exposes UI-ready `summary`, `runs`, `recommendation: null`, and preflight fields.

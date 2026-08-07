@@ -14,6 +14,7 @@
 
 ## Opportunities
 - AppKit interop for reliable text input and advanced window behavior.
-- Native notifications after long benchmark completion.
+- D14 reference implementation: keep one user-started Health Check or DNS Benchmark
+  alive while the app is inactive, then send an opt-in local UserNotifications alert.
+  Do not add a login item, helper, remote push, auto-retry, or background DNS mutation.
 - Better settings deep links if stable on target macOS versions.
-

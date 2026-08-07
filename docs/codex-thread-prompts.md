@@ -1,6 +1,6 @@
 # DNSPilot Next Prompts
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-07.
 
 Read `AGENTS.md`, `PROJECT.md`, `STATE.md`, `TODO.md`, and
 `docs/reference-lane-contract.md` first. Preserve dirty worktrees. Reuse Core contracts,
@@ -17,6 +17,8 @@ Mode: Principal Product Architect. Do not modify production code.
 Refresh remote metadata and inspect main plus every worktree. Review deltas, validation,
 UI/UX, provider policy, security/privacy, Core/CLI ownership, package/release readiness,
 and stale docs. Challenge claims with file/test evidence and official primary sources.
+Review D13 Health Check separation and D14 background measurement/local notification
+against privacy, Store policy, permission timing, interruption, and real-device evidence.
 Findings first: Critical/Major/Minor/Suggestion. For material decisions record Problem,
 Options, Trade-offs, one Recommendation, Reason, Confidence. Update PROJECT.md for
 architecture, TODO.md for roadmap, STATE.md/docs/apps/<os> Markdown for current truth.
@@ -32,16 +34,17 @@ queue. No push or external release action without explicit approval.
 Worktree: /Users/aart/Projects/Desktop/dnspilot-core-cli
 Ownership: crates/** and shared Core contract docs only.
 
-Implement TODO P0/P1 in order with TDD. First harden DNS response integrity: connected
-UDP socket, cryptographically suitable unpredictable transaction ID, QR/standard opcode,
-exact matching question/class/type and source validation, with spoofed/malformed/wrong-
-question tests. Then make profile/suite/history snapshot mutations transaction-safe under
-concurrent CLI processes without a schema rewrite. Next add stable issue IDs and version
-the progress JSONL terminal/cancellation/history contract. Do not add OS settings URIs,
-distro detection, or privileged helpers to Core. Run targeted tests, cargo fmt --check,
-cargo clippy --workspace --all-targets -- -D warnings, and cargo test --workspace --tests.
-Self-review security/compatibility and commit verified owned files. Stop only at a true
-external/manual gate.
+Implement the approved D13 Health Check contract with TDD: separate versioned
+observations, measured/inferred/unsupported evidence, confidence, capability gaps,
+stable reason IDs, privacy-safe manual recheck guidance, progress lifecycle, and
+synthetic fixtures. Preserve DNS Benchmark as independent, including A/AAAA separation
+and the 500 ms attempt ceiling. Reuse existing run ID, terminal/cancel, transaction-safe
+history, and no-partial-history invariants. D14 does not require a Core daemon,
+scheduler, retry, notification, deep-link, Settings URI, or OS permission API. Continue
+remaining typed recommendation/history IDs only after the P0 contract is green. Run
+targeted tests, cargo fmt --check, cargo clippy --workspace --all-targets -- -D warnings,
+and cargo test --workspace --tests. Self-review compatibility/security and commit only
+verified owned files.
 ```
 
 ## macOS: GPT-5.6-Terra, high
@@ -50,13 +53,17 @@ external/manual gate.
 Worktree: /Users/aart/Projects/Desktop/dnspilot-macos
 Ownership: apps/macos/**; use Core changes only after the Core contract lands.
 
-Add a fail-closed Power Restore current-state guard: persist DNSPilot-applied service/DNS
-state and refuse restore if current service/configuration no longer matches. Preserve
-automatic/DHCP exact rollback and Store/Power isolation. Then prepare every automatable
-EN/VI, narrow-window, Dark Mode, keyboard, VoiceOver, signed-bundle, and five-user test
-artifact; leave only actual permission/signing/user gates manual. Run ./script/ci_macos.sh,
-./script/preflight_macos_release.sh --include-power, and non-destructive goal-flow smoke.
-Commit only owned verified files.
+Implement D14 as the reference lane with TDD. One user-started read-only Health Check or
+DNS Benchmark may continue while the window is inactive; persist a versioned local run
+receipt; reuse Core run ID/terminal/cancel semantics; mark stale nonterminal work
+interrupted; never auto-retry. Offer `Notify me when done` contextually after run start,
+use local UserNotifications only, suppress while active, use generic lock-screen copy,
+and deep-link to the exact result. No login item, helper, remote push, or background DNS
+Apply/Restore. Add mocked allow/deny/termination/deep-link tests, then run real local
+background smoke where automatable. Preserve the verified source-build path and Store/
+Power isolation. Run ./script/ci_macos.sh and ./script/preflight_macos_release.sh
+--include-power; commit only owned verified files. Leave Apple signing, physical user
+permission, VoiceOver, and Store submission as consolidated manual gates.
 ```
 
 ## Linux: GPT-5.6-Terra, high
@@ -65,12 +72,15 @@ Commit only owned verified files.
 Worktree: /Users/aart/Projects/Desktop/dnspilot-linux
 Ownership: apps/linux/**.
 
-Continue Store-safe completion at Milestone 6, then 8-9. Finish EN/VI layout,
-keyboard/screen-reader semantics, desktop-fit behavior, source-built Flatpak/Snap/deb/rpm
-recipes, Linux CI artifacts, installed smoke, and evidence templates. Keep Power execute
-fail-closed; do not reintroduce shell-backed mutation. Use mocks for unavailable package
-tools, but mark real GNOME/KDE/resolver/package checks NOT RUN. Run fmt, tests, clippy
--D warnings, Core compatibility, and package/static gates. Commit owned verified files.
+After the D13 Core contract lands, implement the separate Health Check UI and D14 shell
+adaptation. Keep one user-started read-only measurement alive; persist a local receipt;
+use XDG Background/Notification portals for sandboxed packages where needed; treat
+delivery as best effort; never add autostart, daemon, remote push, auto-retry, or
+background mutation. Add mocked portal allow/deny/suppress/activation/interruption tests.
+Then finish EN/VI layout, keyboard/screen-reader semantics, source-built packages, CI,
+and evidence templates. Real Flatpak GNOME/KDE portal/package checks are NOT RUN off
+Linux. Keep Power fail-closed. Run fmt, tests, clippy -D warnings, Core compatibility,
+and package/static gates; commit only owned verified files.
 ```
 
 ## Windows: GPT-5.6-Terra, high
@@ -79,13 +89,14 @@ tools, but mark real GNOME/KDE/resolver/package checks NOT RUN. Run fmt, tests, 
 Worktree: /Users/aart/Projects/Desktop/dnspilot-windows
 Ownership: apps/windows/**.
 
-Do not reopen milestones 0-4. Prepare and, on a Windows host when available, execute the
-Release validator, WinUI/MSIX/tray/helper-discovery, EN/VI wrapping, keyboard/Narrator,
-high-contrast, VPN/firewall, clean-install, upgrade, relaunch, and Settings-handoff QA.
-Store remains asInvoker with no UAC, netsh, service, registry, or DNS mutation. Keep the
-core workflow complete without tray/runFullTrust approval. Run
-apps/windows/validate-windows-lane.sh and fill release evidence; mark Windows-only checks
-NOT RUN elsewhere. Commit owned verified files.
+After the D13 Core contract lands, implement separate Health Check and D14 in the
+non-elevated shell. Keep one user-started read-only measurement alive, persist a local
+receipt, use Windows App SDK AppNotificationManager for local completion/activation,
+and suppress alerts while active. No WNS/Azure, service, auto-retry, or background DNS
+mutation. Add mocked permission/suppression/process-exit/deep-link tests. Preserve
+asInvoker and a complete no-tray path. Run apps/windows/validate-windows-lane.sh; prepare
+WinUI/MSIX/EN-VI/Narrator/high-contrast/clean-install evidence and mark Windows-only
+runtime checks NOT RUN elsewhere. Commit only owned verified files.
 ```
 
 ## Mobile: GPT-5.6-Terra, high
@@ -94,18 +105,17 @@ NOT RUN elsewhere. Commit owned verified files.
 Worktree: /Users/aart/Projects/Desktop/dnspilot-mobile
 Ownership: apps/mobile/** and packages/mobile/**; consume Core contracts, do not fork them.
 
-Update Expo 57 patch-compatible packages to current expected versions and restore a green
-npm run verify plus npm run preflight:release. Harden the dev bridge: loopback default,
-explicit LAN opt-in with per-run token and origin allowlist, fixed app-owned DB path,
-redacted health/errors, bounded jobs and cancellation. Define and enforce Android/iOS
-backup exclusion/retention for local DNS profiles/domains/history. Simplify consumer UI:
-one title/status/action, no empty Process/Result before run, no Core/CLI jargon, advanced
-profile editing behind progressive disclosure, tutorial/Help always touch/keyboard/
-assistive accessible. Keep Expo web dev/router QA only. Default Store artifact must omit
-dns-settings; production-ios-dns remains signed-device/provider blocked. Run tests,
-typecheck, Expo install check/Doctor/router export, release preflight, iOS Simulator, and
-Android release checks. Commit verified owned files; do not merge to main until all normal
-gates pass.
+First restore green dependency alignment: Expo currently expects `expo` and
+`expo-router` 57.0.11 plus `expo-symbols` 57.0.2. Run complete `npm run verify` and
+`npm run preflight:release`; do not merge a partial or red candidate. Then perform D14
+feasibility spikes, not assumed parity: supported iOS user-initiated continued processing
+with bounded expiration, and an Android bounded native foreground path with a valid
+service type/Play-policy fit and no auto-restart. If either proof fails, keep that OS
+foreground-only. Completion notification is local and contextually opt-in; Android's
+required running disclosure is separate. No remote push, periodic work, silent retry,
+background DNS mutation, or force-quit promise. Add mocks, then physical-device gates.
+Keep Expo web dev-only and default iOS Store entitlements unchanged. Commit verified
+owned files only after all normal gates pass.
 ```
 
 ## Docs

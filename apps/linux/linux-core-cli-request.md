@@ -17,6 +17,8 @@ JSON/JSONL contracts instead of requesting or duplicating product behavior.
 - Preserve `--save-db`/`--history-id` and profile/suite/history SQLite commands.
 - Do not put Linux privilege or resolver-owner detection into the shared core. Those are
   Linux capability-adapter concerns.
+- D14 XDG Background/Notification portal handling and local run receipts remain Linux
+  adapter concerns; Core does not gain a daemon, autostart, or notification API.
 - Raise a shared CLI request only if implementation proves a missing cross-platform
   contract; do not add a parallel Linux-only storage or recommendation rule.
 
