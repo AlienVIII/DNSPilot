@@ -28,6 +28,7 @@ import { buildBenchmarkPlan, type BenchmarkMode } from '@/src/view-models/benchm
 import { buildConsumerResult } from '@/src/view-models/consumer-result';
 import { buildQuickCheck, quickCheckPresets } from '@/src/view-models/consumer-check';
 import { buildIosDnsSettingsRequest } from '@/src/view-models/native-dns-settings';
+import { presentAction, presentConfidence, presentHealth, presentNote, presentProcessReason, presentResolverDiagnosis, presentResolverStatus } from '@/src/view-models/result-presentation';
 import { buildSettingsGuidance, guidanceActionStatus, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type Mode = Extract<BenchmarkMode, 'compare' | 'pathCompare' | 'systemBenchmark'>;
@@ -283,11 +284,11 @@ export default function CheckDnsScreen() {
       {diagnostics ? <ProcessSection diagnostics={diagnostics} copyStatus={copyStatus} onCopyReport={copyReport} t={t} /> : null}
 
       {result ? (
-        <Section title={t('benchmark.result.title')} subtitle={t('benchmark.result.subtitleReady', { args: result.action })}>
+        <Section title={t('benchmark.result.title')} subtitle={t('benchmark.result.subtitleReady', { args: presentAction(result.action, t) })}>
           <View style={cardStyle}>
             <Row>
-              <Metric label={t('benchmark.metric.health')} value={presentation.health} tone={presentation.health === 'healthy' ? 'green' : presentation.health === 'failed' ? 'red' : 'amber'} />
-              <Metric label={t('benchmark.metric.confidence')} value={presentation.confidence} tone={presentation.confidence === 'high' ? 'green' : 'amber'} />
+              <Metric label={t('benchmark.metric.health')} value={presentHealth(presentation.health, t)} tone={presentation.health === 'healthy' ? 'green' : presentation.health === 'failed' ? 'red' : 'amber'} />
+              <Metric label={t('benchmark.metric.confidence')} value={presentConfidence(presentation.confidence, t)} tone={presentation.confidence === 'high' ? 'green' : 'amber'} />
               <Metric label={t('benchmark.metric.elapsed')} value={formatMs(diagnostics?.elapsedMs)} tone="blue" />
             </Row>
             <ResultLine label={t('check.result.fastest')} value={presentation.fastestObserved ? `${presentation.fastestObserved.profileName} · ${presentation.fastestObserved.medianDnsLatencyMs} ms` : t('common.none')} />
@@ -304,7 +305,7 @@ export default function CheckDnsScreen() {
               }
             />
             {presentation.notes.map((note) => (
-              <Text key={note} selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>{note}</Text>
+              <Text key={note} selectable style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>{presentNote(note, t)}</Text>
             ))}
             {presentation.primaryAction ? (
               <Button label={presentation.primaryAction.kind === 'install-ios-dns-settings' ? t('check.installIos') : t('check.setup')} onPress={startSetup} loading={settingsWorking} />
@@ -333,7 +334,7 @@ export default function CheckDnsScreen() {
 function ProcessSection({ diagnostics, copyStatus, onCopyReport, t }: { diagnostics: BenchmarkDiagnostics | null; copyStatus: string | null; onCopyReport: () => void; t: (key: string, params?: Record<string, string | number>) => string }) {
   const [detailsVisible, setDetailsVisible] = useState(false);
   return (
-    <Section title={t('benchmark.process.title')} subtitle={diagnostics ? t('benchmark.process.subtitleReady', { status: t(`status.${diagnostics.status}`), reason: diagnostics.reason }) : t('benchmark.process.subtitleEmpty')}>
+    <Section title={t('benchmark.process.title')} subtitle={diagnostics ? t('benchmark.process.subtitleReady', { status: t(`status.${diagnostics.status}`), reason: presentProcessReason(diagnostics.reason, t) }) : t('benchmark.process.subtitleEmpty')}>
       {!diagnostics ? <EmptyState text={t('benchmark.noDiagnostics')} /> : null}
       {diagnostics ? (
         <View style={cardStyle}>
@@ -379,9 +380,9 @@ function ResolverRow({ resolver, t }: { resolver: ResolverDiagnostic; t: (key: s
     <View style={rowStyle}>
       <View style={{ flex: 1, gap: 2 }}>
         <Text selectable style={{ color: palette.text, fontSize: 14, fontWeight: '700' }}>{resolver.profileId}</Text>
-        <Text selectable style={{ color: palette.muted, fontSize: 12 }}>{resolver.resolver ?? t('common.unknown')} · {resolver.diagnosis}</Text>
+        <Text selectable style={{ color: palette.muted, fontSize: 12 }}>{resolver.resolver ?? t('common.unknown')} · {presentResolverDiagnosis(resolver.diagnosis, t)}</Text>
       </View>
-      <Pill label={resolver.status} tone={statusTone(resolver.status)} />
+      <Pill label={presentResolverStatus(resolver.status, t)} tone={statusTone(resolver.status)} />
     </View>
   );
 }

@@ -4,18 +4,21 @@ Last reviewed: 2026-08-07.
 
 ## Green Before Main Integration
 
-- [ ] `npm run verify` passes with current Expo patches. On 2026-08-07, 99 tests,
-  typecheck, public config, and Router export pass, but Expo expects
-  `expo`/`expo-router` 57.0.11 and `expo-symbols` 57.0.2.
-- [ ] `npm run preflight:release` passes after the dependency update. The prior Android
-  production AAB/local APK evidence is historical until this rerun.
+- [x] `npm run verify` passes with Expo 57.0.11/router 57.0.11/symbols 57.0.2:
+  100 tests, typecheck, public config, Router export/warning gate, compatibility, and
+  audit high threshold. Eleven moderate transitive `uuid` findings remain; forced audit
+  fix is rejected because it would downgrade Expo.
+- [x] `npm run preflight:release` passes after clean production prebuild and produces a
+  fresh Android AAB with manifest/dex Store gates.
 - [ ] Default iOS Store generated and signed entitlements omit `dns-settings`; public
   config isolation passes, but final signed evidence remains manual.
 - [x] Android production manifest excludes dev-client, VPN/overlay/storage leakage and
   disables backup. The iOS native runtime excludes its `Application Support/DNSPilot`
   directory from backup; simulator/device verification remains open.
-- [ ] Native Rust jobs pass unit, type, Router, iOS Simulator, and Android release smoke
-  on the same green candidate.
+- [x] Native Rust jobs pass unit, type, Router, iOS Simulator Release, and Android
+  release smoke on the same green candidate. The final debug-key QA APK installed and
+  launched on Pixel; final interactive capture is pending only because the device
+  auto-locked, while unit and prior physical smoke cover its presentation behavior.
 - [x] Dev bridge is loopback-only by default. Explicit LAN mode has a per-run bearer
   token and origin allowlist; the server owns the database path, redacts HTTP output,
   bounds jobs, and supports cancellation.

@@ -9,8 +9,9 @@ Last reviewed: 2026-08-07.
 - Default iOS Store profile omits `dns-settings`. Optional `production-ios-dns` remains
   Apple capability/signing/physical-device gated and does not block default release.
 - Android uses Private DNS Settings guidance and no `VpnService` or silent mutation.
-- The automated release gate is green on the current lane. Do not submit until
-  the physical-device and provider-owned gates in `apps/mobile/mobile-readiness.md`
+- The automated release gate is green on the current lane: `npm run verify`, Expo
+  Doctor, production config isolation, and a clean Android Store AAB. Do not submit
+  until the physical-device and provider-owned gates in `apps/mobile/mobile-readiness.md`
   are complete.
 
 ## Automated Release Gate
@@ -26,10 +27,9 @@ default/opt-in iOS entitlement isolation, Android release AAB, no dev/VPN/privil
 surface, and approved backup behavior. Rerun iOS Simulator and Android release smoke
 after dependency or generated-config changes.
 
-The local `android/app/build/outputs/apk/release/app-release.apk` produced by the
-2026-08-04 candidate is a debug-key-signed release variant for local device QA only.
-Do not upload that APK or its local signing key; the final Play artifact uses the
-production AAB and Play App Signing.
+The local `android/app/build/outputs/apk/release/app-release.apk` is a debug-key-signed
+release variant for local device QA only. Do not upload that APK or its local signing key;
+the final Play artifact is the production AAB and Play App Signing.
 
 ## Physical Device Gate
 

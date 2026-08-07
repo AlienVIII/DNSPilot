@@ -32,15 +32,21 @@ Last updated: 2026-08-07.
 
 ## Latest Validation
 
-- On 2026-08-07, 99 tests, TypeScript, public config, and Expo Router export pass.
-  `npm run verify` then fails at `expo install --check`: current expected patches are
-  `expo`/`expo-router` 57.0.11 and `expo-symbols` 57.0.2. The audit and release
-  preflight did not run, so the candidate is not merge-ready.
-- Production config assertions: pass. Default `production` omits the iOS DNS
-  Settings plugin and flag; `production-ios-dns` alone enables both.
-- Earlier candidate evidence includes an unsigned iOS Simulator Release build and an
-  Android production AAB/local v2-signed QA APK. Those artifacts predate the current
-  dependency failure and remain historical until the full gate is rerun.
+- On 2026-08-07, dependencies aligned to `expo`/`expo-router` 57.0.11 and
+  `expo-symbols` 57.0.2. `npm run verify` passes: 100 tests, TypeScript, public
+  config, Router warning gate, Expo compatibility, and no high/critical audit finding.
+  Eleven moderate transitive `uuid` findings remain; the forced fix would downgrade Expo.
+- `npx expo-doctor@latest` passes all 20 checks. `npm run preflight:release` passes
+  Store/optional iOS DNS isolation and creates a fresh Android AAB after clean prebuild.
+  Manifest/dex gates confirm no dev client, VPN, overlay, storage, or privileged leakage.
+- iOS Simulator Release with `CODE_SIGNING_ALLOWED=NO` succeeded. Default `production`
+  omits the iOS DNS Settings plugin/flag; `production-ios-dns` alone enables both.
+- A debug-key-signed Android release-variant QA APK was installed on a physical Pixel
+  9 Pro XL. It launched the in-process Rust runtime without crash; tutorial persistence,
+  Help on all consumer tabs, DNS-only Quick Check, DNS + TCP, and history save passed.
+  The final APK rebuild completed and installed (`08fd871028d95156a2d0dd4b652ead30d4d81186348d9e0a54347b474577923b`).
+  The device auto-locked into Assistant Hub before a second interactive screenshot;
+  behavior is covered by the presentation unit test and earlier Pixel smoke.
 
 ## Manual Release Gates
 

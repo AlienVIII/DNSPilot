@@ -1,13 +1,12 @@
 # Mobile Progress
 
-Last reviewed: 2026-08-07. Reviewed branch: `worktree/mobile` at `61ac253`.
+Last reviewed: 2026-08-07. Reviewed branch: `worktree/mobile` after Expo 57.0.11 alignment.
 
 ## BLUF
 
 Mobile is a native Expo app backed by local Expo modules and a Rust adapter around
 `dnspilot-core`; installed builds do not require a developer Mac or Node bridge. The
-consumer shell and entitlement isolation are substantially implemented, but the lane is
-not merge-ready because Expo's current patch compatibility check is red. D13 Health Check
+consumer shell and entitlement isolation are release-candidate ready. D13 Health Check
 separation and D14 background continuation are approved future work, not current behavior.
 
 ## Implemented
@@ -28,22 +27,22 @@ separation and D14 background continuation are approved future work, not current
 
 ## Latest Validation
 
-- 99 tests, typecheck, Expo public config, and Router export: pass on 2026-08-07.
-- Latest `npm run verify`: fail at Expo install compatibility. Expected patches are
-  `expo`/`expo-router` 57.0.11 and `expo-symbols` 57.0.2.
-- `npm run preflight:release`: not reached after verify failed.
-- Earlier branch evidence includes iOS Release Simulator build/install/launch and Android
-  release assembly/manifest checks; rerun after dependency/privacy changes.
-- Physical-device, signing, Store review, VoiceOver/TalkBack, backup, and optional
-  entitlement proof: `NOT RUN`.
+- `npm run verify`: pass with 100 tests and Expo compatibility; `expo-doctor`: 20/20.
+- `npm run preflight:release`: pass, including clean Android Store AAB and manifest/dex
+  capability gates. iOS Simulator Release build with signing disabled: pass.
+- Pixel 9 Pro XL physical smoke: tutorial persistence, Help on all consumer tabs,
+  foreground DNS-only and DNS + TCP jobs, native runtime launch, history save, and
+  Vietnamese presentation: pass. Final QA APK installed/launches; its follow-up UI
+  capture is pending only because the device auto-locked.
+- Store review, signed iOS/iPadOS QA, TalkBack/VoiceOver, backup/restore, optional iOS
+  entitlement, and Samsung-specific Settings handoff: `NOT RUN`.
 
 ## Remaining Gates
 
-1. Restore current Expo compatibility and rerun the full release gate.
+1. Run Samsung-specific Settings handoff when the S25 Ultra is attached.
 2. Consume the D13 Health Check contract after Core lands; do not fork it in JavaScript.
 3. Run D14 iOS/Android feasibility spikes. Keep unsupported platforms foreground-only.
-4. Merge source under amended D1 only after normal gates pass. Keep the entitled artifact
-   provider/device blocked independently.
+4. Keep the entitled iOS artifact provider/device blocked independently.
 
 ## Source Of Truth
 

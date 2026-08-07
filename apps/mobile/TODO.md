@@ -11,21 +11,21 @@ Last reviewed: 2026-08-07.
   permission request.
 - [x] Expo Router unresolved-route gate, Store profile entitlement isolation,
   Android release-manifest checks, and iOS Simulator consumer smoke.
-- [x] Expo SDK 57.0.10 patch alignment, Rust runtime/Core contract checks, and
-  a fresh Android production AAB plus locally installable release-variant APK.
+- [x] Expo SDK 57.0.11 patch alignment, Rust runtime/Core contract checks, a fresh
+  Android production AAB, and iOS Simulator Release build.
 
 ## Active Automated Scope
 
-- [ ] Update `expo`/`expo-router` to 57.0.11 and `expo-symbols` to 57.0.2, then rerun
-  `npm run verify` and `npm run preflight:release` from a clean production config.
+- [x] Rebuild/install the final Android QA APK on the connected Pixel. SHA-256:
+  `08fd871028d95156a2d0dd4b652ead30d4d81186348d9e0a54347b474577923b`.
 - [ ] After shared Core lands, implement D13's separate Health Check and DNS Benchmark.
 - [ ] Prove D14 background continuation per OS before implementation; local completion
   notifications remain contextual opt-in and no run auto-retries.
 
 ## Manual Release Gates
 
-- [ ] Authorize the connected Samsung S25 Ultra for ADB, install the local
-  release-variant APK, and record on-device smoke evidence.
+- [ ] Run the same Android smoke on a Samsung S25 Ultra when it is attached. The
+  connected Pixel 9 Pro XL is physical-device evidence but not Samsung-specific proof.
 - [ ] Run signed physical iOS/iPadOS and Android device QA using
   `mobile-readiness.md`; record pass/fail evidence and screenshots.
 - [ ] Apple: create/confirm App Store Connect record, signing/provisioning,
