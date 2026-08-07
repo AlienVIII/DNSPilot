@@ -33,3 +33,17 @@
 - Whitespace: `git diff --check <base>..HEAD`.
 - Release-only macOS bundle: `./script/ci_macos.sh` and signed distribution
   validation when signing assets exist.
+
+## Concurrent Check Policy
+
+Independent checks may run in background from separate clean worktrees. This improves
+feedback speed only; it never weakens validation evidence.
+
+- Safe examples: Rust workspace tests, macOS SwiftPM tests, Linux Rust tests, Windows static
+  validation, and mobile tests/typecheck when each task has isolated outputs.
+- Unsafe in parallel: commands sharing one worktree, lockfile, `target`/DerivedData output,
+  SQLite fixture, simulator/emulator, real device, signing keychain, or release artifact.
+- Record command, worktree, PID, log location, exit code, and completion time for every
+  background task. Reap every task before merge or a `PASS` claim.
+- If a task has no final exit status or complete log, record `NOT RUN`; do not infer success
+  from partial output. Cancel dependent tasks after prerequisite failure and retain its log.

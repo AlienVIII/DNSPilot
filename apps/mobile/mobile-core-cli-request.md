@@ -11,7 +11,9 @@
 - Explicit unsupported/apply-via-settings dispositions.
 
 ## Required Contracts
-- No background benchmark assumptions.
+- No Core background scheduler or retry assumptions. D14 task lifetime, interruption,
+  notification permission, and local activation remain native app responsibilities;
+  reuse Core run IDs, terminal events, cancellation, and no-partial-history semantics.
 - No plain system DNS switch contract for consumer mobile.
 
 ## Required Logging

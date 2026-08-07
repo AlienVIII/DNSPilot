@@ -15,7 +15,9 @@
 - CLI-returned free-text notes/errors may still need stable message IDs for complete multilingual diagnostics.
 
 ## Opportunities
-- Windows notification after benchmark.
+- D14 adaptation: keep one non-elevated user-started measurement alive and use Windows
+  App SDK `AppNotificationManager` for local completion/result activation. Do not add
+  WNS/Azure or depend on elevated notification behavior.
 - Adapter detection and settings deep links.
 - Enterprise policy detection later.
 - Store-specific SKU without tray/helper could be considered if `runFullTrust` is rejected.

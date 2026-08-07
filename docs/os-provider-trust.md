@@ -1,11 +1,15 @@
 # OS Provider Trust And Manual Release Steps
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-07.
 
 This is the consolidated manual-gate queue. Do not ask users to disable Gatekeeper,
 Play Protect, Windows security, sandboxing, or OS permission controls. Store-safe builds
 benchmark, explain, open Settings, and retest; restricted/admin mutation is a separate
 artifact with consent, rollback, and provider proof.
+
+Local completion notifications do not need APNs, FCM, WNS, Azure, or a push-server
+account. They do require contextual user consent where the OS asks for it. Background
+continuation remains OS-bounded and must not be presented as a force-quit guarantee.
 
 ## macOS
 
@@ -16,9 +20,11 @@ Goal: install and open DNSPilot without bypassing Gatekeeper.
 3. Host final support/privacy URLs and complete privacy details.
 4. Run `./script/preflight_macos_release.sh --include-power`.
 5. Build/sign the Store-safe app; verify sandbox entitlements and clean-Mac launch.
-6. For direct Power only: sign with Developer ID, notarize, staple, then run real-network
+6. On the signed build, start a run, leave the window, test completion notification
+   allow/deny, Focus, Force Quit, generic lock-screen copy, and result activation.
+7. For direct Power only: sign with Developer ID, notarize, staple, then run real-network
    Apply -> Validate -> Restore after the current-state rollback guard lands.
-7. Submit Store-safe and direct Power artifacts separately.
+8. Submit Store-safe and direct Power artifacts separately.
 
 Return: Team ID, certificate/profile identity, hosted URLs, signed bundle validation,
 notarization log when applicable, screenshots, and App Store review result.
@@ -35,7 +41,9 @@ Goal: native app needs no developer bridge; plain DNS stays guided through Setti
 2. Build the default Store profile and prove its generated/signed entitlements omit
    `com.apple.developer.networking.networkextension` DNS Settings capability.
 3. Install on a physical device; test tutorial, Help, benchmark, Profiles, History,
-   settings handoff, app restart, backup policy, VoiceOver, and System DNS retest.
+   settings handoff, app restart, backup policy, VoiceOver, and System DNS retest. Also
+   test the supported background-time path, expiration/interruption, local notification
+   allow/deny, Force Quit, and lock-screen privacy; a simulator is not final evidence.
 4. Only for optional `production-ios-dns`: request/provision Apple Network Extension
    `dns-settings`, sign the artifact, install DoH/DoT settings, explicitly enable it in
    Settings, refresh status, remove, and capture review evidence.
@@ -49,12 +57,15 @@ Sources: <https://developer.apple.com/documentation/networkextension/dns-setting
 
 ## Android
 
-Goal: normal-permission Play build using Private DNS Settings guidance, not `VpnService`.
+Goal: Play build using Private DNS Settings guidance, not `VpnService`, with no
+background service added until its exact Android type and Play-policy fit are proven.
 
 1. Create Play Console app, reserve package, and configure Play App Signing/upload key.
 2. Complete Data safety, privacy URL, content, and store listing forms.
 3. Build the production AAB; verify no dev-client, backup leakage, VPN, overlay, storage,
-   or privileged DNS permission/service is present.
+   or privileged DNS permission/service is present. If D14 later adds notification or
+   foreground-execution declarations, verify `POST_NOTIFICATIONS`, service type, runtime
+   disclosure, no auto-restart, and Play policy explicitly.
 4. Install on a physical device; test tutorial, Help, benchmark, Profiles, History,
    Private DNS handoff/retest, app restart, backup policy, and TalkBack.
 5. Perform first manual upload if required, then use closed testing before production.
@@ -76,7 +87,9 @@ Goal: signed MSIX install with no trust bypass and a complete no-tray workflow.
 4. Submit the minimal `runFullTrust` justification; product must still work if tray
    approval is delayed or denied.
 5. Validate clean install/upgrade/relaunch, helper discovery, tray, Settings handoff,
-   EN/VI, Narrator, high contrast, VPN/firewall, and uninstall.
+   EN/VI, Narrator, high contrast, VPN/firewall, and uninstall. Test local
+   `AppNotificationManager` completion and activation without WNS/Azure; elevated app
+   notifications are not supported and are not part of Store-safe DNSPilot.
 6. Complete Partner Center submission and attach the release evidence template.
 
 Return: identity/publisher, validator output, signed MSIX/install proof, capability review,
@@ -94,6 +107,8 @@ Goal: each package states its trust boundary; sandboxed packages never imply DNS
 3. Build/install/smoke deb/rpm on supported distros; keep Power absent until a caller-
    bound D-Bus/polkit mechanism and exact rollback pass real-host QA.
 4. Run AppStream/desktop-file validation and GNOME/KDE keyboard/screen-reader/layout QA.
+   Include XDG Background/Notification portal allow/deny, suppression, activation, and
+   app-exit behavior for sandboxed packages; delivery remains best effort.
 5. Create Flathub/Snap publisher accounts, verify app ID/name ownership, sign distro
    packages where applicable, and submit only artifacts backed by collected evidence.
 

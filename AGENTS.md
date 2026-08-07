@@ -13,6 +13,8 @@ Mode: role-routed `GPT-5.6 Sol` architecture and `GPT-5.6 Terra` engineering.
   missing CLI contracts before approving implementation.
 - Validation evidence is required: target tests, typecheck/build, platform checks, and
   a user-visible smoke flow when the host is available. Report `NOT RUN` otherwise.
+- Independent validation checks may run as background tasks. Reap each task and verify its
+  command, exit code, and complete log before merging or reporting it as passed.
 - Do not claim shipped or release-ready until the required evidence exists.
 - Manual gates only: publisher account/credentials, signing/notarization, store
   submission, real-device final QA, production secrets, and required OS/admin consent.
@@ -77,6 +79,17 @@ Finish all safe automated work before asking for a manual action. When blocked b
 manual gate, prepare the artifact, exact command, rollback note, and verification
 checklist, then continue with independent scopes. Keep OS-specific requirements in
 `apps/<os>/` and cross-platform truth in `docs/`.
+
+## Validation Execution
+
+- Run independent read-only checks concurrently when this shortens feedback, using isolated
+  clean worktrees.
+- Never overlap commands that mutate the same worktree, lockfile, build directory, SQLite
+  database, simulator/emulator, device, signing keychain, or release artifact.
+- Give every background task a command, worktree, log path, and process ID. Reap it before a
+  commit, merge, progress claim, or final report; a missing exit status is `NOT RUN`.
+- Stop dependent background work when its prerequisite fails. Preserve logs for failures and
+  report the first actionable error, not a partial-success summary.
 
 ## Model Routing
 

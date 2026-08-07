@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODE="${1:-run}"
+MODE="run"
+MODE_SET=0
+SHOULD_OPEN=1
 APP_NAME="DNSPilotMac"
 PRODUCT_NAME="DNS Pilot"
 APP_CATEGORY="public.app-category.utilities"
@@ -13,7 +15,8 @@ APP_BUILD="${DNSPILOT_APP_BUILD:-1}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SWIFT_PACKAGE_DIR="$ROOT_DIR/apps/macos/DNSPilotMac"
 DIST_DIR="$ROOT_DIR/dist"
-APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
+APP_BUNDLE="$DIST_DIR/DNSPilot.app"
+LEGACY_APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
 APP_RESOURCES="$APP_CONTENTS/Resources"
@@ -31,6 +34,41 @@ truthy() {
     *) return 1 ;;
   esac
 }
+
+usage() {
+  cat >&2 <<USAGE
+usage: $0 [run|--debug|--logs|--telemetry|--verify|--sandbox-verify|--validate] [--no-open]
+
+Builds DNS Pilot into dist/DNSPilot.app.
+
+  --no-open  Build without opening the app window; verify modes still validate.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    run|--debug|debug|--logs|logs|--telemetry|telemetry|--verify|verify|--sandbox-verify|sandbox-verify|--validate|validate)
+      if (( MODE_SET )); then
+        usage
+        exit 2
+      fi
+      MODE="$1"
+      MODE_SET=1
+      ;;
+    --no-open)
+      SHOULD_OPEN=0
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+  shift
+done
 
 terminate_existing_app() {
   pkill -x "$APP_NAME" >/dev/null 2>&1 || true
@@ -54,7 +92,7 @@ BUILD_BINARY="$(swift build --package-path "$SWIFT_PACKAGE_DIR" --show-bin-path)
 RESOURCE_BUNDLE="$(swift build --package-path "$SWIFT_PACKAGE_DIR" --show-bin-path)/DNSPilotMac_DNSPilotMacCore.bundle"
 CLI_BINARY="$ROOT_DIR/target/debug/$CLI_NAME"
 
-rm -rf "$APP_BUNDLE"
+rm -rf "$APP_BUNDLE" "$LEGACY_APP_BUNDLE"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$APP_HELPERS"
 cp "$BUILD_BINARY" "$APP_BINARY"
 cp -R "$RESOURCE_BUNDLE" "$APP_RESOURCES/DNSPilotMac_DNSPilotMacCore.bundle"
@@ -97,6 +135,8 @@ PLIST
 if truthy "$POWER_EDITION"; then
   /usr/libexec/PlistBuddy -c "Add :DNSPilotPowerActionsEnabled bool true" "$INFO_PLIST"
 fi
+
+printf "Built app: %s\n" "$APP_BUNDLE"
 
 open_app() {
   /usr/bin/open -n "$APP_BUNDLE"
@@ -152,30 +192,42 @@ validate_bundle() {
 
 case "$MODE" in
   run)
-    open_app
+    if (( SHOULD_OPEN )); then
+      open_app
+    fi
     ;;
   --debug|debug)
     lldb -- "$APP_BINARY"
     ;;
   --logs|logs)
+    if (( ! SHOULD_OPEN )); then
+      echo "--no-open cannot be used with --logs" >&2
+      exit 2
+    fi
     open_app
     /usr/bin/log stream --info --style compact --predicate "process == \"$APP_NAME\""
     ;;
   --telemetry|telemetry)
+    if (( ! SHOULD_OPEN )); then
+      echo "--no-open cannot be used with --telemetry" >&2
+      exit 2
+    fi
     open_app
     /usr/bin/log stream --info --style compact --predicate "subsystem == \"$BUNDLE_ID\""
     ;;
   --verify|verify|--sandbox-verify|sandbox-verify)
     "$ROOT_DIR/script/sign_macos_bundle.sh" "$APP_BUNDLE"
-    open_app
-    verify_launch
+    if (( SHOULD_OPEN )); then
+      open_app
+      verify_launch
+    fi
     validate_bundle
     ;;
   --validate|validate)
     validate_bundle
     ;;
   *)
-    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify|--sandbox-verify|--validate]" >&2
+    usage
     exit 2
     ;;
 esac

@@ -1,5 +1,7 @@
 # Windows Progress
 
+Last reviewed: 2026-08-07.
+
 ## BLUF
 
 The Windows lane meets the current store-safe core/view-model requirement:
@@ -8,13 +10,17 @@ custom domain suites, localization, single-project MSIX scaffolding, and tray
 models are implemented.
 Real WinUI, MSIX, tray, and Store behavior still require a Windows host.
 
+The current three-area shell is an implemented baseline, not the next target. D13's
+separate Health Check/DNS Benchmark four-area contract and D14 non-elevated background
+run/local notification adapter remain queued.
+
 Runtime Readiness is implemented and automated-validated: startup and Retry use
 one helper-contract loader, independently gate benchmark/apply/profiles/suites/
 history, retain healthy surfaces when local storage fails, and expose an EN/VI
 recovery status plus a copyable technical report. Windows-host rendering and
 packaged-helper proof remain open.
 
-The consumer shell now follows the shared reference contract: primary navigation
+The consumer shell follows the previous shared reference contract: primary navigation
 is Check DNS, Profiles, and History; apply/results remain in Check DNS; suites
 remain with Profiles; raw reports are behind Advanced diagnostics. The shell has
 compact/wide layout logic, keyboard command wiring, and Narrator live status

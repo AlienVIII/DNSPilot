@@ -1,42 +1,46 @@
 # Core CLI Backlog
 
-Last reviewed: 2026-07-19.
+Last reviewed: 2026-08-07.
 
 Core owns catalog, benchmark, recommendation, policy, persistence, history, apply-plan,
 and versioned JSON/JSONL behavior. OS shells own settings URIs, distro/package discovery,
 permission presentation, and privileged implementation unless two consumers prove one
 shared policy contract.
 
-## Priority Requests
+## Active Requests
 
-1. **P0 DNS response integrity**
-   Connect UDP to the selected resolver; generate unpredictable transaction IDs; require
-   QR/standard opcode/one matching question/class/type/source before success. Add
-   adversarial parser and resolver tests.
-2. **P1 transaction-safe mutation**
-   Keep schema v1 but load/validate/mutate/save inside `BEGIN IMMEDIATE` with a revision
-   or explicit conflict outcome. Test concurrent profile, suite, and history writers.
-3. **P1 structured issue/message IDs**
-   Add stable locale-neutral IDs for errors, caveats, safety notes, and guidance. Shells
-   localize IDs; raw Core text remains copyable technical evidence only.
-4. **P1 progress JSONL contract**
-   Version one schema across compare, path-compare, and system-benchmark with
-   `schema_version`, `run_id`, event/status/failure kind, and exactly one terminal event.
-   Test cancellation and no-partial-history semantics.
-5. **Evidence-led extensions only**
+1. **P0 separate Health Check contract**
+   Define versioned observations, measured/inferred/unsupported evidence, confidence,
+   capability gaps, stable reason IDs, privacy boundaries, manual recheck guidance, and
+   progress lifecycle. Keep it independent from DNS Benchmark scores and history.
+2. **P1 remaining structured IDs**
+   Migrate recommendation reasons/caveats and history metadata. Preserve raw Details and
+   backward decoding until every shell proves the typed path.
+3. **Evidence-led extensions only**
    Add `runtime-info --json` only after a second consumer proves the same need. Do not
-   move platform Settings metadata, Linux capability detail, or admin helpers into Core.
+   move platform Settings metadata, notification APIs, task scheduling, distro discovery,
+   or privileged helpers into Core.
+
+## Resolved Baseline
+
+- DNS response identity/semantics are hardened.
+- SQLite snapshot mutations are transaction-safe across processes.
+- Progress JSONL has one `run_id`, stable failures, terminal/cancel events, and no partial
+  history on cancellation.
+- Recommendation gate, capability, preflight/apply, profile-security, and connection-path
+  detail families expose additive stable IDs.
 
 ## Lane Feedback
 
-- macOS: shared system-benchmark progress/history is resolved. Needs stable IDs; Power
-  compare-before-restore remains app-side.
+- macOS: current benchmark lifecycle is sufficient for D14. Background lifetime, local
+  receipt, UserNotifications, and activation remain app-side.
 - Linux: typed Core SQLite/results and streamed progress are resolved. Keep package,
   resolver-stack, D-Bus, and polkit detection lane-local.
-- Windows: existing contracts cover milestones 0-4. Needs stable IDs; Settings URI and
-  future Power remain Windows-owned.
-- Mobile: native adapter already wraps `dnspilot-core`. Preserve one payload schema and
-  foreground jobs; bridge security and OS handoff remain app-owned.
+- Windows: existing contracts cover current benchmark execution. Settings URI,
+  `AppNotificationManager`, process lifetime, and future Power remain Windows-owned.
+- Mobile: native adapter wraps `dnspilot-core`. Background feasibility, OS expiration,
+  notification permission, and activation are native app concerns; do not add a Core
+  scheduler or retry contract.
 
 ## Validation Contract
 

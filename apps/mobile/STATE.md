@@ -1,18 +1,21 @@
 # DNSPilot Mobile State
 
-Last updated: 2026-08-04.
+Last updated: 2026-08-07.
 
 ## Current Truth
 
-- `worktree/mobile` is the current delivery lane. Do not merge its optional iOS
-  DNS Settings work into `main` until Apple approves `dns-settings` and a signed
-  physical device validates the flow.
-- The native consumer product has exactly three primary tabs: Check DNS,
-  Profiles, and History. Installable builds call the shared Rust core in-process;
-  Expo Go/web use the Node bridge only as a development fallback.
+- `worktree/mobile` is the current delivery lane. Source may integrate after normal
+  gates pass, but the default Store artifact must omit `dns-settings`; only the optional
+  entitled artifact remains blocked on Apple approval and signed-device evidence.
+- The implemented shell still has three primary tabs: Check DNS, Profiles, and History.
+  D13's separate Health Check/DNS Benchmark four-area direction is approved but not
+  implemented. Installable builds call shared Rust Core in-process; Expo Go/web use the
+  Node bridge only as a development fallback.
 - Check DNS starts with foreground DNS-only Quick Check. DNS + TCP and current
   resolver validation are advanced controls. Results distinguish Fastest
   observed, balanced recommendation, and Keep current DNS.
+- D14 background continuation/local notification is planned, not implemented. Mobile
+  must prove OS support first and must not promise force-quit survival or auto-retry.
 - Profiles manages custom plain DNS, DoH, DoT, bootstrap addresses, and domain
   suites. History is retest-only; it never applies a saved recommendation.
 - A versioned optional tutorial shows only after preferences load. Skip or Done
@@ -29,21 +32,15 @@ Last updated: 2026-08-04.
 
 ## Latest Validation
 
-- `npm run verify`: pass on the current lane; 98 tests, TypeScript, Expo Router
-  export gate, Expo SDK 57.0.10 patch alignment, and high-severity audit threshold pass.
-  `npm audit --omit=dev` still reports 11 moderate transitive findings; its force fix would
-  downgrade Expo and is intentionally not applied.
+- On 2026-08-07, 99 tests, TypeScript, public config, and Expo Router export pass.
+  `npm run verify` then fails at `expo install --check`: current expected patches are
+  `expo`/`expo-router` 57.0.11 and `expo-symbols` 57.0.2. The audit and release
+  preflight did not run, so the candidate is not merge-ready.
 - Production config assertions: pass. Default `production` omits the iOS DNS
   Settings plugin and flag; `production-ios-dns` alone enables both.
-- iOS Simulator: clean production prebuild, CocoaPods graph, and unsigned
-  Release build pass for iPhone 17e / iOS 26.5. The default public config has
-  no DNS Settings entitlement. Device install/launch remains a manual gate.
-- Android: `npm run native:prepare:android` rebuilt all four Rust ABIs, then
-  `npm run preflight:release` passed: production AAB, default/opt-in iOS config
-  split, Store manifest, and dev-module dex gate. A local release-variant APK
-  also verifies with APK Signature Scheme v2. It is debug-key signed for local
-  device QA only, not a Play upload artifact. S25 Ultra ADB is connected but
-  awaiting the device's USB-debugging authorization.
+- Earlier candidate evidence includes an unsigned iOS Simulator Release build and an
+  Android production AAB/local v2-signed QA APK. Those artifacts predate the current
+  dependency failure and remain historical until the full gate is rerun.
 
 ## Manual Release Gates
 
@@ -55,9 +52,8 @@ Last updated: 2026-08-04.
   Settings handoff cannot be proven by simulator/export tests.
 - **Inputs:** physical iPhone/iPad and Android phone/tablet, normal Wi-Fi or
   cellular network, and TestFlight/internal-distribution access.
-- **Expected:** tutorial persists only after Skip/Done, Check DNS/Profiles/
-  History remain the only tabs, diagnostics are readable, and retest/settings
-  handoff stays user-controlled.
+- **Expected:** tutorial persists only after Skip/Done, D13 navigation is coherent when
+  implemented, diagnostics are readable, and retest/settings handoff stays user-controlled.
 
 ### iOS / iPadOS
 

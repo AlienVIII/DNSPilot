@@ -3,9 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="DNSPilotMac"
-APP_BUNDLE="${DNSPILOT_APP_BUNDLE:-"$ROOT_DIR/dist/$APP_NAME.app"}"
+APP_BUNDLE="${DNSPILOT_APP_BUNDLE:-"$ROOT_DIR/dist/DNSPilot.app"}"
 OUTPUT_DIR="${DNSPILOT_OUTPUT_DIR:-"$ROOT_DIR/dist/release"}"
-PACKAGE_PATH="${DNSPILOT_PACKAGE_PATH:-"$OUTPUT_DIR/$APP_NAME.pkg"}"
+PACKAGE_PATH="${DNSPILOT_PACKAGE_PATH:-"$OUTPUT_DIR/DNSPilot.pkg"}"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-${DNSPILOT_CODESIGN_IDENTITY:-}}"
 INSTALLER_IDENTITY="${DNSPILOT_INSTALLER_IDENTITY:-}"
 POWER_EDITION="${DNSPILOT_POWER_EDITION:-0}"
@@ -16,7 +16,7 @@ usage: $0
 
 Environment:
   DNSPILOT_APP_BUNDLE          Existing .app bundle to sign/package.
-                               Default: dist/DNSPilotMac.app
+                               Default: dist/DNSPilot.app
   DNSPILOT_OUTPUT_DIR          Release output directory.
                                Default: dist/release
   DNSPILOT_PACKAGE_PATH        Output .pkg path.

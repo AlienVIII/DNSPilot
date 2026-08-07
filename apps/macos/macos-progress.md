@@ -1,5 +1,7 @@
 # macOS Progress
 
+Last reviewed: 2026-08-07.
+
 ## BLUF
 
 macOS is the UX lead lane and currently has the most complete native shell. The
@@ -7,6 +9,10 @@ store-safe path is implemented around benchmark, guidance, copy/open settings,
 flush guidance, and system-DNS validation. Direct DNS mutation is available only
 in Power/direct-install capable builds after explicit Direct Admin opt-in, or a
 local force flag, and still requires macOS administrator approval.
+
+This is the implemented baseline, not the next target. D13 now requires separate
+`Health Check` and `DNS Benchmark` areas; D14 requires OS-bounded user-started
+background continuation and opt-in local completion notification. Neither is implemented.
 
 Consumer UX gates now have a singleton main window, task-first navigation, optional
 setup, one primary result action, compact technical details, and semantic EN/VI native

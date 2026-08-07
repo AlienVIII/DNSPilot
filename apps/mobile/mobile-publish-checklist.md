@@ -1,6 +1,6 @@
 # Mobile Publish Checklist
 
-Last reviewed: 2026-08-04.
+Last reviewed: 2026-08-07.
 
 ## Release Posture
 
@@ -26,9 +26,10 @@ default/opt-in iOS entitlement isolation, Android release AAB, no dev/VPN/privil
 surface, and approved backup behavior. Rerun iOS Simulator and Android release smoke
 after dependency or generated-config changes.
 
-The local `android/app/build/outputs/apk/release/app-release.apk` is a
-debug-key-signed release variant for local device QA only. Build the final Play AAB
-through EAS/Play App Signing; do not upload this APK or its local signing key.
+The local `android/app/build/outputs/apk/release/app-release.apk` produced by the
+2026-08-04 candidate is a debug-key-signed release variant for local device QA only.
+Do not upload that APK or its local signing key; the final Play artifact uses the
+production AAB and Play App Signing.
 
 ## Physical Device Gate
 
@@ -46,8 +47,9 @@ through EAS/Play App Signing; do not upload this APK or its local signing key.
 3. Build and submit default iOS `production` without Network Extensions.
 4. Build Android `production`, complete first manual Play upload if required, then closed
    testing before production.
-5. Describe DNS benchmarking and guided OS setup only. Do not claim internet speed,
-   automatic fastest-DNS apply, silent switching, VPN behavior, or background service.
+5. Describe Health Check, DNS Benchmark, and guided OS setup only after each is proven.
+   Do not claim internet speed, automatic fastest-DNS apply, silent switching, VPN
+   behavior, scheduled monitoring, remote push, or force-quit background completion.
 6. Treat optional `production-ios-dns` as a later separately reviewed artifact.
 
 Provider/account/signing steps and required returned proof are in

@@ -27,7 +27,7 @@
 - Local macOS bundle verification passes: `./script/validate_macos_bundle.sh`.
 - macOS local CI harness passes: `./script/ci_macos.sh`.
 - Distribution bundle verification passes:
-  `./script/validate_macos_bundle.sh dist/DNSPilotMac.app --distribution`.
+  `./script/validate_macos_bundle.sh dist/DNSPilot.app --distribution`.
 - No debug-only entitlements in release signing.
 - App Store copy avoids unsupported claims.
 - `git diff --check <release-base>..HEAD` is clean.
