@@ -48,9 +48,12 @@ npx expo-doctor@latest
 ```
 
 `verify` covers unit tests, TypeScript, Expo config, Router web export, package alignment,
-and dependency policy. `preflight:release` prepares Rust artifacts, validates Store vs
-opt-in iOS entitlement isolation, builds Android release, and rejects dev/VPN/privileged
-surface. Current status is recorded in `../mobile-progress.md`.
+and dependency policy. It rejects every unapproved high/critical production audit finding;
+the current Metro `image-size` advisory chain is an explicit, test-locked upstream exception
+until Expo publishes a compatible fix. `preflight:release` prepares Rust artifacts, validates
+Store vs opt-in iOS entitlement isolation, builds an Android Store AAB plus a debug-key QA APK,
+and rejects dev/VPN/privileged surface. Do not upload the QA APK. Current status is recorded in
+`../mobile-progress.md`.
 
 ## Platform Boundaries
 

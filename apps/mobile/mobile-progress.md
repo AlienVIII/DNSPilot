@@ -1,6 +1,6 @@
 # Mobile Progress
 
-Last reviewed: 2026-08-07. Reviewed branch: `worktree/mobile` after Expo 57.0.11 alignment.
+Last reviewed: 2026-08-09. Reviewed branch: `worktree/mobile` after release QA gate hardening.
 
 ## BLUF
 
@@ -27,19 +27,25 @@ separation and D14 background continuation are approved future work, not current
 
 ## Latest Validation
 
-- `npm run verify`: pass with 100 tests and Expo compatibility; `expo-doctor`: 20/20.
-- `npm run preflight:release`: pass, including clean Android Store AAB and manifest/dex
-  capability gates. iOS Simulator Release build with signing disabled: pass.
-- Pixel 9 Pro XL physical smoke: tutorial persistence, Help on all consumer tabs,
+- `npm run verify`: pass with 106 tests and Expo compatibility; `expo-doctor`: 20/20.
+  The audit policy fails all unapproved high/critical findings and has a source-locked
+  exception only for Metro's presently unfixable build-time `image-size` advisory chain.
+- `npm run preflight:release`: pass, including clean Android Store AAB and debug-key QA APK,
+  each with manifest/dex capability gates. iOS Simulator Release build with signing disabled:
+  pass on 2026-08-09.
+- Predecessor Pixel 9 Pro XL physical smoke: tutorial persistence, Help on all consumer tabs,
   foreground DNS-only and DNS + TCP jobs, native runtime launch, history save, and
   Vietnamese presentation: pass. Final QA APK re-smoke after Wi-Fi change also passed
   Quick Check and System DNS validation (`526 ms`) without mutating system DNS or crashing.
+  Current final APK physical install/smoke: `NOT RUN` because the device switched to another
+  foreground app during this pass.
 - Store review, signed iOS/iPadOS QA, TalkBack/VoiceOver, backup/restore, optional iOS
   entitlement, and Samsung-specific Settings handoff: `NOT RUN`.
 
 ## Remaining Gates
 
-1. Run Samsung-specific Settings handoff when the S25 Ultra is attached.
+1. Install and smoke the current QA APK on Pixel 9 Pro XL, then run Samsung-specific Settings
+   handoff when the S25 Ultra is attached.
 2. Consume the D13 Health Check contract after Core lands; do not fork it in JavaScript.
 3. Run D14 iOS/Android feasibility spikes. Keep unsupported platforms foreground-only.
 4. Keep the entitled iOS artifact provider/device blocked independently.

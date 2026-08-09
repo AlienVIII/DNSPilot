@@ -1,24 +1,30 @@
 # Mobile Readiness
 
-Last reviewed: 2026-08-07.
+Last reviewed: 2026-08-09.
 
 ## Green Before Main Integration
 
 - [x] `npm run verify` passes with Expo 57.0.11/router 57.0.11/symbols 57.0.2:
-  100 tests, typecheck, public config, Router export/warning gate, compatibility, and
-  audit high threshold. Eleven moderate transitive `uuid` findings remain; forced audit
-  fix is rejected because it would downgrade Expo.
+  106 tests, typecheck, public config, Router export/warning gate, compatibility, and a
+  strict production audit policy. The only high exception is the tested Metro build-time
+  `image-size` chain (advisory sources `1138808`, `1138809`) without a compatible upstream fix.
 - [x] `npm run preflight:release` passes after clean production prebuild and produces a
-  fresh Android AAB with manifest/dex Store gates.
+  fresh Android AAB plus debug-key QA APK with manifest/dex Store gates for both artifacts.
 - [ ] Default iOS Store generated and signed entitlements omit `dns-settings`; public
   config isolation passes, but final signed evidence remains manual.
 - [x] Android production manifest excludes dev-client, VPN/overlay/storage leakage and
   disables backup. The iOS native runtime excludes its `Application Support/DNSPilot`
   directory from backup; simulator/device verification remains open.
 - [x] Native Rust jobs pass unit, type, Router, iOS Simulator Release, and Android
-  release smoke on the same green candidate. The final debug-key QA APK installed and
+  release smoke on the same green candidate. The predecessor debug-key QA APK installed and
   launched on Pixel; after a Wi-Fi change, DNS-only Quick Check and System DNS validation
-  passed with final Vietnamese diagnostics and no crash. No system DNS setting was changed.
+  passed with Vietnamese diagnostics and no crash. No system DNS setting was changed.
+- [ ] Install the current debug-key QA APK (`c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`)
+  on Pixel 9 Pro XL and rerun the native flow. The device/emulator was actively used by another
+  app before current-result automation could finish.
+- [x] The current production QA APK installs and launches in Android Emulator first-run
+  without a runtime permission prompt. Do not count this as final device-flow evidence when
+  another foreground app prevents completing the automated interaction.
 - [x] Dev bridge is loopback-only by default. Explicit LAN mode has a per-run bearer
   token and origin allowlist; the server owns the database path, redacts HTTP output,
   bounds jobs, and supports cancellation.

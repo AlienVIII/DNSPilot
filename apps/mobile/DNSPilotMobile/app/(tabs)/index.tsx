@@ -28,7 +28,7 @@ import { buildBenchmarkPlan, type BenchmarkMode } from '@/src/view-models/benchm
 import { buildConsumerResult } from '@/src/view-models/consumer-result';
 import { buildQuickCheck, quickCheckPresets } from '@/src/view-models/consumer-check';
 import { buildIosDnsSettingsRequest } from '@/src/view-models/native-dns-settings';
-import { presentAction, presentConfidence, presentHealth, presentNote, presentProcessReason, presentResolverDiagnosis, presentResolverStatus } from '@/src/view-models/result-presentation';
+import { presentAction, presentConfidence, presentHealth, presentNote, presentProcessMetricIds, presentProcessReason, presentResolverDiagnosis, presentResolverStatus } from '@/src/view-models/result-presentation';
 import { buildSettingsGuidance, guidanceActionStatus, type SettingsGuidance } from '@/src/view-models/settings-guidance';
 
 type Mode = Extract<BenchmarkMode, 'compare' | 'pathCompare' | 'systemBenchmark'>;
@@ -333,6 +333,7 @@ export default function CheckDnsScreen() {
 
 function ProcessSection({ diagnostics, copyStatus, onCopyReport, t }: { diagnostics: BenchmarkDiagnostics | null; copyStatus: string | null; onCopyReport: () => void; t: (key: string, params?: Record<string, string | number>) => string }) {
   const [detailsVisible, setDetailsVisible] = useState(false);
+  const metricIds = presentProcessMetricIds(diagnostics?.failedStepId);
   return (
     <Section title={t('benchmark.process.title')} subtitle={diagnostics ? t('benchmark.process.subtitleReady', { status: t(`status.${diagnostics.status}`), reason: presentProcessReason(diagnostics.reason, t) }) : t('benchmark.process.subtitleEmpty')}>
       {!diagnostics ? <EmptyState text={t('benchmark.noDiagnostics')} /> : null}
@@ -340,7 +341,7 @@ function ProcessSection({ diagnostics, copyStatus, onCopyReport, t }: { diagnost
         <View style={cardStyle}>
           <Row>
             <Metric label={t('benchmark.metric.status')} value={t(`status.${diagnostics.status}`)} tone={statusTone(diagnostics.status)} />
-            <Metric label={t('benchmark.metric.failedStep')} value={diagnostics.failedStepId ? t(`benchmark.step.${diagnostics.failedStepId}`) : t('benchmark.failedStepNone')} tone={diagnostics.failedStepId ? 'red' : 'green'} />
+            {metricIds.includes('failedStep') ? <Metric label={t('benchmark.metric.failedStep')} value={t(`benchmark.step.${diagnostics.failedStepId}`)} tone="red" /> : null}
             <Metric label={t('benchmark.metric.elapsed')} value={formatMs(diagnostics.elapsedMs)} tone="blue" />
           </Row>
           {diagnostics.steps.map((step) => <StepRow key={step.id} id={step.id} status={step.status} t={t} />)}

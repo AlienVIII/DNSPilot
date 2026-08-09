@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createTranslator } from "./localization.js";
-import { presentAction, presentHealth, presentNote, presentProcessReason, presentResolverDiagnosis, presentResolverStatus } from "./result-presentation.js";
+import { presentAction, presentHealth, presentNote, presentProcessMetricIds, presentProcessReason, presentResolverDiagnosis, presentResolverStatus } from "./result-presentation.js";
 
 test("presents known benchmark values in Vietnamese without changing unknown Core details", () => {
   const t = createTranslator("vi");
@@ -20,4 +20,9 @@ test("presents known benchmark values in Vietnamese without changing unknown Cor
     "Chỉ ước lượng DNS lookup; không đo TCP, TLS, HTTP, QUIC, cache trình duyệt, VPN, MDM, captive portal hoặc hành vi riêng của app."
   );
   assert.equal(presentNote("Unrecognized Core detail.", t), "Unrecognized Core detail.");
+});
+
+test("shows the failed-step metric only when a diagnostic reports one", () => {
+  assert.deepEqual(presentProcessMetricIds(null), ["status", "elapsed"]);
+  assert.deepEqual(presentProcessMetricIds("dns_lookup"), ["status", "failedStep", "elapsed"]);
 });

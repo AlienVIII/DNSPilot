@@ -68,6 +68,10 @@ export function presentProcessReason(value, t) {
   return presentNote(text, t);
 }
 
+export function presentProcessMetricIds(failedStepId) {
+  return failedStepId ? ["status", "failedStep", "elapsed"] : ["status", "elapsed"];
+}
+
 function presentEnum(value, prefix, t) {
   const normalized = String(value ?? "").trim().toLowerCase();
   const key = `${prefix}.${normalized}`;

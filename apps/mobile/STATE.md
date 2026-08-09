@@ -1,6 +1,6 @@
 # DNSPilot Mobile State
 
-Last updated: 2026-08-07.
+Last updated: 2026-08-09.
 
 ## Current Truth
 
@@ -32,22 +32,31 @@ Last updated: 2026-08-07.
 
 ## Latest Validation
 
-- On 2026-08-07, dependencies aligned to `expo`/`expo-router` 57.0.11 and
-  `expo-symbols` 57.0.2. `npm run verify` passes: 100 tests, TypeScript, public
-  config, Router warning gate, Expo compatibility, and no high/critical audit finding.
-  Eleven moderate transitive `uuid` findings remain; the forced fix would downgrade Expo.
-- `npx expo-doctor@latest` passes all 20 checks. `npm run preflight:release` passes
-  Store/optional iOS DNS isolation and creates a fresh Android AAB after clean prebuild.
-  Manifest/dex gates confirm no dev client, VPN, overlay, storage, or privileged leakage.
-- iOS Simulator Release with `CODE_SIGNING_ALLOWED=NO` succeeded. Default `production`
+- On 2026-08-09, `npm run verify` passes: 106 tests, TypeScript, public config, Router
+  warning gate, Expo compatibility, and the production audit policy. npm currently reports
+  14 high findings inherited from Metro's build-time `image-size@1.2.1` chain and 8 moderate
+  `uuid` findings. There is no fixed `image-size` version in the registry and forced npm fixes
+  downgrade Expo/React Native, so `npm-audit-policy` allows only advisory sources `1138808` and
+  `1138809` plus their known Metro-chain packages; any other high/critical finding fails
+  the gate. A direct advisory on an otherwise known package also fails.
+- `npx expo-doctor@latest` remains 20/20. `npm run preflight:release` passes Store/optional
+  iOS DNS isolation and creates a fresh Android AAB and debug-key QA APK after clean prebuild.
+  Manifest/dex gates confirm no dev client, VPN, overlay, storage, or privileged leakage in
+  either artifact. AAB SHA-256: `d23f0a379a31e2caec5b6c999efaab118453922ed4a6e59c7281d2fc62bc80f8`.
+  QA APK SHA-256: `c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`.
+- iOS Simulator Release with `CODE_SIGNING_ALLOWED=NO` succeeded again on 2026-08-09. Default `production`
   omits the iOS DNS Settings plugin/flag; `production-ios-dns` alone enables both.
-- A debug-key-signed Android release-variant QA APK was installed on a physical Pixel
+- A predecessor debug-key-signed Android release-variant QA APK was installed on a physical Pixel
   9 Pro XL. It launched the in-process Rust runtime without crash; tutorial persistence,
   Help on all consumer tabs, DNS-only Quick Check, DNS + TCP, and history save passed.
-  The final APK rebuild completed and installed (`08fd871028d95156a2d0dd4b652ead30d4d81186348d9e0a54347b474577923b`).
+  The current QA APK has been built and verified locally, but has not been installed on the
+  physical Pixel because it was in use by another app during this final pass.
   After a Wi-Fi change, physical Pixel smoke again passed DNS-only Quick Check and
   System DNS validation (`526 ms`), including final Vietnamese diagnostics/copy labels
   and no crash. No system DNS setting was changed.
+- The newest QA APK installs and launches in the Android emulator. Its first-run tutorial
+  is visible without an Android runtime permission prompt. Device/emulator foreground changed
+  to another app before post-tutorial automation, so current-result visual QA remains manual.
 
 ## Manual Release Gates
 

@@ -1,6 +1,6 @@
 # DNSPilot Mobile Roadmap
 
-Last reviewed: 2026-08-07.
+Last reviewed: 2026-08-09.
 
 ## Completed Automated Scope
 
@@ -13,11 +13,18 @@ Last reviewed: 2026-08-07.
   Android release-manifest checks, and iOS Simulator consumer smoke.
 - [x] Expo SDK 57.0.11 patch alignment, Rust runtime/Core contract checks, a fresh
   Android production AAB, and iOS Simulator Release build.
+- [x] Production Android gate now creates and checks both the Store AAB and a local
+  debug-key QA APK under the same production environment; direct Gradle invocation cannot
+  accidentally create a dev-client QA artifact.
+- [x] Successful process diagnostics suppress the empty failed-step metric; failures still
+  show the failed step visibly.
+- [x] Production npm audit gate rejects all new high/critical findings while retaining the
+  narrowly tested, unremediable Metro `image-size` advisory exception.
 
 ## Active Automated Scope
 
-- [x] Rebuild/install the final Android QA APK on the connected Pixel. SHA-256:
-  `08fd871028d95156a2d0dd4b652ead30d4d81186348d9e0a54347b474577923b`.
+- [x] Build and verify the final Android QA APK locally. SHA-256:
+  `c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`.
 - [ ] After shared Core lands, implement D13's separate Health Check and DNS Benchmark.
 - [ ] Prove D14 background continuation per OS before implementation; local completion
   notifications remain contextual opt-in and no run auto-retries.
@@ -26,6 +33,9 @@ Last reviewed: 2026-08-07.
 
 - [ ] Run the same Android smoke on a Samsung S25 Ultra when it is attached. The
   connected Pixel 9 Pro XL is physical-device evidence but not Samsung-specific proof.
+- [ ] Install the current debug-key QA APK on the Pixel 9 Pro XL and execute the
+  `mobile-readiness.md` native flow. Earlier Pixel evidence is from the predecessor
+  candidate; do not replace it with this local APK in Play Console.
 - [ ] Run signed physical iOS/iPadOS and Android device QA using
   `mobile-readiness.md`; record pass/fail evidence and screenshots.
 - [ ] Apple: create/confirm App Store Connect record, signing/provisioning,
