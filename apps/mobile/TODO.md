@@ -33,9 +33,9 @@ Last reviewed: 2026-08-09.
 
 - [ ] Run the same Android smoke on a Samsung S25 Ultra when it is attached. The
   connected Pixel 9 Pro XL is physical-device evidence but not Samsung-specific proof.
-- [ ] Install the current debug-key QA APK on the Pixel 9 Pro XL and execute the
-  `mobile-readiness.md` native flow. Earlier Pixel evidence is from the predecessor
-  candidate; do not replace it with this local APK in Play Console.
+- [ ] Current debug-key QA APK is installed on Pixel 9 Pro XL; unlock the device and execute
+  the `mobile-readiness.md` native flow. Earlier Pixel evidence is from the predecessor
+  candidate; do not replace this local APK in Play Console.
 - [ ] Run signed physical iOS/iPadOS and Android device QA using
   `mobile-readiness.md`; record pass/fail evidence and screenshots.
 - [ ] Apple: create/confirm App Store Connect record, signing/provisioning,

@@ -37,8 +37,8 @@ separation and D14 background continuation are approved future work, not current
   foreground DNS-only and DNS + TCP jobs, native runtime launch, history save, and
   Vietnamese presentation: pass. Final QA APK re-smoke after Wi-Fi change also passed
   Quick Check and System DNS validation (`526 ms`) without mutating system DNS or crashing.
-  Current final APK physical install/smoke: `NOT RUN` because the device switched to another
-  foreground app during this pass.
+  Current final APK is installed on the Pixel with no launch crash, but interactive smoke is
+  `NOT RUN` because the device was locked before automation could reach DNSPilot.
 - Store review, signed iOS/iPadOS QA, TalkBack/VoiceOver, backup/restore, optional iOS
   entitlement, and Samsung-specific Settings handoff: `NOT RUN`.
 

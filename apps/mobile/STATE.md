@@ -49,8 +49,9 @@ Last updated: 2026-08-09.
 - A predecessor debug-key-signed Android release-variant QA APK was installed on a physical Pixel
   9 Pro XL. It launched the in-process Rust runtime without crash; tutorial persistence,
   Help on all consumer tabs, DNS-only Quick Check, DNS + TCP, and history save passed.
-  The current QA APK has been built and verified locally, but has not been installed on the
-  physical Pixel because it was in use by another app during this final pass.
+  The current QA APK was installed on the physical Pixel (`versionCode 1`, `targetSdk 36`)
+  and launch produced no crash log. The device was locked before UI automation could reach
+  DNSPilot, so the current artifact's interactive flow remains manual.
   After a Wi-Fi change, physical Pixel smoke again passed DNS-only Quick Check and
   System DNS validation (`526 ms`), including final Vietnamese diagnostics/copy labels
   and no crash. No system DNS setting was changed.

@@ -19,9 +19,9 @@ Last reviewed: 2026-08-09.
   release smoke on the same green candidate. The predecessor debug-key QA APK installed and
   launched on Pixel; after a Wi-Fi change, DNS-only Quick Check and System DNS validation
   passed with Vietnamese diagnostics and no crash. No system DNS setting was changed.
-- [ ] Install the current debug-key QA APK (`c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`)
-  on Pixel 9 Pro XL and rerun the native flow. The device/emulator was actively used by another
-  app before current-result automation could finish.
+- [ ] The current debug-key QA APK (`c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`)
+  is installed on Pixel 9 Pro XL with no launch crash. Unlock the device and rerun the native
+  flow; the lock screen prevented current-result automation from reaching DNSPilot.
 - [x] The current production QA APK installs and launches in Android Emulator first-run
   without a runtime permission prompt. Do not count this as final device-flow evidence when
   another foreground app prevents completing the automated interaction.
