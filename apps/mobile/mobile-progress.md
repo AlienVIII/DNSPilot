@@ -30,8 +30,10 @@ separation and D14 background continuation are approved future work, not current
 - `npm run verify`: pass with 106 tests and Expo compatibility; `expo-doctor`: 20/20.
   The audit policy fails all unapproved high/critical findings and has a source-locked
   exception only for Metro's presently unfixable build-time `image-size` advisory chain.
-- `npm run preflight:release`: pass, including clean Android Store AAB and debug-key QA APK,
-  each with manifest/dex capability gates. iOS Simulator Release build with signing disabled:
+- `npm run preflight:release`: pass, including a local Android release-shape AAB and debug-key
+  QA APK, each with manifest/dex capability gates. Both local artifacts use the debug
+  certificate and are QA-only; EAS `production` signs the Play upload artifact remotely.
+  iOS Simulator Release build with signing disabled:
   pass on 2026-08-09.
 - Predecessor Pixel 9 Pro XL physical smoke: tutorial persistence, Help on all consumer tabs,
   foreground DNS-only and DNS + TCP jobs, native runtime launch, history save, and

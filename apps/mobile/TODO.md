@@ -11,9 +11,9 @@ Last reviewed: 2026-08-09.
   permission request.
 - [x] Expo Router unresolved-route gate, Store profile entitlement isolation,
   Android release-manifest checks, and iOS Simulator consumer smoke.
-- [x] Expo SDK 57.0.11 patch alignment, Rust runtime/Core contract checks, a fresh
-  Android production AAB, and iOS Simulator Release build.
-- [x] Production Android gate now creates and checks both the Store AAB and a local
+- [x] Expo SDK 57.0.11 patch alignment, Rust runtime/Core contract checks, a fresh local
+  Android release-shape AAB, and iOS Simulator Release build.
+- [x] Production Android gate now creates and checks both a local release-shape AAB and a
   debug-key QA APK under the same production environment; direct Gradle invocation cannot
   accidentally create a dev-client QA artifact.
 - [x] Successful process diagnostics suppress the empty failed-step metric; failures still

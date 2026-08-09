@@ -9,7 +9,8 @@ Last reviewed: 2026-08-09.
   strict production audit policy. The only high exception is the tested Metro build-time
   `image-size` chain (advisory sources `1138808`, `1138809`) without a compatible upstream fix.
 - [x] `npm run preflight:release` passes after clean production prebuild and produces a
-  fresh Android AAB plus debug-key QA APK with manifest/dex Store gates for both artifacts.
+  fresh local Android release-shape AAB plus debug-key QA APK with manifest/dex Store gates
+  for both artifacts. They use the debug certificate and are not Play-upload artifacts.
 - [ ] Default iOS Store generated and signed entitlements omit `dns-settings`; public
   config isolation passes, but final signed evidence remains manual.
 - [x] Android production manifest excludes dev-client, VPN/overlay/storage leakage and

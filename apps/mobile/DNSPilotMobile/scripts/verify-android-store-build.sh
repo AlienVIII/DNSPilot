@@ -19,5 +19,5 @@ apk_path="$(find android/app/build/outputs -type f -name '*.apk' -print -quit)"
 test -n "$apk_path"
 unzip -p "$apk_path" 'classes*.dex' | strings | node scripts/verify-android-release-dex.mjs
 
-echo "Android Store AAB built at $artifact_path"
+echo "Android release-shape AAB built at $artifact_path (debug-key local QA only)"
 echo "Android QA APK built at $apk_path"

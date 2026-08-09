@@ -40,9 +40,11 @@ Last updated: 2026-08-09.
   `1138809` plus their known Metro-chain packages; any other high/critical finding fails
   the gate. A direct advisory on an otherwise known package also fails.
 - `npx expo-doctor@latest` remains 20/20. `npm run preflight:release` passes Store/optional
-  iOS DNS isolation and creates a fresh Android AAB and debug-key QA APK after clean prebuild.
+  iOS DNS isolation and creates a fresh local Android release-shape AAB and debug-key QA APK
+  after clean prebuild.
   Manifest/dex gates confirm no dev client, VPN, overlay, storage, or privileged leakage in
-  either artifact. AAB SHA-256: `d23f0a379a31e2caec5b6c999efaab118453922ed4a6e59c7281d2fc62bc80f8`.
+  either artifact. Both local artifacts use the debug certificate and are never upload-ready.
+  AAB SHA-256: `d23f0a379a31e2caec5b6c999efaab118453922ed4a6e59c7281d2fc62bc80f8`.
   QA APK SHA-256: `c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`.
 - iOS Simulator Release with `CODE_SIGNING_ALLOWED=NO` succeeded again on 2026-08-09. Default `production`
   omits the iOS DNS Settings plugin/flag; `production-ios-dns` alone enables both.
@@ -95,7 +97,9 @@ Last updated: 2026-08-09.
 - **Why manual:** developer account, upload key/app signing, Play forms, and
   manufacturer Settings paths are external to this workspace.
 - **Inputs:** Play Console access, package reservation, App Signing setup,
-  privacy/support URLs, Data safety answers, and an Android test device.
+  privacy/support URLs, Data safety answers, an Android test device, and an Expo account.
+  This checkout is not logged into EAS and has no EAS project ID, so the owner must first
+  run EAS login/init and configure the remote Android upload credential.
 - **Expected:** internal-release app has only normal network permissions; an
   eligible recommendation copies the DoT value and opens Settings, while the
   user performs the DNS change and returns to retest.
