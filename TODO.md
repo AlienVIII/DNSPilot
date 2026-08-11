@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-08-07.
+Last reviewed: 2026-08-11.
 
 ## P0: Separate Network Health Check
 
@@ -73,23 +73,23 @@ Last reviewed: 2026-08-07.
 
 ## P1: Mobile Integration
 
-- [x] Update the Expo 57 patch set and pass `npm run verify` (98 tests, typecheck,
-  config/export, dependency compatibility, audit threshold) in `e24e893`.
+- [x] Update the Expo 57 patch set and pass `npm run verify` (106 tests, typecheck,
+  config/export, dependency compatibility, Router warning gate, and fail-closed audit policy)
+  in integrated mobile candidate `6190635`.
 - [x] Bind the dev bridge to loopback by default; LAN mode now needs a per-run token and
   origin allowlist, uses an app-owned database, redacts health/errors, and bounds/cancels jobs.
 - [x] Disable Android backup and exclude iOS Application Support data from backup.
 - [x] Simplify mobile first-run UI: hide empty Process/Result sections and keep advanced
   detail progressive.
-- [x] Build Android Release AAB and pass its manifest/dex release gates; mobile source
-  is merged in `234a2e0`.
+- [x] Build local Android release-shape AAB/APK and pass manifest/dex release gates;
+  mobile source is integrated in `6190635`. These local debug-key artifacts are QA-only;
+  Play needs EAS remote signing.
 - [x] Capture iOS Simulator Release exit evidence: `xcodebuild ... -configuration Release
   -sdk iphonesimulator ... CODE_SIGNING_ALLOWED=NO` reports `BUILD SUCCEEDED`.
   Signed physical-device QA and store release remain manual gates.
-- [x] Integrate mobile source in `234a2e0`; treat Expo web as dev/router QA only and keep
-  the `production-ios-dns` artifact blocked by provider/device evidence.
-- [ ] Refresh the mobile release candidate to Expo's current SDK 57 expected patches:
-  the 2026-08-07 gate expects `expo`/`expo-router` `57.0.11` and `expo-symbols`
-  `57.0.2`. Rerun the complete `npm run verify`; do not merge the red candidate.
+- [x] Integrate the refreshed mobile source in `6190635`; Expo web remains dev/router QA
+  only, local Android artifacts remain QA-only, and `production-ios-dns` stays blocked by
+  provider/device evidence.
 
 ## P1: Platform Evidence
 

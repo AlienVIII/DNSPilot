@@ -1,12 +1,12 @@
 # DNSPilot State
 
-Last updated: 2026-08-07.
+Last updated: 2026-08-11.
 
 ## Current Truth
 
 - `main` is the integration source of truth. It includes the verified macOS source-build
-  merge at `28a910e`, prior Linux/Windows lane milestones, mobile baseline `234a2e0`,
-  and shared Core/CLI hardening through `8360ba7`.
+  merge at `28a910e`, prior Linux/Windows lane milestones, the refreshed mobile release
+  candidate through `6190635`, and shared Core/CLI hardening through `8360ba7`.
 - Rust Core/CLI remains the only owner of benchmark, recommendation, policy, storage,
   and versioned JSON/JSONL contracts.
 - Independent validation checks may run in background from isolated clean worktrees, but only
@@ -32,10 +32,11 @@ Last updated: 2026-08-07.
   real Linux evidence remain open.
 - Windows milestones 0-4 and release preparation are committed. Core/static tests pass;
   WinUI/XAML/MSIX/tray/accessibility evidence still requires Windows.
-- Mobile baseline is integrated through `234a2e0`: bridge access is loopback-by-default
-  and LAN-token protected, local data is excluded from Android/iOS backup, and first-run
-  UI hides empty technical sections. Its newer local release candidate is not integrated
-  because current Expo patch alignment is red.
+- Mobile release-candidate source is integrated through `6190635`: Expo SDK 57 patches,
+  localized result presentation, Router warning gate, narrow production audit policy,
+  release-shape Android manifest/dex gates, tutorial/Help, and Store-vs-opt-in iOS DNS
+  entitlement isolation are all current. Local Android artifacts are debug-signed QA only;
+  remote EAS signing and physical/store validation remain manual.
 
 ## Review Findings
 
@@ -59,13 +60,16 @@ Last updated: 2026-08-07.
   summaries expose typed recommendation `gate_note_ids`; Capability Matrix, Preflight, and
   Apply Prompt Policy, Apply Plan, profile security, and connection-path caveats also have typed
   IDs, while old history remains readable.
-- Mobile candidate: 99 tests, typecheck, Expo config, and router export pass on
-  2026-08-07, but `npm run verify` is red at `expo install --check`. Expo now expects
-  `expo`/`expo-router` 57.0.11 and `expo-symbols` 57.0.2; the audit step did not run.
-  The candidate remains unmerged. Earlier Android AAB and iOS Simulator evidence is
-  historical and does not make this candidate green.
+- Mobile candidate: `npm run verify` passes 106 tests, TypeScript, Expo config,
+  Router warning gate, compatibility, and a fail-closed production audit policy on
+  2026-08-09; `expo-doctor` passes 20/20. `npm run preflight:release` and the iOS
+  Simulator Release build pass. The current debug-key QA APK is installed on Pixel 9 Pro XL
+  with no launch crash, but the interactive current-artifact flow remains manual because
+  the device was locked. The local AAB/APK are release-shape QA artifacts, not Play uploads.
 - Dependency review: RustSec reports no known Rust advisories; NuGet reports no known
-  vulnerable Windows packages; npm reports 11 moderate and no high/critical findings.
+  vulnerable Windows packages. Mobile npm reports 14 high findings inherited from Metro's
+  currently unremediable `image-size` chain plus 8 moderate findings; the production gate
+  permits only the two locked advisory sources and fails every other high/critical finding.
 - Historical mobile web visual QA at 390px confirms tutorial/Help and three primary tabs,
   which now predates D13's four-area product direction. It also
   confirms repeated titles, implementation jargon, premature empty sections, and a
@@ -77,7 +81,8 @@ Last updated: 2026-08-07.
   and VoiceOver evidence, five-user usability, App Store submission, and real Power QA.
 - Windows: Windows-host WinUI/MSIX/tray/accessibility QA, signing, Partner Center.
 - Linux: source-built package CI, GNOME/KDE/resolver QA, signing, publisher accounts.
-- Mobile: signed physical-device QA, Apple/Google accounts, store submission, and Apple
+- Mobile: unlock and complete current Pixel QA, signed iOS/iPadOS/Android device QA,
+  EAS project/login/upload credentials, Apple/Google accounts, store submission, and Apple
   entitlement/provisioning evidence only for the optional entitled profile.
 
 ## Sources
