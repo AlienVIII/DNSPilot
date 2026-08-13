@@ -1,6 +1,6 @@
 # macOS Progress
 
-Last reviewed: 2026-08-07.
+Last reviewed: 2026-08-13.
 
 ## BLUF
 
@@ -10,9 +10,10 @@ flush guidance, and system-DNS validation. Direct DNS mutation is available only
 in Power/direct-install capable builds after explicit Direct Admin opt-in, or a
 local force flag, and still requires macOS administrator approval.
 
-This is the implemented baseline, not the next target. D13 now requires separate
-`Health Check` and `DNS Benchmark` areas; D14 requires OS-bounded user-started
-background continuation and opt-in local completion notification. Neither is implemented.
+This is the implemented baseline, not the next target. D13 still requires the shared Core
+Health Check contract and separate `Health Check` area. D14 benchmark lifecycle support is
+implemented: one shell-owned read-only run, persisted receipt/recovery, contextual local
+notification opt-in, and no retry. It still needs real macOS notification evidence.
 
 Consumer UX gates now have a singleton main window, task-first navigation, optional
 setup, one primary result action, compact technical details, and semantic EN/VI native
@@ -67,6 +68,8 @@ required to establish one text source of truth. See `apps/macos/macos-engineerin
 - Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan
   contract, System DNS validation progress/history, optional live DNS/game-target
   probes, and optional Store/Power bundle mode checks.
+- D14 release safety is static and fail-closed: CI/preflight reject remote push APIs/APNs,
+  scheduled background work, login items, and DNS mutation from notification/receipt code.
 
 ## Validation
 
@@ -78,12 +81,15 @@ required to establish one text source of truth. See `apps/macos/macos-engineerin
   the current network; restores the Store-safe bundle afterward.
 - `./script/preflight_macos_release.sh --include-power`: pass; validates Rust,
   Swift, Store-safe bundle, Power bundle, and restores Store-safe bundle.
+- `./script/test_d14_macos_safety.sh`: pass; exercises current Store-safe source and a
+  remote-push negative fixture. It is called from CI and release preflight.
 
 ## Remaining Gates
 
-- `./script/visual_macos_smoke.sh` now captures packaged EN/VI window screenshots
-  and asserts the key accessible labels on a trusted interactive desktop. Signed
-  Dark Mode, narrow-window, keyboard, and VoiceOver evidence remain release gates.
+- `./script/visual_macos_smoke.sh` requires a visible nonblank window capture and key
+  accessible labels. This host currently cannot capture the app window, so EN/VI light
+  evidence is `NOT RUN`; signed Dark Mode, narrow-window, keyboard, and VoiceOver remain
+  release gates.
 - Product UX evidence in `TODO.md`: a five-user moderated usability pass after the
   consistency milestone passes.
 - Release signing identity, provisioning, and App Store entitlement approval.

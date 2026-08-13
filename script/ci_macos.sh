@@ -16,6 +16,9 @@ run_step "Build-from-source shell contract"
 run_step "Visual macOS smoke shell contract"
 "$ROOT_DIR/script/test_visual_macos_smoke.sh"
 
+run_step "D14 macOS Store-safety contract"
+"$ROOT_DIR/script/test_d14_macos_safety.sh"
+
 run_step "Rust workspace tests"
 cargo test --workspace --tests
 

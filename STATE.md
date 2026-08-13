@@ -25,9 +25,9 @@ Last updated: 2026-08-13.
 - Health Check will not use router credentials or mutate router/OS network state. DNS
   Benchmark keeps a user-selected resolver pool, separate A/IPv4 and AAAA/IPv6
   measurements, and a 500 ms maximum per DNS attempt.
-- macOS Store-safe behavior, semantic EN/VI localization, packaging, source-build, and
-  packaged EN/VI light-mode visual/AX smoke are integrated. The local workflow builds,
-  ad-hoc signs, validates, and opens `dist/DNSPilot.app`; certificate-backed distribution,
+- macOS Store-safe behavior, semantic EN/VI localization, packaging, and source-build are
+  integrated. The local workflow builds, ad-hoc signs, validates, and opens
+  `dist/DNSPilot.app`; certificate-backed distribution, fresh trusted-desktop EN/VI visual/AX,
   signed Dark Mode/narrow/keyboard/VoiceOver evidence, and provider steps remain open.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
   contracts/storage are typed/shared, progress is streamed/cancellable, and the
@@ -50,10 +50,13 @@ Last updated: 2026-08-13.
 
 ## Latest Validation
 
-- macOS: `./script/visual_macos_smoke.sh --skip-build` captures packaged EN/VI
-  screenshots and asserts localized Setup/Quick Test AX actions on 2026-08-13.
-  `./script/ci_macos.sh` passes with 280 Swift tests. Power Restore verifies the applied DNS state before it
-  can mutate DNS.
+- macOS: `./script/ci_macos.sh` and
+  `./script/preflight_macos_release.sh --include-power` pass on 2026-08-13 with 280
+  Swift tests, live DNS-only/DNS+TCP smoke, Store/Power bundle validation, and the D14
+  Store-safety contract. `visual_macos_smoke.sh` now fails closed when Screen Recording
+  cannot capture a visible DNS Pilot window; this host currently needs trusted desktop
+  capture evidence rather than reporting a false pass. Power Restore verifies the applied
+  DNS state before it can mutate DNS.
 - Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.

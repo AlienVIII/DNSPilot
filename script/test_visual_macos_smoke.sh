@@ -18,6 +18,11 @@ help_output="$("$SMOKE" --help 2>&1)"
 [[ "$help_output" == *'--output-dir'* ]] || fail "help does not document --output-dir"
 [[ "$help_output" == *'--skip-build'* ]] || fail "help does not document --skip-build"
 [[ "$help_output" == *'English and Vietnamese'* ]] || fail "help does not declare localized coverage"
+[[ "$help_output" == *'visible, nonblank'* ]] || fail "help does not declare visible screenshot evidence"
+rg -q 'image_has_visible_pixels' "$SMOKE" || fail "visual smoke does not verify screenshot pixels"
+if rg -q 'saving full-screen evidence' "$SMOKE"; then
+  fail "visual smoke must not fall back to full-screen capture"
+fi
 printf 'PASS help contract\n'
 
 if "$SMOKE" --unsupported-option >/dev/null 2>&1; then

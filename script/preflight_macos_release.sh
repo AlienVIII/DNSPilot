@@ -75,6 +75,8 @@ cd "$ROOT_DIR"
 
 run_step "App Store site safety" ./script/test_build_app_store_site.sh
 
+run_step "D14 Store-safety contract" ./script/test_d14_macos_safety.sh
+
 run_step "Shell syntax" \
   bash -n \
     script/build_and_run.sh \
@@ -82,6 +84,8 @@ run_step "Shell syntax" \
     script/test_build_from_source.sh \
     script/visual_macos_smoke.sh \
     script/test_visual_macos_smoke.sh \
+    script/check_d14_macos_safety.sh \
+    script/test_d14_macos_safety.sh \
     script/validate_macos_bundle.sh \
     script/package_macos_distribution.sh \
     script/build_app_store_site.sh \

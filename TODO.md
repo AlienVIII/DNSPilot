@@ -29,7 +29,8 @@ Last reviewed: 2026-08-13.
 - [x] macOS benchmark reference path: persist/recover lifecycle receipt, prevent concurrent
   shell-owned measurements, and never retry an interrupted run.
 - [x] macOS contextual local notification opt-in: generic EN/VI completion copy, no alert
-  while active, Settings control, and no push/provider capability.
+  while active, Settings control, and no push/provider capability. CI and release
+  preflight reject remote push, schedulers, login items, and lifecycle DNS mutation.
 - [ ] Add a contextual `Notify me when done` opt-in after a run starts. Never request
   notification permission in first-run tutorial or make it a run prerequisite.
 - [ ] Use local notifications only. Show generic lock-screen copy, suppress completion
@@ -50,8 +51,10 @@ Last reviewed: 2026-08-13.
   source, fresh-ID, wrong-question, and invalid response packet tests in `8a53a31`.
 - [x] Make macOS Power Restore compare current DNS to the recorded applied state before
   mutation; legacy snapshots are hidden/cleared and 274 Swift tests pass in `e4d3ec6`.
-- [x] Capture repeatable packaged macOS EN/VI light-mode visual and accessibility smoke
-  evidence with `./script/visual_macos_smoke.sh`.
+- [ ] Capture fresh packaged macOS EN/VI light-mode visual and accessibility evidence
+  with `./script/visual_macos_smoke.sh` on a trusted desktop. The script now fails
+  closed for denied/blank Screen Recording capture; it must not be treated as passed
+  until it emits the per-locale window PNGs.
 - [ ] Capture signed macOS Dark Mode, narrow-window, keyboard, and VoiceOver evidence.
 - [ ] Run five moderated users through Health Check -> DNS Benchmark -> Set up -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,

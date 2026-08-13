@@ -14,9 +14,9 @@ usage: $0 [--output-dir ABSOLUTE_NEW_DIRECTORY] [--skip-build]
 Builds and visually smokes the packaged macOS app in English and Vietnamese.
 
 The command requires an interactive macOS desktop with Accessibility and Screen
-Recording permission for the invoking terminal. It captures one PNG per locale
-and verifies the app window plus localized Setup and Quick Test actions through
-the accessibility tree. Review the captured sidebar labels visually.
+Recording permission for the invoking terminal. It captures one visible, nonblank
+DNS Pilot window PNG per locale and verifies localized Setup and Quick Test actions
+through the accessibility tree. Review the captured sidebar labels visually.
 
 Options:
   --output-dir  New absolute directory with a name beginning dnspilot-visual-.
@@ -144,6 +144,43 @@ print(number.intValue)
 '
 }
 
+image_has_visible_pixels() {
+  local screenshot_path="$1"
+
+  SCREENSHOT_PATH="$screenshot_path" /usr/bin/swift -e 'import AppKit
+import Foundation
+
+guard let path = ProcessInfo.processInfo.environment["SCREENSHOT_PATH"],
+      let image = NSImage(contentsOfFile: path),
+      let tiff = image.tiffRepresentation,
+      let bitmap = NSBitmapImageRep(data: tiff) else {
+    fputs("Unable to decode screenshot.\\n", stderr)
+    exit(1)
+}
+
+let horizontalStep = max(1, bitmap.pixelsWide / 64)
+let verticalStep = max(1, bitmap.pixelsHigh / 64)
+var visibleSamples = 0
+var pixel = [UInt8](repeating: 0, count: max(4, bitmap.samplesPerPixel))
+
+for y in stride(from: 0, to: bitmap.pixelsHigh, by: verticalStep) {
+    for x in stride(from: 0, to: bitmap.pixelsWide, by: horizontalStep) {
+        bitmap.getPixel(&pixel, atX: x, y: y)
+        if max(pixel[0], pixel[1], pixel[2]) > 20 {
+            visibleSamples += 1
+        }
+    }
+}
+
+guard visibleSamples >= 10 else {
+    fputs("Screenshot is blank or nearly black (\\(visibleSamples) visible samples).\\n", stderr)
+    exit(1)
+}
+
+print("\\(visibleSamples) visible samples")
+'
+}
+
 launch_locale() {
   local language="$1"
   local labels="$2"
@@ -162,11 +199,11 @@ launch_locale() {
       identifier="$(window_id)"
       if ! /usr/sbin/screencapture -x -l "$identifier" "$screenshot_path"; then
         rm -f "$screenshot_path"
-        printf 'WARN window capture failed; saving full-screen evidence instead\n' >&2
-        /usr/sbin/screencapture -x "$screenshot_path"
+        fail "window capture failed; grant Screen Recording access and retry"
       fi
       [[ -s "$screenshot_path" ]] || fail "screenshot is empty: $screenshot_path"
       /usr/bin/sips -g pixelWidth -g pixelHeight "$screenshot_path" | /usr/bin/grep -q 'pixelWidth: [1-9]' || fail "screenshot is invalid: $screenshot_path"
+      image_has_visible_pixels "$screenshot_path" || fail "screenshot does not contain visible app evidence: $screenshot_path"
       printf 'PASS %s visual/accessibility smoke: %s\n' "$language" "$screenshot_path"
       return 0
     fi
