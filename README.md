@@ -62,6 +62,16 @@ The canonical builder remains available for debugging and release checks:
 ./script/build_and_run.sh --verify
 ```
 
+Capture packaged English/Vietnamese visual and accessibility evidence on an
+interactive desktop:
+
+```sh
+./script/visual_macos_smoke.sh
+```
+
+The command prints a new `/tmp/dnspilot-visual.*` evidence directory. It needs
+Accessibility and Screen Recording permission for the terminal that runs it.
+
 Direct-install Power run for manual admin Apply/Flush QA:
 
 ```sh

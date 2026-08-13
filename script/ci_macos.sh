@@ -13,6 +13,9 @@ cargo fmt --all -- --check
 run_step "Build-from-source shell contract"
 "$ROOT_DIR/script/test_build_from_source.sh"
 
+run_step "Visual macOS smoke shell contract"
+"$ROOT_DIR/script/test_visual_macos_smoke.sh"
+
 run_step "Rust workspace tests"
 cargo test --workspace --tests
 

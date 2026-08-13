@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-08-11.
+Last reviewed: 2026-08-13.
 
 ## P0: Separate Network Health Check
 
@@ -46,7 +46,9 @@ Last reviewed: 2026-08-11.
   source, fresh-ID, wrong-question, and invalid response packet tests in `8a53a31`.
 - [x] Make macOS Power Restore compare current DNS to the recorded applied state before
   mutation; legacy snapshots are hidden/cleared and 274 Swift tests pass in `e4d3ec6`.
-- [ ] Capture macOS EN/VI, narrow-window, Dark Mode, keyboard, and VoiceOver evidence.
+- [x] Capture repeatable packaged macOS EN/VI light-mode visual and accessibility smoke
+  evidence with `./script/visual_macos_smoke.sh`.
+- [ ] Capture signed macOS Dark Mode, narrow-window, keyboard, and VoiceOver evidence.
 - [ ] Run five moderated users through Health Check -> DNS Benchmark -> Set up -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,
   App Store Connect metadata, and submission.

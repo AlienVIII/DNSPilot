@@ -80,6 +80,8 @@ run_step "Shell syntax" \
     script/build_and_run.sh \
     script/build_from_source.sh \
     script/test_build_from_source.sh \
+    script/visual_macos_smoke.sh \
+    script/test_visual_macos_smoke.sh \
     script/validate_macos_bundle.sh \
     script/package_macos_distribution.sh \
     script/build_app_store_site.sh \

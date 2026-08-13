@@ -81,10 +81,9 @@ required to establish one text source of truth. See `apps/macos/macos-engineerin
 
 ## Remaining Gates
 
-- Capture the signed EN/VI visual-state matrix in
-  `docs/research/2026-07-14-macos-localization-interaction-review.md`. The current
-  host passes packaged-window launch validation but lacks the Screen Recording and
-  Accessibility evidence path required for pixel/VoiceOver capture.
+- `./script/visual_macos_smoke.sh` now captures packaged EN/VI window screenshots
+  and asserts the key accessible labels on a trusted interactive desktop. Signed
+  Dark Mode, narrow-window, keyboard, and VoiceOver evidence remain release gates.
 - Product UX evidence in `TODO.md`: a five-user moderated usability pass after the
   consistency milestone passes.
 - Release signing identity, provisioning, and App Store entitlement approval.

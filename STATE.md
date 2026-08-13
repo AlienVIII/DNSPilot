@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-08-11.
+Last updated: 2026-08-13.
 
 ## Current Truth
 
@@ -21,11 +21,10 @@ Last updated: 2026-08-11.
 - Health Check will not use router credentials or mutate router/OS network state. DNS
   Benchmark keeps a user-selected resolver pool, separate A/IPv4 and AAAA/IPv6
   measurements, and a 500 ms maximum per DNS attempt.
-- macOS Store-safe behavior, semantic EN/VI localization, packaging, and source-build
-  workflow are integrated. `./script/ci_macos.sh` passed on 2026-08-07, including the
-  source-build contract, Rust workspace, and 274 Swift tests. The local workflow builds,
+- macOS Store-safe behavior, semantic EN/VI localization, packaging, source-build, and
+  packaged EN/VI light-mode visual/AX smoke are integrated. The local workflow builds,
   ad-hoc signs, validates, and opens `dist/DNSPilot.app`; certificate-backed distribution,
-  signed visual/accessibility evidence, and provider steps remain open.
+  signed Dark Mode/narrow/keyboard/VoiceOver evidence, and provider steps remain open.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
   contracts/storage are typed/shared, progress is streamed/cancellable, and the
   consumer decision/history loop exists. Accessibility, source-built packages, and
@@ -47,9 +46,11 @@ Last updated: 2026-08-11.
 
 ## Latest Validation
 
-- macOS: `./script/ci_macos.sh` and
-  `./script/preflight_macos_release.sh --include-power` pass; 274 Swift tests pass.
-  Power Restore verifies the applied DNS state before it can mutate DNS.
+- macOS: `./script/visual_macos_smoke.sh --skip-build` captures packaged EN/VI
+  screenshots and asserts localized Setup/Quick Test AX actions on 2026-08-13.
+  `./script/ci_macos.sh` and `./script/preflight_macos_release.sh --include-power`
+  pass with 274 Swift tests. Power Restore verifies the applied DNS state before it
+  can mutate DNS.
 - Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.
@@ -77,8 +78,9 @@ Last updated: 2026-08-11.
 
 ## Manual Release Gates
 
-- macOS: Apple signing/provisioning, hosted support/privacy URLs, signed EN/VI visual
-  and VoiceOver evidence, five-user usability, App Store submission, and real Power QA.
+- macOS: Apple signing/provisioning, hosted support/privacy URLs, signed Dark
+  Mode/narrow/keyboard/VoiceOver evidence, five-user usability, App Store submission,
+  and real Power QA.
 - Windows: Windows-host WinUI/MSIX/tray/accessibility QA, signing, Partner Center.
 - Linux: source-built package CI, GNOME/KDE/resolver QA, signing, publisher accounts.
 - Mobile: unlock and complete current Pixel QA, signed iOS/iPadOS/Android device QA,
