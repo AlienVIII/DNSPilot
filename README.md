@@ -39,18 +39,34 @@ source.
    ```
 
 The command checks prerequisites, builds the Rust helper and SwiftUI app,
-locally signs it, validates the bundle, opens it, and leaves the usable app at
-`dist/DNSPilot.app`. Drag that app to `Applications` for personal use, or open
-it again with:
+locally signs and validates the bundle, installs it for the current user, and
+opens exactly one canonical copy at `~/Applications/DNS Pilot.app`. Profiles,
+custom suites, settings, and history remain intact when the command updates an
+existing installation.
+
+Open the installed app again with:
 
 ```sh
-open dist/DNSPilot.app
+open "$HOME/Applications/DNS Pilot.app"
+```
+
+Update a source installation later with:
+
+```sh
+git pull --ff-only
+./script/build_from_source.sh
 ```
 
 For CI or a build without opening a window:
 
 ```sh
 ./script/build_from_source.sh --no-open
+```
+
+To keep a development bundle in `dist/DNSPilot.app` without installing it:
+
+```sh
+./script/build_from_source.sh --no-install
 ```
 
 ### Development Commands
@@ -72,16 +88,25 @@ interactive desktop:
 The command prints a new `/tmp/dnspilot-visual.*` evidence directory. It needs
 Accessibility and Screen Recording permission for the terminal that runs it.
 
-Direct-install Power run for manual admin Apply/Flush QA:
+Install the direct-install Power edition for one-click confirmed Apply/Flush:
 
 ```sh
-DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --verify
+./script/build_from_source.sh --power
 ```
 
-After launching the Power bundle, open Setup or Permissions, enable Direct
-Admin Actions, then use `Apply Now (Admin)` or `Flush Now (Admin)`. macOS asks
-for administrator approval at action time. Do not use this path for the App
-Store edition.
+This replaces the same canonical `~/Applications/DNS Pilot.app`; it does not
+create a second app copy. Open Setup or Permissions, enable Direct Admin Actions,
+then use `Apply Now (Admin)` or `Flush Now (Admin)`. macOS asks for administrator
+approval at action time. The Power edition is signed outside App Sandbox because
+Authorization Services are unavailable to sandboxed apps. Do not submit this
+edition to the Mac App Store.
+
+Update a Power installation later with:
+
+```sh
+git pull --ff-only
+./script/build_from_source.sh --power
+```
 
 ### Test And Preflight
 
@@ -92,7 +117,7 @@ swift test --package-path apps/macos/DNSPilotMac
 ./script/preflight_macos_release.sh --include-power
 ```
 
-`--include-power` validates the Power bundle and restores the final local
+`--include-power` validates the non-sandbox Power bundle and restores the final local
 artifact to Store-safe mode afterward.
 
 ## Current Scope

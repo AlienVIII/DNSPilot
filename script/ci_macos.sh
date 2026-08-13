@@ -13,6 +13,12 @@ cargo fmt --all -- --check
 run_step "Build-from-source shell contract"
 "$ROOT_DIR/script/test_build_from_source.sh"
 
+run_step "Per-user macOS installer contract"
+"$ROOT_DIR/script/test_install_macos_user_app.sh"
+
+run_step "macOS signing-mode contract"
+"$ROOT_DIR/script/test_macos_signing_modes.sh"
+
 run_step "Visual macOS smoke shell contract"
 "$ROOT_DIR/script/test_visual_macos_smoke.sh"
 
@@ -30,7 +36,7 @@ if rg -n 'EN:|VI:' "$ROOT_DIR/apps/macos/DNSPilotMac/Sources" --glob '*.swift'; 
   printf "UI copy must use one active locale; move bilingual tooltip text into Localizable.strings.\n" >&2
   exit 1
 fi
-if rg -n '(Text|Label|Button|DisclosureGroup)\("[A-Za-z]|\.help\("[A-Za-z]|confirmationDialog\("[A-Za-z]' \
+if rg -n '(Text|Label|Button|DisclosureGroup)\("[A-Za-z]|\.help\("[A-Za-z]|confirmationDialog\("[A-Za-z]|accessibility(Label|Hint|Value)\([^\n]*"[A-Za-z]' \
   "$ROOT_DIR/apps/macos/DNSPilotMac/Sources" --glob '*.swift'; then
   printf "User-facing macOS copy must use DNSPilotLocalizer keys.\n" >&2
   exit 1

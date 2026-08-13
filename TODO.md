@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-08-13.
+Last reviewed: 2026-08-14.
 
 ## P0: Separate Network Health Check
 
@@ -44,17 +44,18 @@ Last reviewed: 2026-08-13.
 
 ## P0: Commercial Trust
 
-- [x] Provide a one-command macOS source-build path that produces and opens a
-  user-facing `dist/DNSPilot.app` without Apple signing credentials; shell contract,
-  local bundle validation, and on-screen runtime smoke pass.
+- [x] Provide a one-command macOS source-build path that installs and opens one
+  canonical per-user app without Apple signing credentials; Store/Power signing
+  contracts, guarded replacement, local bundle validation, and runtime smoke pass.
 - [x] Harden Core UDP response identity and DNS response validation per D8; added spoofed
   source, fresh-ID, wrong-question, and invalid response packet tests in `8a53a31`.
 - [x] Make macOS Power Restore compare current DNS to the recorded applied state before
   mutation; legacy snapshots are hidden/cleared and 274 Swift tests pass in `e4d3ec6`.
-- [ ] Capture fresh packaged macOS EN/VI light-mode visual and accessibility evidence
-  with `./script/visual_macos_smoke.sh` on a trusted desktop. The script now fails
-  closed for denied/blank Screen Recording capture; it must not be treated as passed
-  until it emits the per-locale window PNGs.
+- [x] Capture packaged macOS EN/VI light-mode screenshots; the validator proves
+  blank captures fail closed.
+- [ ] Capture native window accessibility evidence. The smoke now rejects labels
+  found only in app/menu-bar menus; the current macOS 26 host does not expose the
+  SwiftUI window as `AXWindow`.
 - [ ] Capture signed macOS Dark Mode, narrow-window, keyboard, and VoiceOver evidence.
 - [ ] Run five moderated users through Health Check -> DNS Benchmark -> Set up -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,

@@ -138,6 +138,8 @@
 "selectAllRunnableHelp" = "Chọn mọi cấu hình DNS thường có thể chạy với máy chủ phân giải đã chọn.";
 "showOptions" = "Hiện tùy chọn kiểm tra";
 "hideOptions" = "Ẩn tùy chọn kiểm tra";
+"expanded" = "Đã mở rộng";
+"collapsed" = "Đã thu gọn";
 "noRunnableProfiles" = "Không có cấu hình nào có thể chạy.";
 "runnableProfilesSelected" = "Đã chọn %d trên %d cấu hình có thể chạy";
 "customDomainsHelp" = "Nhập domain, phân tách bằng dấu phẩy, khoảng trắng hoặc xuống dòng.";

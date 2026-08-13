@@ -19,7 +19,7 @@ Default local checks:
 
 Options:
   --include-network  Also run live DNS-only, DNS+TCP, and game-target probes.
-  --include-bundles  Also validate Store-safe and Power sandbox bundles.
+  --include-bundles  Also validate Store-safe and Power direct-install bundles.
 USAGE
 }
 
@@ -197,7 +197,7 @@ fi
 
 if (( INCLUDE_BUNDLES )); then
   run_step "Store-safe sandbox bundle validation" ./script/build_and_run.sh --sandbox-verify
-  run_step "Power sandbox bundle validation without DNS mutation" \
+  run_step "Power direct-install bundle validation without DNS mutation" \
     env DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
   run_step "Restore Store-safe sandbox bundle" ./script/build_and_run.sh --sandbox-verify
 fi

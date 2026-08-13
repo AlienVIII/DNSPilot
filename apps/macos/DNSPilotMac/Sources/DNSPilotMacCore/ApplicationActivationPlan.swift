@@ -16,4 +16,8 @@ public struct DNSPilotApplicationActivationPlan: Equatable, Sendable {
             .activateIgnoringOtherApps,
         ]
     )
+
+    public static func shouldDeferReopenToSystem(hasVisibleWindows: Bool) -> Bool {
+        !hasVisibleWindows
+    }
 }

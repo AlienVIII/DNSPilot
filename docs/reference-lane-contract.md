@@ -23,7 +23,7 @@ Last reviewed: 2026-08-07. Product reference: macOS Store-safe.
 
 | Lane | Store-safe setup | Restricted/native boundary | Required release proof |
 | --- | --- | --- | --- |
-| macOS | Confirm, copy DNS, open Settings, retest | Separate Power build; admin consent, exact rollback, current-state guard | Signed sandbox bundle, EN/VI/VoiceOver, clean Mac, App Review |
+| macOS | Confirm, copy DNS, open Settings, retest | Separate non-sandbox Power build; admin consent, exact rollback, current-state guard | Signed Store sandbox bundle, signed Power artifact, EN/VI/VoiceOver, clean Mac, App Review |
 | Windows | Confirm, copy DNS, open Settings, retest | Separate future SKU; never Store elevation/mutation | WinUI/MSIX/tray/accessibility, helper discovery, Partner Center |
 | Linux | Package/desktop-aware copy guidance and retest | deb/rpm only after caller-bound D-Bus/polkit and exact rollback | Source-built packages, GNOME/KDE/resolver QA, publisher proof |
 | iOS/iPadOS | Guided plain DNS; default Store omits entitlement | Optional user-enabled DoH/DoT `dns-settings` artifact | Signed device, capability provisioning/review, App Review |

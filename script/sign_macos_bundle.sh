@@ -8,10 +8,13 @@ CLI_NAME="dnspilot-cli"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 CODESIGN_OPTIONS="${DNSPILOT_CODESIGN_OPTIONS:-}"
 
-APP_ENTITLEMENTS="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
-HELPER_ENTITLEMENTS="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
+STORE_APP_ENTITLEMENTS="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
+STORE_HELPER_ENTITLEMENTS="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
+POWER_APP_ENTITLEMENTS="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotPower.entitlements"
+POWER_HELPER_ENTITLEMENTS="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotPowerHelper.entitlements"
 APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 HELPER_BINARY="$APP_BUNDLE/Contents/Library/Helpers/$CLI_NAME"
+INFO_PLIST="$APP_BUNDLE/Contents/Info.plist"
 
 if [[ -z "$CODESIGN_OPTIONS" && "$CODESIGN_IDENTITY" != "-" ]]; then
   CODESIGN_OPTIONS="runtime"
@@ -43,6 +46,22 @@ if [[ ! -x "$HELPER_BINARY" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$INFO_PLIST" ]] || ! plutil -lint "$INFO_PLIST" >/dev/null; then
+  echo "Info.plist missing or invalid: $INFO_PLIST" >&2
+  exit 1
+fi
+
+power_actions_enabled="$(/usr/libexec/PlistBuddy -c 'Print :DNSPilotPowerActionsEnabled' "$INFO_PLIST" 2>/dev/null || true)"
+if [[ "$power_actions_enabled" == "true" ]]; then
+  APP_ENTITLEMENTS="$POWER_APP_ENTITLEMENTS"
+  HELPER_ENTITLEMENTS="$POWER_HELPER_ENTITLEMENTS"
+  EDITION_NAME="Power direct-install"
+else
+  APP_ENTITLEMENTS="$STORE_APP_ENTITLEMENTS"
+  HELPER_ENTITLEMENTS="$STORE_HELPER_ENTITLEMENTS"
+  EDITION_NAME="Store-safe"
+fi
+
 plutil -lint "$APP_ENTITLEMENTS" "$HELPER_ENTITLEMENTS" >/dev/null
 
 sign_with_entitlements "$HELPER_ENTITLEMENTS" "$HELPER_BINARY"
@@ -51,9 +70,9 @@ codesign --verify --strict "$HELPER_BINARY"
 codesign --verify --strict "$APP_BUNDLE"
 
 if [[ "$CODESIGN_IDENTITY" == "-" ]]; then
-  echo "Signed with ad-hoc identity for local sandbox verification only." >&2
+  echo "Signed $EDITION_NAME bundle with ad-hoc identity for local verification only." >&2
 else
-  echo "Signed with identity: $CODESIGN_IDENTITY"
+  echo "Signed $EDITION_NAME bundle with identity: $CODESIGN_IDENTITY"
   if (( uses_codesign_options )); then
     echo "Code signing options: $CODESIGN_OPTIONS"
   fi

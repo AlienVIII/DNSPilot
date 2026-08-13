@@ -1909,7 +1909,9 @@ private struct BenchmarkDetailView: View {
                     title: localizer.text(.options),
                     isExpanded: $isOptionsExpanded,
                     showHint: localizer.text(.showOptions),
-                    hideHint: localizer.text(.hideOptions)
+                    hideHint: localizer.text(.hideOptions),
+                    expandedValue: localizer.text(.expanded),
+                    collapsedValue: localizer.text(.collapsed)
                 ) {
                     VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                         AnyView(modeSection)
@@ -3146,6 +3148,8 @@ private struct BenchmarkOptionsDisclosure<Content: View>: View {
     @Binding var isExpanded: Bool
     let showHint: String
     let hideHint: String
+    let expandedValue: String
+    let collapsedValue: String
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -3165,7 +3169,7 @@ private struct BenchmarkOptionsDisclosure<Content: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(title)
-            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityValue(isExpanded ? expandedValue : collapsedValue)
             .accessibilityHint(isExpanded ? hideHint : showHint)
 
             if isExpanded {
@@ -3697,17 +3701,19 @@ private struct BenchmarkApplyPlanStatusPanel: View {
         _ viewModel: ApplyPlanViewModel,
         restoreViewModel: GuidedApplyRestoreViewModel
     ) -> some View {
-        Label(
-            viewModel.localizedHeadline(localizer: localizer),
-            systemImage: viewModel.canOfferPrimaryAction ? "checkmark.shield" : "shield"
-        )
-            .font(.headline)
+        if !viewModel.canOfferPrimaryAction {
+            Label(
+                viewModel.localizedHeadline(localizer: localizer),
+                systemImage: "shield"
+            )
+                .font(.headline)
 
-        Label(
-            viewModel.localizedActionLabel(localizer: localizer),
-            systemImage: applyPlanActionImage(for: viewModel.plan.disposition)
-        )
-            .foregroundStyle(.secondary)
+            Label(
+                viewModel.localizedActionLabel(localizer: localizer),
+                systemImage: applyPlanActionImage(for: viewModel.plan.disposition)
+            )
+                .foregroundStyle(.secondary)
+        }
 
         HStack(spacing: DNSPilotDesign.Spacing.controlGap) {
             if isDirectAdminEnabled, viewModel.canOfferPrimaryAction, !viewModel.plan.dnsServers.isEmpty {

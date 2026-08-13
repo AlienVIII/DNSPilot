@@ -1,6 +1,6 @@
 # macOS Progress
 
-Last reviewed: 2026-08-13.
+Last reviewed: 2026-08-14.
 
 ## BLUF
 
@@ -54,6 +54,10 @@ required to establish one text source of truth. See `apps/macos/macos-engineerin
   from a stale preference alone; Power/direct-install builds require
   `DNSPilotPowerActionsEnabled` plus Direct Admin opt-in, while
   `DNSPILOT_ENABLE_POWER_ACTIONS=1` is the local/dev force path.
+- Source builds install or update one canonical per-user app at
+  `~/Applications/DNS Pilot.app`; the temporary `dist` bundle is removed after
+  install. `--power` selects the non-sandbox direct-install edition, while the
+  default remains Store-safe and sandboxed.
 - Publishing docs, App Store Connect notes, and distribution packaging scripts
   are present; release signing defaults to hardened runtime for certificate-
   backed packages, with local preflight, privacy-manifest readiness, and
@@ -64,7 +68,8 @@ required to establish one text source of truth. See `apps/macos/macos-engineerin
   elevation, rechecks the active service/configuration before mutation, and
   restores manual or automatic/DHCP DNS only through an explicit Power action.
 - Local bundle validation requires macOS target, version/build metadata,
-  sandbox entitlements, privacy manifest, and Store-safe/Power split checks.
+  privacy manifest, sandboxed Store entitlements, non-sandbox Power
+  entitlements, and signed-artifact Store/Power split checks.
 - Non-mutating goal smoke covers store-safe apply-plan, Power apply-plan
   contract, System DNS validation progress/history, optional live DNS/game-target
   probes, and optional Store/Power bundle mode checks.
@@ -73,7 +78,7 @@ required to establish one text source of truth. See `apps/macos/macos-engineerin
 
 ## Validation
 
-- `./script/ci_macos.sh`: pass; includes Rust tests, Swift tests, sandbox
+- `./script/ci_macos.sh`: pass with 282 Swift tests; includes Rust tests, Swift tests, sandbox
   bundle verification, DNS-only live smoke, and DNS+TCP live smoke.
 - `swift test --package-path apps/macos/DNSPilotMac`: pass.
 - `cargo test --workspace --tests`: pass for shared CLI/core consumed by macOS.
@@ -86,10 +91,10 @@ required to establish one text source of truth. See `apps/macos/macos-engineerin
 
 ## Remaining Gates
 
-- `./script/visual_macos_smoke.sh` requires a visible nonblank window capture and key
-  accessible labels. This host currently cannot capture the app window, so EN/VI light
-  evidence is `NOT RUN`; signed Dark Mode, narrow-window, keyboard, and VoiceOver remain
-  release gates.
+- Packaged EN/VI light-mode screenshots pass for the canonical installed app.
+  Native window AX is not proven on the current macOS 26 host; the smoke now
+  rejects false evidence from menu-only labels. Signed Dark Mode, narrow-window,
+  keyboard, and VoiceOver remain release gates.
 - Product UX evidence in `TODO.md`: a five-user moderated usability pass after the
   consistency milestone passes.
 - Release signing identity, provisioning, and App Store entitlement approval.

@@ -10,8 +10,10 @@ CLI_NAME="dnspilot-cli"
 EXPECTED_MIN_SYSTEM_VERSION="14.0"
 APP_VERSION_PATTERN='^[0-9]+(\.[0-9]+){1,2}$'
 APP_BUILD_PATTERN='^[0-9]+$'
-ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
-HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
+STORE_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotMac.entitlements"
+STORE_HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotHelper.entitlements"
+POWER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotPower.entitlements"
+POWER_HELPER_ENTITLEMENTS_TEMPLATE="$ROOT_DIR/apps/macos/DNSPilotMac/Packaging/DNSPilotPowerHelper.entitlements"
 DISTRIBUTION=0
 POWER_EDITION=0
 
@@ -217,52 +219,76 @@ else
   fail "privacy manifest must declare UserDefaults reason CA92.1"
 fi
 
+if (( POWER_EDITION )); then
+  ENTITLEMENTS_TEMPLATE="$POWER_ENTITLEMENTS_TEMPLATE"
+  HELPER_ENTITLEMENTS_TEMPLATE="$POWER_HELPER_ENTITLEMENTS_TEMPLATE"
+  EDITION_NAME="Power"
+else
+  ENTITLEMENTS_TEMPLATE="$STORE_ENTITLEMENTS_TEMPLATE"
+  HELPER_ENTITLEMENTS_TEMPLATE="$STORE_HELPER_ENTITLEMENTS_TEMPLATE"
+  EDITION_NAME="Store"
+fi
+
 if [[ -f "$ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$ENTITLEMENTS_TEMPLATE" >/dev/null; then
-  pass "store entitlements template is valid"
+  pass "$EDITION_NAME app entitlements template is valid"
 else
-  fail "store entitlements template is missing or invalid"
-fi
-
-if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.app-sandbox"; then
-  pass "store entitlements enable App Sandbox"
-else
-  fail "store entitlements must enable App Sandbox"
-fi
-
-if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.client"; then
-    pass "store entitlements allow outbound network client"
-else
-    fail "store entitlements must allow outbound network client"
-fi
-
-if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.server"; then
-    pass "store entitlements allow incoming UDP DNS responses"
-else
-    fail "store entitlements must allow incoming UDP DNS responses for direct DNS checks"
+  fail "$EDITION_NAME app entitlements template is missing or invalid"
 fi
 
 if [[ -f "$HELPER_ENTITLEMENTS_TEMPLATE" ]] && plutil -lint "$HELPER_ENTITLEMENTS_TEMPLATE" >/dev/null; then
-  pass "helper entitlements template is valid"
+  pass "$EDITION_NAME helper entitlements template is valid"
 else
-  fail "helper entitlements template is missing or invalid"
+  fail "$EDITION_NAME helper entitlements template is missing or invalid"
 fi
 
-if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.app-sandbox"; then
-  pass "helper entitlements enable App Sandbox"
+if (( POWER_EDITION )); then
+  if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.app-sandbox"; then
+    fail "Power app entitlements must not enable App Sandbox"
+  else
+    pass "Power app entitlements avoid App Sandbox"
+  fi
+  if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.app-sandbox" ||
+     plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.inherit"; then
+    fail "Power helper entitlements must not inherit App Sandbox"
+  else
+    pass "Power helper entitlements avoid App Sandbox inheritance"
+  fi
 else
-  fail "helper entitlements must enable App Sandbox"
-fi
+  if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.app-sandbox"; then
+    pass "Store entitlements enable App Sandbox"
+  else
+    fail "Store entitlements must enable App Sandbox"
+  fi
 
-if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.inherit"; then
-  pass "helper entitlements inherit containing app sandbox"
-else
-  fail "helper entitlements must inherit containing app sandbox"
-fi
+  if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.client"; then
+    pass "Store entitlements allow outbound network client"
+  else
+    fail "Store entitlements must allow outbound network client"
+  fi
 
-if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.network.client"; then
-  fail "helper entitlements should not declare network.client when using sandbox inheritance"
-else
-  pass "helper entitlements avoid extra App Sandbox rights"
+  if plist_bool_is_true "$ENTITLEMENTS_TEMPLATE" "com.apple.security.network.server"; then
+    pass "store entitlements allow incoming UDP DNS responses"
+  else
+    fail "store entitlements must allow incoming UDP DNS responses for direct DNS checks"
+  fi
+
+  if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.app-sandbox"; then
+    pass "Store helper entitlements enable App Sandbox"
+  else
+    fail "Store helper entitlements must enable App Sandbox"
+  fi
+
+  if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.inherit"; then
+    pass "Store helper entitlements inherit containing app sandbox"
+  else
+    fail "Store helper entitlements must inherit containing app sandbox"
+  fi
+
+  if plist_bool_is_true "$HELPER_ENTITLEMENTS_TEMPLATE" "com.apple.security.network.client"; then
+    fail "Store helper entitlements should not declare network.client when using sandbox inheritance"
+  else
+    pass "Store helper entitlements avoid extra App Sandbox rights"
+  fi
 fi
 
 if codesign --verify --strict "$APP_BUNDLE" >/dev/null 2>&1; then
@@ -286,10 +312,18 @@ else
   warn_or_fail_distribution "app bundle signing state could not be classified"
 fi
 
-if grep -q "com.apple.security.app-sandbox" <<<"$app_signing_report"; then
-  pass "signed app entitlements include App Sandbox"
+if (( POWER_EDITION )); then
+  if grep -q "com.apple.security.app-sandbox" <<<"$app_signing_report"; then
+    fail "signed Power app must not include App Sandbox"
+  else
+    pass "signed Power app avoids App Sandbox"
+  fi
 else
-  warn_or_fail_distribution "signed app entitlements do not include App Sandbox; release signing must use Packaging/DNSPilotMac.entitlements"
+  if grep -q "com.apple.security.app-sandbox" <<<"$app_signing_report"; then
+    pass "signed Store app entitlements include App Sandbox"
+  else
+    warn_or_fail_distribution "signed Store app entitlements do not include App Sandbox; release signing must use Packaging/DNSPilotMac.entitlements"
+  fi
 fi
 
 if grep -q "com.apple.security.get-task-allow" <<<"$app_signing_report"; then
@@ -306,17 +340,25 @@ fi
 
 helper_signing_report="$(codesign -dvvv --entitlements :- "$HELPER_BINARY" 2>&1 || true)"
 if grep -q "Signature=adhoc" <<<"$helper_signing_report"; then
-  warn_or_fail_distribution "CLI helper is ad-hoc signed; release packaging must sign helper with Packaging/DNSPilotHelper.entitlements"
+  warn_or_fail_distribution "CLI helper is ad-hoc signed; release packaging must use the $EDITION_NAME helper entitlements template"
 elif grep -q "Authority=" <<<"$helper_signing_report"; then
   pass "CLI helper has a certificate-backed signature"
 else
   warn_or_fail_distribution "CLI helper signing state could not be classified"
 fi
 
-if grep -q "com.apple.security.inherit" <<<"$helper_signing_report"; then
-  pass "signed CLI helper entitlements include sandbox inheritance"
+if (( POWER_EDITION )); then
+  if grep -q "com.apple.security.app-sandbox\|com.apple.security.inherit" <<<"$helper_signing_report"; then
+    fail "signed Power CLI helper must not inherit App Sandbox"
+  else
+    pass "signed Power CLI helper avoids App Sandbox inheritance"
+  fi
 else
-  warn_or_fail_distribution "signed CLI helper entitlements do not include sandbox inheritance; release signing must use Packaging/DNSPilotHelper.entitlements"
+  if grep -q "com.apple.security.inherit" <<<"$helper_signing_report"; then
+    pass "signed Store CLI helper entitlements include sandbox inheritance"
+  else
+    warn_or_fail_distribution "signed Store CLI helper entitlements do not include sandbox inheritance; release signing must use Packaging/DNSPilotHelper.entitlements"
+  fi
 fi
 
 if (( DISTRIBUTION )); then

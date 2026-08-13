@@ -160,9 +160,13 @@ final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         Self.logger.info("Application reopen requested visible_windows=\(flag, privacy: .public)")
-        guard flag else { return false }
-        NSApp.activate(ignoringOtherApps: true)
-        return true
+        let shouldDeferToSystem = DNSPilotApplicationActivationPlan.shouldDeferReopenToSystem(
+            hasVisibleWindows: flag
+        )
+        if !shouldDeferToSystem {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        return shouldDeferToSystem
     }
 
     func applicationShouldRestoreApplicationState(_ app: NSApplication) -> Bool {

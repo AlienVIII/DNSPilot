@@ -138,6 +138,8 @@
 "selectAllRunnableHelp" = "Select every plain DNS profile that can run with the selected resolver.";
 "showOptions" = "Show benchmark options";
 "hideOptions" = "Hide benchmark options";
+"expanded" = "Expanded";
+"collapsed" = "Collapsed";
 "noRunnableProfiles" = "No runnable profiles available.";
 "runnableProfilesSelected" = "%d of %d runnable profiles selected";
 "customDomainsHelp" = "Enter domains separated by commas, spaces, or new lines.";

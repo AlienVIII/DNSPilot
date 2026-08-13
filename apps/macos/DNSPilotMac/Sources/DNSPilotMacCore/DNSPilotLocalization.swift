@@ -197,6 +197,8 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case selectAllRunnableHelp
     case showOptions
     case hideOptions
+    case expanded
+    case collapsed
     case noRunnableProfiles
     case runnableProfilesSelected
     case customDomainsHelp

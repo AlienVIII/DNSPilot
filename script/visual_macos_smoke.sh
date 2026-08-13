@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="DNSPilotMac"
-APP_BUNDLE="$ROOT_DIR/dist/DNSPilot.app"
+APP_BUNDLE="${HOME:?}/Applications/DNS Pilot.app"
 OUTPUT_DIR=""
 SKIP_BUILD=0
 
@@ -11,7 +11,7 @@ usage() {
   cat >&2 <<USAGE
 usage: $0 [--output-dir ABSOLUTE_NEW_DIRECTORY] [--skip-build]
 
-Builds and visually smokes the packaged macOS app in English and Vietnamese.
+Builds, installs, and visually smokes DNS Pilot in English and Vietnamese.
 
 The command requires an interactive macOS desktop with Accessibility and Screen
 Recording permission for the invoking terminal. It captures one visible, nonblank
@@ -20,7 +20,7 @@ through the accessibility tree. Review the captured sidebar labels visually.
 
 Options:
   --output-dir  New absolute directory with a name beginning dnspilot-visual-.
-  --skip-build  Reuse dist/DNSPilot.app instead of rebuilding it.
+  --skip-build  Reuse ~/Applications/DNS Pilot.app instead of updating it.
 USAGE
 }
 
@@ -65,9 +65,9 @@ else
 fi
 
 if (( ! SKIP_BUILD )); then
-  "$ROOT_DIR/script/build_and_run.sh" --verify >/dev/null
+  "$ROOT_DIR/script/build_from_source.sh" --no-open >/dev/null
 elif [[ ! -d "$APP_BUNDLE" ]]; then
-  fail "app bundle missing: $APP_BUNDLE; run without --skip-build"
+  fail "installed app missing: $APP_BUNDLE; run without --skip-build"
 fi
 
 wait_for_window() {
@@ -86,6 +86,13 @@ func collectStrings(from element: AXUIElement, visited: inout Set<CFHashCode>, d
     guard depth < 20 else { return [] }
     let identifier = CFHash(element)
     guard visited.insert(identifier).inserted else { return [] }
+    let role = attribute(element, kAXRoleAttribute) as? String
+    if role == kAXMenuBarRole as String ||
+       role == kAXMenuBarItemRole as String ||
+       role == kAXMenuRole as String ||
+       role == kAXMenuItemRole as String {
+        return []
+    }
     var values: [String] = []
     for key in [kAXTitleAttribute, kAXDescriptionAttribute, kAXValueAttribute] {
         if let value = attribute(element, key), let string = value as? String, !string.isEmpty {
@@ -146,39 +153,7 @@ print(number.intValue)
 
 image_has_visible_pixels() {
   local screenshot_path="$1"
-
-  SCREENSHOT_PATH="$screenshot_path" /usr/bin/swift -e 'import AppKit
-import Foundation
-
-guard let path = ProcessInfo.processInfo.environment["SCREENSHOT_PATH"],
-      let image = NSImage(contentsOfFile: path),
-      let tiff = image.tiffRepresentation,
-      let bitmap = NSBitmapImageRep(data: tiff) else {
-    fputs("Unable to decode screenshot.\\n", stderr)
-    exit(1)
-}
-
-let horizontalStep = max(1, bitmap.pixelsWide / 64)
-let verticalStep = max(1, bitmap.pixelsHigh / 64)
-var visibleSamples = 0
-var pixel = [UInt8](repeating: 0, count: max(4, bitmap.samplesPerPixel))
-
-for y in stride(from: 0, to: bitmap.pixelsHigh, by: verticalStep) {
-    for x in stride(from: 0, to: bitmap.pixelsWide, by: horizontalStep) {
-        bitmap.getPixel(&pixel, atX: x, y: y)
-        if max(pixel[0], pixel[1], pixel[2]) > 20 {
-            visibleSamples += 1
-        }
-    }
-}
-
-guard visibleSamples >= 10 else {
-    fputs("Screenshot is blank or nearly black (\\(visibleSamples) visible samples).\\n", stderr)
-    exit(1)
-}
-
-print("\\(visibleSamples) visible samples")
-'
+  /usr/bin/swift "$ROOT_DIR/script/check_macos_screenshot.swift" "$screenshot_path"
 }
 
 launch_locale() {
@@ -218,6 +193,6 @@ launch_locale en 'Show Setup|Run Quick Test'
 launch_locale vi 'Mở thiết lập|Kiểm tra nhanh'
 
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
-/usr/bin/open -n "$APP_BUNDLE"
+/usr/bin/open "$APP_BUNDLE"
 
 printf '\nVisual macOS smoke passed. Evidence: %s\n' "$OUTPUT_DIR"

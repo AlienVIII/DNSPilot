@@ -22,7 +22,7 @@ Default:
   - Store-safe sandbox bundle validation
 
 Options:
-  --include-power  Also validate a Power edition sandbox bundle.
+  --include-power  Also validate a non-sandbox Power direct-install bundle.
   --skip-cargo     Skip Rust tests.
   --skip-swift     Skip Swift tests.
   --skip-launch    Skip bundle launch/structural validation.
@@ -82,6 +82,10 @@ run_step "Shell syntax" \
     script/build_and_run.sh \
     script/build_from_source.sh \
     script/test_build_from_source.sh \
+    script/install_macos_user_app.sh \
+    script/test_install_macos_user_app.sh \
+    script/sign_macos_bundle.sh \
+    script/test_macos_signing_modes.sh \
     script/visual_macos_smoke.sh \
     script/test_visual_macos_smoke.sh \
     script/check_d14_macos_safety.sh \
@@ -96,6 +100,8 @@ run_step "Shell syntax" \
 if (( ! SKIP_CARGO )); then
   run_step "Rust workspace tests" cargo test --workspace --tests
 fi
+
+run_step "macOS signing modes" ./script/test_macos_signing_modes.sh
 
 if (( ! SKIP_SWIFT )); then
   run_step "macOS Swift tests" swift test --package-path apps/macos/DNSPilotMac
@@ -115,7 +121,7 @@ if (( ! SKIP_LAUNCH )); then
   run_step "Store-safe sandbox bundle validation" ./script/build_and_run.sh --sandbox-verify
 
   if (( INCLUDE_POWER )); then
-    run_step "Power sandbox bundle validation" \
+    run_step "Power direct-install bundle validation" \
       env DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
 
     run_step "Restore Store-safe sandbox bundle" ./script/build_and_run.sh --sandbox-verify

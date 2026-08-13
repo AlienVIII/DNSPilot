@@ -8,4 +8,20 @@ final class ApplicationActivationPlanTests: XCTestCase {
             [.setRegularActivationPolicy, .activateIgnoringOtherApps]
         )
     }
+
+    func testReopenDoesNotAskAppKitForAnotherWindowWhenOneIsVisible() {
+        XCTAssertFalse(
+            DNSPilotApplicationActivationPlan.shouldDeferReopenToSystem(
+                hasVisibleWindows: true
+            )
+        )
+    }
+
+    func testReopenDefersToAppKitWhenNoWindowIsVisible() {
+        XCTAssertTrue(
+            DNSPilotApplicationActivationPlan.shouldDeferReopenToSystem(
+                hasVisibleWindows: false
+            )
+        )
+    }
 }

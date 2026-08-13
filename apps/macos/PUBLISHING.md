@@ -22,6 +22,8 @@ Shared gates:
 ### Power edition
 
 - Direct install only.
+- Signed outside App Sandbox so macOS Authorization Services can present the
+  administrator approval required by the current Apply/Flush adapter.
 - Plain DNS apply/flush can ask for administrator approval when a
   Power/direct-install app bundle has `DNSPilotPowerActionsEnabled=true` and the
   user explicitly enables Direct Admin Actions in the app.
@@ -80,7 +82,7 @@ Optional bundle-mode checks:
 ./script/smoke_macos_goal_flows.sh --include-bundles
 ```
 
-This launches Store-safe and Power sandbox bundles, validates bundle structure,
+This launches Store-safe and non-sandbox Power bundles, validates bundle structure,
 then restores a Store-safe bundle. It does not press Power apply/flush buttons
 and does not mutate DNS.
 
@@ -176,10 +178,10 @@ record plus administrator approval, and refuses to mutate DNS if the active
 service/configuration changed. Real-network QA remains required before public
 distribution. Guided-apply restore copy is separate from this in-app rollback.
 
-1. Build and launch Power mode locally:
+1. Build, install, and launch Power mode locally:
 
 ```bash
-DNSPILOT_POWER_EDITION=1 ./script/build_and_run.sh --sandbox-verify
+./script/build_from_source.sh --power
 ```
 
 Or include Power bundle validation in the local release gate:
@@ -190,6 +192,11 @@ Or include Power bundle validation in the local release gate:
 
 The preflight restores a Store-safe bundle after optional Power validation so
 `dist/DNSPilot.app` is not left Power-enabled by accident.
+
+The source installer uses one canonical per-user location,
+`~/Applications/DNS Pilot.app`, and removes the generated `dist` copy after a
+successful replacement. Store and Power are editions of the same app, not two
+simultaneously installed apps.
 
 2. Confirm UI behavior.
    - Store-safe builds show guided mode only and cannot enable admin actions
@@ -208,6 +215,11 @@ DNSPILOT_CODESIGN_IDENTITY="<app distribution signing identity>" \
 DNSPILOT_INSTALLER_IDENTITY="<installer signing identity>" \
 ./script/package_macos_distribution.sh
 ```
+
+Power packaging uses `DNSPilotPower.entitlements` and
+`DNSPilotPowerHelper.entitlements`; neither may contain App Sandbox or sandbox
+inheritance. Store packaging continues to use `DNSPilotMac.entitlements` and
+`DNSPilotHelper.entitlements`.
 
 4. Test admin prompt on a disposable network setup.
    - Capture current DNS first.

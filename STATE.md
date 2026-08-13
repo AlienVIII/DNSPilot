@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-08-13.
+Last updated: 2026-08-14.
 
 ## Current Truth
 
@@ -26,8 +26,9 @@ Last updated: 2026-08-13.
   Benchmark keeps a user-selected resolver pool, separate A/IPv4 and AAAA/IPv6
   measurements, and a 500 ms maximum per DNS attempt.
 - macOS Store-safe behavior, semantic EN/VI localization, packaging, and source-build are
-  integrated. The local workflow builds, ad-hoc signs, validates, and opens
-  `dist/DNSPilot.app`; certificate-backed distribution, fresh trusted-desktop EN/VI visual/AX,
+  integrated. The local workflow builds, ad-hoc signs, validates, installs, and opens one
+  canonical `~/Applications/DNS Pilot.app`; Store builds are sandboxed and Power
+  direct-install builds are explicitly non-sandbox. Certificate-backed distribution,
   signed Dark Mode/narrow/keyboard/VoiceOver evidence, and provider steps remain open.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
   contracts/storage are typed/shared, progress is streamed/cancellable, and the
@@ -50,13 +51,15 @@ Last updated: 2026-08-13.
 
 ## Latest Validation
 
-- macOS: `./script/ci_macos.sh` and
-  `./script/preflight_macos_release.sh --include-power` pass on 2026-08-13 with 280
+- macOS: canonical installed-app EN/VI light screenshots and an end-user Quick Check pass
+  on 2026-08-14. The AX smoke was hardened to reject menu-only labels; native window AX
+  evidence remains open on the current macOS 26 host. `./script/ci_macos.sh` and
+  `./script/preflight_macos_release.sh --include-power` pass on 2026-08-14 with 282
   Swift tests, live DNS-only/DNS+TCP smoke, Store/Power bundle validation, and the D14
-  Store-safety contract. `visual_macos_smoke.sh` now fails closed when Screen Recording
-  cannot capture a visible DNS Pilot window; this host currently needs trusted desktop
-  capture evidence rather than reporting a false pass. Power Restore verifies the applied
-  DNS state before it can mutate DNS.
+  Store-safety contract. Power signing now fails closed unless the direct-install artifact
+  avoids App Sandbox, while Store signing still requires sandbox/network entitlements.
+  Power Restore verifies the applied DNS state before it can mutate DNS. Reopen policy
+  keeps an existing window singleton and defers to AppKit only when no window is visible.
 - Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.
