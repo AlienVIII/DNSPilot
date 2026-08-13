@@ -1731,6 +1731,7 @@ private struct BenchmarkDetailView: View {
     @State private var isOptionsExpanded = false
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
+    @State private var currentMeasurementRunID: String?
     @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
     @State private var currentBenchmarkStartedAt: Date?
     @State private var currentProgressEvents: [BenchmarkProgressEvent] = []
@@ -2717,6 +2718,10 @@ private struct BenchmarkDetailView: View {
         guard !isBenchmarkActive else {
             return
         }
+        let existingReceipt = BackgroundMeasurementReceiptStore().load()
+        guard BackgroundMeasurementReceipt.canStartNewMeasurement(existing: existingReceipt) else {
+            return
+        }
         let setup = setupViewModel
         guard setup.canRun else {
             let message = setup.readinessIssues.joined(separator: "\n")
@@ -2744,6 +2749,14 @@ private struct BenchmarkDetailView: View {
         }
 
         let runID = runStateMachine.start()
+        let measurementRunID = UUID().uuidString
+        let startingReceipt = BackgroundMeasurementReceipt.starting(
+            runID: measurementRunID,
+            kind: .dnsBenchmark
+        )
+        BackgroundMeasurementReceiptStore().save(startingReceipt)
+        BackgroundMeasurementReceiptStore().save(startingReceipt.transitioned(to: .running))
+        currentMeasurementRunID = measurementRunID
         let cancellation = BenchmarkRunCancellation()
         currentCancellation = cancellation
         onGuidedApplyPlanChanged(nil)
@@ -2795,6 +2808,10 @@ private struct BenchmarkDetailView: View {
                             debugLog: "User cancelled benchmark."
                         )
                     )
+                    finishMeasurementReceipt(
+                        runID: measurementRunID,
+                        status: .cancelled
+                    )
                     return
                 }
 
@@ -2803,8 +2820,16 @@ private struct BenchmarkDetailView: View {
                 switch nextOutcome {
                 case .completed:
                     runStateMachine.finishCompleted(runID: runID)
+                    finishMeasurementReceipt(
+                        runID: measurementRunID,
+                        status: .completed
+                    )
                 case .failed(let failure):
                     runStateMachine.finishFailed(runID: runID, message: failure.message)
+                    finishMeasurementReceipt(
+                        runID: measurementRunID,
+                        status: .failed
+                    )
                 }
 
                 switch runStateMachine.state {
@@ -2892,6 +2917,20 @@ private struct BenchmarkDetailView: View {
         if case .running(let runID) = runStateMachine.state {
             runStateMachine.requestCancel(runID: runID)
             currentCancellation?.cancel()
+        }
+    }
+
+    private func finishMeasurementReceipt(
+        runID: String,
+        status: BackgroundMeasurementStatus
+    ) {
+        let store = BackgroundMeasurementReceiptStore()
+        guard let receipt = store.load(), receipt.runID == runID else {
+            return
+        }
+        store.save(receipt.transitioned(to: status))
+        if currentMeasurementRunID == runID {
+            currentMeasurementRunID = nil
         }
     }
 

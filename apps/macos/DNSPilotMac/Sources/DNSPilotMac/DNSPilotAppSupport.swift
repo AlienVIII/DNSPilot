@@ -152,6 +152,9 @@ final class DNSPilotApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.logger.info("Application did finish launching")
+        if let receipt = BackgroundMeasurementReceiptStore().reconcileInterruptedRun() {
+            Self.logger.notice("Recovered interrupted measurement run=\(receipt.runID, privacy: .private)")
+        }
         applyActivationPlan(.launch)
     }
 
