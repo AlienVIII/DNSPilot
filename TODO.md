@@ -26,6 +26,10 @@ Last reviewed: 2026-08-13.
   `docs/superpowers/specs/2026-08-07-background-measurement-notifications-design.md`:
   one user-initiated read-only measurement, cancel support, persisted local receipt,
   terminal/interrupted handling, and no automatic retry.
+- [x] macOS benchmark reference path: persist/recover lifecycle receipt, prevent concurrent
+  shell-owned measurements, and never retry an interrupted run.
+- [x] macOS contextual local notification opt-in: generic EN/VI completion copy, no alert
+  while active, Settings control, and no push/provider capability.
 - [ ] Add a contextual `Notify me when done` opt-in after a run starts. Never request
   notification permission in first-run tutorial or make it a run prerequisite.
 - [ ] Use local notifications only. Show generic lock-screen copy, suppress completion

@@ -155,3 +155,8 @@ public enum BackgroundMeasurementNotificationPolicy {
         return status == .completed || status == .failed
     }
 }
+
+public enum BackgroundMeasurementNotificationPreferences {
+    public static let enabledKey = "dnspilot.background-measurement-notifications-enabled"
+    public static let promptHandledKey = "dnspilot.background-measurement-notification-prompt-handled"
+}

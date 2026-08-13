@@ -4,6 +4,7 @@ import DNSPilotMacCore
 struct DNSPilotSettingsView: View {
     @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
+    @AppStorage(BackgroundMeasurementNotificationPreferences.enabledKey) private var notificationsEnabled = false
 
     private var localizer: DNSPilotLocalizer {
         DNSPilotLocalizer(languageCode: languageCode)
@@ -30,6 +31,25 @@ struct DNSPilotSettingsView: View {
                     .foregroundStyle(.secondary)
             } header: {
                 Text(localizer.text(.settingsTitle))
+            }
+
+            Section {
+                Toggle(
+                    localizer.text(.notifyWhenDone),
+                    isOn: Binding(
+                        get: { notificationsEnabled },
+                        set: { enabled in
+                            guard enabled else {
+                                notificationsEnabled = false
+                                return
+                            }
+                            Task {
+                                notificationsEnabled = await DNSPilotLocalNotifications.shared.requestAuthorization()
+                            }
+                        }
+                    )
+                )
+                .help(localizer.text(.notifyWhenDoneMessage))
             }
 
             if presentation.showsPowerActions {

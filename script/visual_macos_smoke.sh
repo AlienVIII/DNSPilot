@@ -160,7 +160,11 @@ launch_locale() {
     if pgrep -x "$APP_NAME" >/dev/null && wait_for_window "$labels" >/dev/null 2>&1; then
       local identifier
       identifier="$(window_id)"
-      /usr/sbin/screencapture -x -l "$identifier" "$screenshot_path"
+      if ! /usr/sbin/screencapture -x -l "$identifier" "$screenshot_path"; then
+        rm -f "$screenshot_path"
+        printf 'WARN window capture failed; saving full-screen evidence instead\n' >&2
+        /usr/sbin/screencapture -x "$screenshot_path"
+      fi
       [[ -s "$screenshot_path" ]] || fail "screenshot is empty: $screenshot_path"
       /usr/bin/sips -g pixelWidth -g pixelHeight "$screenshot_path" | /usr/bin/grep -q 'pixelWidth: [1-9]' || fail "screenshot is invalid: $screenshot_path"
       printf 'PASS %s visual/accessibility smoke: %s\n' "$language" "$screenshot_path"

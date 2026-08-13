@@ -445,6 +445,10 @@ private struct DNSPilotShellView: View {
             }
         }
         .onAppear {
+            DNSPilotLocalNotifications.shared.configure { _ in
+                navigation.selection = .benchmark
+                _ = DNSPilotWindowActivation.activateExistingWindows()
+            }
             guard !hasRequestedStorageCatalogRefresh else {
                 return
             }
@@ -1732,6 +1736,9 @@ private struct BenchmarkDetailView: View {
     @State private var runStateMachine = BenchmarkRunStateMachine()
     @State private var currentCancellation: BenchmarkRunCancellation?
     @State private var currentMeasurementRunID: String?
+    @AppStorage(BackgroundMeasurementNotificationPreferences.enabledKey) private var notificationsEnabled = false
+    @AppStorage(BackgroundMeasurementNotificationPreferences.promptHandledKey) private var notificationPromptHandled = false
+    @State private var isShowingNotificationPrompt = false
     @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
     @State private var currentBenchmarkStartedAt: Date?
     @State private var currentProgressEvents: [BenchmarkProgressEvent] = []
@@ -1919,6 +1926,23 @@ private struct BenchmarkDetailView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(DNSPilotDesign.Palette.background)
+        .confirmationDialog(
+            localizer.text(.notifyWhenDoneTitle),
+            isPresented: $isShowingNotificationPrompt,
+            titleVisibility: .visible
+        ) {
+            Button(localizer.text(.enableNotifications)) {
+                notificationPromptHandled = true
+                Task {
+                    notificationsEnabled = await DNSPilotLocalNotifications.shared.requestAuthorization()
+                }
+            }
+            Button(localizer.text(.cancel), role: .cancel) {
+                notificationPromptHandled = true
+            }
+        } message: {
+            Text(localizer.text(.notifyWhenDoneMessage))
+        }
         )
     }
 
@@ -2757,6 +2781,12 @@ private struct BenchmarkDetailView: View {
         BackgroundMeasurementReceiptStore().save(startingReceipt)
         BackgroundMeasurementReceiptStore().save(startingReceipt.transitioned(to: .running))
         currentMeasurementRunID = measurementRunID
+        if BackgroundMeasurementNotificationPolicy.shouldOfferOptIn(
+            notificationsEnabled: notificationsEnabled,
+            promptHandled: notificationPromptHandled
+        ) {
+            isShowingNotificationPrompt = true
+        }
         let cancellation = BenchmarkRunCancellation()
         currentCancellation = cancellation
         onGuidedApplyPlanChanged(nil)
@@ -2929,6 +2959,24 @@ private struct BenchmarkDetailView: View {
             return
         }
         store.save(receipt.transitioned(to: status))
+        if BackgroundMeasurementNotificationPolicy.shouldScheduleCompletion(
+            status: status,
+            notificationsEnabled: notificationsEnabled,
+            applicationIsActive: NSApp.isActive
+        ) {
+            let title = status == .completed
+                ? localizer.text(.dnsBenchmarkComplete)
+                : localizer.text(.checkStopped)
+            let body = status == .completed
+                ? localizer.text(.resultsReady)
+                : localizer.text(.openToRetry)
+            DNSPilotLocalNotifications.shared.scheduleCompletion(
+                runID: runID,
+                status: status,
+                title: title,
+                body: body
+            )
+        }
         if currentMeasurementRunID == runID {
             currentMeasurementRunID = nil
         }

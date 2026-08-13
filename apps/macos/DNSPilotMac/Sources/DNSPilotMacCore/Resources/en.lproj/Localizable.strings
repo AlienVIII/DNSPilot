@@ -333,3 +333,11 @@
 "mdmManagedHelp" = "Protect the current DNS when this Mac may be managed by an organization.";
 "corporateDNSRequiredHelp" = "Protect the current DNS when internal domains may require company DNS.";
 "captivePortalHelp" = "Protect the current DNS while a Wi-Fi login may be active.";
+"notifyWhenDone" = "Notify me when done";
+"notifyWhenDoneTitle" = "Notify when complete?";
+"notifyWhenDoneMessage" = "DNS Pilot can send a local notification when this benchmark finishes while the app is not active.";
+"enableNotifications" = "Enable notifications";
+"dnsBenchmarkComplete" = "DNS Benchmark complete";
+"resultsReady" = "Results are ready.";
+"checkStopped" = "Check stopped";
+"openToRetry" = "Open DNS Pilot to retry.";

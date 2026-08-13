@@ -392,6 +392,14 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case mdmManagedHelp
     case corporateDNSRequiredHelp
     case captivePortalHelp
+    case notifyWhenDone
+    case notifyWhenDoneTitle
+    case notifyWhenDoneMessage
+    case enableNotifications
+    case dnsBenchmarkComplete
+    case resultsReady
+    case checkStopped
+    case openToRetry
 }
 
 public struct DNSPilotLocalizer: Equatable, Sendable {

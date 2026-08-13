@@ -15,6 +15,10 @@ Last updated: 2026-08-13.
   measurement may continue while its UI is inactive under OS limits, then use an
   opt-in local completion notification. There is no remote push, silent scheduler,
   background DNS mutation, force-quit guarantee, or automatic retry.
+- macOS D14 benchmark support persists a versioned receipt, marks stale nonterminal work
+  interrupted at launch, offers notification permission only after a run begins or from
+  Settings, and sends generic local completion alerts only while inactive. Notification
+  permission, Focus/lock-screen, and activation behavior still need real OS evidence.
 - Product direction now separates read-only Network Health Check from DNS Benchmark.
   The guided journey recommends Health Check first and DNS selection last; this is an
   approved design direction, not an implemented or validated feature.
@@ -48,8 +52,7 @@ Last updated: 2026-08-13.
 
 - macOS: `./script/visual_macos_smoke.sh --skip-build` captures packaged EN/VI
   screenshots and asserts localized Setup/Quick Test AX actions on 2026-08-13.
-  `./script/ci_macos.sh` and `./script/preflight_macos_release.sh --include-power`
-  pass with 274 Swift tests. Power Restore verifies the applied DNS state before it
+  `./script/ci_macos.sh` passes with 280 Swift tests. Power Restore verifies the applied DNS state before it
   can mutate DNS.
 - Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the

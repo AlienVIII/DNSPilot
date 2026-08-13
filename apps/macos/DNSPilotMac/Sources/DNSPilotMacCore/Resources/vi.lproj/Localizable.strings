@@ -333,3 +333,11 @@
 "mdmManagedHelp" = "Giữ DNS hiện tại khi máy này có thể do tổ chức quản lý.";
 "corporateDNSRequiredHelp" = "Giữ DNS hiện tại khi domain nội bộ có thể cần DNS công ty.";
 "captivePortalHelp" = "Giữ DNS hiện tại khi Wi-Fi vẫn cần đăng nhập.";
+"notifyWhenDone" = "Báo khi hoàn tất";
+"notifyWhenDoneTitle" = "Báo khi hoàn tất?";
+"notifyWhenDoneMessage" = "DNS Pilot có thể gửi thông báo cục bộ khi lần kiểm tra này xong trong lúc ứng dụng không hoạt động.";
+"enableNotifications" = "Bật thông báo";
+"dnsBenchmarkComplete" = "Kiểm tra DNS hoàn tất";
+"resultsReady" = "Kết quả đã sẵn sàng.";
+"checkStopped" = "Kiểm tra đã dừng";
+"openToRetry" = "Mở DNS Pilot để thử lại.";
