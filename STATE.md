@@ -93,8 +93,9 @@ Last updated: 2026-08-24.
   the device was locked. The local AAB/APK are release-shape QA artifacts, not Play uploads.
 - Mobile recheck on 2026-08-24: 106 tests and TypeScript pass, but full verify/preflight
   are red. Expo reports SDK 57 patch drift (`expo`/router and related packages); one
-  verify attempt also received malformed JSON from Expo's version service. No new release
-  artifact is claimed.
+  verify attempt also received malformed JSON from Expo's version service. A fresh local
+  Android release-shape build passes manifest/dex gates and produces debug-key QA AAB/APK;
+  it does not restore the red verify/preflight gates or constitute a release candidate.
 - Linux recheck on 2026-08-24: lane tests and app-manifest clippy `-D warnings` pass.
 - Windows recheck on 2026-08-24: 65 Core/static tests and solution build pass; the WinUI
   XAML compiler remains correctly classified `NOT RUN` on macOS.
