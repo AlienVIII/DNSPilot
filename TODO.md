@@ -10,6 +10,10 @@ Last reviewed: 2026-08-24.
 - [ ] Make the primary loop `Check my connection -> one plain-language outcome -> one
   safe next action -> Retest`. Keep evidence behind Info/Details without hiding current
   network scope, unsupported checks, permission impact, or rollback risk.
+- [ ] On Mobile, make `Run quick check` the visually immediate default. Lead the result
+  with a plain-language conclusion and one safe action or Retest; put targets, stages,
+  timings, resolver samples, and diagnostic states behind an explicit Details disclosure.
+  Compress first-run tutorial copy to three short titles, with optional Info detail.
 - [ ] Define `Better`, `No meaningful change`, and `Restore previous DNS` comparison
   outcomes. Never claim DNS repaired bandwidth, Wi-Fi, router, ISP, VPN, or game latency.
 - [ ] Prove the journey with five moderated normal users before changing the approved D3

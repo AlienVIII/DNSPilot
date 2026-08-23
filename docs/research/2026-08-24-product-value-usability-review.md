@@ -43,6 +43,14 @@ No validated Critical finding was found in this pass.
 5. **Commercial value remains unproven with target users.** There is no five-user
    moderated evidence for diagnosis comprehension, correct next-action choice, or
    successful Retest. Automated tests cannot prove these outcomes.
+6. **Mobile's successful runtime path still leads with implementation detail, not a
+   user decision.** Fresh Android emulator QA on 2026-08-24 launched, completed a quick
+   check, and had no crash, but immediately exposed `success`/`degraded`, `Process`,
+   elapsed time, stage rows, and resolver samples. Six target chips also precede the
+   primary action, while the first-run tutorial has three long explanatory paragraphs.
+   The replay tutorial control is present and accessible in the top-right. Move raw
+   evidence behind `Details`/Info and lead with one plain-language outcome plus one safe
+   next action or Retest; keep the tutorial to three short titles with progressive detail.
 
 ### Minor
 
