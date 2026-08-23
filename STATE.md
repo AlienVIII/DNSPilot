@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-08-14.
+Last updated: 2026-08-24.
 
 ## Current Truth
 
@@ -22,14 +22,21 @@ Last updated: 2026-08-14.
 - Product direction now separates read-only Network Health Check from DNS Benchmark.
   The guided journey recommends Health Check first and DNS selection last; this is an
   approved design direction, not an implemented or validated feature.
+- The 2026-08-24 product review recommends making that sequence one Guided Connection
+  Check home journey, with Benchmark independently available and Profiles/History
+  secondary. This is a proposed D3 amendment pending user evidence, not an architecture
+  change yet.
 - Health Check will not use router credentials or mutate router/OS network state. DNS
   Benchmark keeps a user-selected resolver pool, separate A/IPv4 and AAAA/IPv6
   measurements, and a 500 ms maximum per DNS attempt.
-- macOS Store-safe behavior, semantic EN/VI localization, packaging, and source-build are
-  integrated. The local workflow builds, ad-hoc signs, validates, installs, and opens one
-  canonical `~/Applications/DNS Pilot.app`; Store builds are sandboxed and Power
-  direct-install builds are explicitly non-sandbox. Certificate-backed distribution,
-  signed Dark Mode/narrow/keyboard/VoiceOver evidence, and provider steps remain open.
+- macOS lane `78239d8` adds a receipt, contextual local notifications, Store/Power
+  signing separation, and a canonical per-user source installer. The local workflow
+  builds, ad-hoc signs, validates, installs, and opens one
+  `~/Applications/DNS Pilot.app`; Store builds are sandboxed and Power direct-install
+  builds are explicitly non-sandbox. CI and Store/Power preflight pass with 282 Swift
+  tests, but the lane is not merged: notification activation does not resolve the exact
+  result, OS authorization can drift from the app toggle, scheduling errors are silent,
+  and real visual smoke exits 6 because `Run Quick Test` is absent.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
   contracts/storage are typed/shared, progress is streamed/cancellable, and the
   consumer decision/history loop exists. Accessibility, source-built packages, and
@@ -48,18 +55,23 @@ Last updated: 2026-08-14.
   screenshot/accessibility matrix exists; real Windows/Linux UI remains `NOT RUN`.
 - Lane risk/progress docs contained stale resolved claims. Root state and the 2026-07-19
   overall review now supersede those claims.
+- The highest-value consumer feature is diagnosis plus one safe next action and Retest,
+  not a broader resolver catalog or more advanced benchmark metrics. See the 2026-08-24
+  product value review.
+- Current automated gates are mixed: Core and Mobile functional tests pass, but Core
+  clippy and Mobile Expo compatibility/release preflight are red on the current toolchain.
 
 ## Latest Validation
 
-- macOS: canonical installed-app EN/VI light screenshots and an end-user Quick Check pass
-  on 2026-08-14. The AX smoke was hardened to reject menu-only labels; native window AX
-  evidence remains open on the current macOS 26 host. `./script/ci_macos.sh` and
-  `./script/preflight_macos_release.sh --include-power` pass on 2026-08-14 with 282
-  Swift tests, live DNS-only/DNS+TCP smoke, Store/Power bundle validation, and the D14
-  Store-safety contract. Power signing now fails closed unless the direct-install artifact
-  avoids App Sandbox, while Store signing still requires sandbox/network entitlements.
-  Power Restore verifies the applied DNS state before it can mutate DNS. Reopen policy
-  keeps an existing window singleton and defers to AppKit only when no window is visible.
+- macOS: `./script/ci_macos.sh` and
+  `./script/preflight_macos_release.sh --include-power` pass on 2026-08-24 with 282 Swift
+  tests, live DNS-only/DNS+TCP smoke, Store/Power bundle validation, and the D14
+  Store-safety contract. Real packaged visual smoke fails on its expected Quick Test
+  accessibility label, so no current EN/VI visual pass is claimed. Power signing fails
+  closed unless the direct-install artifact avoids App Sandbox, while Store signing
+  requires sandbox/network entitlements. Power Restore verifies the applied DNS state
+  before mutation. Reopen policy keeps an existing window singleton and defers to AppKit
+  only when no window is visible.
 - Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.
@@ -70,12 +82,22 @@ Last updated: 2026-08-14.
   summaries expose typed recommendation `gate_note_ids`; Capability Matrix, Preflight, and
   Apply Prompt Policy, Apply Plan, profile security, and connection-path caveats also have typed
   IDs, while old history remains readable.
+- Core/CLI on 2026-08-24: workspace tests and format pass. Rust 1.96
+  `cargo clippy --workspace --all-targets -- -D warnings` fails on three
+  `manual_is_multiple_of` findings and one nine-argument `apply_plan` finding.
 - Mobile candidate: `npm run verify` passes 106 tests, TypeScript, Expo config,
   Router warning gate, compatibility, and a fail-closed production audit policy on
   2026-08-09; `expo-doctor` passes 20/20. `npm run preflight:release` and the iOS
   Simulator Release build pass. The current debug-key QA APK is installed on Pixel 9 Pro XL
   with no launch crash, but the interactive current-artifact flow remains manual because
   the device was locked. The local AAB/APK are release-shape QA artifacts, not Play uploads.
+- Mobile recheck on 2026-08-24: 106 tests and TypeScript pass, but full verify/preflight
+  are red. Expo reports SDK 57 patch drift (`expo`/router and related packages); one
+  verify attempt also received malformed JSON from Expo's version service. No new release
+  artifact is claimed.
+- Linux recheck on 2026-08-24: lane tests and app-manifest clippy `-D warnings` pass.
+- Windows recheck on 2026-08-24: 65 Core/static tests and solution build pass; the WinUI
+  XAML compiler remains correctly classified `NOT RUN` on macOS.
 - Dependency review: RustSec reports no known Rust advisories; NuGet reports no known
   vulnerable Windows packages. Mobile npm reports 14 high findings inherited from Metro's
   currently unremediable `image-size` chain plus 8 moderate findings; the production gate
@@ -101,5 +123,6 @@ Last updated: 2026-08-14.
 - Architecture: `PROJECT.md`
 - Roadmap: `TODO.md`
 - Overall review: `docs/research/2026-07-19-overall-product-review.md`
+- Product value review: `docs/research/2026-08-24-product-value-usability-review.md`
 - Cross-platform contract: `docs/reference-lane-contract.md`
 - Provider steps: `docs/os-provider-trust.md`

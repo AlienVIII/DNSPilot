@@ -1,6 +1,6 @@
 # DNSPilot Next Prompts
 
-Last reviewed: 2026-08-07.
+Last reviewed: 2026-08-24.
 
 Read `AGENTS.md`, `PROJECT.md`, `STATE.md`, `TODO.md`, and
 `docs/reference-lane-contract.md` first. Preserve dirty worktrees. Reuse Core contracts,
@@ -19,6 +19,8 @@ UI/UX, provider policy, security/privacy, Core/CLI ownership, package/release re
 and stale docs. Challenge claims with file/test evidence and official primary sources.
 Review D13 Health Check separation and D14 background measurement/local notification
 against privacy, Store policy, permission timing, interruption, and real-device evidence.
+Treat the Guided Connection Check decision loop as the leading product-value hypothesis;
+challenge any work that adds resolver breadth or platform parity before proving it.
 Findings first: Critical/Major/Minor/Suggestion. For material decisions record Problem,
 Options, Trade-offs, one Recommendation, Reason, Confidence. Update PROJECT.md for
 architecture, TODO.md for roadmap, STATE.md/docs/apps/<os> Markdown for current truth.
@@ -34,7 +36,12 @@ queue. No push or external release action without explicit approval.
 Worktree: /Users/aart/Projects/Desktop/dnspilot-core-cli
 Ownership: crates/** and shared Core contract docs only.
 
-Implement the approved D13 Health Check contract with TDD: separate versioned
+First restore `cargo clippy --workspace --all-targets -- -D warnings` on Rust 1.96.
+Use `is_multiple_of(2)` for the flagged median helpers and replace the private
+nine-argument `apply_plan` helper with one coherent typed input/options value unless a
+narrower reviewed design is cleaner. Do not lower or broadly allow the lint gate.
+
+Then implement the approved D13 Health Check contract with TDD: separate versioned
 observations, measured/inferred/unsupported evidence, confidence, capability gaps,
 stable reason IDs, privacy-safe manual recheck guidance, progress lifecycle, and
 synthetic fixtures. Preserve DNS Benchmark as independent, including A/AAAA separation
@@ -53,17 +60,19 @@ verified owned files.
 Worktree: /Users/aart/Projects/Desktop/dnspilot-macos
 Ownership: apps/macos/**; use Core changes only after the Core contract lands.
 
-Implement D14 as the reference lane with TDD. One user-started read-only Health Check or
-DNS Benchmark may continue while the window is inactive; persist a versioned local run
-receipt; reuse Core run ID/terminal/cancel semantics; mark stale nonterminal work
-interrupted; never auto-retry. Offer `Notify me when done` contextually after run start,
-use local UserNotifications only, suppress while active, use generic lock-screen copy,
-and deep-link to the exact result. No login item, helper, remote push, or background DNS
-Apply/Restore. Add mocked allow/deny/termination/deep-link tests, then run real local
-background smoke where automatable. Preserve the verified source-build path and Store/
-Power isolation. Run ./script/ci_macos.sh and ./script/preflight_macos_release.sh
---include-power; commit only owned verified files. Leave Apple signing, physical user
-permission, VoiceOver, and Store submission as consolidated manual gates.
+Repair and finish the existing D14/source-install branch before new scope. Persist an
+actual result reference, consume notification `runID` to open that exact local result,
+clear the delivered alert after view, reconcile the toggle with current OS authorization,
+and expose/log scheduling failure without promising delivery. Add tests for old-result
+activation after a newer run. Make the per-user installer restore the previous app on any
+post-move validation failure. Fix `visual_macos_smoke.sh` and UI/accessibility copy so the
+real packaged EN/VI run passes; remove stale evidence claims. Preserve contextual opt-in,
+generic lock-screen copy, foreground suppression, Store/Power isolation, no push/login
+item/retry/background DNS mutation. Run `./script/ci_macos.sh`,
+`./script/preflight_macos_release.sh --include-power`, and real visual smoke. After Core
+D13 lands, implement Guided Connection Check as the reference journey: one outcome,
+state/risk, action, then Details. Commit only owned verified files; leave Apple signing,
+real notification/VoiceOver, admin Power QA, and Store submission as batched manual gates.
 ```
 
 ## Linux: GPT-5.6-Terra, high
@@ -105,9 +114,12 @@ runtime checks NOT RUN elsewhere. Commit only owned verified files.
 Worktree: /Users/aart/Projects/Desktop/dnspilot-mobile
 Ownership: apps/mobile/** and packages/mobile/**; consume Core contracts, do not fork them.
 
-First restore green dependency alignment: Expo currently expects `expo` and
-`expo-router` 57.0.11 plus `expo-symbols` 57.0.2. Run complete `npm run verify` and
-`npm run preflight:release`; do not merge a partial or red candidate. Then perform D14
+First restore green dependency alignment using the exact SDK 57 patch set reported by
+`npx expo install --check` (2026-08-24 reported `expo`/router 57.0.15 and related patch
+updates). Review lockfile/native patch compatibility, run `npm run verify` and
+`npm run preflight:release` serially, and distinguish a reproducible dependency mismatch
+from transient Expo service JSON failures. Do not merge a partial or red candidate.
+Then perform D14
 feasibility spikes, not assumed parity: supported iOS user-initiated continued processing
 with bounded expiration, and an Android bounded native foreground path with a valid
 service type/Play-policy fit and no auto-restart. If either proof fails, keep that OS

@@ -1,6 +1,6 @@
 # Core CLI Backlog
 
-Last reviewed: 2026-08-07.
+Last reviewed: 2026-08-24.
 
 Core owns catalog, benchmark, recommendation, policy, persistence, history, apply-plan,
 and versioned JSON/JSONL behavior. OS shells own settings URIs, distro/package discovery,
@@ -13,10 +13,14 @@ shared policy contract.
    Define versioned observations, measured/inferred/unsupported evidence, confidence,
    capability gaps, stable reason IDs, privacy boundaries, manual recheck guidance, and
    progress lifecycle. Keep it independent from DNS Benchmark scores and history.
-2. **P1 remaining structured IDs**
+2. **P0 restore Rust 1.96 clippy**
+   Fix the three median helpers flagged by `manual_is_multiple_of`. Replace the private
+   nine-argument `apply_plan` helper with one typed input/options object unless review
+   proves a narrower refactor; do not add a broad lint allow or lower `-D warnings`.
+3. **P1 remaining structured IDs**
    Migrate recommendation reasons/caveats and history metadata. Preserve raw Details and
    backward decoding until every shell proves the typed path.
-3. **Evidence-led extensions only**
+4. **Evidence-led extensions only**
    Add `runtime-info --json` only after a second consumer proves the same need. Do not
    move platform Settings metadata, notification APIs, task scheduling, distro discovery,
    or privileged helpers into Core.
@@ -33,7 +37,9 @@ shared policy contract.
 ## Lane Feedback
 
 - macOS: current benchmark lifecycle is sufficient for D14. Background lifetime, local
-  receipt, UserNotifications, and activation remain app-side.
+  receipt, UserNotifications, authorization truth, exact-result activation, and
+  scheduling diagnostics remain app-side. The current macOS `runID` activation gap does
+  not require a Core notification API.
 - Linux: typed Core SQLite/results and streamed progress are resolved. Keep package,
   resolver-stack, D-Bus, and polkit detection lane-local.
 - Windows: existing contracts cover current benchmark execution. Settings URI,
