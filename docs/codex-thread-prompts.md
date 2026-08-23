@@ -119,6 +119,14 @@ First restore green dependency alignment using the exact SDK 57 patch set report
 updates). Review lockfile/native patch compatibility, run `npm run verify` and
 `npm run preflight:release` serially, and distinguish a reproducible dependency mismatch
 from transient Expo service JSON failures. Do not merge a partial or red candidate.
+After those gates are green, apply the reviewed mobile information hierarchy without
+changing measurement semantics: make `Run quick check` the immediate default; result
+starts with one plain-language outcome and one safe action or Retest; targets, process
+stages, timings, resolver rows, and diagnostic labels move behind explicit Details/Info.
+Keep the existing accessible top-right tutorial replay control, but compress first-run
+tutorial to three short titles with optional progressive detail. Add/adjust behavioral
+tests and rerun emulator QA for first run, replay, quick-check completion, Details, and
+EN/VI before any D14 work.
 Then perform D14
 feasibility spikes, not assumed parity: supported iOS user-initiated continued processing
 with bounded expiration, and an Android bounded native foreground path with a valid
