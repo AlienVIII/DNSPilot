@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-08-11.
+Last updated: 2026-08-24.
 
 ## Current Truth
 
@@ -18,6 +18,10 @@ Last updated: 2026-08-11.
 - Product direction now separates read-only Network Health Check from DNS Benchmark.
   The guided journey recommends Health Check first and DNS selection last; this is an
   approved design direction, not an implemented or validated feature.
+- The 2026-08-24 product review recommends making that sequence one Guided Connection
+  Check home journey, with Benchmark independently available and Profiles/History
+  secondary. This is a proposed D3 amendment pending user evidence, not an architecture
+  change yet.
 - Health Check will not use router credentials or mutate router/OS network state. DNS
   Benchmark keeps a user-selected resolver pool, separate A/IPv4 and AAAA/IPv6
   measurements, and a 500 ms maximum per DNS attempt.
@@ -26,6 +30,12 @@ Last updated: 2026-08-11.
   source-build contract, Rust workspace, and 274 Swift tests. The local workflow builds,
   ad-hoc signs, validates, and opens `dist/DNSPilot.app`; certificate-backed distribution,
   signed visual/accessibility evidence, and provider steps remain open.
+- macOS lane `78239d8` adds a receipt, contextual local notifications, Store/Power
+  signing separation, and a canonical per-user source installer. CI and Store/Power
+  preflight pass with 282 Swift tests, but the lane is not merged: notification
+  activation does not resolve the exact result, OS authorization can drift from the app
+  toggle, scheduling errors are silent, and real visual smoke exits 6 because the
+  expected `Run Quick Test` label is absent.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
   contracts/storage are typed/shared, progress is streamed/cancellable, and the
   consumer decision/history loop exists. Accessibility, source-built packages, and
@@ -44,6 +54,11 @@ Last updated: 2026-08-11.
   screenshot/accessibility matrix exists; real Windows/Linux UI remains `NOT RUN`.
 - Lane risk/progress docs contained stale resolved claims. Root state and the 2026-07-19
   overall review now supersede those claims.
+- The highest-value consumer feature is diagnosis plus one safe next action and Retest,
+  not a broader resolver catalog or more advanced benchmark metrics. See the 2026-08-24
+  product value review.
+- Current automated gates are mixed: Core and Mobile functional tests pass, but Core
+  clippy and Mobile Expo compatibility/release preflight are red on the current toolchain.
 
 ## Latest Validation
 
@@ -60,12 +75,22 @@ Last updated: 2026-08-11.
   summaries expose typed recommendation `gate_note_ids`; Capability Matrix, Preflight, and
   Apply Prompt Policy, Apply Plan, profile security, and connection-path caveats also have typed
   IDs, while old history remains readable.
+- Core/CLI on 2026-08-24: workspace tests and format pass. Rust 1.96
+  `cargo clippy --workspace --all-targets -- -D warnings` fails on three
+  `manual_is_multiple_of` findings and one nine-argument `apply_plan` finding.
 - Mobile candidate: `npm run verify` passes 106 tests, TypeScript, Expo config,
   Router warning gate, compatibility, and a fail-closed production audit policy on
   2026-08-09; `expo-doctor` passes 20/20. `npm run preflight:release` and the iOS
   Simulator Release build pass. The current debug-key QA APK is installed on Pixel 9 Pro XL
   with no launch crash, but the interactive current-artifact flow remains manual because
   the device was locked. The local AAB/APK are release-shape QA artifacts, not Play uploads.
+- Mobile recheck on 2026-08-24: 106 tests and TypeScript pass, but full verify/preflight
+  are red. Expo reports SDK 57 patch drift (`expo`/router and related packages); one
+  verify attempt also received malformed JSON from Expo's version service. No new release
+  artifact is claimed.
+- Linux recheck on 2026-08-24: lane tests and app-manifest clippy `-D warnings` pass.
+- Windows recheck on 2026-08-24: 65 Core/static tests and solution build pass; the WinUI
+  XAML compiler remains correctly classified `NOT RUN` on macOS.
 - Dependency review: RustSec reports no known Rust advisories; NuGet reports no known
   vulnerable Windows packages. Mobile npm reports 14 high findings inherited from Metro's
   currently unremediable `image-size` chain plus 8 moderate findings; the production gate
@@ -90,5 +115,6 @@ Last updated: 2026-08-11.
 - Architecture: `PROJECT.md`
 - Roadmap: `TODO.md`
 - Overall review: `docs/research/2026-07-19-overall-product-review.md`
+- Product value review: `docs/research/2026-08-24-product-value-usability-review.md`
 - Cross-platform contract: `docs/reference-lane-contract.md`
 - Provider steps: `docs/os-provider-trust.md`

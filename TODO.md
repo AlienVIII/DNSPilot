@@ -1,6 +1,19 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-08-11.
+Last reviewed: 2026-08-24.
+
+## P0: Guided Connection Check
+
+- [ ] Validate the proposed information-architecture amendment in
+  `docs/research/2026-08-24-product-value-usability-review.md`: one guided Home journey,
+  direct Benchmark access, and secondary Profiles/History instead of four equal choices.
+- [ ] Make the primary loop `Check my connection -> one plain-language outcome -> one
+  safe next action -> Retest`. Keep evidence behind Info/Details without hiding current
+  network scope, unsupported checks, permission impact, or rollback risk.
+- [ ] Define `Better`, `No meaningful change`, and `Restore previous DNS` comparison
+  outcomes. Never claim DNS repaired bandwidth, Wi-Fi, router, ISP, VPN, or game latency.
+- [ ] Prove the journey with five moderated normal users before changing the approved D3
+  navigation contract or pricing around it.
 
 ## P0: Separate Network Health Check
 
@@ -50,6 +63,13 @@ Last reviewed: 2026-08-11.
 - [ ] Run five moderated users through Health Check -> DNS Benchmark -> Set up -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,
   App Store Connect metadata, and submission.
+- [ ] Restore the Rust 1.96 quality gate: fix three `manual_is_multiple_of` findings and
+  refactor or explicitly justify the nine-argument `apply_plan`; do not lower clippy.
+- [ ] Align Mobile to the Expo SDK 57 compatible patch set reported by `expo install
+  --check`, then rerun `npm run verify` and `npm run preflight:release` serially.
+- [ ] Re-review macOS `78239d8` after exact-result notification activation, OS permission
+  reconciliation, scheduling diagnostics, installer rollback, and real visual smoke pass.
+  Do not merge its current D14 completion claims while visual QA is red.
 
 ## P1: Shared Core
 
@@ -113,6 +133,7 @@ Last reviewed: 2026-08-11.
 - `PROJECT.md`
 - `STATE.md`
 - `docs/research/2026-07-19-overall-product-review.md`
+- `docs/research/2026-08-24-product-value-usability-review.md`
 - `docs/reference-lane-contract.md`
 - `docs/core-cli-backlog.md`
 - `docs/os-provider-trust.md`
