@@ -7,7 +7,7 @@ use dnspilot_linux_shell::capabilities::{
     available_benchmark_modes, capability_view_model, BenchmarkMode, LinuxCapabilityViewModel,
 };
 use dnspilot_linux_shell::core_adapter::{
-    CoreCliAdapter, LinuxDataPaths, ProcessCoreCliCommandRunner,
+    CoreCliAdapter, CoreProfile, CoreSuite, LinuxDataPaths, ProcessCoreCliCommandRunner,
 };
 use dnspilot_linux_shell::detect::detect_linux_environment;
 use dnspilot_linux_shell::executable::{
@@ -35,6 +35,7 @@ use dnspilot_linux_shell::settings::{
 use dnspilot_linux_shell::suites::{suite_catalog_from_core, SuiteViewModel};
 use dnspilot_linux_shell::worker::{spawn_benchmark_worker, BenchmarkWorker, BenchmarkWorkerPoll};
 use eframe::egui;
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -61,6 +62,7 @@ struct DnsPilotGui {
     capability: LinuxCapabilityViewModel,
     active_section: NativeAppSectionKind,
     profiles: Vec<PlainDnsProfile>,
+    custom_profile_ids: HashSet<String>,
     suites: Vec<SuiteViewModel>,
     selected_profile_ids: Vec<String>,
     selected_mode: BenchmarkMode,
@@ -80,6 +82,12 @@ struct DnsPilotGui {
     profile_name: String,
     profile_ipv4: String,
     profile_ipv6: String,
+    pending_profile_delete: Option<String>,
+    suite_id: String,
+    suite_name: String,
+    suite_domains: String,
+    suite_tags: String,
+    pending_suite_delete: Option<String>,
     database_path: PathBuf,
     language_preference_path: PathBuf,
     settings_profile_id: String,
@@ -101,7 +109,7 @@ impl DnsPilotGui {
         let setup_seen_path = setup_tutorial_seen_path();
         let show_tutorial = !has_seen_setup_tutorial(&setup_seen_path);
         let core_cli = resolve_core_cli();
-        let (profiles, suites, status) =
+        let (profiles, custom_profile_ids, suites, status) =
             load_core_state(&core_cli, &database_path, &data_paths.legacy_profile_path());
         let settings_profile_id = profiles
             .first()
@@ -116,6 +124,7 @@ impl DnsPilotGui {
             capability,
             active_section: NativeAppSectionKind::CheckDns,
             profiles,
+            custom_profile_ids,
             suites,
             selected_profile_ids,
             selected_mode: BenchmarkMode::DnsOnly,
@@ -135,6 +144,12 @@ impl DnsPilotGui {
             profile_name: String::new(),
             profile_ipv4: String::new(),
             profile_ipv6: String::new(),
+            pending_profile_delete: None,
+            suite_id: String::new(),
+            suite_name: String::new(),
+            suite_domains: String::new(),
+            suite_tags: String::new(),
+            pending_suite_delete: None,
             database_path,
             language_preference_path,
             settings_profile_id,
@@ -183,25 +198,23 @@ impl DnsPilotGui {
             ipv4_servers: split_words(&self.profile_ipv4),
             ipv6_servers: split_words(&self.profile_ipv6),
         };
-        let update = self.profiles.iter().any(|item| item.id == profile.id);
+        let profile_exists = self.profiles.iter().any(|item| item.id == profile.id);
+        if profile_exists && !self.custom_profile_ids.contains(&profile.id) {
+            self.status =
+                "Built-in profiles are read-only. Use a new ID for a custom profile.".to_string();
+            return;
+        }
+        let update = profile_exists;
         match self.core_adapter().and_then(|mut adapter| {
             adapter
                 .save_plain_profile(&profile, update)
                 .map_err(|error| format!("{error:?}"))?;
             adapter
                 .load_profiles()
-                .map(|profiles| profiles.into_iter().map(Into::into).collect())
                 .map_err(|error| format!("{error:?}"))
         }) {
             Ok(profiles) => {
-                self.profiles = profiles;
-                if self.settings_profile_id.is_empty() {
-                    self.settings_profile_id = self
-                        .profiles
-                        .first()
-                        .map(|profile| profile.id.clone())
-                        .unwrap_or_default();
-                }
+                self.replace_profiles(profiles);
                 self.status = "Profile saved by core storage".to_string();
             }
             Err(error) => {
@@ -211,17 +224,20 @@ impl DnsPilotGui {
     }
 
     fn delete_profile(&mut self, profile_id: &str) {
+        if !self.custom_profile_ids.contains(profile_id) {
+            self.status = "Built-in profiles are read-only.".to_string();
+            return;
+        }
         match self.core_adapter().and_then(|mut adapter| {
             adapter
                 .delete_profile(profile_id)
                 .map_err(|error| format!("{error:?}"))?;
             adapter
                 .load_profiles()
-                .map(|profiles| profiles.into_iter().map(Into::into).collect())
                 .map_err(|error| format!("{error:?}"))
         }) {
             Ok(profiles) => {
-                self.profiles = profiles;
+                self.replace_profiles(profiles);
                 self.selected_profile_ids.retain(|id| id != profile_id);
                 if self.settings_profile_id == profile_id {
                     self.settings_profile_id = self
@@ -250,6 +266,99 @@ impl DnsPilotGui {
         self.profile_name = profile.name.clone();
         self.profile_ipv4 = profile.ipv4_servers.join(", ");
         self.profile_ipv6 = profile.ipv6_servers.join(", ");
+    }
+
+    fn replace_profiles(&mut self, profiles: Vec<CoreProfile>) {
+        self.custom_profile_ids = profiles
+            .iter()
+            .filter(|profile| profile.is_custom)
+            .map(|profile| profile.id.clone())
+            .collect();
+        self.profiles = profiles.into_iter().map(Into::into).collect();
+        self.selected_profile_ids
+            .retain(|id| self.profiles.iter().any(|profile| profile.id == *id));
+        if self.settings_profile_id.is_empty()
+            || !self
+                .profiles
+                .iter()
+                .any(|profile| profile.id == self.settings_profile_id)
+        {
+            self.settings_profile_id = self
+                .profiles
+                .first()
+                .map(|profile| profile.id.clone())
+                .unwrap_or_default();
+        }
+    }
+
+    fn replace_suites(&mut self, suites: Vec<CoreSuite>) {
+        self.suites = suite_catalog_from_core(suites);
+        if self
+            .selected_suite_id
+            .as_ref()
+            .is_some_and(|selected_id| !self.suites.iter().any(|suite| suite.id == *selected_id))
+        {
+            self.selected_suite_id = self.suites.first().map(|suite| suite.id.clone());
+        }
+    }
+
+    fn fill_suite_form(&mut self, suite: &SuiteViewModel) {
+        self.suite_id = suite.id.clone();
+        self.suite_name = suite.name.clone();
+        self.suite_domains = suite.domains.join(", ");
+        self.suite_tags = suite.tags.join(", ");
+    }
+
+    fn save_suite_from_form(&mut self) {
+        let suite = CoreSuite {
+            id: self.suite_id.trim().to_string(),
+            name: self.suite_name.trim().to_string(),
+            description: String::new(),
+            domains: split_words(&self.suite_domains),
+            tags: split_words(&self.suite_tags),
+            is_custom: true,
+        };
+        let existing = self.suites.iter().find(|item| item.id == suite.id);
+        if existing.is_some_and(|item| !item.is_custom) {
+            self.status =
+                "Built-in suites are read-only. Use a new ID for a custom suite.".to_string();
+            return;
+        }
+        match self.core_adapter().and_then(|mut adapter| {
+            adapter
+                .save_suite(&suite, existing.is_some())
+                .map_err(|error| format!("{error:?}"))?;
+            adapter.load_suites().map_err(|error| format!("{error:?}"))
+        }) {
+            Ok(suites) => {
+                self.replace_suites(suites);
+                self.status = "Custom suite saved by core storage".to_string();
+            }
+            Err(error) => self.status = format!("Custom suite save failed: {error}"),
+        }
+    }
+
+    fn delete_suite(&mut self, suite_id: &str) {
+        if !self
+            .suites
+            .iter()
+            .any(|suite| suite.id == suite_id && suite.is_custom)
+        {
+            self.status = "Built-in suites are read-only.".to_string();
+            return;
+        }
+        match self.core_adapter().and_then(|mut adapter| {
+            adapter
+                .delete_suite(suite_id)
+                .map_err(|error| format!("{error:?}"))?;
+            adapter.load_suites().map_err(|error| format!("{error:?}"))
+        }) {
+            Ok(suites) => {
+                self.replace_suites(suites);
+                self.status = "Custom suite deleted".to_string();
+            }
+            Err(error) => self.status = format!("Custom suite delete failed: {error}"),
+        }
     }
 
     fn plan_benchmark(&mut self) {
@@ -612,6 +721,7 @@ impl DnsPilotGui {
                 ui.strong("Name");
                 ui.strong("IPv4");
                 ui.strong("IPv6");
+                ui.strong("Access");
                 ui.end_row();
 
                 for profile in &profiles {
@@ -619,11 +729,17 @@ impl DnsPilotGui {
                     ui.label(&profile.name);
                     ui.label(profile.ipv4_servers.join(", "));
                     ui.label(profile.ipv6_servers.join(", "));
-                    if ui.button("Edit").clicked() {
-                        self.fill_profile_form(profile);
-                    }
-                    if ui.button("Delete").clicked() {
-                        self.delete_profile(&profile.id);
+                    if self.custom_profile_ids.contains(&profile.id) {
+                        ui.horizontal(|ui| {
+                            if ui.button("Edit").clicked() {
+                                self.fill_profile_form(profile);
+                            }
+                            if ui.button("Delete").clicked() {
+                                self.pending_profile_delete = Some(profile.id.clone());
+                            }
+                        });
+                    } else {
+                        ui.label("Built-in (read-only)");
                     }
                     ui.end_row();
                 }
@@ -645,6 +761,82 @@ impl DnsPilotGui {
         });
         if ui.button("Save profile").clicked() {
             self.save_profile_from_form();
+        }
+
+        if let Some(profile_id) = self.pending_profile_delete.clone() {
+            ui.horizontal(|ui| {
+                ui.label(format!("Delete custom profile {profile_id}?"));
+                if ui.button("Confirm delete").clicked() {
+                    self.delete_profile(&profile_id);
+                    self.pending_profile_delete = None;
+                }
+                if ui.button("Cancel").clicked() {
+                    self.pending_profile_delete = None;
+                }
+            });
+        }
+
+        ui.separator();
+        ui.heading("Test suites");
+        ui.label("Built-in suites remain read-only. Custom suites are stored by the Core CLI.");
+        let suites = self.suites.clone();
+        egui::Grid::new("suites_grid").striped(true).show(ui, |ui| {
+            ui.strong("ID");
+            ui.strong("Name");
+            ui.strong("Domains");
+            ui.strong("Access");
+            ui.end_row();
+
+            for suite in &suites {
+                ui.label(&suite.id);
+                ui.label(&suite.name);
+                ui.label(suite.domains.join(", "));
+                if suite.is_custom {
+                    ui.horizontal(|ui| {
+                        if ui.button("Edit").clicked() {
+                            self.fill_suite_form(suite);
+                        }
+                        if ui.button("Delete").clicked() {
+                            self.pending_suite_delete = Some(suite.id.clone());
+                        }
+                    });
+                } else {
+                    ui.label("Built-in (read-only)");
+                }
+                ui.end_row();
+            }
+        });
+
+        ui.separator();
+        ui.label("Add or edit custom suite");
+        ui.horizontal(|ui| {
+            ui.label("ID");
+            ui.text_edit_singleline(&mut self.suite_id);
+            ui.label("Name");
+            ui.text_edit_singleline(&mut self.suite_name);
+        });
+        ui.horizontal(|ui| {
+            ui.label("Domains");
+            ui.text_edit_singleline(&mut self.suite_domains)
+                .on_hover_text("One or more domains, separated by comma or whitespace.");
+            ui.label("Tags");
+            ui.text_edit_singleline(&mut self.suite_tags)
+                .on_hover_text("Optional tags, separated by comma or whitespace.");
+        });
+        if ui.button("Save custom suite").clicked() {
+            self.save_suite_from_form();
+        }
+        if let Some(suite_id) = self.pending_suite_delete.clone() {
+            ui.horizontal(|ui| {
+                ui.label(format!("Delete custom suite {suite_id}?"));
+                if ui.button("Confirm delete").clicked() {
+                    self.delete_suite(&suite_id);
+                    self.pending_suite_delete = None;
+                }
+                if ui.button("Cancel").clicked() {
+                    self.pending_suite_delete = None;
+                }
+            });
         }
     }
 
@@ -973,10 +1165,15 @@ fn load_core_state(
     core_cli: &Result<CoreCliResolution, CoreCliResolutionError>,
     database_path: &std::path::Path,
     legacy_profile_path: &std::path::Path,
-) -> (Vec<PlainDnsProfile>, Vec<SuiteViewModel>, String) {
+) -> (
+    Vec<PlainDnsProfile>,
+    HashSet<String>,
+    Vec<SuiteViewModel>,
+    String,
+) {
     let resolution = match core_cli {
         Ok(resolution) => resolution,
-        Err(error) => return (Vec::new(), Vec::new(), error.to_string()),
+        Err(error) => return (Vec::new(), HashSet::new(), Vec::new(), error.to_string()),
     };
     let mut adapter = CoreCliAdapter::new(
         resolution.path.to_string_lossy(),
@@ -994,32 +1191,46 @@ fn load_core_state(
         Err(error) => {
             return (
                 Vec::new(),
+                HashSet::new(),
                 Vec::new(),
                 format!("Profile migration failed: {error:?}"),
             )
         }
     };
-    let profiles = match adapter.load_profiles() {
-        Ok(profiles) => profiles.into_iter().map(Into::into).collect(),
+    let core_profiles = match adapter.load_profiles() {
+        Ok(profiles) => profiles,
         Err(error) => {
             return (
                 Vec::new(),
+                HashSet::new(),
                 Vec::new(),
                 format!("Core profile load failed: {error:?}"),
             )
         }
     };
+    let custom_profile_ids = core_profiles
+        .iter()
+        .filter(|profile| profile.is_custom)
+        .map(|profile| profile.id.clone())
+        .collect();
+    let profiles = core_profiles.into_iter().map(Into::into).collect();
     let suites = match adapter.load_suites() {
         Ok(suites) => suite_catalog_from_core(suites),
         Err(error) => {
             return (
                 profiles,
+                custom_profile_ids,
                 Vec::new(),
                 format!("Core suite load failed: {error:?}"),
             )
         }
     };
-    (profiles, suites, format!("{migration_status}Ready"))
+    (
+        profiles,
+        custom_profile_ids,
+        suites,
+        format!("{migration_status}Ready"),
+    )
 }
 
 fn split_words(value: &str) -> Vec<String> {

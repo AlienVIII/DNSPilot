@@ -63,6 +63,7 @@ pub struct CoreProfile {
     pub name: String,
     pub ipv4_servers: Vec<String>,
     pub ipv6_servers: Vec<String>,
+    pub is_custom: bool,
 }
 
 impl From<CoreProfile> for PlainDnsProfile {
@@ -83,6 +84,7 @@ pub struct CoreSuite {
     pub description: String,
     pub domains: Vec<String>,
     pub tags: Vec<String>,
+    pub is_custom: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -543,29 +545,43 @@ fn required_array<'a>(value: &'a Value, key: &str) -> Result<&'a Vec<Value>, Cor
 }
 
 fn parse_profile(value: &Value) -> Result<CoreProfile, CoreCliAdapterError> {
+    let tags = value
+        .get("tags")
+        .map(|_| required_string_array(value, "tags"))
+        .transpose()?
+        .unwrap_or_default();
     Ok(CoreProfile {
         id: required_string(value, "id")?,
         name: required_string(value, "name")?,
         ipv4_servers: required_string_array(value, "ipv4_servers")?,
         ipv6_servers: required_string_array(value, "ipv6_servers")?,
+        is_custom: value
+            .get("use_case")
+            .and_then(Value::as_str)
+            .is_some_and(|use_case| use_case == "custom")
+            || tags.iter().any(|tag| tag == "custom"),
     })
 }
 
 fn parse_suite(value: &Value) -> Result<CoreSuite, CoreCliAdapterError> {
+    let tags = value
+        .get("tags")
+        .map(|_| required_string_array(value, "tags"))
+        .transpose()?
+        .unwrap_or_default();
+    let description = value
+        .get("description")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
     Ok(CoreSuite {
         id: required_string(value, "id")?,
         name: required_string(value, "name")?,
-        description: value
-            .get("description")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string(),
+        is_custom: description == "Custom domain test suite."
+            || tags.iter().any(|tag| tag == "custom"),
+        description,
         domains: required_string_array(value, "domains")?,
-        tags: value
-            .get("tags")
-            .map(|_| required_string_array(value, "tags"))
-            .transpose()?
-            .unwrap_or_default(),
+        tags,
     })
 }
 

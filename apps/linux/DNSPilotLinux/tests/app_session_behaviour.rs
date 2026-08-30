@@ -33,6 +33,7 @@ fn core_suites(include_vietnam: bool) -> Vec<CoreSuite> {
         description: "Core fixture".to_string(),
         domains: vec!["example.com".to_string()],
         tags: vec!["general".to_string()],
+        is_custom: false,
     }];
     if include_vietnam {
         suites.push(CoreSuite {
@@ -41,6 +42,7 @@ fn core_suites(include_vietnam: bool) -> Vec<CoreSuite> {
             description: "Core fixture".to_string(),
             domains: vec!["vnexpress.net".to_string()],
             tags: vec!["vietnam".to_string()],
+            is_custom: false,
         });
     }
     suites

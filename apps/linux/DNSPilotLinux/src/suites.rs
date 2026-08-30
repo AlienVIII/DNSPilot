@@ -7,6 +7,7 @@ pub struct SuiteViewModel {
     pub description: String,
     pub domains: Vec<String>,
     pub tags: Vec<String>,
+    pub is_custom: bool,
 }
 
 pub fn suite_catalog_from_core(suites: Vec<CoreSuite>) -> Vec<SuiteViewModel> {
@@ -18,6 +19,7 @@ pub fn suite_catalog_from_core(suites: Vec<CoreSuite>) -> Vec<SuiteViewModel> {
             description: suite.description,
             domains: suite.domains,
             tags: suite.tags,
+            is_custom: suite.is_custom,
         })
         .collect()
 }

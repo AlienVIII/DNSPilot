@@ -16,7 +16,8 @@ fn core_catalog_requires_the_supported_schema_and_preserves_vietnam_suite() {
                 "name": "Vietnam / Daily",
                 "description": "Vietnam suite",
                 "domains": ["vnexpress.net"],
-                "tags": ["vietnam"]
+                "tags": ["vietnam"],
+                "description": "Vietnam suite"
             }]
         }"#,
     )
@@ -25,11 +26,49 @@ fn core_catalog_requires_the_supported_schema_and_preserves_vietnam_suite() {
     assert_eq!(catalog.schema_version, 1);
     assert_eq!(catalog.suites[0].id, "vietnam-daily");
     assert_eq!(catalog.suites[0].domains, vec!["vnexpress.net"]);
+    assert!(!catalog.suites[0].is_custom);
 
     let error =
         CoreCatalog::from_json(r#"{"schema_version": 2, "profiles": [], "testSuites": []}"#)
             .unwrap_err();
     assert_eq!(error, CoreCliAdapterError::UnsupportedSchema(2));
+}
+
+#[test]
+fn core_suite_marks_only_core_custom_entries_as_editable() {
+    let catalog = CoreCatalog::from_json(
+        r#"{
+            "schema_version": 1,
+            "profiles": [],
+            "testSuites": [
+                {"id":"general","name":"General","description":"Built in","domains":["example.com"],"tags":["general"]},
+                {"id":"custom","name":"Custom","description":"Custom domain test suite.","domains":["custom.example"],"tags":["custom"]}
+            ]
+        }"#,
+    )
+    .unwrap();
+
+    assert!(!catalog.suites[0].is_custom);
+    assert!(catalog.suites[1].is_custom);
+}
+
+#[test]
+fn core_profile_marks_only_custom_entries_as_editable() {
+    let profiles = CoreCatalog::from_json(
+        r#"{
+            "schema_version": 1,
+            "profiles": [
+                {"id":"cloudflare","name":"Cloudflare","ipv4_servers":["1.1.1.1"],"ipv6_servers":[],"use_case":"general"},
+                {"id":"home","name":"Home","ipv4_servers":["9.9.9.9"],"ipv6_servers":[],"use_case":"custom"}
+            ],
+            "testSuites": []
+        }"#,
+    )
+    .unwrap()
+    .profiles;
+
+    assert!(!profiles[0].is_custom);
+    assert!(profiles[1].is_custom);
 }
 
 #[test]
@@ -121,6 +160,7 @@ fn core_adapter_writes_custom_suites_and_history_commands_through_core_cli() {
         description: String::new(),
         domains: vec!["example.com".to_string()],
         tags: vec!["custom".to_string()],
+        is_custom: true,
     };
 
     adapter.save_suite(&suite, false).unwrap();

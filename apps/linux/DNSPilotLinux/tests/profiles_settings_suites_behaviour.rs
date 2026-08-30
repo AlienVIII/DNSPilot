@@ -260,6 +260,7 @@ fn core_suites_preserve_catalog_vietnam_tags_without_linux_fallback_data() {
             description: "Core fixture".to_string(),
             domains: vec!["example.com".to_string()],
             tags: vec!["general".to_string()],
+            is_custom: false,
         },
         CoreSuite {
             id: "vietnam-daily".to_string(),
@@ -267,6 +268,7 @@ fn core_suites_preserve_catalog_vietnam_tags_without_linux_fallback_data() {
             description: "Core fixture".to_string(),
             domains: vec!["zing.vn".to_string()],
             tags: vec!["vietnam".to_string()],
+            is_custom: false,
         },
     ]);
     assert!(suites.iter().any(|suite| suite.id == "general"));
