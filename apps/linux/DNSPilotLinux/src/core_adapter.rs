@@ -98,6 +98,8 @@ pub struct CoreCatalog {
 pub struct CoreHistoryRecord {
     pub id: String,
     pub started_at: String,
+    pub scope: String,
+    pub mode: String,
     pub domains: Vec<String>,
     pub resolver_profile_ids: Vec<String>,
     pub recommendation_profile_id: Option<String>,
@@ -490,6 +492,8 @@ fn parse_history_record(value: &Value) -> Result<CoreHistoryRecord, CoreCliAdapt
     Ok(CoreHistoryRecord {
         id: required_string(value, "id")?,
         started_at: required_string(value, "started_at")?,
+        scope: required_string(value, "scope")?,
+        mode: required_string(value, "mode")?,
         domains: required_string_array(value, "domains")?,
         resolver_profile_ids: required_string_array(value, "resolver_profile_ids")?,
         recommendation_profile_id: optional_string(value, "recommendation_profile_id")?,

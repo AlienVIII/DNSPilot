@@ -5,6 +5,7 @@ pub mod core_adapter;
 pub mod detect;
 pub mod diagnostics;
 pub mod executable;
+pub mod history;
 pub mod i18n;
 pub mod native_app;
 pub mod native_power;

@@ -2,7 +2,9 @@ use dnspilot_linux_shell::app::LinuxAppSession;
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, BenchmarkMode, LinuxEnvironmentProbe, LinuxPackageKind,
 };
+use dnspilot_linux_shell::core_adapter::CoreHistoryRecord;
 use dnspilot_linux_shell::core_adapter::CoreSuite;
+use dnspilot_linux_shell::history::{restore_history_run, HistoryRestoreError};
 use dnspilot_linux_shell::profiles::PlainDnsProfile;
 use dnspilot_linux_shell::settings::{DnsRecordFamily, ResolverAddressFamily};
 use dnspilot_linux_shell::suites::suite_catalog_from_core;
@@ -199,4 +201,54 @@ fn build_plan_reports_selected_profile_missing_requested_address_family() {
     assert!(issues
         .iter()
         .any(|issue| issue.contains("Quad9") && issue.contains("IPv6")));
+}
+
+#[test]
+fn history_restore_preserves_saved_domains_and_scope_without_silent_profile_substitution() {
+    let record = CoreHistoryRecord {
+        id: "run-1".to_string(),
+        started_at: "2026-08-30T00:00:00Z".to_string(),
+        scope: "dns-tcp".to_string(),
+        mode: "best-overall".to_string(),
+        domains: vec!["vnexpress.net".to_string()],
+        resolver_profile_ids: vec!["quad9".to_string()],
+        recommendation_profile_id: Some("quad9".to_string()),
+        notes: Vec::new(),
+    };
+
+    let restore = restore_history_run(&record, &["quad9".to_string()], false).unwrap();
+
+    assert_eq!(restore.mode, BenchmarkMode::DnsAndTcp);
+    assert_eq!(restore.profile_ids, vec!["quad9"]);
+    assert_eq!(restore.domains, vec!["vnexpress.net"]);
+    assert!(!restore.uses_current_system_resolver);
+
+    let error = restore_history_run(&record, &[], false).unwrap_err();
+    assert_eq!(
+        error,
+        HistoryRestoreError::MissingProfile("quad9".to_string())
+    );
+}
+
+#[test]
+fn history_restore_handles_system_dns_only_when_capability_allows_it() {
+    let record = CoreHistoryRecord {
+        id: "system-run".to_string(),
+        started_at: "2026-08-30T00:00:00Z".to_string(),
+        scope: "dns-only".to_string(),
+        mode: "fastest-raw-dns".to_string(),
+        domains: vec!["example.com".to_string()],
+        resolver_profile_ids: vec!["system-dns".to_string()],
+        recommendation_profile_id: None,
+        notes: Vec::new(),
+    };
+
+    let restore = restore_history_run(&record, &[], true).unwrap();
+
+    assert_eq!(restore.mode, BenchmarkMode::CurrentSystemResolver);
+    assert!(restore.uses_current_system_resolver);
+    assert_eq!(
+        restore_history_run(&record, &[], false),
+        Err(HistoryRestoreError::SystemResolverUnavailable)
+    );
 }

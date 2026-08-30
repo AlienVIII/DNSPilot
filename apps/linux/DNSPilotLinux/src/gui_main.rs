@@ -13,6 +13,7 @@ use dnspilot_linux_shell::detect::detect_linux_environment;
 use dnspilot_linux_shell::executable::{
     resolve_core_cli, CoreCliResolution, CoreCliResolutionError,
 };
+use dnspilot_linux_shell::history::restore_history_run;
 use dnspilot_linux_shell::i18n::{localized_text, Language, TextKey};
 use dnspilot_linux_shell::native_app::{build_native_app_model, NativeAppSectionKind};
 use dnspilot_linux_shell::native_power::{build_native_apply_plan, render_native_apply_plan};
@@ -358,6 +359,32 @@ impl DnsPilotGui {
                 self.status = "Custom suite deleted".to_string();
             }
             Err(error) => self.status = format!("Custom suite delete failed: {error}"),
+        }
+    }
+
+    fn rerun_history(&mut self, record: &dnspilot_linux_shell::core_adapter::CoreHistoryRecord) {
+        let available_profile_ids = self
+            .profiles
+            .iter()
+            .map(|profile| profile.id.clone())
+            .collect::<Vec<_>>();
+        match restore_history_run(
+            record,
+            &available_profile_ids,
+            self.capability.can_validate_current_system_resolver,
+        ) {
+            Ok(restore) => {
+                self.selected_mode = restore.mode;
+                self.selected_profile_ids = restore.profile_ids;
+                self.selected_suite_id = None;
+                self.custom_domains = restore.domains.join(", ");
+                self.active_section = NativeAppSectionKind::CheckDns;
+                self.status =
+                    "Saved benchmark inputs restored. Review, then run again.".to_string();
+            }
+            Err(error) => {
+                self.status = format!("Could not restore saved benchmark inputs: {error:?}");
+            }
         }
     }
 
@@ -984,16 +1011,22 @@ impl DnsPilotGui {
                         ui.strong("Action");
                         ui.end_row();
                         for record in history.into_iter().rev() {
-                            ui.label(record.started_at);
+                            ui.label(&record.started_at);
                             ui.label(record.resolver_profile_ids.join(", "));
                             ui.label(
                                 record
                                     .recommendation_profile_id
-                                    .unwrap_or_else(|| "Keep current".to_string()),
+                                    .as_deref()
+                                    .unwrap_or("Keep current"),
                             );
-                            if ui.button("Delete").clicked() {
-                                self.pending_history_delete = Some(record.id);
-                            }
+                            ui.horizontal(|ui| {
+                                if ui.button("Rerun").clicked() {
+                                    self.rerun_history(&record);
+                                }
+                                if ui.button("Delete").clicked() {
+                                    self.pending_history_delete = Some(record.id.clone());
+                                }
+                            });
                             ui.end_row();
                         }
                     });

@@ -195,6 +195,7 @@ fn core_adapter_decodes_history_policy_apply_plan_and_benchmark_contracts() {
     .unwrap();
 
     assert_eq!(history[0].id, "run-1");
+    assert_eq!(history[0].scope, "dns-only");
     assert_eq!(
         history[0].recommendation_profile_id.as_deref(),
         Some("custom")
@@ -239,6 +240,8 @@ impl CoreCliCommandRunner for ContractRunner {
                 "benchmark_history": [{
                     "id": "run-1",
                     "started_at": "2026-07-14T00:00:00Z",
+                    "scope": "dns-only",
+                    "mode": "fastest-raw-dns",
                     "domains": ["example.com"],
                     "resolver_profile_ids": ["custom"],
                     "recommendation_profile_id": "custom",
