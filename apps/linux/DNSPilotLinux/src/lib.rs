@@ -2,6 +2,7 @@ pub mod app;
 pub mod benchmark;
 pub mod capabilities;
 pub mod core_adapter;
+pub mod desktop;
 pub mod detect;
 pub mod diagnostics;
 pub mod executable;

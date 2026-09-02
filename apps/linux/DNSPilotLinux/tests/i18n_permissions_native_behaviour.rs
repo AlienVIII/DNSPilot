@@ -39,6 +39,18 @@ fn vietnamese_strings_are_available_for_native_app_core_actions() {
         localized_text(TextKey::Status, Language::Vietnamese),
         "Trạng thái"
     );
+    assert_eq!(
+        localized_text(TextKey::TestSuites, Language::Vietnamese),
+        "Bộ kiểm thử"
+    );
+    assert_eq!(
+        localized_text(TextKey::Rerun, Language::Vietnamese),
+        "Chạy lại"
+    );
+    assert_eq!(
+        localized_text(TextKey::IncludePrivateDetails, Language::Vietnamese),
+        "Bao gồm tên miền riêng tư và đường dẫn cục bộ"
+    );
 }
 
 #[test]

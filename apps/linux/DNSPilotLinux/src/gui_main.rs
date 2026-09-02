@@ -9,6 +9,9 @@ use dnspilot_linux_shell::capabilities::{
 use dnspilot_linux_shell::core_adapter::{
     CoreCliAdapter, CoreProfile, CoreSuite, LinuxDataPaths, ProcessCoreCliCommandRunner,
 };
+use dnspilot_linux_shell::desktop::{
+    DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH, MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH, SIDEBAR_WIDTH,
+};
 use dnspilot_linux_shell::detect::detect_linux_environment;
 use dnspilot_linux_shell::diagnostics::redact_debug_report;
 use dnspilot_linux_shell::executable::{
@@ -46,8 +49,8 @@ use std::time::Duration;
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1040.0, 720.0])
-            .with_min_inner_size([760.0, 560.0]),
+            .with_inner_size([DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT])
+            .with_min_inner_size([MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT]),
         ..Default::default()
     };
 
@@ -534,13 +537,17 @@ impl eframe::App for DnsPilotGui {
         ui.horizontal(|ui| {
             ui.heading(localized_text(TextKey::AppTitle, self.language));
             ui.separator();
-            ui.label(format!("Package: {}", self.capability.package_kind.label()));
+            ui.label(format!(
+                "{}: {}",
+                localized_text(TextKey::Package, self.language),
+                self.capability.package_kind.label()
+            ));
             ui.separator();
             let mut language_preference = self.language_preference;
             ui.selectable_value(
                 &mut language_preference,
                 LanguagePreference::System,
-                "System",
+                localized_text(TextKey::SystemLanguage, self.language),
             );
             ui.selectable_value(&mut language_preference, LanguagePreference::English, "EN");
             ui.selectable_value(
@@ -552,12 +559,15 @@ impl eframe::App for DnsPilotGui {
                 self.set_language_preference(language_preference);
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Settings").clicked() {
+                if ui
+                    .button(localized_text(TextKey::Settings, self.language))
+                    .clicked()
+                {
                     self.show_settings = true;
                 }
                 if ui
                     .button("?")
-                    .on_hover_text("Show setup tutorial")
+                    .on_hover_text(localized_text(TextKey::Help, self.language))
                     .clicked()
                 {
                     self.show_tutorial = true;
@@ -568,23 +578,29 @@ impl eframe::App for DnsPilotGui {
 
         if self.show_tutorial {
             let mut tutorial_completed = false;
-            egui::Window::new("DNSPilot Setup")
+            egui::Window::new(localized_text(TextKey::SetupTitle, self.language))
                 .collapsible(false)
                 .resizable(false)
                 .open(&mut self.show_tutorial)
                 .show(&ctx, |ui| {
-                    ui.heading("Test, copy, retest");
-                    ui.label("1. Run a benchmark.");
-                    ui.label("2. Copy/open OS DNS settings.");
-                    ui.label("3. Retest System DNS.");
+                    ui.heading(localized_text(TextKey::SetupHeading, self.language));
+                    ui.label(localized_text(TextKey::SetupRun, self.language));
+                    ui.label(localized_text(TextKey::SetupGuidance, self.language));
+                    ui.label(localized_text(TextKey::SetupRetest, self.language));
                     ui.separator();
-                    ui.label("Sandbox packages are guidance-first.");
-                    ui.label("Power DNS apply stays explicit and package-gated.");
+                    ui.label(localized_text(TextKey::SandboxGuidance, self.language));
+                    ui.label(localized_text(TextKey::PowerGated, self.language));
                     ui.horizontal(|ui| {
-                        if ui.button("Skip").clicked() {
+                        if ui
+                            .button(localized_text(TextKey::Skip, self.language))
+                            .clicked()
+                        {
                             tutorial_completed = true;
                         }
-                        if ui.button("Done").clicked() {
+                        if ui
+                            .button(localized_text(TextKey::Done, self.language))
+                            .clicked()
+                        {
                             tutorial_completed = true;
                         }
                     });
@@ -611,7 +627,7 @@ impl eframe::App for DnsPilotGui {
 
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
-                ui.set_width(210.0);
+                ui.set_width(SIDEBAR_WIDTH);
                 let model = build_native_app_model(&self.capability, self.language);
                 ui.label(model.tray_note);
                 ui.separator();
@@ -620,14 +636,23 @@ impl eframe::App for DnsPilotGui {
                         .on_hover_text(section.help_text);
                 }
                 ui.separator();
-                ui.label(format!("Status: {}", self.status));
+                ui.label(format!(
+                    "{}: {}",
+                    localized_text(TextKey::Status, self.language),
+                    self.status
+                ));
             });
 
             ui.separator();
-            ui.vertical(|ui| match self.active_section {
-                NativeAppSectionKind::CheckDns => self.benchmark_ui(ui),
-                NativeAppSectionKind::Profiles => self.profiles_ui(ui),
-                NativeAppSectionKind::History => self.history_ui(ui),
+            ui.vertical(|ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("main_content")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| match self.active_section {
+                        NativeAppSectionKind::CheckDns => self.benchmark_ui(ui),
+                        NativeAppSectionKind::Profiles => self.profiles_ui(ui),
+                        NativeAppSectionKind::History => self.history_ui(ui),
+                    });
             });
         });
     }
@@ -656,14 +681,16 @@ impl DnsPilotGui {
         }
 
         ui.separator();
-        egui::ComboBox::from_label("Suite")
-            .selected_text(
-                self.selected_suite_id
-                    .clone()
-                    .unwrap_or_else(|| "custom domains".to_string()),
-            )
+        egui::ComboBox::from_label(localized_text(TextKey::Suite, self.language))
+            .selected_text(self.selected_suite_id.clone().unwrap_or_else(|| {
+                localized_text(TextKey::CustomDomainsOnly, self.language).to_string()
+            }))
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut self.selected_suite_id, None, "Custom domains only");
+                ui.selectable_value(
+                    &mut self.selected_suite_id,
+                    None,
+                    localized_text(TextKey::CustomDomainsOnly, self.language),
+                );
                 for suite in &self.suites {
                     ui.selectable_value(
                         &mut self.selected_suite_id,
@@ -674,7 +701,7 @@ impl DnsPilotGui {
                 }
             });
         ui.text_edit_singleline(&mut self.custom_domains)
-            .on_hover_text("Optional extra domains separated by comma or whitespace.");
+            .on_hover_text(localized_text(TextKey::ExtraDomainsHelp, self.language));
 
         ui.separator();
         ui.horizontal_wrapped(|ui| {
@@ -692,25 +719,34 @@ impl DnsPilotGui {
 
         ui.separator();
         ui.horizontal(|ui| {
-            ui.label("Engine");
+            ui.label(localized_text(TextKey::Engine, self.language));
             let engine_ready = self.core_cli.is_ok();
             let benchmark_idle = self.benchmark_worker.is_none();
             match &self.core_cli {
                 Ok(resolution) => {
-                    ui.colored_label(egui::Color32::from_rgb(40, 140, 80), "Ready")
-                        .on_hover_text(format!(
-                            "{} ({})",
-                            resolution.path.display(),
-                            resolution.source.label()
-                        ));
+                    ui.colored_label(
+                        egui::Color32::from_rgb(40, 140, 80),
+                        localized_text(TextKey::Ready, self.language),
+                    )
+                    .on_hover_text(format!(
+                        "{} ({})",
+                        resolution.path.display(),
+                        resolution.source.label()
+                    ));
                 }
                 Err(error) => {
-                    ui.colored_label(egui::Color32::from_rgb(190, 60, 60), "Unavailable")
-                        .on_hover_text(error.to_string());
+                    ui.colored_label(
+                        egui::Color32::from_rgb(190, 60, 60),
+                        localized_text(TextKey::Unavailable, self.language),
+                    )
+                    .on_hover_text(error.to_string());
                 }
             }
             if ui
-                .add_enabled(engine_ready && benchmark_idle, egui::Button::new("Plan"))
+                .add_enabled(
+                    engine_ready && benchmark_idle,
+                    egui::Button::new(localized_text(TextKey::Plan, self.language)),
+                )
                 .clicked()
             {
                 self.plan_benchmark();
@@ -725,7 +761,10 @@ impl DnsPilotGui {
                 self.run_benchmark();
             }
             if ui
-                .add_enabled(!benchmark_idle, egui::Button::new("Cancel"))
+                .add_enabled(
+                    !benchmark_idle,
+                    egui::Button::new(localized_text(TextKey::Cancel, self.language)),
+                )
                 .clicked()
             {
                 if let Some(worker) = &self.benchmark_worker {
@@ -755,11 +794,11 @@ impl DnsPilotGui {
         egui::Grid::new("profiles_grid")
             .striped(true)
             .show(ui, |ui| {
-                ui.strong("ID");
-                ui.strong("Name");
+                ui.strong(localized_text(TextKey::Id, self.language));
+                ui.strong(localized_text(TextKey::Name, self.language));
                 ui.strong("IPv4");
                 ui.strong("IPv6");
-                ui.strong("Access");
+                ui.strong(localized_text(TextKey::Access, self.language));
                 ui.end_row();
 
                 for profile in &profiles {
@@ -777,18 +816,18 @@ impl DnsPilotGui {
                             }
                         });
                     } else {
-                        ui.label("Built-in (read-only)");
+                        ui.label(localized_text(TextKey::BuiltInReadOnly, self.language));
                     }
                     ui.end_row();
                 }
             });
 
         ui.separator();
-        ui.label("Add or edit profile");
+        ui.label(localized_text(TextKey::AddOrEditProfile, self.language));
         ui.horizontal(|ui| {
-            ui.label("ID");
+            ui.label(localized_text(TextKey::Id, self.language));
             ui.text_edit_singleline(&mut self.profile_id);
-            ui.label("Name");
+            ui.label(localized_text(TextKey::Name, self.language));
             ui.text_edit_singleline(&mut self.profile_name);
         });
         ui.horizontal(|ui| {
@@ -797,7 +836,10 @@ impl DnsPilotGui {
             ui.label("IPv6");
             ui.text_edit_singleline(&mut self.profile_ipv6);
         });
-        if ui.button("Save profile").clicked() {
+        if ui
+            .button(localized_text(TextKey::SaveProfile, self.language))
+            .clicked()
+        {
             self.save_profile_from_form();
         }
 
@@ -815,14 +857,14 @@ impl DnsPilotGui {
         }
 
         ui.separator();
-        ui.heading("Test suites");
+        ui.heading(localized_text(TextKey::TestSuites, self.language));
         ui.label("Built-in suites remain read-only. Custom suites are stored by the Core CLI.");
         let suites = self.suites.clone();
         egui::Grid::new("suites_grid").striped(true).show(ui, |ui| {
-            ui.strong("ID");
-            ui.strong("Name");
-            ui.strong("Domains");
-            ui.strong("Access");
+            ui.strong(localized_text(TextKey::Id, self.language));
+            ui.strong(localized_text(TextKey::Name, self.language));
+            ui.strong(localized_text(TextKey::Domains, self.language));
+            ui.strong(localized_text(TextKey::Access, self.language));
             ui.end_row();
 
             for suite in &suites {
@@ -839,29 +881,32 @@ impl DnsPilotGui {
                         }
                     });
                 } else {
-                    ui.label("Built-in (read-only)");
+                    ui.label(localized_text(TextKey::BuiltInReadOnly, self.language));
                 }
                 ui.end_row();
             }
         });
 
         ui.separator();
-        ui.label("Add or edit custom suite");
+        ui.label(localized_text(TextKey::AddOrEditCustomSuite, self.language));
         ui.horizontal(|ui| {
-            ui.label("ID");
+            ui.label(localized_text(TextKey::Id, self.language));
             ui.text_edit_singleline(&mut self.suite_id);
-            ui.label("Name");
+            ui.label(localized_text(TextKey::Name, self.language));
             ui.text_edit_singleline(&mut self.suite_name);
         });
         ui.horizontal(|ui| {
-            ui.label("Domains");
+            ui.label(localized_text(TextKey::Domains, self.language));
             ui.text_edit_singleline(&mut self.suite_domains)
                 .on_hover_text("One or more domains, separated by comma or whitespace.");
-            ui.label("Tags");
+            ui.label(localized_text(TextKey::Tags, self.language));
             ui.text_edit_singleline(&mut self.suite_tags)
                 .on_hover_text("Optional tags, separated by comma or whitespace.");
         });
-        if ui.button("Save custom suite").clicked() {
+        if ui
+            .button(localized_text(TextKey::SaveCustomSuite, self.language))
+            .clicked()
+        {
             self.save_suite_from_form();
         }
         if let Some(suite_id) = self.pending_suite_delete.clone() {
@@ -983,7 +1028,10 @@ impl DnsPilotGui {
 
     fn history_ui(&mut self, ui: &mut egui::Ui) {
         ui.heading(localized_text(TextKey::History, self.language));
-        if ui.button("Clear history").clicked() {
+        if ui
+            .button(localized_text(TextKey::ClearHistory, self.language))
+            .clicked()
+        {
             self.confirm_history_clear = true;
         }
         if self.confirm_history_clear {
@@ -1016,10 +1064,10 @@ impl DnsPilotGui {
                 egui::Grid::new("history_grid")
                     .striped(true)
                     .show(ui, |ui| {
-                        ui.strong("Started");
+                        ui.strong(localized_text(TextKey::Started, self.language));
                         ui.strong("Resolvers");
-                        ui.strong("Recommendation");
-                        ui.strong("Action");
+                        ui.strong(localized_text(TextKey::Recommendation, self.language));
+                        ui.strong(localized_text(TextKey::Action, self.language));
                         ui.end_row();
                         for record in history.into_iter().rev() {
                             ui.label(&record.started_at);
@@ -1028,10 +1076,13 @@ impl DnsPilotGui {
                                 record
                                     .recommendation_profile_id
                                     .as_deref()
-                                    .unwrap_or("Keep current"),
+                                    .unwrap_or(localized_text(TextKey::KeepCurrent, self.language)),
                             );
                             ui.horizontal(|ui| {
-                                if ui.button("Rerun").clicked() {
+                                if ui
+                                    .button(localized_text(TextKey::Rerun, self.language))
+                                    .clicked()
+                                {
                                     self.rerun_history(&record);
                                 }
                                 if ui.button("Delete").clicked() {
@@ -1068,21 +1119,27 @@ impl DnsPilotGui {
     }
 
     fn result_ui(&mut self, ui: &mut egui::Ui, result: &BenchmarkDecision) {
-        ui.heading("Result");
-        ui.label(format!("Health: {}", result.health));
+        ui.heading(localized_text(TextKey::Result, self.language));
         ui.label(format!(
-            "Recommended: {}",
+            "{}: {}",
+            localized_text(TextKey::Health, self.language),
+            result.health
+        ));
+        ui.label(format!(
+            "{}: {}",
+            localized_text(TextKey::Recommended, self.language),
             result
                 .recommended_profile_id
                 .as_deref()
-                .unwrap_or("Keep current")
+                .unwrap_or(localized_text(TextKey::KeepCurrent, self.language))
         ));
         ui.label(format!(
-            "Fastest observed: {}",
+            "{}: {}",
+            localized_text(TextKey::FastestObserved, self.language),
             result
                 .fastest_observed_profile_id
                 .as_deref()
-                .unwrap_or("No completed resolver")
+                .unwrap_or(localized_text(TextKey::NoCompletedResolver, self.language))
         ));
         for reason in &result.gate_reasons {
             ui.label(reason);
@@ -1092,7 +1149,10 @@ impl DnsPilotGui {
         }
         match result.primary_action {
             PrimaryResultAction::ApplyGuidance => {
-                if ui.button("Apply guidance").clicked() {
+                if ui
+                    .button(localized_text(TextKey::ApplyGuidance, self.language))
+                    .clicked()
+                {
                     if let Some(profile_id) = &result.recommended_profile_id {
                         self.settings_profile_id = profile_id.clone();
                     }
@@ -1100,7 +1160,10 @@ impl DnsPilotGui {
                 }
             }
             PrimaryResultAction::RetestSystemDns => {
-                if ui.button("Retest system DNS").clicked() {
+                if ui
+                    .button(localized_text(TextKey::RetestSystemDns, self.language))
+                    .clicked()
+                {
                     self.selected_mode = BenchmarkMode::CurrentSystemResolver;
                     self.status = "System DNS retest ready".to_string();
                 }
@@ -1113,15 +1176,19 @@ impl DnsPilotGui {
         ui.heading(localized_text(TextKey::Diagnostics, self.language));
         ui.checkbox(
             &mut self.include_private_diagnostics,
-            "Include private domains and local paths",
+            localized_text(TextKey::IncludePrivateDetails, self.language),
         )
-        .on_hover_text("Disabled by default. Enable only when a support contact requires full diagnostic details.");
+        .on_hover_text(localized_text(
+            TextKey::IncludePrivateDetailsHelp,
+            self.language,
+        ));
         let mut report = self.debug_report_for_display();
         if ui
             .button(localized_text(TextKey::CopyDebugReport, self.language))
             .clicked()
         {
             ui.ctx().copy_text(report.clone());
+            self.status = "Debug report copy requested".to_string();
         }
         ui.add_enabled(
             false,
