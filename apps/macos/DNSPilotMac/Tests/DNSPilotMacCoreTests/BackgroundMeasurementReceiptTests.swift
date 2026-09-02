@@ -69,6 +69,36 @@ final class BackgroundMeasurementReceiptTests: XCTestCase {
         XCTAssertTrue(BackgroundMeasurementReceipt.canStartNewMeasurement(existing: completed))
     }
 
+    func testCompletedReceiptRoutesNotificationToItsSavedHistoryResult() {
+        let receipt = BackgroundMeasurementReceipt.starting(
+            runID: "measurement-1",
+            kind: .dnsBenchmark,
+            at: Date(timeIntervalSince1970: 100)
+        ).transitioned(
+            to: .completed,
+            at: Date(timeIntervalSince1970: 101),
+            resultReference: "history-1"
+        )
+
+        XCTAssertEqual(
+            BackgroundMeasurementResultDestination(receipt: receipt),
+            .savedHistory(resultReference: "history-1")
+        )
+    }
+
+    func testReceiptWithoutSavedHistoryRoutesNotificationToBenchmark() {
+        let receipt = BackgroundMeasurementReceipt.starting(
+            runID: "measurement-1",
+            kind: .dnsBenchmark,
+            at: Date(timeIntervalSince1970: 100)
+        ).transitioned(to: .failed, at: Date(timeIntervalSince1970: 101))
+
+        XCTAssertEqual(
+            BackgroundMeasurementResultDestination(receipt: receipt),
+            .benchmark
+        )
+    }
+
     private func makeDefaults() -> UserDefaults {
         let suiteName = "BackgroundMeasurementReceiptTests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

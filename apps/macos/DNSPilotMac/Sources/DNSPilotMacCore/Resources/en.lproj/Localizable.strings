@@ -343,3 +343,8 @@
 "resultsReady" = "Results are ready.";
 "checkStopped" = "Check stopped";
 "openToRetry" = "Open DNS Pilot to retry.";
+"notificationPermissionNotDetermined" = "Allow notifications to receive completion alerts.";
+"notificationPermissionDenied" = "Notifications are blocked in System Settings.";
+"notificationPermissionAllowed" = "Notifications are allowed by macOS.";
+"notificationDeliveryUnavailable" = "Completion alert was not scheduled because notifications are unavailable.";
+"notificationDeliveryFailed" = "Could not schedule completion alert: %@";

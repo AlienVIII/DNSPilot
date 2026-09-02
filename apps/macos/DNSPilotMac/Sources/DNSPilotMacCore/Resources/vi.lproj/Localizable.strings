@@ -343,3 +343,8 @@
 "resultsReady" = "Kết quả đã sẵn sàng.";
 "checkStopped" = "Kiểm tra đã dừng";
 "openToRetry" = "Mở DNS Pilot để thử lại.";
+"notificationPermissionNotDetermined" = "Cho phép thông báo để nhận cảnh báo khi hoàn tất.";
+"notificationPermissionDenied" = "Thông báo đang bị chặn trong Cài đặt Hệ thống.";
+"notificationPermissionAllowed" = "macOS đã cho phép thông báo.";
+"notificationDeliveryUnavailable" = "Không lên lịch cảnh báo hoàn tất vì thông báo hiện không khả dụng.";
+"notificationDeliveryFailed" = "Không thể lên lịch cảnh báo hoàn tất: %@";

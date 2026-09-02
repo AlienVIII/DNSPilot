@@ -15,7 +15,7 @@ Builds, installs, and visually smokes DNS Pilot in English and Vietnamese.
 
 The command requires an interactive macOS desktop with Accessibility and Screen
 Recording permission for the invoking terminal. It captures one visible, nonblank
-DNS Pilot window PNG per locale and verifies localized Setup and Quick Test actions
+DNS Pilot window PNG per locale and verifies localized Setup and Run actions
 through the accessibility tree. Review the captured sidebar labels visually.
 
 Options:
@@ -156,16 +156,21 @@ image_has_visible_pixels() {
   /usr/bin/swift "$ROOT_DIR/script/check_macos_screenshot.swift" "$screenshot_path"
 }
 
+terminate_existing_app() {
+  pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+  for _ in {1..40}; do
+    pgrep -x "$APP_NAME" >/dev/null || return 0
+    sleep 0.25
+  done
+  fail "$APP_NAME did not terminate before relaunch"
+}
+
 launch_locale() {
   local language="$1"
   local labels="$2"
   local screenshot_path="$OUTPUT_DIR/dns-pilot-$language.png"
 
-  pkill -x "$APP_NAME" >/dev/null 2>&1 || true
-  for _ in {1..40}; do
-    pgrep -x "$APP_NAME" >/dev/null || break
-    sleep 0.25
-  done
+  terminate_existing_app
 
   /usr/bin/open -n "$APP_BUNDLE" --args -dnspilot.language "$language"
   for _ in {1..80}; do
@@ -189,10 +194,10 @@ launch_locale() {
   fail "DNS Pilot did not reach the expected $language visual state"
 }
 
-launch_locale en 'Show Setup|Run Quick Test'
-launch_locale vi 'Mở thiết lập|Kiểm tra nhanh'
+launch_locale en 'Show Setup|Run'
+launch_locale vi 'Mở thiết lập|Chạy'
 
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+terminate_existing_app
 /usr/bin/open "$APP_BUNDLE"
 
 printf '\nVisual macOS smoke passed. Evidence: %s\n' "$OUTPUT_DIR"

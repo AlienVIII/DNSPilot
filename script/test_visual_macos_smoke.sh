@@ -36,6 +36,9 @@ if rg -q 'build_and_run.sh.*--verify' "$SMOKE"; then
 fi
 rg -q 'image_has_visible_pixels' "$SMOKE" || fail "visual smoke does not verify screenshot pixels"
 rg -q 'kAXMenuBarRole' "$SMOKE" || fail "visual smoke can satisfy window labels from the menu bar"
+rg -q '^terminate_existing_app()' "$SMOKE" || fail "visual smoke does not wait for the previous app process to terminate"
+grep -Fqx "launch_locale en 'Show Setup|Run'" "$SMOKE" || fail "visual smoke does not check the compact English window actions"
+grep -Fqx "launch_locale vi 'Mở thiết lập|Chạy'" "$SMOKE" || fail "visual smoke does not check the compact Vietnamese window actions"
 if rg -q 'saving full-screen evidence' "$SMOKE"; then
   fail "visual smoke must not fall back to full-screen capture"
 fi

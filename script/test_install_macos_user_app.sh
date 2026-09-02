@@ -41,8 +41,19 @@ run_installer() {
     "$INSTALLER" --source-app "$1"
 }
 
+run_installer_with_post_install_failure() {
+  env \
+    DNSPILOT_INSTALL_TEST_MODE=1 \
+    DNSPILOT_INSTALL_TEST_APPLICATIONS_DIR="$APPLICATIONS_DIR" \
+    DNSPILOT_INSTALL_TEST_FORCE_POST_INSTALL_VALIDATION_FAILURE=1 \
+    "$INSTALLER" --source-app "$1"
+}
+
 bash -n "$INSTALLER"
 printf 'PASS shell syntax\n'
+
+rg -q 'post-install validation override requires the isolated test applications directory' "$INSTALLER" || fail "post-install validation override is not confined to the isolated test directory"
+printf 'PASS test fault isolation\n'
 
 help_output="$("$INSTALLER" --help 2>&1)"
 [[ "$help_output" == *'~/Applications/DNS Pilot.app'* ]] || fail "help does not name the per-user app"
@@ -64,6 +75,17 @@ if find "$APPLICATIONS_DIR" -maxdepth 1 -name '.dnspilot-install.*' -print -quit
   fail "installer left staging content"
 fi
 printf 'PASS update replacement\n'
+
+rm -rf -- "$SOURCE_APP"
+make_fixture_app "$SOURCE_APP" com.dnspilot.mac third
+if run_installer_with_post_install_failure "$SOURCE_APP" >/dev/null 2>&1; then
+  fail "installer accepted a forced post-install validation failure"
+fi
+grep -q second "$DESTINATION_APP/Contents/MacOS/DNSPilotMac" || fail "installer did not restore the previous app after post-install validation failed"
+if find "$APPLICATIONS_DIR" -maxdepth 1 -name '.dnspilot-install.*' -print -quit | grep -q .; then
+  fail "installer left staging content after rollback"
+fi
+printf 'PASS post-install rollback\n'
 
 rm -rf -- "$DESTINATION_APP"
 make_fixture_app "$DESTINATION_APP" com.example.other occupied

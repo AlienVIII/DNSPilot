@@ -402,6 +402,11 @@ public enum DNSPilotTextKey: String, CaseIterable, Sendable {
     case resultsReady
     case checkStopped
     case openToRetry
+    case notificationPermissionNotDetermined
+    case notificationPermissionDenied
+    case notificationPermissionAllowed
+    case notificationDeliveryUnavailable
+    case notificationDeliveryFailed
 }
 
 public struct DNSPilotLocalizer: Equatable, Sendable {

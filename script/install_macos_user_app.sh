@@ -51,6 +51,12 @@ if [[ -n "${DNSPILOT_INSTALL_TEST_APPLICATIONS_DIR:-}" ]]; then
   [[ "$APPLICATIONS_DIR" == /tmp/dnspilot-install-test.* ]] || fail "test applications directory must use /tmp/dnspilot-install-test.*"
 fi
 
+if [[ -n "${DNSPILOT_INSTALL_TEST_FORCE_POST_INSTALL_VALIDATION_FAILURE:-}" ]]; then
+  [[ "${DNSPILOT_INSTALL_TEST_MODE:-}" == "1" ]] || fail "post-install validation override requires DNSPILOT_INSTALL_TEST_MODE=1"
+  [[ "${DNSPILOT_INSTALL_TEST_FORCE_POST_INSTALL_VALIDATION_FAILURE}" == "1" ]] || fail "invalid post-install validation override"
+  [[ -n "${DNSPILOT_INSTALL_TEST_APPLICATIONS_DIR:-}" && "$APPLICATIONS_DIR" == /tmp/dnspilot-install-test.* ]] || fail "post-install validation override requires the isolated test applications directory"
+fi
+
 [[ "$(uname -s)" == "Darwin" ]] || fail "per-user installation requires macOS"
 [[ "$SOURCE_APP" = /* ]] || fail "--source-app must be absolute"
 [[ -d "$SOURCE_APP" && ! -L "$SOURCE_APP" ]] || fail "source app is missing or unsafe: $SOURCE_APP"
@@ -61,15 +67,21 @@ bundle_identifier() {
   /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$1/Contents/Info.plist" 2>/dev/null || true
 }
 
+is_owned_app() {
+  local app_bundle="$1"
+
+  [[ -d "$app_bundle" && ! -L "$app_bundle" ]] || return 1
+  [[ "$(bundle_identifier "$app_bundle")" == "$BUNDLE_ID" ]] || return 1
+  [[ -x "$app_bundle/Contents/MacOS/$PROCESS_NAME" ]] || return 1
+  [[ -x "$app_bundle/Contents/Library/Helpers/dnspilot-cli" ]] || return 1
+  /usr/bin/codesign --verify --strict "$app_bundle" >/dev/null 2>&1
+}
+
 validate_owned_app() {
   local app_bundle="$1"
   local label="$2"
 
-  [[ -d "$app_bundle" && ! -L "$app_bundle" ]] || fail "$label is missing or unsafe: $app_bundle"
-  [[ "$(bundle_identifier "$app_bundle")" == "$BUNDLE_ID" ]] || fail "$label does not belong to DNS Pilot: $app_bundle"
-  [[ -x "$app_bundle/Contents/MacOS/$PROCESS_NAME" ]] || fail "$label executable is missing"
-  [[ -x "$app_bundle/Contents/Library/Helpers/dnspilot-cli" ]] || fail "$label CLI helper is missing"
-  /usr/bin/codesign --verify --strict "$app_bundle" >/dev/null 2>&1 || fail "$label signature does not verify"
+  is_owned_app "$app_bundle" || fail "$label is missing, unsafe, or does not belong to DNS Pilot: $app_bundle"
 }
 
 cleanup() {
@@ -124,6 +136,16 @@ if ! /bin/mv "$STAGED_APP" "$DESTINATION_APP"; then
   fail "could not install DNS Pilot"
 fi
 
-validate_owned_app "$DESTINATION_APP" "installed app"
+if [[ "${DNSPILOT_INSTALL_TEST_FORCE_POST_INSTALL_VALIDATION_FAILURE:-}" == "1" ]]; then
+  printf '# forced post-install validation failure\n' >> "$DESTINATION_APP/Contents/MacOS/$PROCESS_NAME"
+fi
+
+if ! is_owned_app "$DESTINATION_APP"; then
+  rm -rf -- "$DESTINATION_APP"
+  if [[ -d "$PREVIOUS_APP" && ! -e "$DESTINATION_APP" ]]; then
+    /bin/mv "$PREVIOUS_APP" "$DESTINATION_APP"
+  fi
+  fail "installed app validation failed; previous app restored when available"
+fi
 printf 'DNS Pilot installed: %s\n' "$DESTINATION_APP"
 printf 'Existing profiles, suites, settings, and history were preserved.\n'

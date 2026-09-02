@@ -1,6 +1,6 @@
 # DNSPilot Roadmap
 
-Last reviewed: 2026-08-24.
+Last reviewed: 2026-09-03.
 
 ## P0: Guided Connection Check
 
@@ -68,9 +68,9 @@ Last reviewed: 2026-08-24.
   source, fresh-ID, wrong-question, and invalid response packet tests in `8a53a31`.
 - [x] Make macOS Power Restore compare current DNS to the recorded applied state before
   mutation; legacy snapshots are hidden/cleared and 274 Swift tests pass in `e4d3ec6`.
-- [ ] Capture packaged macOS EN/VI light-mode screenshots and native accessibility
-  evidence. The validator proves blank captures fail closed, but the current real smoke
-  exits 6 because `Run Quick Test` is missing from the packaged window AX tree.
+- [x] Capture packaged macOS EN/VI light-mode screenshots and native accessibility
+  evidence. The smoke validates compact localized actions, rejects blank captures, and
+  waits for the prior process to exit before relaunching.
 - [ ] Capture signed macOS Dark Mode, narrow-window, keyboard, and VoiceOver evidence.
 - [ ] Run five moderated users through Health Check -> DNS Benchmark -> Set up -> Retest.
 - [ ] Complete Apple signing/provisioning, hosted support/privacy, signed screenshots,
@@ -79,9 +79,10 @@ Last reviewed: 2026-08-24.
   refactor or explicitly justify the nine-argument `apply_plan`; do not lower clippy.
 - [ ] Align Mobile to the Expo SDK 57 compatible patch set reported by `expo install
   --check`, then rerun `npm run verify` and `npm run preflight:release` serially.
-- [ ] Re-review macOS `78239d8` after exact-result notification activation, OS permission
-  reconciliation, scheduling diagnostics, installer rollback, and real visual smoke pass.
-  Do not merge its current D14 completion claims while visual QA is red.
+- [x] Re-review the macOS D14 candidate after exact-result notification activation, OS
+  permission reconciliation, scheduling diagnostics, installer rollback, and real visual
+  smoke pass. Real OS notification delivery and privileged DNS mutation remain manual
+  evidence, not automated release claims.
 
 ## P1: Shared Core
 

@@ -87,6 +87,42 @@ public struct BackgroundMeasurementReceipt: Codable, Equatable, Sendable {
     }
 }
 
+public enum BackgroundMeasurementResultDestination: Equatable, Sendable {
+    case benchmark
+    case savedHistory(resultReference: String)
+
+    public init(receipt: BackgroundMeasurementReceipt) {
+        self.init(status: receipt.status, resultReference: receipt.resultReference)
+    }
+
+    public init(status: BackgroundMeasurementStatus, resultReference: String?) {
+        guard status == .completed,
+              let resultReference,
+              !resultReference.isEmpty else {
+            self = .benchmark
+            return
+        }
+        self = .savedHistory(resultReference: resultReference)
+    }
+}
+
+public enum BackgroundMeasurementNotificationAuthorization: Equatable, Sendable {
+    case notDetermined
+    case denied
+    case authorized
+    case provisional
+    case ephemeral
+
+    public var allowsDelivery: Bool {
+        switch self {
+        case .authorized, .provisional, .ephemeral:
+            true
+        case .notDetermined, .denied:
+            false
+        }
+    }
+}
+
 public final class BackgroundMeasurementReceiptStore {
     public static let userDefaultsKey = "dnspilot.background-measurement-receipt.v1"
 

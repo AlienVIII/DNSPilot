@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import DNSPilotMacCore
 
@@ -5,6 +6,7 @@ struct DNSPilotSettingsView: View {
     @AppStorage(DNSPilotLanguagePreferences.storageKey) private var languageCode = DNSPilotLanguage.system.rawValue
     @AppStorage(MacOSPowerDNSActionConfiguration.userDefaultsKey) private var userEnabledPowerActions = false
     @AppStorage(BackgroundMeasurementNotificationPreferences.enabledKey) private var notificationsEnabled = false
+    @State private var notificationAuthorization = BackgroundMeasurementNotificationAuthorization.notDetermined
 
     private var localizer: DNSPilotLocalizer {
         DNSPilotLocalizer(languageCode: languageCode)
@@ -14,6 +16,17 @@ struct DNSPilotSettingsView: View {
         MacOSSettingsPresentation(
             isPowerBuild: MacOSPowerDNSActionConfiguration.isBuildCapable()
         )
+    }
+
+    private var notificationAuthorizationMessage: String {
+        switch notificationAuthorization {
+        case .notDetermined:
+            localizer.text(.notificationPermissionNotDetermined)
+        case .denied:
+            localizer.text(.notificationPermissionDenied)
+        case .authorized, .provisional, .ephemeral:
+            localizer.text(.notificationPermissionAllowed)
+        }
     }
 
     var body: some View {
@@ -37,19 +50,24 @@ struct DNSPilotSettingsView: View {
                 Toggle(
                     localizer.text(.notifyWhenDone),
                     isOn: Binding(
-                        get: { notificationsEnabled },
+                        get: { notificationsEnabled && notificationAuthorization.allowsDelivery },
                         set: { enabled in
                             guard enabled else {
                                 notificationsEnabled = false
                                 return
                             }
                             Task {
-                                notificationsEnabled = await DNSPilotLocalNotifications.shared.requestAuthorization()
+                                let authorization = await DNSPilotLocalNotifications.shared.requestAuthorization()
+                                notificationAuthorization = authorization
+                                notificationsEnabled = authorization.allowsDelivery
                             }
                         }
                     )
                 )
                 .help(localizer.text(.notifyWhenDoneMessage))
+                Text(notificationAuthorizationMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if presentation.showsPowerActions {
@@ -63,6 +81,18 @@ struct DNSPilotSettingsView: View {
         .formStyle(.grouped)
         .padding(DNSPilotDesign.Spacing.panel)
         .frame(width: 460)
+        .task {
+            await refreshNotificationAuthorization()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task {
+                await refreshNotificationAuthorization()
+            }
+        }
+    }
+
+    private func refreshNotificationAuthorization() async {
+        notificationAuthorization = await DNSPilotLocalNotifications.shared.notificationAuthorization()
     }
 }
 

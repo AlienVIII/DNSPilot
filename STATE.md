@@ -1,6 +1,6 @@
 # DNSPilot State
 
-Last updated: 2026-08-24.
+Last updated: 2026-09-03.
 
 ## Current Truth
 
@@ -29,14 +29,12 @@ Last updated: 2026-08-24.
 - Health Check will not use router credentials or mutate router/OS network state. DNS
   Benchmark keeps a user-selected resolver pool, separate A/IPv4 and AAAA/IPv6
   measurements, and a 500 ms maximum per DNS attempt.
-- macOS lane `78239d8` adds a receipt, contextual local notifications, Store/Power
-  signing separation, and a canonical per-user source installer. The local workflow
-  builds, ad-hoc signs, validates, installs, and opens one
-  `~/Applications/DNS Pilot.app`; Store builds are sandboxed and Power direct-install
-  builds are explicitly non-sandbox. CI and Store/Power preflight pass with 282 Swift
-  tests, but the lane is not merged: notification activation does not resolve the exact
-  result, OS authorization can drift from the app toggle, scheduling errors are silent,
-  and real visual smoke exits 6 because `Run Quick Test` is absent.
+- macOS Power candidate resolves notification activation to the exact saved result,
+  reconciles the app preference with actual OS notification authorization, surfaces
+  local scheduling failures, restores a prior app after post-install validation failure,
+  and has packaged EN/VI visual smoke. The local workflow builds, ad-hoc signs,
+  validates, installs, and opens one `~/Applications/DNS Pilot.app`; Store builds are
+  sandboxed and Power direct-install builds are explicitly non-sandbox.
 - Linux milestones 0-5 are substantially implemented: Power is fail-closed, Core
   contracts/storage are typed/shared, progress is streamed/cancellable, and the
   consumer decision/history loop exists. Accessibility, source-built packages, and
@@ -63,15 +61,16 @@ Last updated: 2026-08-24.
 
 ## Latest Validation
 
-- macOS: `./script/ci_macos.sh` and
-  `./script/preflight_macos_release.sh --include-power` pass on 2026-08-24 with 282 Swift
-  tests, live DNS-only/DNS+TCP smoke, Store/Power bundle validation, and the D14
-  Store-safety contract. Real packaged visual smoke fails on its expected Quick Test
-  accessibility label, so no current EN/VI visual pass is claimed. Power signing fails
-  closed unless the direct-install artifact avoids App Sandbox, while Store signing
-  requires sandbox/network entitlements. Power Restore verifies the applied DNS state
-  before mutation. Reopen policy keeps an existing window singleton and defers to AppKit
-  only when no window is visible.
+- macOS: `swift test`, `./script/ci_macos.sh`, and
+  `./script/preflight_macos_release.sh --include-power` pass on 2026-09-03. They cover
+  live DNS-only/DNS+TCP smoke, Store/Power bundle validation, and the D14 Store-safety
+  contract. Packaged EN/VI visual smoke now passes after checking compact
+  actions and waiting for process termination before relaunch. Accessibility-driven
+  Quick Test reaches Result while one visible window and one process remain. Power
+  signing fails closed unless the direct-install artifact avoids App Sandbox, while
+  Store signing requires sandbox/network entitlements. Power Restore verifies the
+  applied DNS state before mutation. Reopen policy keeps an existing window singleton
+  and defers to AppKit only when no window is visible.
 - Linux: fmt, tests, and clippy with `-D warnings` pass at `034621c`.
 - Windows: `apps/windows/validate-windows-lane.sh` passes 65 Core/static tests; the
   expected Windows-only XAML compiler remains `NOT RUN` on macOS.

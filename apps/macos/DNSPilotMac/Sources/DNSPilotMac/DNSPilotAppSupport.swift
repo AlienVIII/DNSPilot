@@ -14,6 +14,8 @@ final class DNSPilotNavigationModel: ObservableObject {
     @Published var quickBenchmarkRequestID = 0
     @Published var systemDNSValidationRequestID = 0
     @Published var benchmarkCancellationRequestID = 0
+    @Published var historyResultReference: String?
+    @Published var historyResultRequestID = 0
     @Published var lastGuidedApplyPlan: GuidedApplyPlanSnapshot?
     @Published var pendingGuidedApplyPlanConfirmation: GuidedApplyPlanSnapshot?
     @Published var isShowingFlushDNSConfirmation = false
@@ -39,6 +41,22 @@ final class DNSPilotNavigationModel: ObservableObject {
     func requestBenchmarkCancellation() {
         selection = .benchmark
         benchmarkCancellationRequestID += 1
+    }
+
+    func requestHistory(resultReference: String? = nil) {
+        historyResultReference = resultReference
+        historyResultRequestID += 1
+        selection = .history
+    }
+
+    func requestMeasurementResult(_ destination: BackgroundMeasurementResultDestination) {
+        switch destination {
+        case .benchmark:
+            historyResultReference = nil
+            selection = .benchmark
+        case .savedHistory(let resultReference):
+            requestHistory(resultReference: resultReference)
+        }
     }
 
     func setLastGuidedApplyPlan(_ snapshot: GuidedApplyPlanSnapshot?) {
@@ -111,7 +129,7 @@ struct DNSPilotMenuBarView: View {
         case .systemDNSValidation:
             navigation.requestSystemDNSValidation()
         case .history:
-            navigation.selection = .history
+            navigation.requestHistory()
         case .networkSettings:
             openNetworkSettings()
             return

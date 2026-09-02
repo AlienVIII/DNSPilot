@@ -50,7 +50,7 @@ struct DNSPilotMacApp: App {
                 .keyboardShortcut("p", modifiers: [.command, .shift])
 
                 Button(localizer.text(.openHistory)) {
-                    navigation.selection = .history
+                    navigation.requestHistory()
                     _ = DNSPilotWindowActivation.activateExistingWindows()
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
@@ -400,9 +400,23 @@ private struct DNSPilotShellView: View {
         DNSPilotLocalizer(languageCode: languageCode)
     }
 
+    private var sidebarSelection: Binding<SidebarSelection?> {
+        Binding(
+            get: { navigation.selection },
+            set: { selection in
+                if selection == .history {
+                    // A sidebar visit is a new browsing request, not a notification deep-link.
+                    navigation.requestHistory()
+                } else {
+                    navigation.selection = selection
+                }
+            }
+        )
+    }
+
     var body: some View {
         NavigationSplitView {
-            List(selection: $navigation.selection) {
+            List(selection: sidebarSelection) {
                 Section {
                     Label(localizer.text(.checkDNS), systemImage: "speedometer")
                         .tag(SidebarSelection.benchmark)
@@ -439,14 +453,19 @@ private struct DNSPilotShellView: View {
                     onProfileSaved: refreshCatalogFromStorage
                 )
             case .history:
-                HistoryDetailHostView(catalogViewModel: catalogViewModel, localizer: localizer)
+                HistoryDetailHostView(
+                    catalogViewModel: catalogViewModel,
+                    localizer: localizer,
+                    selectedHistoryID: navigation.historyResultReference,
+                    historyResultRequestID: navigation.historyResultRequestID
+                )
             case .catalog:
                 CatalogOverviewDetailView(viewModel: catalogViewModel, localizer: localizer)
             }
         }
         .onAppear {
-            DNSPilotLocalNotifications.shared.configure { _ in
-                navigation.selection = .benchmark
+            DNSPilotLocalNotifications.shared.configure { destination in
+                navigation.requestMeasurementResult(destination)
                 _ = DNSPilotWindowActivation.activateExistingWindows()
             }
             guard !hasRequestedStorageCatalogRefresh else {
@@ -1458,6 +1477,8 @@ private struct BenchmarkUnavailableView: View {
 private struct HistoryDetailHostView: View {
     let catalogViewModel: CatalogViewModel
     let localizer: DNSPilotLocalizer
+    let selectedHistoryID: String?
+    let historyResultRequestID: Int
 
     var body: some View {
         if let loadErrorMessage = catalogViewModel.loadErrorMessage {
@@ -1465,7 +1486,13 @@ private struct HistoryDetailHostView: View {
         } else if let catalog = catalogViewModel.catalog {
             switch BenchmarkExecutableResolver().resolve() {
             case .ready(let executableURL):
-                HistoryDetailView(catalog: catalog, executableURL: executableURL, localizer: localizer)
+                HistoryDetailView(
+                    catalog: catalog,
+                    executableURL: executableURL,
+                    localizer: localizer,
+                    selectedHistoryID: selectedHistoryID,
+                    historyResultRequestID: historyResultRequestID
+                )
             case .unavailable(let message):
                 HistoryUnavailableView(title: localizer.text(.history), message: message)
             }
@@ -1497,6 +1524,8 @@ private struct HistoryDetailView: View {
     let catalog: CatalogSnapshot
     let executableURL: URL
     let localizer: DNSPilotLocalizer
+    let selectedHistoryID: String?
+    let historyResultRequestID: Int
 
     @State private var isLoading = false
     @State private var isDeleting = false
@@ -1504,6 +1533,7 @@ private struct HistoryDetailView: View {
     @State private var historyPendingDelete: BenchmarkHistoryRow?
     @State private var isDeleteHistoryConfirmationPresented = false
     @State private var isClearHistoryConfirmationPresented = false
+    @State private var historyLoadGeneration = 0
 
     private var isMutatingHistory: Bool {
         isLoading || isDeleting
@@ -1517,7 +1547,8 @@ private struct HistoryDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollViewReader { proxy in
+            ScrollView {
             VStack(alignment: .leading, spacing: DNSPilotDesign.Spacing.panel) {
                 HStack {
                     Text(localizer.text(.history))
@@ -1549,6 +1580,7 @@ private struct HistoryDetailView: View {
                         viewModel: viewModel,
                         isDisabled: isMutatingHistory,
                         localizer: localizer,
+                        highlightedHistoryID: selectedHistoryID,
                         onDelete: requestDeleteHistory
                     )
                 case .failed(let message):
@@ -1557,15 +1589,29 @@ private struct HistoryDetailView: View {
                     Text(localizer.text(.historyNotLoaded))
                         .foregroundStyle(.secondary)
                 }
+                }
+                .padding(DNSPilotDesign.Spacing.panel)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding(DNSPilotDesign.Spacing.panel)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .onChange(of: historyLoadGeneration) { _, _ in
+                guard let selectedHistoryID else {
+                    return
+                }
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        proxy.scrollTo(selectedHistoryID, anchor: .top)
+                    }
+                }
+            }
         }
         .background(DNSPilotDesign.Palette.background)
         .onAppear {
             if outcome == nil {
                 loadHistory()
             }
+        }
+        .onChange(of: historyResultRequestID) { _, _ in
+            loadHistory()
         }
         .alert(
             localizer.text(.deleteSavedRun),
@@ -1615,6 +1661,7 @@ private struct HistoryDetailView: View {
             DispatchQueue.main.async {
                 outcome = nextOutcome
                 isLoading = false
+                historyLoadGeneration += 1
             }
         }
     }
@@ -1739,6 +1786,7 @@ private struct BenchmarkDetailView: View {
     @AppStorage(BackgroundMeasurementNotificationPreferences.enabledKey) private var notificationsEnabled = false
     @AppStorage(BackgroundMeasurementNotificationPreferences.promptHandledKey) private var notificationPromptHandled = false
     @State private var isShowingNotificationPrompt = false
+    @State private var notificationScheduleOutcome: DNSPilotLocalNotificationScheduleOutcome?
     @State private var currentBenchmarkPlan: BenchmarkPlanViewModel?
     @State private var currentBenchmarkStartedAt: Date?
     @State private var currentProgressEvents: [BenchmarkProgressEvent] = []
@@ -1786,6 +1834,17 @@ private struct BenchmarkDetailView: View {
             planSummary: BenchmarkProgressPlanSummary(plan: currentBenchmarkPlan ?? setupViewModel.plan),
             progressEvents: currentProgressEvents
         )
+    }
+
+    private var notificationScheduleMessage: String? {
+        switch notificationScheduleOutcome {
+        case .unavailable:
+            localizer.text(.notificationDeliveryUnavailable)
+        case .failed(let message):
+            localizer.formatted(.notificationDeliveryFailed, message)
+        case nil, .notScheduled, .scheduled:
+            nil
+        }
     }
 
     private var suiteForm: CustomDomainSuiteFormViewModel {
@@ -1936,7 +1995,8 @@ private struct BenchmarkDetailView: View {
             Button(localizer.text(.enableNotifications)) {
                 notificationPromptHandled = true
                 Task {
-                    notificationsEnabled = await DNSPilotLocalNotifications.shared.requestAuthorization()
+                    let authorization = await DNSPilotLocalNotifications.shared.requestAuthorization()
+                    notificationsEnabled = authorization.allowsDelivery
                 }
             }
             Button(localizer.text(.cancel), role: .cancel) {
@@ -1996,6 +2056,11 @@ private struct BenchmarkDetailView: View {
         }
         if let estimatedDurationWarning = setupViewModel.localizedEstimatedDurationWarning(localizer: localizer) {
             Label(estimatedDurationWarning, systemImage: "hourglass")
+                .font(.caption)
+                .foregroundStyle(DNSPilotDesign.Palette.warning)
+        }
+        if let notificationScheduleMessage {
+            Label(notificationScheduleMessage, systemImage: "bell.badge")
                 .font(.caption)
                 .foregroundStyle(DNSPilotDesign.Palette.warning)
         }
@@ -2798,6 +2863,7 @@ private struct BenchmarkDetailView: View {
         currentApplyPlanRunID = nil
         currentDNSBeforeApplySnapshot = .unavailable
         currentProgressEvents = []
+        notificationScheduleOutcome = nil
         lastBenchmarkElapsedMS = nil
         let startedAt = Date()
         currentBenchmarkStartedAt = startedAt
@@ -2850,11 +2916,12 @@ private struct BenchmarkDetailView: View {
                 currentBenchmarkStartedAt = nil
                 lastBenchmarkElapsedMS = Self.elapsedMilliseconds(since: startedAt)
                 switch nextOutcome {
-                case .completed:
+                case .completed(let resultViewModel):
                     runStateMachine.finishCompleted(runID: runID)
                     finishMeasurementReceipt(
                         runID: measurementRunID,
-                        status: .completed
+                        status: .completed,
+                        resultReference: resultViewModel.fullSavedHistoryID
                     )
                 case .failed(let failure):
                     runStateMachine.finishFailed(runID: runID, message: failure.message)
@@ -2954,13 +3021,14 @@ private struct BenchmarkDetailView: View {
 
     private func finishMeasurementReceipt(
         runID: String,
-        status: BackgroundMeasurementStatus
+        status: BackgroundMeasurementStatus,
+        resultReference: String? = nil
     ) {
         let store = BackgroundMeasurementReceiptStore()
         guard let receipt = store.load(), receipt.runID == runID else {
             return
         }
-        store.save(receipt.transitioned(to: status))
+        store.save(receipt.transitioned(to: status, resultReference: resultReference))
         if BackgroundMeasurementNotificationPolicy.shouldScheduleCompletion(
             status: status,
             notificationsEnabled: notificationsEnabled,
@@ -2972,12 +3040,15 @@ private struct BenchmarkDetailView: View {
             let body = status == .completed
                 ? localizer.text(.resultsReady)
                 : localizer.text(.openToRetry)
-            DNSPilotLocalNotifications.shared.scheduleCompletion(
-                runID: runID,
-                status: status,
-                title: title,
-                body: body
-            )
+            Task {
+                notificationScheduleOutcome = await DNSPilotLocalNotifications.shared.scheduleCompletion(
+                    runID: runID,
+                    status: status,
+                    resultReference: resultReference,
+                    title: title,
+                    body: body
+                )
+            }
         }
         if currentMeasurementRunID == runID {
             currentMeasurementRunID = nil
@@ -3927,6 +3998,7 @@ private struct HistoryResultPanel: View {
     let viewModel: BenchmarkHistoryViewModel
     let isDisabled: Bool
     let localizer: DNSPilotLocalizer
+    let highlightedHistoryID: String?
     let onDelete: (BenchmarkHistoryRow) -> Void
 
     var body: some View {
@@ -3941,6 +4013,7 @@ private struct HistoryResultPanel: View {
                             row: row,
                             isDisabled: isDisabled,
                             localizer: localizer,
+                            isHighlighted: row.id == highlightedHistoryID,
                             onDelete: { onDelete(row) }
                         )
                     }
@@ -3954,6 +4027,7 @@ private struct HistoryRowView: View {
     let row: BenchmarkHistoryRow
     let isDisabled: Bool
     let localizer: DNSPilotLocalizer
+    let isHighlighted: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -3999,6 +4073,15 @@ private struct HistoryRowView: View {
             .disabled(isDisabled)
         }
         .padding(.vertical, 4)
+        .padding(.horizontal, isHighlighted ? DNSPilotDesign.Spacing.controlGap : 0)
+        .background {
+            if isHighlighted {
+                RoundedRectangle(cornerRadius: DNSPilotDesign.Radius.card)
+                    .fill(DNSPilotDesign.Palette.accent.opacity(0.12))
+            }
+        }
+        .id(row.id)
+        .accessibilityIdentifier("history-row-\(row.id)")
     }
 }
 

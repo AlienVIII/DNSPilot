@@ -1,6 +1,6 @@
 # Global Progress
 
-Last integration review: 2026-08-24.
+Last integration review: 2026-09-03.
 
 ## Completed
 
@@ -11,24 +11,24 @@ Last integration review: 2026-08-24.
 - Mobile dev-bridge security, backup policy, concise first-run UI, Store entitlement
   isolation, and local release-shape gates are integrated.
 - Current Linux tests/clippy and Windows 65-test/static gates pass.
-- macOS `78239d8` CI and Store/Power preflight pass with 282 Swift tests; the branch has
-  not been merged because its exact-result and visual evidence contracts are red.
+- macOS D14 candidate resolves exact-result notification activation, reconciles OS
+  notification authorization, surfaces scheduling failure, rolls back failed updates,
+  and passes packaged EN/VI visual smoke. Swift test passes 285 tests; Quick Test has
+  local accessibility evidence for a visible Result with a single open window.
 - Product research identifies Guided Connection Check as the highest-value consumer
   direction; architecture amendment remains pending moderated evidence.
 
 ## Active Engineering Queue
 
 1. Restore green gates: Core Rust 1.96 clippy and Mobile Expo SDK 57 patch alignment.
-2. Fix/revalidate macOS exact-result notification activation, OS authorization truth,
-   scheduling diagnostics, installer rollback, and packaged EN/VI visual smoke.
-3. Implement Core D13 Health Check with synthetic failure fixtures.
-4. Build the macOS Guided Connection Check reference journey and run five users.
-5. Adapt the proven contract to Linux, Windows, iOS/iPadOS, and Android.
+2. Implement Core D13 Health Check with synthetic failure fixtures.
+3. Build the macOS Guided Connection Check reference journey and run five users.
+4. Adapt the proven contract to Linux, Windows, iOS/iPadOS, and Android.
 
 ## Held Work
 
-- macOS `78239d8` remains a clean, validated-but-red lane; do not merge or repeat its D14
-  completion claims until current findings close.
+- macOS D14 runtime behavior remains subject to real notification delivery and privileged
+  DNS mutation evidence; no Store-safety or automation boundary is relaxed to obtain it.
 - Mobile source is integrated, but no new release candidate is claimed while Expo
   compatibility and preflight are red.
 - Optional entitled iOS DNS remains blocked at Apple capability, signing, and physical

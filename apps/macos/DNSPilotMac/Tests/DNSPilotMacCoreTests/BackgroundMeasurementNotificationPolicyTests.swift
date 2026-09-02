@@ -2,6 +2,14 @@ import XCTest
 @testable import DNSPilotMacCore
 
 final class BackgroundMeasurementNotificationPolicyTests: XCTestCase {
+    func testOnlySystemAuthorizedStatesAllowCompletionNotifications() {
+        XCTAssertFalse(BackgroundMeasurementNotificationAuthorization.notDetermined.allowsDelivery)
+        XCTAssertFalse(BackgroundMeasurementNotificationAuthorization.denied.allowsDelivery)
+        XCTAssertTrue(BackgroundMeasurementNotificationAuthorization.authorized.allowsDelivery)
+        XCTAssertTrue(BackgroundMeasurementNotificationAuthorization.provisional.allowsDelivery)
+        XCTAssertTrue(BackgroundMeasurementNotificationAuthorization.ephemeral.allowsDelivery)
+    }
+
     func testOffersOptInOnlyBeforePromptIsHandled() {
         XCTAssertTrue(
             BackgroundMeasurementNotificationPolicy.shouldOfferOptIn(
