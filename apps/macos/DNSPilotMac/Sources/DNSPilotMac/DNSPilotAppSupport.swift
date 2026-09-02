@@ -146,9 +146,14 @@ struct DNSPilotMenuBarView: View {
 enum DNSPilotWindowActivation {
     @discardableResult
     static func activateExistingWindows() -> Bool {
-        let windows = NSApp.windows.filter { $0.canBecomeKey && !$0.isMiniaturized }
-        guard !windows.isEmpty else { return false }
-        windows.forEach { $0.makeKeyAndOrderFront(nil) }
+        let windows = NSApp.windows.filter { $0.canBecomeKey }
+        guard let window = windows.first(where: { $0.title == "DNS Pilot" }) ?? windows.first else {
+            return false
+        }
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         return true
     }
