@@ -61,13 +61,15 @@ DNSPILOT_CLI_PATH="$PWD/target/debug/dnspilot-cli" \
   cargo run --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --bin dnspilot-linux-gui
 ```
 
-In the GUI, the Benchmark tab is the primary no-tray workflow. It shows
+In the GUI, `Check DNS` is the primary no-tray workflow. `Profiles` manages custom
+DNS profiles and custom test suites; `History` reruns or removes saved local results.
+`Settings` and Help are top commands, not required navigation. Check DNS shows
 capability-gated benchmark modes, selected DNS profiles, suite/domain controls,
 IPv4/IPv6 and A/AAAA controls, a process status table, and copyable diagnostics.
 Benchmark commands run on a background worker, so the main window stays
 responsive and prevents duplicate runs until the active job reaches a terminal
 state.
-The Settings tab selects one profile and address family. Flatpak/Snap copy the
+Settings selects one profile and address family. Flatpak/Snap copy the
 filtered DNS values and render an in-app manual guide without mutation. deb/rpm show
 diagnostics until the separately verified Power service exists.
 Installed packages place `dnspilot-cli` beside the GUI, so normal users do not
@@ -77,6 +79,7 @@ Release binaries:
 
 ```sh
 cargo build --release -p dnspilot-cli
+apps/linux/scripts/ci.sh
 cargo build --manifest-path apps/linux/DNSPilotLinux/Cargo.toml --release
 ls apps/linux/DNSPilotLinux/target/release/dnspilot-linux-gui \
    apps/linux/DNSPilotLinux/target/release/dnspilot-linux-shell \
@@ -154,6 +157,24 @@ apps/linux/scripts/build-packages.sh all
 Artifacts and temporary roots are written under `apps/linux/dist/`. Detailed
 install, smoke, store, and rollback steps live in
 `apps/linux/linux-publish-checklist.md`.
+
+The package version is read from `apps/linux/DNSPilotLinux/Cargo.toml`; verify static
+package metadata before a release with:
+
+```sh
+apps/linux/scripts/validate-release-metadata.sh
+```
+
+After each package is installed on a disposable Linux QA host, run its non-mutating
+smoke gate. It calls `readiness` and rejects default payloads containing a Power helper
+or polkit policy; it never changes DNS:
+
+```sh
+apps/linux/scripts/package-smoke.sh flatpak
+apps/linux/scripts/package-smoke.sh snap
+apps/linux/scripts/package-smoke.sh deb
+apps/linux/scripts/package-smoke.sh rpm
+```
 
 Manual gates remain:
 

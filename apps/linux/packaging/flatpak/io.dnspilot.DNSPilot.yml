@@ -1,3 +1,4 @@
+# LOCAL QA ONLY: this manifest stages prebuilt ELF files and is not for Flathub submission.
 app-id: io.dnspilot.DNSPilot
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'

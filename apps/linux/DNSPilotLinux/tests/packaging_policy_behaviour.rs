@@ -164,3 +164,52 @@ fn native_package_recipes_are_buildable_from_the_staged_payload() {
         assert!(rpm.contains(source), "rpm recipe should include {source}");
     }
 }
+
+#[test]
+fn release_metadata_uses_the_linux_cargo_version_and_labels_local_flatpak_as_qa_only() {
+    let version_script = linux_root().join("scripts/release-version.sh");
+    let validation_script = linux_root().join("scripts/validate-release-metadata.sh");
+    let output = Command::new("bash")
+        .arg(&version_script)
+        .output()
+        .expect("release version script should run");
+    assert!(output.status.success());
+    let version = String::from_utf8(output.stdout).expect("version should be UTF-8");
+    let version = version.trim();
+    assert!(!version.is_empty());
+
+    let validation = Command::new("bash")
+        .arg(&validation_script)
+        .output()
+        .expect("metadata validation script should run");
+    assert!(
+        validation.status.success(),
+        "metadata validation failed: {}",
+        String::from_utf8_lossy(&validation.stderr)
+    );
+
+    let build_script = read_packaging_file("scripts/build-packages.sh");
+    assert!(build_script.contains("release-version.sh"));
+    let flatpak = read_packaging_file("packaging/flatpak/io.dnspilot.DNSPilot.yml");
+    assert!(flatpak.contains("LOCAL QA ONLY"));
+    assert!(flatpak.contains("target/release/dnspilot-cli"));
+}
+
+#[test]
+fn linux_ci_and_package_smoke_scripts_keep_default_packages_non_mutating() {
+    let ci = linux_root().join("scripts/ci.sh");
+    let smoke = linux_root().join("scripts/package-smoke.sh");
+    for script in [&ci, &smoke] {
+        let syntax = Command::new("bash")
+            .args(["-n", script.to_str().unwrap()])
+            .output()
+            .expect("script syntax check should run");
+        assert!(syntax.status.success());
+    }
+
+    let smoke_source = fs::read_to_string(smoke).expect("smoke script should be readable");
+    assert!(smoke_source.contains("never applies"));
+    assert!(smoke_source.contains("dnspilot-native-helper"));
+    assert!(!smoke_source.contains("nmcli"));
+    assert!(!smoke_source.contains("resolvectl"));
+}

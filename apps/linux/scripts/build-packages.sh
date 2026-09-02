@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$LINUX_ROOT/../.." && pwd)"
 DIST_DIR="$LINUX_ROOT/dist"
 PAYLOAD_DIR="$DIST_DIR/payload"
 SNAP_PAYLOAD_DIR="$LINUX_ROOT/packaging/snap-payload"
-VERSION="0.1.0"
+VERSION="$($SCRIPT_DIR/release-version.sh)"
 
 usage() {
   cat <<'EOF'
@@ -23,6 +23,7 @@ Modes:
 
 Run on a Linux build host from any working directory. Package tools and real
 distro QA remain host-specific; this script never enables DNS mutation.
+Run package-smoke.sh after installing an artifact on a disposable Linux QA host.
 EOF
 }
 
@@ -75,6 +76,7 @@ prepare_payload() {
   require_linux_host
   require_command cargo
   require_command file
+  "$SCRIPT_DIR/validate-release-metadata.sh"
   build_release
   stage_payload
   validate_metadata
