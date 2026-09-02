@@ -1,7 +1,7 @@
 use dnspilot_linux_shell::capabilities::{
     capability_view_model, BenchmarkMode, LinuxEnvironmentProbe, LinuxPackageKind,
 };
-use dnspilot_linux_shell::diagnostics::LinuxDiagnosticReport;
+use dnspilot_linux_shell::diagnostics::{redact_debug_report, LinuxDiagnosticReport};
 use dnspilot_linux_shell::process::{
     process_rows, LinuxBenchmarkProcessViewModel, ProcessRowKind, ProcessStatus, ProcessStepId,
 };
@@ -147,4 +147,19 @@ fn process_rows_expose_steps_and_resolvers_for_gui_status_table() {
             && row.status == "success"
             && row.detail.as_deref() == Some("12 ms")
     }));
+}
+
+#[test]
+fn debug_report_redacts_private_domains_and_local_user_paths_by_default() {
+    let report = "Core command: /home/alice/.local/bin/dnspilot-cli --domain private.example\n\
+stderr: failed to open /Users/alice/.local/share/dnspilot/dnspilot.sqlite for private.example";
+
+    let redacted = redact_debug_report(report, &["private.example".to_string()]);
+
+    assert!(!redacted.contains("private.example"));
+    assert!(!redacted.contains("/home/alice"));
+    assert!(!redacted.contains("/Users/alice"));
+    assert!(redacted.contains("[redacted-domain]"));
+    assert!(redacted.contains("/home/[redacted]"));
+    assert!(redacted.contains("/Users/[redacted]"));
 }

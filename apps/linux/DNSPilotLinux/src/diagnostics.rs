@@ -1,6 +1,36 @@
 use crate::capabilities::LinuxCapabilityViewModel;
 use crate::process::{status_label, LinuxBenchmarkProcessViewModel};
 
+pub fn redact_debug_report(report: &str, private_domains: &[String]) -> String {
+    let mut redacted = report.to_string();
+    for domain in private_domains {
+        if !domain.trim().is_empty() {
+            redacted = redacted.replace(domain, "[redacted-domain]");
+        }
+    }
+    redact_home_path(&redact_home_path(&redacted, "/home/"), "/Users/")
+}
+
+fn redact_home_path(value: &str, root: &str) -> String {
+    let mut result = String::with_capacity(value.len());
+    let mut remainder = value;
+    while let Some(index) = remainder.find(root) {
+        result.push_str(&remainder[..index]);
+        result.push_str(root);
+        remainder = &remainder[index + root.len()..];
+        let user_end = remainder
+            .find(|character: char| character == '/' || character.is_ascii_whitespace())
+            .unwrap_or(remainder.len());
+        if user_end == 0 {
+            continue;
+        }
+        result.push_str("[redacted]");
+        remainder = &remainder[user_end..];
+    }
+    result.push_str(remainder);
+    result
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LinuxDiagnosticReport {
     pub distro: String,

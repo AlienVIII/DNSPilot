@@ -10,6 +10,7 @@ use dnspilot_linux_shell::core_adapter::{
     CoreCliAdapter, CoreProfile, CoreSuite, LinuxDataPaths, ProcessCoreCliCommandRunner,
 };
 use dnspilot_linux_shell::detect::detect_linux_environment;
+use dnspilot_linux_shell::diagnostics::redact_debug_report;
 use dnspilot_linux_shell::executable::{
     resolve_core_cli, CoreCliResolution, CoreCliResolutionError,
 };
@@ -74,6 +75,7 @@ struct DnsPilotGui {
     core_cli: Result<CoreCliResolution, CoreCliResolutionError>,
     status: String,
     diagnostics: String,
+    include_private_diagnostics: bool,
     result: Option<BenchmarkDecision>,
     process: Option<LinuxBenchmarkProcessViewModel>,
     benchmark_worker: Option<BenchmarkWorker>,
@@ -136,6 +138,7 @@ impl DnsPilotGui {
             core_cli,
             status,
             diagnostics: String::new(),
+            include_private_diagnostics: false,
             result: None,
             process: None,
             benchmark_worker: None,
@@ -509,6 +512,14 @@ impl DnsPilotGui {
                 self.status = error.to_string();
                 None
             }
+        }
+    }
+
+    fn debug_report_for_display(&self) -> String {
+        if self.include_private_diagnostics {
+            self.diagnostics.clone()
+        } else {
+            redact_debug_report(&self.diagnostics, &split_words(&self.custom_domains))
         }
     }
 }
@@ -945,7 +956,7 @@ impl DnsPilotGui {
                 }
                 SettingsActionKind::DiagnosticsOnly => {
                     if ui.button(action.label).clicked() {
-                        self.settings_output = self.diagnostics.clone();
+                        self.settings_output = self.debug_report_for_display();
                         self.status = "Diagnostics copied into Settings".to_string();
                     }
                 }
@@ -1100,14 +1111,21 @@ impl DnsPilotGui {
 
     fn diagnostics_ui(&mut self, ui: &mut egui::Ui) {
         ui.heading(localized_text(TextKey::Diagnostics, self.language));
+        ui.checkbox(
+            &mut self.include_private_diagnostics,
+            "Include private domains and local paths",
+        )
+        .on_hover_text("Disabled by default. Enable only when a support contact requires full diagnostic details.");
+        let mut report = self.debug_report_for_display();
         if ui
             .button(localized_text(TextKey::CopyDebugReport, self.language))
             .clicked()
         {
-            ui.ctx().copy_text(self.diagnostics.clone());
+            ui.ctx().copy_text(report.clone());
         }
-        ui.add(
-            egui::TextEdit::multiline(&mut self.diagnostics)
+        ui.add_enabled(
+            false,
+            egui::TextEdit::multiline(&mut report)
                 .desired_rows(26)
                 .desired_width(f32::INFINITY),
         );
