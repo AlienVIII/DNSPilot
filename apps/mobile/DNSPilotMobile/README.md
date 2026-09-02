@@ -4,7 +4,7 @@ Standalone Expo/React Native app for iOS/iPadOS and Android.
 
 ## Architecture
 
-- Expo SDK 57, Expo Router, React Native 0.86, React 19.2.
+- Expo SDK 57.0.19, Expo Router 57.0.18, React Native 0.86.3, React 19.2.
 - Local Expo modules call a Rust adapter around `dnspilot-core` inside installable builds.
 - App-private SQLite owns profiles, suites, history, recommendation, and policy state.
 - Node `server/dev-server.mjs` is Expo Go/web development fallback only. It is not a
@@ -56,6 +56,14 @@ debug-key QA APK, and rejects dev/VPN/privileged surface. Do not upload either l
 Play upload must come from the EAS `production` profile with its configured upload credential.
 Current status is recorded in
 `../mobile-progress.md`.
+
+The 2026-09-03 local release verification passed 106 tests, Expo Doctor 21/21, a clean iOS
+Simulator Release build without signing, and Android release preflight. Local Android AAB/APK
+remain Android Debug-signed QA evidence only; run the EAS `production` profile for any Play upload.
+
+`patch-package` reapplies the tracked `expo-modules-jsi` Swift-concurrency compatibility patch
+after install. When `expo-modules-jsi` changes, regenerate the versioned patch and rerun the clean
+iOS Release build before committing the lockfile update.
 
 ## Platform Boundaries
 

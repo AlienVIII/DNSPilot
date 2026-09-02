@@ -33,10 +33,10 @@ index 7bc72bc..30dece0 100644
    let set: Setter?
    let getPropertyNames: PropertyNamesGetter
 diff --git a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift
-index 9a0b4e0..00dca7b 100644
+index bedb057..6c8f834 100644
 --- a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift
 +++ b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift
-@@ -76,7 +76,7 @@ internal class JavaScriptExecutor: SerialExecutor, @unchecked Sendable {
+@@ -95,7 +95,7 @@ internal class JavaScriptExecutor: SerialExecutor, @unchecked Sendable {
  
  /// An actor that is dedicated for the specific runtime.
  internal actor JavaScriptRuntimeActor {
@@ -45,7 +45,7 @@ index 9a0b4e0..00dca7b 100644
    nonisolated private let executor: JavaScriptExecutor
  
    init(runtime: JavaScriptRuntime) {
-@@ -95,7 +95,7 @@ internal actor JavaScriptRuntimeActor {
+@@ -114,7 +114,7 @@ internal actor JavaScriptRuntimeActor {
  
  /// Serial executor dedicated for the specific runtime.
  internal final class JavaScriptRuntimeExecutor: JavaScriptExecutor, @unchecked Sendable {
@@ -172,7 +172,7 @@ index 280c18a..d19b6b7 100644
  
    /// The underlying `ArrayBuffer` backing this typed array. Stored alongside `pointee`
 diff --git a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift
-index ded0419..a902ce2 100644
+index 691b696..55b381d 100644
 --- a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift
 +++ b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift
 @@ -7,7 +7,7 @@ internal import jsi

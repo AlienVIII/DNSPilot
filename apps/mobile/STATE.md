@@ -1,6 +1,6 @@
 # DNSPilot Mobile State
 
-Last updated: 2026-08-09.
+Last updated: 2026-09-03.
 
 ## Current Truth
 
@@ -32,22 +32,27 @@ Last updated: 2026-08-09.
 
 ## Latest Validation
 
-- On 2026-08-09, `npm run verify` passes: 106 tests, TypeScript, public config, Router
-  warning gate, Expo compatibility, and the production audit policy. npm currently reports
-  14 high findings inherited from Metro's build-time `image-size@1.2.1` chain and 8 moderate
-  `uuid` findings. There is no fixed `image-size` version in the registry and forced npm fixes
+- On 2026-09-03, `npm run verify` passes: 106 tests, TypeScript, public config, Router
+  warning gate, Expo 57.0.19 compatibility, and the production audit policy. npm reports
+  4 high findings inherited from Metro's build-time `image-size@1.2.1` chain and 15 moderate
+  findings. There is no fixed `image-size` version in the registry and forced npm fixes
   downgrade Expo/React Native, so `npm-audit-policy` allows only advisory sources `1138808` and
   `1138809` plus their known Metro-chain packages; any other high/critical finding fails
   the gate. A direct advisory on an otherwise known package also fails.
-- `npx expo-doctor@latest` remains 20/20. `npm run preflight:release` passes Store/optional
+- `npx expo-doctor@latest` passes 21/21. `npm run preflight:release` passes Store/optional
   iOS DNS isolation and creates a fresh local Android release-shape AAB and debug-key QA APK
   after clean prebuild.
   Manifest/dex gates confirm no dev client, VPN, overlay, storage, or privileged leakage in
   either artifact. Both local artifacts use the debug certificate and are never upload-ready.
-  AAB SHA-256: `d23f0a379a31e2caec5b6c999efaab118453922ed4a6e59c7281d2fc62bc80f8`.
-  QA APK SHA-256: `c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`.
-- iOS Simulator Release with `CODE_SIGNING_ALLOWED=NO` succeeded again on 2026-08-09. Default `production`
+  AAB SHA-256: `4475d1aac8db49cd7de39eb0bf2c7682861c2c22106283afcbd7f07b83ccaedc`.
+  QA APK SHA-256: `d8799ff834c1dfe2ee2a1a3fe256abbe57e2dd8873347f923ebb789bbb186601`.
+  The APK verifies with the local Android Debug certificate and APK Signature Scheme v2 only.
+- iOS Simulator Release with `CODE_SIGNING_ALLOWED=NO` succeeded again on 2026-09-03 after a
+  clean iOS prebuild, Rust artifact preparation, and CocoaPods/codegen installation. Default `production`
   omits the iOS DNS Settings plugin/flag; `production-ios-dns` alone enables both.
+- The iOS build currently requires the tracked version-specific `expo-modules-jsi` Swift-concurrency
+  patch. Treat a future `expo-modules-jsi` update as a native release risk: regenerate its patch and
+  repeat the clean Simulator Release build before accepting the dependency update.
 - A predecessor debug-key-signed Android release-variant QA APK was installed on a physical Pixel
   9 Pro XL. It launched the in-process Rust runtime without crash; tutorial persistence,
   Help on all consumer tabs, DNS-only Quick Check, DNS + TCP, and history save passed.

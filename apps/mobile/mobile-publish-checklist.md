@@ -1,6 +1,6 @@
 # Mobile Publish Checklist
 
-Last reviewed: 2026-08-09.
+Last reviewed: 2026-09-03.
 
 ## Release Posture
 
@@ -36,8 +36,9 @@ after dependency or generated-config changes.
 The local `android/app/build/outputs/apk/release/app-release.apk` and
 `android/app/build/outputs/bundle/release/app-release.aab` both use the Android debug
 certificate. Their current SHA-256 values are respectively
-`c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d` and
-`d23f0a379a31e2caec5b6c999efaab118453922ed4a6e59c7281d2fc62bc80f8`. They prove local
+`d8799ff834c1dfe2ee2a1a3fe256abbe57e2dd8873347f923ebb789bbb186601` and
+`4475d1aac8db49cd7de39eb0bf2c7682861c2c22106283afcbd7f07b83ccaedc`. The APK has a
+verified v2 debug signature. They prove local
 capability shape only. Do not upload either artifact or its local signing key. The Play
 artifact must be built by EAS `production` with the configured upload credential.
 

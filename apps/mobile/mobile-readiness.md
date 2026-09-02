@@ -1,10 +1,10 @@
 # Mobile Readiness
 
-Last reviewed: 2026-08-09.
+Last reviewed: 2026-09-03.
 
 ## Green Before Main Integration
 
-- [x] `npm run verify` passes with Expo 57.0.11/router 57.0.11/symbols 57.0.2:
+- [x] `npm run verify` passes with Expo 57.0.19/router 57.0.18/symbols 57.0.2:
   106 tests, typecheck, public config, Router export/warning gate, compatibility, and a
   strict production audit policy. The only high exception is the tested Metro build-time
   `image-size` chain (advisory sources `1138808`, `1138809`) without a compatible upstream fix.
@@ -20,9 +20,9 @@ Last reviewed: 2026-08-09.
   release smoke on the same green candidate. The predecessor debug-key QA APK installed and
   launched on Pixel; after a Wi-Fi change, DNS-only Quick Check and System DNS validation
   passed with Vietnamese diagnostics and no crash. No system DNS setting was changed.
-- [ ] The current debug-key QA APK (`c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`)
-  is installed on Pixel 9 Pro XL with no launch crash. Unlock the device and rerun the native
-  flow; the lock screen prevented current-result automation from reaching DNSPilot.
+- [ ] The current debug-key QA APK (`d8799ff834c1dfe2ee2a1a3fe256abbe57e2dd8873347f923ebb789bbb186601`)
+  is ready for Pixel 9 Pro XL installation. No Android device is currently attached, so rerun the
+  native flow when it is connected and unlocked; it is not evidence until the current result flow completes.
 - [x] The current production QA APK installs and launches in Android Emulator first-run
   without a runtime permission prompt. Do not count this as final device-flow evidence when
   another foreground app prevents completing the automated interaction.

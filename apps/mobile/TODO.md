@@ -1,6 +1,6 @@
 # DNSPilot Mobile Roadmap
 
-Last reviewed: 2026-08-09.
+Last reviewed: 2026-09-03.
 
 ## Completed Automated Scope
 
@@ -11,7 +11,7 @@ Last reviewed: 2026-08-09.
   permission request.
 - [x] Expo Router unresolved-route gate, Store profile entitlement isolation,
   Android release-manifest checks, and iOS Simulator consumer smoke.
-- [x] Expo SDK 57.0.11 patch alignment, Rust runtime/Core contract checks, a fresh local
+- [x] Expo SDK 57.0.19 / React Native 0.86.3 patch alignment, Rust runtime/Core contract checks, a fresh local
   Android release-shape AAB, and iOS Simulator Release build.
 - [x] Production Android gate now creates and checks both a local release-shape AAB and a
   debug-key QA APK under the same production environment; direct Gradle invocation cannot
@@ -24,7 +24,7 @@ Last reviewed: 2026-08-09.
 ## Active Automated Scope
 
 - [x] Build and verify the final Android QA APK locally. SHA-256:
-  `c9896d3ef21debc9d78e1c4c93404abfbacf937551e73fd51e018780796e015d`.
+  `d8799ff834c1dfe2ee2a1a3fe256abbe57e2dd8873347f923ebb789bbb186601`.
 - [ ] After shared Core lands, implement D13's separate Health Check and DNS Benchmark.
 - [ ] Prove D14 background continuation per OS before implementation; local completion
   notifications remain contextual opt-in and no run auto-retries.
